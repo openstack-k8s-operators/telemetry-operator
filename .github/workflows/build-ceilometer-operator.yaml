@@ -1,4 +1,4 @@
-name: ceilometer Operator image builder
+name: Ceilometer Operator image builder
 
 on:
   push:

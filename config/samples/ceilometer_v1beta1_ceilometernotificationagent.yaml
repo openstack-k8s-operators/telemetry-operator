@@ -1,0 +1,6 @@
+apiVersion: ceilometer.openstack.org/v1beta1
+kind: CeilometerNotificationAgent
+metadata:
+  name: ceilometernotificationagent-sample
+spec:
+  # TODO(user): Add fields here

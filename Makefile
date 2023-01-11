@@ -240,31 +240,31 @@ CI_TOOLS_REPO := https://github.com/openstack-k8s-operators/openstack-k8s-operat
 CI_TOOLS_REPO_DIR = $(shell pwd)/CI_TOOLS_REPO
 .PHONY: get-ci-tools
 get-ci-tools:
-       if [ -d  "$(CI_TOOLS_REPO_DIR)" ]; then \
-               echo "Ci tools exists"; \
-               pushd "$(CI_TOOLS_REPO_DIR)"; \
-               git pull --rebase; \
-               popd; \
-       else \
-               git clone $(CI_TOOLS_REPO) "$(CI_TOOLS_REPO_DIR)"; \
-       fi
+	if [ -d  "$(CI_TOOLS_REPO_DIR)" ]; then \
+		echo "Ci tools exists"; \
+		pushd "$(CI_TOOLS_REPO_DIR)"; \
+		git pull --rebase; \
+		popd; \
+	else \
+		git clone $(CI_TOOLS_REPO) "$(CI_TOOLS_REPO_DIR)"; \
+	fi
 
 # Run go fmt against code
 gofmt: get-ci-tools
-       $(CI_TOOLS_REPO_DIR)/test-runner/gofmt.sh
+	$(CI_TOOLS_REPO_DIR)/test-runner/gofmt.sh
 
 # Run go vet against code
 govet: get-ci-tools
-       $(CI_TOOLS_REPO_DIR)/test-runner/govet.sh
+	$(CI_TOOLS_REPO_DIR)/test-runner/govet.sh
 
 # Run go test against code
 gotest: get-ci-tools
-       $(CI_TOOLS_REPO_DIR)/test-runner/gotest.sh
+	$(CI_TOOLS_REPO_DIR)/test-runner/gotest.sh
 
 # Run golangci-lint test against code
 golangci: get-ci-tools
-       $(CI_TOOLS_REPO_DIR)/test-runner/golangci.sh
+	$(CI_TOOLS_REPO_DIR)/test-runner/golangci.sh
 
 # Run go lint against code
 golint: get-ci-tools
-       PATH=$(GOBIN):$(PATH); $(CI_TOOLS_REPO_DIR)/test-runner/golint.sh
+	PATH=$(GOBIN):$(PATH); $(CI_TOOLS_REPO_DIR)/test-runner/golint.sh
