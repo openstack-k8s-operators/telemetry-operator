@@ -28,7 +28,7 @@ import (
 )
 
 // CeilometerCentralAgentReconciler reconciles a CeilometerCentralAgent object
-type CeilometerCentralAgentReconciler struct {
+type CeilometerReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -46,7 +46,7 @@ type CeilometerCentralAgentReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.1/pkg/reconcile
-func (r *CeilometerCentralAgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
@@ -55,7 +55,7 @@ func (r *CeilometerCentralAgentReconciler) Reconcile(ctx context.Context, req ct
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CeilometerCentralAgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ceilometerv1beta1.CeilometerCentralAgent{}).
 		Complete(r)

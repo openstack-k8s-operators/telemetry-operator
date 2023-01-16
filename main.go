@@ -89,18 +89,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.CeilometerCentralAgentReconciler{
+	if err = (&controllers.CeilometerReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CeilometerCentralAgent")
-		os.Exit(1)
-	}
-	if err = (&controllers.CeilometerNotificationAgentReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CeilometerNotificationAgent")
+		setupLog.Error(err, "unable to create Ceilometer controller")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
