@@ -14,31 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
 package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CeilometerCommonSpec defines common fields for Ceilometer agents
-type CeilometerCommonSpec struct {
-}
-
-// GetCommonFields allows to return all promoted fields as single structure
-func (ccs CeilometerCommonSpec) GetCommonFields() *CeilometerCommonSpec {
-	return &ccs
-}
-
-// CeilometerCentralAgentSpec defines the desired state of CeilometerCentralAgent
-type CeilometerCentralAgentSpec struct {
-	CeilometerCommonSpec `json:",inline"`
-
-	// Foo is an example field of CeilometerCentralAgent. Edit ceilometercentralagent_types.go to remove/update
+// CeilometerSpec defines the desired state of Ceilometer
+type CeilometerSpec struct {
+	// Foo is an example field of Ceilometer. Edit ceilometer_types.go to remove/update
 	Foo string `json:"foo,omitempty"`
 }
 
-// CeilometerCentralAgentStatus defines the observed state of CeilometerCentralAgent
-type CeilometerCentralAgentStatus struct {
+// CeilometerStatus defines the observed state of Ceilometer
+type CeilometerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -46,63 +38,24 @@ type CeilometerCentralAgentStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// CeilometerCentralAgent is the Schema for the ceilometercentralagents API
-type CeilometerCentralAgent struct {
+// Ceilometer is the Schema for the ceilometers API
+type Ceilometer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CeilometerCentralAgentSpec   `json:"spec,omitempty"`
-	Status CeilometerCentralAgentStatus `json:"status,omitempty"`
+	Spec   CeilometerSpec   `json:"spec,omitempty"`
+	Status CeilometerStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// CeilometerCentralAgentList contains a list of CeilometerCentralAgent
-type CeilometerCentralAgentList struct {
+// CeilometerList contains a list of Ceilometer
+type CeilometerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []CeilometerCentralAgent `json:"items"`
+	Items           []Ceilometer `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&CeilometerCentralAgent{}, &CeilometerCentralAgentList{})
-	SchemeBuilder.Register(&CeilometerNotificationAgent{}, &CeilometerNotificationAgentList{})
-}
-
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// CeilometerNotificationAgentSpec defines the desired state of CeilometerNotificationAgent
-type CeilometerNotificationAgentSpec struct {
-	CeilometerCommonSpec `json:",inline"`
-
-	// Foo is an example field of CeilometerNotificationAgent. Edit ceilometernotificationagent_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
-}
-
-// CeilometerNotificationAgentStatus defines the observed state of CeilometerNotificationAgent
-type CeilometerNotificationAgentStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
-// CeilometerNotificationAgent is the Schema for the ceilometernotificationagents API
-type CeilometerNotificationAgent struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   CeilometerNotificationAgentSpec   `json:"spec,omitempty"`
-	Status CeilometerNotificationAgentStatus `json:"status,omitempty"`
-}
-
-//+kubebuilder:object:root=true
-
-// CeilometerNotificationAgentList contains a list of CeilometerNotificationAgent
-type CeilometerNotificationAgentList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []CeilometerNotificationAgent `json:"items"`
+	SchemeBuilder.Register(&Ceilometer{}, &CeilometerList{})
 }
