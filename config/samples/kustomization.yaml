@@ -1,0 +1,5 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- ceilometer_v1beta1_ceilometercentralagent.yaml
+- ceilometer_v1beta1_ceilometernotificationagent.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
