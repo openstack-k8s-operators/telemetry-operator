@@ -1,8 +1,8 @@
-ARG GOLANG_BUILDER=golang:1.17
+ARG GOLANG_BUILDER=golang:1.19
 ARG OPERATOR_BASE_IMAGE=registry.access.redhat.com/ubi8/ubi-minimal:8.6
 
 # Build the manager binary
-FROM golang:1.17 as builder
+FROM golang:1.19 as builder
 FROM $GOLANG_BUILDER AS builder
 
 #Arguments required by OSBS build system

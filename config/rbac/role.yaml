@@ -6,9 +6,9 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ceilometer.openstack.org
+  - apps
   resources:
-  - ceilometercentralagents
+  - deployments
   verbs:
   - create
   - delete
@@ -20,17 +20,41 @@ rules:
 - apiGroups:
   - ceilometer.openstack.org
   resources:
-  - ceilometercentralagents/finalizers
+  - ceilometers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ceilometer.openstack.org
+  resources:
+  - ceilometers/finalizers
   verbs:
   - update
 - apiGroups:
   - ceilometer.openstack.org
   resources:
-  - ceilometercentralagents/status
+  - ceilometers/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:

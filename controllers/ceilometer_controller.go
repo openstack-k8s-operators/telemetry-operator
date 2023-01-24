@@ -27,7 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/go-logr/logr"
+	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
+	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
+	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	"k8s.io/client-go/kubernetes"
 
 	ceilometerv1beta1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
 )
@@ -35,13 +40,17 @@ import (
 // CeilometerReconciler reconciles a Ceilometer object
 type CeilometerReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Kclient kubernetes.Interface
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=ceilometer.openstack.org,resources=ceilometer,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=ceilometer.openstack.org,resources=ceilometer/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=ceilometer.openstack.org,resources=ceilometer/finalizers,verbs=update
+//+kubebuilder:rbac:groups=ceilometer.openstack.org,resources=ceilometers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=ceilometer.openstack.org,resources=ceilometers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=ceilometer.openstack.org,resources=ceilometers/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -53,7 +62,8 @@ type CeilometerReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.1/pkg/reconcile
 func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	fmt.Printf("Log: %v", r.Log)
+	_ = r.Log.WithValues("ceilometer", req.NamespacedName)
 
 	instance, err := r.getCeilometerInstance(ctx, req)
 	if err != nil || instance.Name == "" {
@@ -83,13 +93,18 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	err = r.generateServiceConfigMaps(ctx, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
 func (r *CeilometerReconciler) getCeilometerInstance(ctx context.Context, req ctrl.Request) (*ceilometerv1beta1.Ceilometer, error) {
 	// Fetch the Ceilometer instance
 	instance := &ceilometerv1beta1.Ceilometer{}
-	err := r.Get(ctx, req.NamespacedName, instance)
+	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -151,8 +166,6 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 		},
 	}
 
-	//addMounts(instance, pod)
-
 	// Set Ceilometer instance as the owner and controller
 	err := ctrl.SetControllerReference(instance, pod, r.Scheme)
 	if err != nil {
@@ -160,6 +173,38 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 	}
 
 	return pod, nil
+}
+
+func (r *CeilometerReconciler) generateServiceConfigMaps(ctx context.Context, instance *ceilometerv1beta1.Ceilometer) error {
+
+	helper, err := helper.NewHelper(
+		instance,
+		r.Client,
+		r.Kclient,
+		r.Scheme,
+		r.Log,
+	)
+	if err != nil {
+		return err
+	}
+	cmLabels := labelsForCeilometer(instance.Name)
+
+	cms := []util.Template{
+		{
+			Name:         "ceilometer-conf",
+			Namespace:    instance.Namespace,
+			Type:         util.TemplateTypeConfig,
+			InstanceType: "ceilometer",
+			Labels:       cmLabels,
+		},
+	}
+
+	err = configmap.EnsureConfigMaps(ctx, helper, instance, cms, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // labelsForCeilometer returns the labels for selecting the resources
@@ -173,5 +218,6 @@ func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ceilometerv1beta1.Ceilometer{}).
 		Owns(&corev1.Pod{}).
+		Owns(&corev1.ConfigMap{}).
 		Complete(r)
 }

@@ -11,20 +11,10 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: CeilometerCentralAgent is the Schema for the ceilometercentralagents API
-      displayName: Ceilometer Central Agent
-      kind: CeilometerCentralAgent
-      name: ceilometercentralagents.ceilometer.openstack.org
-      version: v1beta1
-    - description: CeilometerNotificationAgent is the Schema for the ceilometernotificationagents API
-      displayName: Ceilometer Notification Agent
-      kind: CeilometerNotificationAgent
-      name: ceilometernotificationagents.ceilometer.openstack.org
-      version: v1beta1
-    - description: CeilometerSG is the Schema for the ceilometersgs API
-      displayName: Ceilometer SG
-      kind: CeilometerSG
-      name: ceilometersgs.ceilometer.openstack.org
+    - description: Ceilometer is the Schema for the ceilometers API
+      displayName: Ceilometer
+      kind: Ceilometer
+      name: ceilometers.ceilometer.openstack.org
       version: v1beta1
   description: Ceilometer Operator
   displayName: Ceilometer Operator
