@@ -1,0 +1,12 @@
+---
+
+sources:
+  - name: meter_source
+    meters:
+      - "*"
+    sinks:
+      - tcp_sink
+sinks:
+  - name: tcp_sink
+    publishers:
+      - tcp://127.0.0.1:3060
