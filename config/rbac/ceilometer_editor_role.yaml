@@ -1,20 +1,24 @@
-# permissions for end users to view ceilometercentralagents.
+# permissions for end users to edit ceilometers.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: ceilometercentralagent-viewer-role
+  name: ceilometer-editor-role
 rules:
 - apiGroups:
   - ceilometer.openstack.org
   resources:
-  - ceilometercentralagents
+  - ceilometers
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - ceilometer.openstack.org
   resources:
-  - ceilometercentralagents/status
+  - ceilometers/status
   verbs:
   - get

@@ -1,0 +1,5 @@
+apiVersion: ceilometer.openstack.org/v1beta1
+kind: Ceilometer
+metadata:
+  name: ceilometer
+  namespace: openstack
