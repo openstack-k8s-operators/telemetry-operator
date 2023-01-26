@@ -138,17 +138,38 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 		Image:           "quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo",
 		Name:            "ceilometer-central-agent",
 		Env:             envVars,
+		VolumeMounts: []corev1.VolumeMount{{
+			Name:      "ceilometer-conf",
+			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer",
+		}, {
+			Name:      "config-central-json",
+			MountPath: "/var/lib/kolla/config_files/config.json",
+			SubPath:   "config.json",
+		}},
 	}
 	notificationAgentContainer := corev1.Container{
 		ImagePullPolicy: "Always",
 		Image:           "quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo",
 		Name:            "ceilometer-notification-agent",
 		Env:             envVars,
+		VolumeMounts: []corev1.VolumeMount{{
+			Name:      "ceilometer-conf",
+			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer",
+		}, {
+			Name:      "config-notification-json",
+			MountPath: "/var/lib/kolla/config_files/config.json",
+			SubPath:   "config.json",
+		}},
 	}
 	sgCoreContainer := corev1.Container{
 		ImagePullPolicy: "Always",
 		Image:           "quay.io/jlarriba/sg-core:latest",
 		Name:            "sg-core",
+		VolumeMounts: []corev1.VolumeMount{{
+			Name:      "sg-core-conf-yaml",
+			MountPath: "/etc/sg-core.conf.yaml",
+			SubPath:   "sg-core.conf.yaml",
+		}},
 	}
 
 	pod := &corev1.Pod{
@@ -163,6 +184,55 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 				notificationAgentContainer,
 				sgCoreContainer,
 			},
+			Volumes: []corev1.Volume{{
+				Name: "ceilometer-conf",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "ceilometer-conf",
+						},
+					},
+				},
+			}, {
+				Name: "config-central-json",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						Items: []corev1.KeyToPath{{
+							Key:  "config-central.json",
+							Path: "config.json",
+						}},
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "ceilometer-conf",
+						},
+					},
+				},
+			}, {
+				Name: "config-notification-json",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						Items: []corev1.KeyToPath{{
+							Key:  "config-notification.json",
+							Path: "config.json",
+						}},
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "ceilometer-conf",
+						},
+					},
+				},
+			}, {
+				Name: "sg-core-conf-yaml",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						Items: []corev1.KeyToPath{{
+							Key:  "sg-core.conf.yaml",
+							Path: "sg-core.conf.yaml",
+						}},
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "ceilometer-conf",
+						},
+					},
+				},
+			}},
 		},
 	}
 
