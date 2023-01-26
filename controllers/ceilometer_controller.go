@@ -32,6 +32,7 @@ import (
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 
 	ceilometerv1beta1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
@@ -70,22 +71,22 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	// Check if the pod already exists, if not create a new one
-	foundPod := &corev1.Pod{}
-	err = r.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, foundPod)
+	// Check if the deployment already exists, if not create a new one
+	foundDeployment := &appsv1.Deployment{}
+	err = r.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, foundDeployment)
 	if err != nil && errors.IsNotFound(err) {
-		// Define a new pod
-		pod, err := r.podForCeilometer(instance)
+		// Define a new deployment
+		deployment, err := r.deploymentForCeilometer(instance)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		fmt.Printf("Creating a new Pod: Pod.Namespace %s Pod.Name %s\n", pod.Namespace, pod.Name)
-		err = r.Create(ctx, pod)
+		fmt.Printf("Creating a new Deployment: Deployment.Namespace %s Deployment.Name %s\n", deployment.Namespace, deployment.Name)
+		err = r.Create(ctx, deployment)
 		if err != nil {
 			fmt.Println(err.Error())
 			return ctrl.Result{}, err
 		}
-		fmt.Println("pod created successfully - return and requeue")
+		fmt.Println("deployment created successfully - return and requeue")
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
 		fmt.Println(err.Error())
@@ -124,7 +125,7 @@ func (r *CeilometerReconciler) getCeilometerInstance(ctx context.Context, req ct
 }
 
 // podForCeilometer returns a ceilometer Pod object
-func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceilometer) (*corev1.Pod, error) {
+func (r *CeilometerReconciler) deploymentForCeilometer(instance *ceilometerv1beta1.Ceilometer) (*appsv1.Deployment, error) {
 	ls := labelsForCeilometer(instance.Name)
 
 	var envVars []corev1.EnvVar
@@ -140,7 +141,8 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 		Env:             envVars,
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      "ceilometer-conf",
-			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer",
+			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer/ceilometer.conf",
+			SubPath:   "ceilometer.conf",
 		}, {
 			Name:      "config-central-json",
 			MountPath: "/var/lib/kolla/config_files/config.json",
@@ -154,7 +156,12 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 		Env:             envVars,
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      "ceilometer-conf",
-			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer",
+			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer/ceilometer.conf",
+			SubPath:   "ceilometer.conf",
+		}, {
+			Name:      "pipeline-yaml",
+			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer/pipeline.yaml",
+			SubPath:   "pipeline.yaml",
 		}, {
 			Name:      "config-notification-json",
 			MountPath: "/var/lib/kolla/config_files/config.json",
@@ -172,7 +179,7 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 		}},
 	}
 
-	pod := &corev1.Pod{
+	pod := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: instance.Namespace,
@@ -188,6 +195,10 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 				Name: "ceilometer-conf",
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
+						Items: []corev1.KeyToPath{{
+							Key:  "ceilometer.conf",
+							Path: "ceilometer.conf",
+						}},
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "ceilometer-conf",
 						},
@@ -220,6 +231,19 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 					},
 				},
 			}, {
+				Name: "pipeline-yaml",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						Items: []corev1.KeyToPath{{
+							Key:  "pipeline.yaml",
+							Path: "pipeline.yaml",
+						}},
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "ceilometer-conf",
+						},
+					},
+				},
+			}, {
 				Name: "sg-core-conf-yaml",
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -236,13 +260,30 @@ func (r *CeilometerReconciler) podForCeilometer(instance *ceilometerv1beta1.Ceil
 		},
 	}
 
+	var replicas int32 = 1
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instance.Name,
+			Namespace: instance.Namespace,
+			Labels:    ls,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: ls,
+			},
+			Template: pod,
+		},
+	}
+
 	// Set Ceilometer instance as the owner and controller
-	err := ctrl.SetControllerReference(instance, pod, r.Scheme)
+	err := ctrl.SetControllerReference(instance, deployment, r.Scheme)
 	if err != nil {
 		return nil, err
 	}
 
-	return pod, nil
+	return deployment, nil
 }
 
 func (r *CeilometerReconciler) generateServiceConfigMaps(ctx context.Context, instance *ceilometerv1beta1.Ceilometer) error {
