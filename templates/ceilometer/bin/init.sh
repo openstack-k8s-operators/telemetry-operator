@@ -22,8 +22,8 @@ export RABBIT_HOST=${RabbitHost:?"Please specify a RabbitHost variable."}
 export RABBIT_USER=${RabbitUser:?"Please specify a RabbitUser variable."}
 export RABBIT_PASS=${RabbitPass:?"Please specify a RabbitPass variable."}
 
-SVC_CFG=/etc/keystone/keystone.conf
-SVC_CFG_MERGED=/var/lib/config-data/merged/keystone.conf
+SVC_CFG=/etc/ceilometer/ceilometer.conf
+SVC_CFG_MERGED=/var/lib/config-data/merged/ceilometer.conf
 
 # expect that the common.sh is in the same dir as the calling script
 SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"

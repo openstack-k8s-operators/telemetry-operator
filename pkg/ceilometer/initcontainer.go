@@ -24,9 +24,9 @@ import (
 // CeilometerDetails information
 type CeilometerDetails struct {
 	ContainerImage       string
-	RabbitHost         string
-	RabbitUsername         string
-	RabbitPass        string
+	RabbitHost           string
+	RabbitUsername       string
+	RabbitPass           string
 	OSPSecret            string
 	UserPasswordSelector string
 	VolumeMounts         []corev1.VolumeMount
@@ -37,7 +37,7 @@ const (
 	InitContainerCommand = "/usr/local/bin/container-scripts/init.sh"
 )
 
-// initContainer - init container for keystone api pods
+// initContainer - init container for ceilometer api pods
 func initContainer(init CeilometerDetails) []corev1.Container {
 	runAsUser := int64(0)
 

@@ -22,27 +22,27 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
+	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
+	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
-	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
-	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
-	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 
 	ceilometerv1beta1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/ceilometer-operator/pkg/ceilometer"
-	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
+	//keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 )
 
 // CeilometerReconciler reconciles a Ceilometer object
@@ -59,7 +59,7 @@ type CeilometerReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
-//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -159,14 +159,14 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 			err.Error()))
 		return ctrl.Result{}, err
 	}
-	
+
 	configMapVars[rabbitSecret.Name] = env.SetValue(hash)
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
 	//
 	// create Configmap required for ceilometer input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
-	// - %-config configmap holding minimal keystone config required to get the service up, user can add additional files to be added to the service
+	// - %-config configmap holding minimal ceilometer config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
 	err = r.generateServiceConfigMaps(ctx, helper, instance, &configMapVars)
@@ -356,12 +356,11 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 }
 
 func (r *CeilometerReconciler) generateServiceConfigMaps(
-	ctx context.Context, 
-	h *helper.Helper, 
+	ctx context.Context,
+	h *helper.Helper,
 	instance *ceilometerv1beta1.Ceilometer,
 	envVars *map[string]env.Setter,
-	) error {
-
+) error {
 
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
@@ -410,8 +409,7 @@ func labelsForCeilometer(name string) map[string]string {
 func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ceilometerv1beta1.Ceilometer{}).
-		Owns(&corev1.Pod{}).
+		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&keystonev1.KeystoneService{}).
 		Complete(r)
 }
