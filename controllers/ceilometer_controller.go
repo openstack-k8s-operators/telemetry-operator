@@ -269,7 +269,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 							Path: "ceilometer.conf",
 						}},
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "ceilometer-conf",
+							Name: fmt.Sprintf("%s-config-data", instance.Name),
 						},
 					},
 				},
@@ -282,7 +282,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 							Path: "config.json",
 						}},
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "ceilometer-conf",
+							Name: fmt.Sprintf("%s-config-data", instance.Name),
 						},
 					},
 				},
@@ -295,7 +295,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 							Path: "config.json",
 						}},
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "ceilometer-conf",
+							Name: fmt.Sprintf("%s-config-data", instance.Name),
 						},
 					},
 				},
@@ -308,7 +308,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 							Path: "pipeline.yaml",
 						}},
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "ceilometer-conf",
+							Name: fmt.Sprintf("%s-config-data", instance.Name),
 						},
 					},
 				},
@@ -321,7 +321,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 							Path: "sg-core.conf.yaml",
 						}},
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "ceilometer-conf",
+							Name: fmt.Sprintf("%s-config-data", instance.Name),
 						},
 					},
 				},
