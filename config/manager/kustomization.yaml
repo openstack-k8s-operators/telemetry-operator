@@ -13,4 +13,3 @@ kind: Kustomization
 images:
 - name: controller
   newName: quay.io/jlarriba/ceilometer-operator
-  newTag: demo

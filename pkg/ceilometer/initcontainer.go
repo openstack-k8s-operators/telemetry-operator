@@ -23,13 +23,13 @@ import (
 
 // CeilometerDetails information
 type CeilometerDetails struct {
-	ContainerImage       string
-	RabbitHost           string
-	RabbitUsername       string
-	RabbitPass           string
-	OSPSecret            string
-	UserPasswordSelector string
-	VolumeMounts         []corev1.VolumeMount
+	ContainerImage           string
+	RabbitMQSecret           string
+	RabbitMQHostSelector     string
+	RabbitMQUsernameSelector string
+	RabbitMQPasswordSelector string
+	OSPSecret                string
+	VolumeMounts             []corev1.VolumeMount
 }
 
 const (
@@ -47,28 +47,39 @@ func initContainer(init CeilometerDetails) []corev1.Container {
 	}
 
 	envVars := map[string]env.Setter{}
-	envVars["RabbitHost"] = env.SetValue(init.RabbitHost)
+	envVars["RabbitMQSecret"] = env.SetValue(init.RabbitMQSecret)
 
 	envs := []corev1.EnvVar{
 		{
-			Name: "RabbitUsername",
+			Name: "RabbitMQHost",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: init.OSPSecret,
+						Name: init.RabbitMQSecret,
 					},
-					Key: init.RabbitUsername,
+					Key: init.RabbitMQHostSelector,
 				},
 			},
 		},
 		{
-			Name: "RabbitPassword",
+			Name: "RabbitMQUsername",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: init.OSPSecret,
+						Name: init.RabbitMQSecret,
 					},
-					Key: init.UserPasswordSelector,
+					Key: init.RabbitMQUsernameSelector,
+				},
+			},
+		},
+		{
+			Name: "RabbitMQPassword",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: init.RabbitMQSecret,
+					},
+					Key: init.RabbitMQPasswordSelector,
 				},
 			},
 		},

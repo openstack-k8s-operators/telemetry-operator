@@ -25,12 +25,33 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
+// RabbitMQSelector to identify the DB and AdminUser password from the Secret
+type RabbitMQSelector struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="host"
+	// Host - Selector to get the host of the RabbitMQ connection
+	Host string `json:"host,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="username"
+	// Username - Selector to get the username of the RabbitMQ connection
+	Username string `json:"username,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="password"
+	// Password - Selector to get the password of the RabbitMQ connection
+	Password string `json:"password,omitempty"`
+}
+
 // CeilometerSpec defines the desired state of Ceilometer
 type CeilometerSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=rabbitmq-default-user
 	// The needed values to connect to RabbitMQ
-	RabbitMqSecret string `json:"rabbitMqSecret"`
+	RabbitMQSecret string `json:"rabbitMQSecret,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={username: username, password: password}
+	// RabbitMQSelectors - Selectors to identify host, username and password from the Secret
+	RabbitMQSelectors RabbitMQSelector `json:"rabbitMQSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="# add your customization here"
@@ -44,15 +65,25 @@ type CeilometerSpec struct {
 	// But can also be used to add additional files. Those get added to the service config dir in /etc/<service> .
 	// TODO: -> implement
 	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
+	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer
 type CeilometerStatus struct {
+	// ReadyCount of keystone API instances
+	ReadyCount int32 `json:"readyCount,omitempty"`
+
 	// Map of hashes to track e.g. job status
 	Hash map[string]string `json:"hash,omitempty"`
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
+
+	// Networks in addtion to the cluster network, the service is attached to
+	Networks []string `json:"networks,omitempty"`
 }
 
 //+kubebuilder:object:root=true
