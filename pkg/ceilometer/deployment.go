@@ -100,7 +100,7 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: []corev1.VolumeMount{{
+		/*VolumeMounts: []corev1.VolumeMount{{
 			Name:      "ceilometer-conf",
 			MountPath: "/var/lib/config-data/merged/ceilometer.conf",
 			SubPath:   "ceilometer.conf",
@@ -108,7 +108,7 @@ func Deployment(
 			Name:      "config-central-json",
 			MountPath: "/var/lib/kolla/config_files/config.json",
 			SubPath:   "config.json",
-		}},
+		}},*/
 	}
 	notificationAgentContainer := corev1.Container{
 		ImagePullPolicy: "Always",
@@ -118,7 +118,7 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: []corev1.VolumeMount{{
+		/*VolumeMounts: []corev1.VolumeMount{{
 			Name:      "ceilometer-conf",
 			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer/ceilometer.conf",
 			SubPath:   "ceilometer.conf",
@@ -130,7 +130,7 @@ func Deployment(
 			Name:      "config-notification-json",
 			MountPath: "/var/lib/kolla/config_files/config.json",
 			SubPath:   "config.json",
-		}},
+		}},*/
 	}
 	sgCoreContainer := corev1.Container{
 		ImagePullPolicy: "Always",
@@ -139,11 +139,11 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: []corev1.VolumeMount{{
+		/*VolumeMounts: []corev1.VolumeMount{{
 			Name:      "sg-core-conf-yaml",
 			MountPath: "/etc/sg-core.conf.yaml",
 			SubPath:   "sg-core.conf.yaml",
-		}},
+		}},*/
 	}
 
 	pod := corev1.PodTemplateSpec{
