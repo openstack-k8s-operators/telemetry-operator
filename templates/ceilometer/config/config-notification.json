@@ -12,6 +12,12 @@
         "dest": "/etc/ceilometer/pipeline.yaml",
         "owner": "ceilometer",
         "perm": "0600"
+      },
+      {
+        "source": "/var/lib/config-data/merged/event_pipeline.yaml",
+        "dest": "/etc/ceilometer/event_pipeline.yaml",
+        "owner": "ceilometer",
+        "perm": "0600"
       }
     ]
   }
