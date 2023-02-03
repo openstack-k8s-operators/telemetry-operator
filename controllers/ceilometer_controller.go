@@ -142,7 +142,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
 
-	instance.Spec.RabbitMQSecret = "rabbitmq-default-user"
+	//instance.Spec.RabbitMQSecret = "rabbitmq-default-user"
 
 	rabbitSecret, hash, err := oko_secret.GetSecret(ctx, helper, instance.Spec.RabbitMQSecret, instance.Namespace)
 	if err != nil {

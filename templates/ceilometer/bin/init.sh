@@ -16,11 +16,9 @@
 set -ex
 
 # Secrets are obtained from ENV variables.
-export USERNAME=${Username:?"Please specify a Username variable."}
-export PASSWORD=${Username:?"Please specify a Password variable."}
-export RABBIT_HOST=${RabbitHost:?"Please specify a RabbitHost variable."}
-export RABBIT_USER=${RabbitUser:?"Please specify a RabbitUser variable."}
-export RABBIT_PASS=${RabbitPass:?"Please specify a RabbitPass variable."}
+export RABBITMQ_HOST=${RabbitMQHost:?"Please specify a RabbitMQHost variable."}
+export RABBITMQ_USER=${RabbitMQUsername:?"Please specify a RabbitMQUsername variable."}
+export RABBITMQ_PASS=${RabbitMQPassword:?"Please specify a RabbitMQPassword variable."}
 
 SVC_CFG=/etc/ceilometer/ceilometer.conf
 SVC_CFG_MERGED=/var/lib/config-data/merged/ceilometer.conf
@@ -39,4 +37,5 @@ do
 done
 
 # set secrets
-crudini --set ${SVC_CFG_MERGED} database connection mysql+pymysql://${DBUSER}:${DBPASSWORD}@${DBHOST}/${DB}
+crudini --set ${SVC_CFG_MERGED} DEFAULT transport_url rabbit://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:5672/?ssl=0
+crudini --set ${SVC_CFG_MERGED} oslo_messaging_notifications transport_url rabbit://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:5672/?ssl=0

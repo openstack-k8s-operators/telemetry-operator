@@ -35,6 +35,9 @@ spec:
           spec:
             description: CeilometerSpec defines the desired state of Ceilometer
             properties:
+              centralImage:
+                default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
+                type: string
               customServiceConfig:
                 default: '# add your customization here'
                 description: CustomServiceConfig - customize the service config using
@@ -51,12 +54,18 @@ spec:
                   to add additional files. Those get added to the service config dir
                   in /etc/<service> . TODO: -> implement'
                 type: object
+              initImage:
+                default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
+                type: string
               networkAttachmentDefinitions:
                 description: NetworkAttachmentDefinitions list of network attachment
                   definitions the service pod gets attached to
                 items:
                   type: string
                 type: array
+              notificationImage:
+                default: quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo
+                type: string
               rabbitMQSecret:
                 default: rabbitmq-default-user
                 description: The needed values to connect to RabbitMQ
@@ -83,6 +92,9 @@ spec:
                       connection
                     type: string
                 type: object
+              sgCoreImage:
+                default: quay.io/infrawatch/sg-core:latest
+                type: string
             type: object
           status:
             description: CeilometerStatus defines the observed state of Ceilometer

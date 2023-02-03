@@ -27,48 +27,52 @@ import (
 
 // RabbitMQSelector to identify the DB and AdminUser password from the Secret
 type RabbitMQSelector struct {
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="host"
 	// Host - Selector to get the host of the RabbitMQ connection
+	// +kubebuilder:default:="host"
 	Host string `json:"host,omitempty"`
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="username"
 	// Username - Selector to get the username of the RabbitMQ connection
+	// +kubebuilder:default:="username"
 	Username string `json:"username,omitempty"`
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="password"
 	// Password - Selector to get the password of the RabbitMQ connection
+	// +kubebuilder:default:="password"
 	Password string `json:"password,omitempty"`
 }
 
 // CeilometerSpec defines the desired state of Ceilometer
 type CeilometerSpec struct {
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=rabbitmq-default-user
 	// The needed values to connect to RabbitMQ
+	// +kubebuilder:default:=rabbitmq-default-user
 	RabbitMQSecret string `json:"rabbitMQSecret,omitempty"`
 
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default={username: username, password: password}
 	// RabbitMQSelectors - Selectors to identify host, username and password from the Secret
+	// +kubebuilder:default:={username: username, password: password}
 	RabbitMQSelectors RabbitMQSelector `json:"rabbitMQSelector,omitempty"`
 
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="# add your customization here"
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
 	// or overwrite rendered information using raw OpenStack config format. The content gets added to
 	// to /etc/<service>/<service>.conf.d directory as custom.conf file.
+	// +kubebuilder:default:="# add your customization here"
 	CustomServiceConfig string `json:"customServiceConfig,omitempty"`
 
-	// +kubebuilder:validation:Optional
 	// ConfigOverwrite - interface to overwrite default config files like e.g. logging.conf or policy.json.
 	// But can also be used to add additional files. Those get added to the service config dir in /etc/<service> .
 	// TODO: -> implement
 	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
 
-	// +kubebuilder:validation:Optional
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
+
+	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo"
+	CentralImage string `json:"centralImage,omitempty"`
+
+	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo"
+	NotificationImage string `json:"notificationImage,omitempty"`
+
+	// +kubebuilder:default:="quay.io/infrawatch/sg-core:latest"
+	SgCoreImage string `json:"sgCoreImage,omitempty"`
+
+	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo"
+	InitImage string `json:"initImage,omitempty"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer

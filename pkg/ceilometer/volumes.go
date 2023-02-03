@@ -35,8 +35,7 @@ func getVolumes(name string) []corev1.Volume {
 					},
 				},
 			},
-		},
-		{
+		}, {
 			Name: "config-data",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -46,11 +45,23 @@ func getVolumes(name string) []corev1.Volume {
 					},
 				},
 			},
-		},
-		{
+		}, {
 			Name: "config-data-merged",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
+			},
+		}, {
+			Name: "sg-core-conf-yaml",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					Items: []corev1.KeyToPath{{
+						Key:  "sg-core.conf.yaml",
+						Path: "sg-core.conf.yaml",
+					}},
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: name + "-config-data",
+					},
+				},
 			},
 		},
 	}
@@ -90,6 +101,17 @@ func getVolumeMounts() []corev1.VolumeMount {
 			Name:      "config-data-merged",
 			MountPath: "/var/lib/config-data/merged",
 			ReadOnly:  false,
+		},
+	}
+}
+
+// getVolumeMountsSgCore - VolumeMounts for SGCore container
+func getVolumeMountsSgCore() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
+		{
+			Name:      "sg-core-conf-yaml",
+			MountPath: "/etc/sg-core.conf.yaml",
+			SubPath:   "sg-core.conf.yaml",
 		},
 	}
 }

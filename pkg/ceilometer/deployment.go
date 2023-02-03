@@ -26,6 +26,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -42,7 +43,7 @@ func Deployment(
 	runAsUser := int64(0)
 
 	// TO-DO Probes
-	/*livenessProbe := &corev1.Probe{
+	livenessProbe := &corev1.Probe{
 		// TODO might need tuning
 		TimeoutSeconds:      5,
 		PeriodSeconds:       3,
@@ -56,94 +57,67 @@ func Deployment(
 	}
 
 	args := []string{"-c"}
-	if instance.Spec.Debug.Service {
-		args = append(args, common.DebugCommand)
-		livenessProbe.Exec = &corev1.ExecAction{
-			Command: []string{
-				"/bin/true",
-			},
-		}
+	args = append(args, ServiceCommand)
 
-		readinessProbe.Exec = &corev1.ExecAction{
-			Command: []string{
-				"/bin/true",
-			},
-		}
-	} else {
-		args = append(args, ServiceCommand)
+	livenessProbe.HTTPGet = &corev1.HTTPGetAction{
+		Path: "/v3",
+		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(CeilometerPrometheusPort)},
+	}
+	readinessProbe.HTTPGet = &corev1.HTTPGetAction{
+		Path: "/v3",
+		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(CeilometerPrometheusPort)},
+	}
 
-		//
-		// https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-		//
-		livenessProbe.HTTPGet = &corev1.HTTPGetAction{
-			Path: "/v3",
-			Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(KeystonePublicPort)},
-		}
-		readinessProbe.HTTPGet = &corev1.HTTPGetAction{
-			Path: "/v3",
-			Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(KeystonePublicPort)},
-		}
-	}*/
+	envVarsCentral := map[string]env.Setter{}
+	envVarsCentral["KOLLA_CONFIG_FILE"] = env.SetValue(KollaConfigCentral)
+	envVarsCentral["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
+	envVarsCentral["CONFIG_HASH"] = env.SetValue(configHash)
 
-	envVars := map[string]env.Setter{}
-	envVars["KOLLA_CONFIG_FILE"] = env.SetValue(KollaConfig)
-	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
-	envVars["CONFIG_HASH"] = env.SetValue(configHash)
+	envVarsNotification := map[string]env.Setter{}
+	envVarsNotification["KOLLA_CONFIG_FILE"] = env.SetValue(KollaConfigNotification)
+	envVarsNotification["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
+	envVarsNotification["CONFIG_HASH"] = env.SetValue(configHash)
 
 	var replicas int32 = 1
 
 	centralAgentContainer := corev1.Container{
 		ImagePullPolicy: "Always",
-		Image:           "quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo",
-		Name:            "ceilometer-central-agent",
-		Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+		Command: []string{
+			"/bin/bash",
+		},
+		Args:  args,
+		Image: instance.Spec.CentralImage,
+		Name:  "ceilometer-central-agent",
+		Env:   env.MergeEnvs([]corev1.EnvVar{}, envVarsCentral),
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		/*VolumeMounts: []corev1.VolumeMount{{
-			Name:      "ceilometer-conf",
-			MountPath: "/var/lib/config-data/merged/ceilometer.conf",
-			SubPath:   "ceilometer.conf",
-		}, {
-			Name:      "config-central-json",
-			MountPath: "/var/lib/kolla/config_files/config.json",
-			SubPath:   "config.json",
-		}},*/
+		VolumeMounts: getVolumeMounts(),
 	}
 	notificationAgentContainer := corev1.Container{
 		ImagePullPolicy: "Always",
-		Image:           "quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo",
-		Name:            "ceilometer-notification-agent",
-		Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+		Command: []string{
+			"/bin/bash",
+		},
+		Args:  args,
+		Image: instance.Spec.NotificationImage,
+		Name:  "ceilometer-notification-agent",
+		Env:   env.MergeEnvs([]corev1.EnvVar{}, envVarsNotification),
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		/*VolumeMounts: []corev1.VolumeMount{{
-			Name:      "ceilometer-conf",
-			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer/ceilometer.conf",
-			SubPath:   "ceilometer.conf",
-		}, {
-			Name:      "pipeline-yaml",
-			MountPath: "/var/lib/kolla/config_files/src/etc/ceilometer/pipeline.yaml",
-			SubPath:   "pipeline.yaml",
-		}, {
-			Name:      "config-notification-json",
-			MountPath: "/var/lib/kolla/config_files/config.json",
-			SubPath:   "config.json",
-		}},*/
+		VolumeMounts: getVolumeMounts(),
 	}
 	sgCoreContainer := corev1.Container{
 		ImagePullPolicy: "Always",
-		Image:           "quay.io/jlarriba/sg-core:latest",
+		Image:           instance.Spec.SgCoreImage,
 		Name:            "sg-core",
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		/*VolumeMounts: []corev1.VolumeMount{{
-			Name:      "sg-core-conf-yaml",
-			MountPath: "/etc/sg-core.conf.yaml",
-			SubPath:   "sg-core.conf.yaml",
-		}},*/
+		VolumeMounts:   getVolumeMountsSgCore(),
+		ReadinessProbe: readinessProbe,
+		LivenessProbe:  livenessProbe,
 	}
 
 	pod := corev1.PodTemplateSpec{
@@ -187,7 +161,7 @@ func Deployment(
 	deployment.Spec.Template.Annotations = util.MergeStringMaps(deployment.Spec.Template.Annotations, nwAnnotation)
 
 	initContainerDetails := CeilometerDetails{
-		ContainerImage:           "quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo",
+		ContainerImage:           instance.Spec.InitImage,
 		RabbitMQSecret:           instance.Spec.RabbitMQSecret,
 		RabbitMQHostSelector:     instance.Spec.RabbitMQSelectors.Host,
 		RabbitMQUsernameSelector: instance.Spec.RabbitMQSelectors.Username,

@@ -25,5 +25,6 @@ const (
 	CeilometerPrometheusPort int32 = 3000
 
 	// KollaConfig -
-	KollaConfig = "/var/lib/config-data/merged/ceilometer.json"
+	KollaConfigCentral      = "/var/lib/config-data/merged/config-central.json"
+	KollaConfigNotification = "/var/lib/config-data/merged/config-notification.json"
 )

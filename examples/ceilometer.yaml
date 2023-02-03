@@ -3,3 +3,5 @@ kind: Ceilometer
 metadata:
   name: ceilometer
   namespace: openstack
+spec:
+  description: "A ceilometer agent"
