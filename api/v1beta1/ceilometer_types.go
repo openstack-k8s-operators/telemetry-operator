@@ -21,18 +21,73 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
+
+// RabbitMQSelector to identify the DB and AdminUser password from the Secret
+type RabbitMQSelector struct {
+	// Host - Selector to get the host of the RabbitMQ connection
+	// +kubebuilder:default:="host"
+	Host string `json:"host,omitempty"`
+	// Username - Selector to get the username of the RabbitMQ connection
+	// +kubebuilder:default:="username"
+	Username string `json:"username,omitempty"`
+	// Password - Selector to get the password of the RabbitMQ connection
+	// +kubebuilder:default:="password"
+	Password string `json:"password,omitempty"`
+}
 
 // CeilometerSpec defines the desired state of Ceilometer
 type CeilometerSpec struct {
-	// Foo is an example field of Ceilometer. Edit ceilometer_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// The needed values to connect to RabbitMQ
+	// +kubebuilder:default:=rabbitmq-default-user
+	RabbitMQSecret string `json:"rabbitMQSecret,omitempty"`
+
+	// RabbitMQSelectors - Selectors to identify host, username and password from the Secret
+	// +kubebuilder:default:={username: username, password: password}
+	RabbitMQSelectors RabbitMQSelector `json:"rabbitMQSelector,omitempty"`
+
+	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
+	// or overwrite rendered information using raw OpenStack config format. The content gets added to
+	// to /etc/<service>/<service>.conf.d directory as custom.conf file.
+	// +kubebuilder:default:="# add your customization here"
+	CustomServiceConfig string `json:"customServiceConfig,omitempty"`
+
+	// ConfigOverwrite - interface to overwrite default config files like e.g. logging.conf or policy.json.
+	// But can also be used to add additional files. Those get added to the service config dir in /etc/<service> .
+	// TODO: -> implement
+	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
+
+	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
+	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
+
+	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo"
+	CentralImage string `json:"centralImage,omitempty"`
+
+	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo"
+	NotificationImage string `json:"notificationImage,omitempty"`
+
+	// +kubebuilder:default:="quay.io/infrawatch/sg-core:latest"
+	SgCoreImage string `json:"sgCoreImage,omitempty"`
+
+	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo"
+	InitImage string `json:"initImage,omitempty"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer
 type CeilometerStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// ReadyCount of keystone API instances
+	ReadyCount int32 `json:"readyCount,omitempty"`
+
+	// Map of hashes to track e.g. job status
+	Hash map[string]string `json:"hash,omitempty"`
+
+	// Conditions
+	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
+
+	// Networks in addtion to the cluster network, the service is attached to
+	Networks []string `json:"networks,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -2,10 +2,10 @@
     "command": "/usr/bin/ceilometer-polling --polling-namespaces central --logfile /var/log/ceilometer/central.log",
     "config_files": [
       {
-        "dest": "/",
-        "merge": true,
-        "preserve_properties": true,
-        "source": "/var/lib/kolla/config_files/src/*"
+        "source": "/var/lib/config-data/merged/ceilometer.conf",
+        "dest": "/etc/ceilometer/ceilometer.conf",
+        "owner": "ceilometer",
+        "perm": "0600"
       }
     ]
   }
