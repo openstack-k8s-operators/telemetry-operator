@@ -25,8 +25,8 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
-// RabbitMQSelector to identify the DB and AdminUser password from the Secret
-type RabbitMQSelector struct {
+// PasswordsSelector to identify the DB and AdminUser password from the Secret
+type PasswordsSelector struct {
 	// Host - Selector to get the host of the RabbitMQ connection
 	// +kubebuilder:default:="host"
 	Host string `json:"host,omitempty"`
@@ -36,6 +36,10 @@ type RabbitMQSelector struct {
 	// Password - Selector to get the password of the RabbitMQ connection
 	// +kubebuilder:default:="password"
 	Password string `json:"password,omitempty"`
+	// Service - Selector to get the ceilometer service password from the Secret
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=CeilometerPassword
+	Service string `json:"service,omitempty"`
 }
 
 // CeilometerSpec defines the desired state of Ceilometer
@@ -44,9 +48,19 @@ type CeilometerSpec struct {
 	// +kubebuilder:default:=rabbitmq-default-user
 	RabbitMQSecret string `json:"rabbitMQSecret,omitempty"`
 
-	// RabbitMQSelectors - Selectors to identify host, username and password from the Secret
+	// PasswordSelectors - Selectors to identify host, username and password from the Secret
 	// +kubebuilder:default:={username: username, password: password}
-	RabbitMQSelectors RabbitMQSelector `json:"rabbitMQSelector,omitempty"`
+	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
+
+	// ServiceUser - optional username used for this service to register in keystone
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=ceilometer
+	ServiceUser string `json:"serviceUser,omitempty"`
+
+	// Secret containing OpenStack password information for ceilometer
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=osp-secret
+	Secret string `json:"secret,omitempty"`
 
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
 	// or overwrite rendered information using raw OpenStack config format. The content gets added to
@@ -88,6 +102,9 @@ type CeilometerStatus struct {
 
 	// Networks in addtion to the cluster network, the service is attached to
 	Networks []string `json:"networks,omitempty"`
+
+	// ServiceID
+	ServiceID string `json:"serviceID,omitempty"`
 }
 
 //+kubebuilder:object:root=true

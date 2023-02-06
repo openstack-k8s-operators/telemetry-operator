@@ -66,15 +66,11 @@ spec:
               notificationImage:
                 default: quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo
                 type: string
-              rabbitMQSecret:
-                default: rabbitmq-default-user
-                description: The needed values to connect to RabbitMQ
-                type: string
-              rabbitMQSelector:
+              passwordSelector:
                 default:
                   password: password
                   username: username
-                description: RabbitMQSelectors - Selectors to identify host, username
+                description: PasswordSelectors - Selectors to identify host, username
                   and password from the Secret
                 properties:
                   host:
@@ -86,12 +82,31 @@ spec:
                     description: Password - Selector to get the password of the RabbitMQ
                       connection
                     type: string
+                  service:
+                    default: CeilometerPassword
+                    description: Service - Selector to get the ceilometer service
+                      password from the Secret
+                    type: string
                   username:
                     default: username
                     description: Username - Selector to get the username of the RabbitMQ
                       connection
                     type: string
                 type: object
+              rabbitMQSecret:
+                default: rabbitmq-default-user
+                description: The needed values to connect to RabbitMQ
+                type: string
+              secret:
+                default: osp-secret
+                description: Secret containing OpenStack password information for
+                  ceilometer
+                type: string
+              serviceUser:
+                default: ceilometer
+                description: ServiceUser - optional username used for this service
+                  to register in keystone
+                type: string
               sgCoreImage:
                 default: quay.io/infrawatch/sg-core:latest
                 type: string
@@ -157,6 +172,9 @@ spec:
                 description: ReadyCount of keystone API instances
                 format: int32
                 type: integer
+              serviceID:
+                description: ServiceID
+                type: string
             type: object
         type: object
     served: true

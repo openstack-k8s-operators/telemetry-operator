@@ -29,6 +29,7 @@ type CeilometerDetails struct {
 	RabbitMQUsernameSelector string
 	RabbitMQPasswordSelector string
 	OSPSecret                string
+	ServiceSelector          string
 	VolumeMounts             []corev1.VolumeMount
 }
 
@@ -48,6 +49,7 @@ func initContainer(init CeilometerDetails) []corev1.Container {
 
 	envVars := map[string]env.Setter{}
 	envVars["RabbitMQSecret"] = env.SetValue(init.RabbitMQSecret)
+	envVars["OSPSecret"] = env.SetValue(init.OSPSecret)
 
 	envs := []corev1.EnvVar{
 		{
@@ -80,6 +82,17 @@ func initContainer(init CeilometerDetails) []corev1.Container {
 						Name: init.RabbitMQSecret,
 					},
 					Key: init.RabbitMQPasswordSelector,
+				},
+			},
+		},
+		{
+			Name: "CeilometerPassword",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: init.OSPSecret,
+					},
+					Key: init.ServiceSelector,
 				},
 			},
 		},
