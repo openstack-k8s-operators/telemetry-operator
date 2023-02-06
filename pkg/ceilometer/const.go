@@ -18,6 +18,8 @@ package ceilometer
 const (
 	// ServiceName -
 	ServiceName = "ceilometer"
+	// ServiceType -
+	ServiceType = "telemetry"
 	// ServiceAccount -
 	ServiceAccount = "ceilometer-operator-ceilometer"
 

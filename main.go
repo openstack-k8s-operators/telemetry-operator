@@ -31,8 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	ceilometerv1beta1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
+	ceilometerv1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/ceilometer-operator/controllers"
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -44,7 +45,8 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(ceilometerv1beta1.AddToScheme(scheme))
+	utilruntime.Must(ceilometerv1.AddToScheme(scheme))
+	utilruntime.Must(keystonev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

@@ -41,9 +41,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 
-	ceilometerv1beta1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
+	ceilometerv1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/ceilometer-operator/pkg/ceilometer"
-	//keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 )
 
 // CeilometerReconciler reconciles a Ceilometer object
@@ -61,6 +61,7 @@ type CeilometerReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -76,7 +77,7 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	_ = r.Log.WithValues("ceilometer", req.NamespacedName)
 
 	// Fetch the Ceilometer instance
-	instance := &ceilometerv1beta1.Ceilometer{}
+	instance := &ceilometerv1.Ceilometer{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -113,7 +114,7 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
-func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *ceilometerv1beta1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
+func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *ceilometerv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
 
 	// do delete stuff
@@ -123,26 +124,65 @@ func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *ce
 
 func (r *CeilometerReconciler) reconcileInit(
 	ctx context.Context,
-	instance *ceilometerv1beta1.Ceilometer,
+	instance *ceilometerv1.Ceilometer,
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service init")
 
-	// init stuff
-	// keystone add the user/password to be able to get a token
+	//
+	// create Keystone service and users
+	//
+	_, _, err := oko_secret.GetSecret(ctx, helper, instance.Spec.Secret, instance.Namespace)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
+		}
+		return ctrl.Result{}, err
+	}
+
+	ksSvcSpec := keystonev1.KeystoneServiceSpec{
+		ServiceType:        ceilometer.ServiceType,
+		ServiceName:        ceilometer.ServiceName,
+		ServiceDescription: "Ceilometer Service",
+		Enabled:            true,
+		ServiceUser:        instance.Spec.ServiceUser,
+		Secret:             instance.Spec.Secret,
+		PasswordSelector:   instance.Spec.PasswordSelectors.Service,
+	}
+
+	ksSvc := keystonev1.NewKeystoneService(ksSvcSpec, instance.Namespace, serviceLabels, 10)
+	ctrlResult, err := ksSvc.CreateOrPatch(ctx, helper)
+	if err != nil {
+		return ctrlResult, err
+	}
+
+	// mirror the Status, Reason, Severity and Message of the latest keystoneservice condition
+	// into a local condition with the type condition.KeystoneServiceReadyCondition
+	c := ksSvc.GetConditions().Mirror(condition.KeystoneServiceReadyCondition)
+	if c != nil {
+		instance.Status.Conditions.Set(c)
+	}
+
+	if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	instance.Status.ServiceID = ksSvc.GetServiceID()
+
+	if instance.Status.Hash == nil {
+		instance.Status.Hash = map[string]string{}
+	}
 
 	r.Log.Info("Reconciled Service init successfully")
 	return ctrl.Result{}, nil
 }
 
 // podForCeilometer returns a ceilometer Pod object
-func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ceilometerv1beta1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
+func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ceilometerv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
-
-	//instance.Spec.RabbitMQSecret = "rabbitmq-default-user"
 
 	rabbitSecret, hash, err := oko_secret.GetSecret(ctx, helper, instance.Spec.RabbitMQSecret, instance.Namespace)
 	if err != nil {
@@ -265,7 +305,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 func (r *CeilometerReconciler) generateServiceConfigMaps(
 	ctx context.Context,
 	h *helper.Helper,
-	instance *ceilometerv1beta1.Ceilometer,
+	instance *ceilometerv1.Ceilometer,
 	envVars *map[string]env.Setter,
 ) error {
 
@@ -312,15 +352,13 @@ func labelsForCeilometer(name string) map[string]string {
 	return map[string]string{"app": "ceilometer", "ceilometer_cr": name}
 }
 
-//
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
 // if any of the input resources change, like configs, passwords, ...
 //
 // returns the hash, whether the hash changed (as a bool) and any error
-//
 func (r *CeilometerReconciler) createHashOfInputHashes(
 	ctx context.Context,
-	instance *ceilometerv1beta1.Ceilometer,
+	instance *ceilometerv1.Ceilometer,
 	envVars map[string]env.Setter,
 ) (string, bool, error) {
 	var hashMap map[string]string
@@ -340,7 +378,8 @@ func (r *CeilometerReconciler) createHashOfInputHashes(
 // SetupWithManager sets up the controller with the Manager.
 func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&ceilometerv1beta1.Ceilometer{}).
+		For(&ceilometerv1.Ceilometer{}).
+		Owns(&keystonev1.KeystoneService{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{}).

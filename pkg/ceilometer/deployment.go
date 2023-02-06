@@ -18,7 +18,7 @@ package ceilometer
 import (
 	"fmt"
 
-	ceilometerv1beta1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
+	ceilometerv1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/annotations"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
@@ -36,7 +36,7 @@ const (
 
 // Deployment func
 func Deployment(
-	instance *ceilometerv1beta1.Ceilometer,
+	instance *ceilometerv1.Ceilometer,
 	configHash string,
 	labels map[string]string,
 ) (*appsv1.Deployment, error) {
@@ -163,9 +163,11 @@ func Deployment(
 	initContainerDetails := APIDetails{
 		ContainerImage:           instance.Spec.InitImage,
 		RabbitMQSecret:           instance.Spec.RabbitMQSecret,
-		RabbitMQHostSelector:     instance.Spec.RabbitMQSelectors.Host,
-		RabbitMQUsernameSelector: instance.Spec.RabbitMQSelectors.Username,
-		RabbitMQPasswordSelector: instance.Spec.RabbitMQSelectors.Password,
+		RabbitMQHostSelector:     instance.Spec.PasswordSelectors.Host,
+		RabbitMQUsernameSelector: instance.Spec.PasswordSelectors.Username,
+		RabbitMQPasswordSelector: instance.Spec.PasswordSelectors.Password,
+		OSPSecret:                instance.Spec.Secret,
+		ServiceSelector:          instance.Spec.PasswordSelectors.Service,
 		VolumeMounts:             getInitVolumeMounts(),
 	}
 	deployment.Spec.Template.Spec.InitContainers = initContainer(initContainerDetails)
