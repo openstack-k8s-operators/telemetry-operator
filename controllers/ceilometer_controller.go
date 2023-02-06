@@ -346,12 +346,6 @@ func (r *CeilometerReconciler) generateServiceConfigMaps(
 	return nil
 }
 
-// labelsForCeilometer returns the labels for selecting the resources
-// belonging to the given ceilometer CR name.
-func labelsForCeilometer(name string) map[string]string {
-	return map[string]string{"app": "ceilometer", "ceilometer_cr": name}
-}
-
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
 // if any of the input resources change, like configs, passwords, ...
 //
