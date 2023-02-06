@@ -160,7 +160,7 @@ func Deployment(
 	}
 	deployment.Spec.Template.Annotations = util.MergeStringMaps(deployment.Spec.Template.Annotations, nwAnnotation)
 
-	initContainerDetails := CeilometerDetails{
+	initContainerDetails := APIDetails{
 		ContainerImage:           instance.Spec.InitImage,
 		RabbitMQSecret:           instance.Spec.RabbitMQSecret,
 		RabbitMQHostSelector:     instance.Spec.RabbitMQSelectors.Host,
