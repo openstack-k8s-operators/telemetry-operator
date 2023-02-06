@@ -21,8 +21,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// CeilometerDetails information
-type CeilometerDetails struct {
+// APIDetails information
+type APIDetails struct {
 	ContainerImage           string
 	RabbitMQSecret           string
 	RabbitMQHostSelector     string
@@ -38,7 +38,7 @@ const (
 )
 
 // initContainer - init container for ceilometer api pods
-func initContainer(init CeilometerDetails) []corev1.Container {
+func initContainer(init APIDetails) []corev1.Container {
 	runAsUser := int64(0)
 
 	args := []string{
