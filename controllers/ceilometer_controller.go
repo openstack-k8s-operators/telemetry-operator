@@ -136,7 +136,7 @@ func (r *CeilometerReconciler) reconcileInit(
 	_, _, err := oko_secret.GetSecret(ctx, helper, instance.Spec.Secret, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
-			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
 		}
 		return ctrl.Result{}, err
 	}
@@ -192,7 +192,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("RabbitMQ secret %s not found", instance.Spec.RabbitMQSecret)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("RabbitMQ secret %s not found", instance.Spec.RabbitMQSecret)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
@@ -263,7 +263,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 	fmt.Printf("deplDef: %s\n", deplDef)
 	depl := deployment.NewDeployment(
 		deplDef,
-		5,
+		time.Duration(5)*time.Second,
 	)
 	fmt.Printf("depl: %v\n", depl)
 	ctrlResult, err = depl.CreateOrPatch(ctx, helper)
