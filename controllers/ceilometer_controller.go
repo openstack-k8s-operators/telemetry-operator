@@ -239,37 +239,33 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 		// so we need to return and reconcile again
 		return ctrl.Result{}, nil
 	}
-	fmt.Printf("MarkTrue\n")
-	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)*/
+	fmt.Printf("MarkTrue\n")*/
+	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
 		common.AppSelector: ceilometer.ServiceName,
 	}
-	fmt.Printf("serviceLabels: %v\n", serviceLabels)
+
 	// Handle service init
 	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
-	fmt.Printf("reconcileInit result: %v\n", ctrlResult)
 	if err != nil {
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
-	fmt.Printf("Starting with new deployment object\n")
+
 	// Define a new Deployment object
 	deplDef, err := ceilometer.Deployment(instance, inputHash, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	fmt.Printf("deplDef: %s\n", deplDef)
 	depl := deployment.NewDeployment(
 		deplDef,
 		time.Duration(5)*time.Second,
 	)
-	fmt.Printf("depl: %v\n", depl)
+
 	ctrlResult, err = depl.CreateOrPatch(ctx, helper)
-	fmt.Printf("ctrlResult: %v\n", ctrlResult)
 	if err != nil {
-		fmt.Printf("err1: %s\n", err)
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
 			condition.ErrorReason,
@@ -278,7 +274,6 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 			err.Error()))
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
-		fmt.Printf("err2: %v\n", ctrlResult)
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
 			condition.RequestedReason,

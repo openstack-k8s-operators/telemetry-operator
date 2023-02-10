@@ -6,6 +6,12 @@
         "dest": "/etc/ceilometer/ceilometer.conf",
         "owner": "ceilometer",
         "perm": "0600"
+      },
+      {
+        "source": "/var/lib/config-data/merged/polling.yaml",
+        "dest": "/etc/ceilometer/polling.yaml",
+        "owner": "ceilometer",
+        "perm": "0600"
       }
     ]
   }

@@ -4,7 +4,7 @@ metadata:
   name: ceilometer
 spec:
   selector:
-    app: ceilometer
+    service: ceilometer
   ports:
     - protocol: TCP
       port: 3000
