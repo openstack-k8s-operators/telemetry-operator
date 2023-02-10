@@ -164,10 +164,14 @@ func (r *CeilometerReconciler) reconcileInit(
 		instance.Status.Conditions.Set(c)
 	}
 
+	fmt.Printf("INIT: ctrlResult: %v\n", ctrlResult)
+
 	if (ctrlResult != ctrl.Result{}) {
+		fmt.Printf("INIT: Returning as ctrlResult is empty\n")
 		return ctrlResult, nil
 	}
 
+	fmt.Printf("INIT: Assigning ServiceID Status: %v\n", ksSvc.GetServiceID())
 	instance.Status.ServiceID = ksSvc.GetServiceID()
 
 	if instance.Status.Hash == nil {
@@ -239,8 +243,8 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 		// so we need to return and reconcile again
 		return ctrl.Result{}, nil
 	}
-	fmt.Printf("MarkTrue\n")
-	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)*/
+	fmt.Printf("MarkTrue\n")*/
+	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
 		common.AppSelector: ceilometer.ServiceName,
