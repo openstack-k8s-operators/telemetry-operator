@@ -87,6 +87,9 @@ type CeilometerSpec struct {
 
 	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo"
 	InitImage string `json:"initImage,omitempty"`
+
+	// +kubebuilder:default:="A ceilometer agent"
+	Description string `json:"description,omitempty"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer
@@ -126,6 +129,11 @@ type CeilometerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Ceilometer `json:"items"`
+}
+
+// IsReady - returns true if service is ready
+func (instance Ceilometer) IsReady() bool {
+	return instance.Status.Conditions.IsTrue(condition.DeploymentReadyCondition)
 }
 
 func init() {
