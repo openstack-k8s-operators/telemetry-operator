@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -61,7 +62,7 @@ type CeilometerReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;
-// +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -72,8 +73,7 @@ type CeilometerReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.1/pkg/reconcile
-func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	fmt.Printf("Log: %v", r.Log)
+func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
 	_ = r.Log.WithValues("ceilometer", req.NamespacedName)
 
 	// Fetch the Ceilometer instance
@@ -101,6 +101,43 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	// Always patch the instance status when exiting this function so we can persist any changes.
+	defer func() {
+		// update the overall status condition if service is ready
+		if instance.IsReady() {
+			instance.Status.Conditions.MarkTrue(condition.ReadyCondition, condition.ReadyMessage)
+		}
+
+		err := helper.PatchInstance(ctx, instance)
+		if err != nil {
+			_err = err
+			return
+		}
+	}()
+
+	// If we're not deleting this and the service object doesn't have our finalizer, add it.
+	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) {
+		return ctrl.Result{}, nil
+	}
+
+	//
+	// initialize status
+	//
+	if instance.Status.Conditions == nil {
+		instance.Status.Conditions = condition.Conditions{}
+		// initialize conditions used later as Status=Unknown
+		cl := condition.CreateList(
+			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
+			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
+			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+		)
+
+		instance.Status.Conditions.Init(&cl)
+
+		// Register overall status immediately to have an early feedback e.g. in the cli
+		return ctrl.Result{}, nil
+	}
+
 	if instance.Status.Hash == nil {
 		instance.Status.Hash = map[string]string{}
 	}
@@ -117,7 +154,36 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *ceilometerv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
 
-	// do delete stuff
+	// Remove the finalizer from our KeystoneService CR
+	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, ceilometer.ServiceName, instance.Namespace)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+
+	if err == nil {
+		controllerutil.RemoveFinalizer(keystoneService, helper.GetFinalizer())
+		if err = helper.GetClient().Update(ctx, keystoneService); err != nil && !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+		util.LogForObject(helper, "Removed finalizer from our KeystoneService", instance)
+	}
+
+	err = helper.GetClient().Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", instance.Name, instance.Namespace), Namespace: instance.Namespace}, instance)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+
+	if err == nil {
+		controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
+		if err = helper.GetClient().Update(ctx, instance); err != nil && !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+		util.LogForObject(helper, fmt.Sprintf("Removed finalizer from Ceilometer %s", instance.Name), instance)
+	}
+
+	// Service is deleted so remove the finalizer.
+	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
+	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", instance.Name))
 
 	return ctrl.Result{}, nil
 }

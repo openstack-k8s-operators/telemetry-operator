@@ -54,6 +54,9 @@ spec:
                   to add additional files. Those get added to the service config dir
                   in /etc/<service> . TODO: -> implement'
                 type: object
+              description:
+                default: A ceilometer agent
+                type: string
               initImage:
                 default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
                 type: string
