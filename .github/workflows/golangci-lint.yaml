@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19.x
       - name: Install kubebuilder
@@ -30,7 +30,6 @@ jobs:
         run: |
           # https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest#section-readme
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-          setup-envtest use
           source <(setup-envtest use -p env)
           ./openstack-k8s-operators-ci/test-runner/gotest.sh
 
@@ -39,13 +38,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19.x
       - name: Checkout project code
         uses: actions/checkout@v3
       - name: Run golangci lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           args: --timeout 5m
@@ -55,10 +54,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19.x
       - name: Checkout project code
         uses: actions/checkout@v3
       - name: Run operator-lint
-        run: make operator-lint
+        run: |
+          go get golang.stackrox.io/kube-linter/cmd/kube-linter
+          GO111MODULE=on go install golang.stackrox.io/kube-linter/cmd/kube-linter
+          make operator-lint

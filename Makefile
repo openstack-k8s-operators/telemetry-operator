@@ -268,3 +268,6 @@ golangci: get-ci-tools
 # Run go lint against code
 golint: get-ci-tools
 	PATH=$(GOBIN):$(PATH); $(CI_TOOLS_REPO_DIR)/test-runner/golint.sh
+
+operator-lint:
+	kube-linter lint --config ./.kube-linter.yaml ./config
