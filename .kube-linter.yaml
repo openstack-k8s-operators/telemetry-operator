@@ -1,0 +1,10 @@
+---
+
+checks:
+  #addAllBuiltIn: false
+  #exclude:
+  #  - ...
+  doNotAutoAddDefaults: true
+  include:
+    - "invalid-target-ports"
+    - "ssh-port"

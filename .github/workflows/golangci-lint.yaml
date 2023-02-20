@@ -8,13 +8,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.18.x
+          go-version: 1.19.x
+      - name: Install kubebuilder
+        run: |
+          #curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)
+          #chmod +x kubebuilder && mv kubebuilder /usr/local/bin/
       - name: Checkout project code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Checkout openstack-k8s-operators-ci project
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: openstack-k8s-operators/openstack-k8s-operators-ci
           path: ./openstack-k8s-operators-ci
@@ -23,20 +27,24 @@ jobs:
       - name: Run golint.sh
         run: ./openstack-k8s-operators-ci/test-runner/golint.sh
       - name: Run gotest.sh
-        run: ./openstack-k8s-operators-ci/test-runner/gotest.sh
+        run: |
+          # https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest#section-readme
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          source <(setup-envtest use -p env)
+          ./openstack-k8s-operators-ci/test-runner/gotest.sh
 
   golangci:
     name: github (golangci)
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.18.x
+          go-version: 1.19.x
       - name: Checkout project code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Run golangci lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           args: --timeout 5m
@@ -46,10 +54,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.18.x
+          go-version: 1.19.x
       - name: Checkout project code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Run operator-lint
-        run: make operator-lint
+        run: |
+          go get golang.stackrox.io/kube-linter/cmd/kube-linter
+          GO111MODULE=on go install golang.stackrox.io/kube-linter/cmd/kube-linter
+          make operator-lint
