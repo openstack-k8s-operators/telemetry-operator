@@ -127,6 +127,7 @@ func Deployment(
 			Labels:    labels,
 		},
 		Spec: corev1.PodSpec{
+			ServiceAccountName: ServiceAccount,
 			Containers: []corev1.Container{
 				centralAgentContainer,
 				notificationAgentContainer,
