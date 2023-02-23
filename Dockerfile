@@ -13,6 +13,8 @@ ARG REMOTE_SOURCE_DIR=/remote-source
 ARG REMOTE_SOURCE_SUBDIR=
 ARG DEST_ROOT=/dest-root
 
+ARG TARGETOS
+ARG TARGETARCH
 ARG GO_BUILD_EXTRA_ARGS=
 
 COPY $REMOTE_SOURCE $REMOTE_SOURCE_DIR
@@ -23,7 +25,7 @@ RUN mkdir -p ${DEST_ROOT}/usr/local/bin/
 RUN if [ ! -f $CACHITO_ENV_FILE ]; then go mod download ; fi
  
 # Build manager
-RUN if [ -f $CACHITO_ENV_FILE ] ; then source $CACHITO_ENV_FILE ; fi ; CGO_ENABLED=0  GO111MODULE=on go build ${GO_BUILD_EXTRA_ARGS} -a -o ${DEST_ROOT}/manager main.go
+RUN if [ -f $CACHITO_ENV_FILE ] ; then source $CACHITO_ENV_FILE ; fi ; CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} GO111MODULE=on go build ${GO_BUILD_EXTRA_ARGS} -a -o ${DEST_ROOT}/manager main.go
  
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
