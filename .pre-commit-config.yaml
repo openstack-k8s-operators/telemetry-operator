@@ -1,0 +1,74 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+    - id: check-added-large-files
+    - id: fix-byte-order-marker
+    - id: check-case-conflict
+    - id: check-executables-have-shebangs
+      exclude: ^vendor
+    - id: check-shebang-scripts-are-executable
+      exclude: ^vendor
+    - id: check-merge-conflict
+    - id: check-symlinks
+    - id: destroyed-symlinks
+    - id: check-yaml
+      args: [-m]
+    - id: check-json
+    - id: detect-private-key
+    - id: end-of-file-fixer
+      exclude: ^vendor
+    - id: no-commit-to-branch
+    - id: trailing-whitespace
+      exclude: ^vendor
+
+- repo: local
+  hooks:
+    - id: make-gofmt
+      name: make-gofmt
+      language: system
+      entry: make
+      args: ['gofmt']
+      pass_filenames: false
+    - id: make-govet
+      name: make-govet
+      language: system
+      entry: make
+      args: ['govet']
+      pass_filenames: false
+    - id: make-gotest
+      name: make-gotest
+      language: system
+      entry: make
+      args: ['gotest']
+      pass_filenames: false
+    - id: make-golangci
+      name: make-golangci
+      language: system
+      entry: make
+      args: ['golangci']
+      pass_filenames: false
+    - id: make-golint
+      name: make-golint
+      language: system
+      entry: make
+      args: ['golint']
+      pass_filenames: false
+    - id: make-generate
+      name: make-generate
+      language: system
+      entry: make
+      args: ['generate']
+      pass_filenames: false
+    - id: make-operator-lint
+      name: make-operator-lint
+      language: system
+      entry: make
+      args: ['operator-lint']
+      pass_filenames: false
+
+- repo: https://github.com/openstack/bashate.git
+  rev: 2.1.1
+  hooks:
+    - id: bashate
+      entry: bashate --error . --ignore=E006,E040,E043
