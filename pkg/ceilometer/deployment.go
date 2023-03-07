@@ -81,7 +81,7 @@ func Deployment(
 	var replicas int32 = 1
 
 	centralAgentContainer := corev1.Container{
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: corev1.PullAlways,
 		Command: []string{
 			"/bin/bash",
 		},
@@ -95,7 +95,7 @@ func Deployment(
 		VolumeMounts: getVolumeMounts(),
 	}
 	notificationAgentContainer := corev1.Container{
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: corev1.PullAlways,
 		Command: []string{
 			"/bin/bash",
 		},
@@ -109,7 +109,7 @@ func Deployment(
 		VolumeMounts: getVolumeMounts(),
 	}
 	sgCoreContainer := corev1.Container{
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: corev1.PullAlways,
 		Image:           instance.Spec.SgCoreImage,
 		Name:            "sg-core",
 		SecurityContext: &corev1.SecurityContext{
