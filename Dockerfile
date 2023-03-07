@@ -23,10 +23,10 @@ WORKDIR $REMOTE_SOURCE_DIR/$REMOTE_SOURCE_SUBDIR
 RUN mkdir -p ${DEST_ROOT}/usr/local/bin/
 
 RUN if [ ! -f $CACHITO_ENV_FILE ]; then go mod download ; fi
- 
+
 # Build manager
 RUN if [ -f $CACHITO_ENV_FILE ] ; then source $CACHITO_ENV_FILE ; fi ; CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} GO111MODULE=on go build ${GO_BUILD_EXTRA_ARGS} -a -o ${DEST_ROOT}/manager main.go
- 
+
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
 RUN cp -r templates ${DEST_ROOT}/templates
