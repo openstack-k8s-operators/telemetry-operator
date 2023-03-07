@@ -1,4 +1,5 @@
-#/bin/bash
+#!/bin/bash
+
 set -e
 
 make docker-build docker-push IMG="quay.io/jlarriba/ceilometer-operator"
