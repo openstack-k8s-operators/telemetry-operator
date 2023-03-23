@@ -54,6 +54,12 @@ repos:
       entry: make
       args: ['generate']
       pass_filenames: false
+    - id: kube-linter
+      name: make-kube-linter
+      language: system
+      entry: make
+      args: ['kube-linter']
+      pass_filenames: false
     - id: make-operator-lint
       name: make-operator-lint
       language: system

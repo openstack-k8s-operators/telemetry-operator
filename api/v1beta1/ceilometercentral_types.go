@@ -35,7 +35,7 @@ type PasswordsSelector struct {
 	// Service - Selector to get the ceilometer service password from the Secret
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=CeilometerPassword
-	Service string `json:"service,omitempty"`
+	Service string `json:"service"`
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -54,12 +54,12 @@ type CeilometerCentralSpec struct {
 	// ServiceUser - optional username used for this service to register in keystone
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=ceilometer
-	ServiceUser string `json:"serviceUser,omitempty"`
+	ServiceUser string `json:"serviceUser"`
 
 	// Secret containing OpenStack password information for ceilometer
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=osp-secret
-	Secret string `json:"secret,omitempty"`
+	Secret string `json:"secret"`
 
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
 	// or overwrite rendered information using raw OpenStack config format. The content gets added to
