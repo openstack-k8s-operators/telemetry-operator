@@ -36,12 +36,6 @@ repos:
       entry: make
       args: ['govet']
       pass_filenames: false
-    - id: make-gotest
-      name: make-gotest
-      language: system
-      entry: make
-      args: ['gotest']
-      pass_filenames: false
     - id: make-golangci
       name: make-golangci
       language: system
