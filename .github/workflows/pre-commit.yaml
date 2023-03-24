@@ -29,5 +29,4 @@ jobs:
           pip install pre-commit
       - name: Run pre-commit on all files
         run: |
-          source <(setup-envtest use -p env)
-          pre-commit run --all-files
+          pre-commit run -v --all-files --show-diff-on-failure
