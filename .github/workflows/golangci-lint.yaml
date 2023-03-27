@@ -11,10 +11,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.19.x
-      - name: Install kubebuilder
-        run: |
-          #curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)
-          #chmod +x kubebuilder && mv kubebuilder /usr/local/bin/
       - name: Checkout project code
         uses: actions/checkout@v3
       - name: Checkout openstack-k8s-operators-ci project
@@ -23,15 +19,11 @@ jobs:
           repository: openstack-k8s-operators/openstack-k8s-operators-ci
           path: ./openstack-k8s-operators-ci
       - name: Run govet.sh
-        run: ./openstack-k8s-operators-ci/test-runner/govet.sh
+        run: make govet
       - name: Run golint.sh
-        run: ./openstack-k8s-operators-ci/test-runner/golint.sh
+        run: make golint
       - name: Run gotest.sh
-        run: |
-          # https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest#section-readme
-          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-          source <(setup-envtest use -p env)
-          ./openstack-k8s-operators-ci/test-runner/gotest.sh
+        run: make gotest
 
   golangci:
     name: github (golangci)
@@ -60,7 +52,4 @@ jobs:
       - name: Checkout project code
         uses: actions/checkout@v3
       - name: Run operator-lint
-        run: |
-          go get golang.stackrox.io/kube-linter/cmd/kube-linter
-          GO111MODULE=on go install golang.stackrox.io/kube-linter/cmd/kube-linter
-          make operator-lint
+        run: make operator-lint

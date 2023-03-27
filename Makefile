@@ -275,8 +275,8 @@ govet: get-ci-tools
 	$(CI_TOOLS_REPO_DIR)/test-runner/govet.sh
 
 # Run go test against code
-gotest: get-ci-tools
-	$(CI_TOOLS_REPO_DIR)/test-runner/gotest.sh
+gotest: get-ci-tools envtest
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(CI_TOOLS_REPO_DIR)/test-runner/gotest.sh
 
 # Run golangci-lint test against code
 golangci: get-ci-tools
@@ -287,4 +287,6 @@ golint: get-ci-tools
 	PATH=$(GOBIN):$(PATH); $(CI_TOOLS_REPO_DIR)/test-runner/golint.sh
 
 operator-lint:
+	go get golang.stackrox.io/kube-linter/cmd/kube-linter
+	GO111MODULE=on go install golang.stackrox.io/kube-linter/cmd/kube-linter
 	kube-linter lint --config ./.kube-linter.yaml ./config
