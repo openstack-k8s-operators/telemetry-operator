@@ -1,0 +1,13 @@
+# See the OWNERS_ALIASES docs: https://git.k8s.io/community/contributors/guide/owners.md#owners_aliases
+
+aliases:
+  ceilometer-approvers:
+  - csibbitt
+  - jlarriba
+  - mrunge
+  - paramite
+  - vyzigold
+  - yadneshk
+  ci-approvers:
+  - Sandeepyadav93
+  - viroel

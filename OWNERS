@@ -1,19 +1,8 @@
+# See the OWNERS docs at https://go.k8s.io/owners
 approvers:
-  - csibbitt
-  - jlarriba
-  - mrunge
-  - paramite
-  - Sandeepyadav93
-  - viroel
-  - vyzigold
-  - yadneshk
+  - ceilometer-approvers:
+  - ci-approvers
 
 reviewers:
-  - csibbitt
-  - jlarriba
-  - mrunge
-  - paramite
-  - Sandeepyadav93
-  - viroel
-  - vyzigold
-  - yadneshk
+  - ceilometer-approvers
+  - ci-approvers
