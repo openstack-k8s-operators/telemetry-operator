@@ -1,4 +1,4 @@
-module github.com/openstack-k8s-operators/ceilometer-operator/api
+module github.com/openstack-k8s-operators/telemetry-operator/api
 
 go 1.19
 

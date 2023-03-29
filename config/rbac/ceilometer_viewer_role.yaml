@@ -1,20 +1,20 @@
-# permissions for end users to view ceilometers.
+# permissions for end users to view telemetries.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: ceilometer-viewer-role
+  name: telemetry-viewer-role
 rules:
 - apiGroups:
-  - ceilometer.openstack.org
+  - telemetry.openstack.org
   resources:
-  - ceilometers
+  - telemetries
   verbs:
   - get
   - list
   - watch
 - apiGroups:
-  - ceilometer.openstack.org
+  - telemetry.openstack.org
   resources:
-  - ceilometers/status
+  - telemetries/status
   verbs:
   - get

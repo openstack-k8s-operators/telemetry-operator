@@ -1,4 +1,4 @@
-name: Release ceilometer Operator
+name: Release telemetry Operator
 
 on:
   release:
