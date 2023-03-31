@@ -8,4 +8,6 @@ approvers:
 reviewers:
   - telemetry-approvers
   - ci-approvers
+  - jlarriba
+  - paramite
 
