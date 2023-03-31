@@ -1,6 +1,6 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 approvers:
-  - telemetry-approvers:
+  - telemetry-approvers
   - ci-approvers
   - jlarriba
   - paramite
@@ -8,5 +8,4 @@ approvers:
 reviewers:
   - telemetry-approvers
   - ci-approvers
-  - jlarriba
-  - paramite
+
