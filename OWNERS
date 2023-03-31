@@ -2,7 +2,11 @@
 approvers:
   - telemetry-approvers:
   - ci-approvers
+  - jlarriba
+  - paramite
 
 reviewers:
   - telemetry-approvers
   - ci-approvers
+  - jlarriba
+  - paramite
