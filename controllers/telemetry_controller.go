@@ -36,9 +36,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	"github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 )
 
-// CeilometerReconciler reconciles a Ceilometer object
+// TelemetryReconciler reconciles a Telemetry object
 type TelemetryReconciler struct {
 	client.Client
 	Kclient kubernetes.Interface
@@ -54,9 +55,9 @@ type TelemetryReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/finalizers,verbs=update
 
 func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
-	_ = r.Log.WithValues("ceilometer", req.NamespacedName)
+	_ = r.Log.WithValues("telemetry", req.NamespacedName)
 
-	// Fetch the Ceilometer instance
+	// Fetch the Telemetry instance
 	instance := &telemetryv1.Telemetry{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
@@ -122,6 +123,18 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		instance.Status.Hash = map[string]string{}
 	}
 
+	serviceLabels := map[string]string{
+		common.AppSelector: telemetry.ServiceName,
+	}
+
+	// Handle service init
+	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
 	// Handle service delete
 	if !instance.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, instance, helper)
@@ -154,29 +167,6 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 
 	r.Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
-}
-
-// createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
-// if any of the input resources change, like configs, passwords, ...
-//
-// returns the hash, whether the hash changed (as a bool) and any error
-func (r *TelemetryReconciler) createHashOfInputHashes(
-	ctx context.Context,
-	instance *telemetryv1.Telemetry,
-	envVars map[string]env.Setter,
-) (string, bool, error) {
-	var hashMap map[string]string
-	changed := false
-	mergedMapVars := env.MergeEnvs([]corev1.EnvVar{}, envVars)
-	hash, err := util.ObjectHash(mergedMapVars)
-	if err != nil {
-		return hash, changed, err
-	}
-	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
-		instance.Status.Hash = hashMap
-		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
-	}
-	return hash, changed, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
