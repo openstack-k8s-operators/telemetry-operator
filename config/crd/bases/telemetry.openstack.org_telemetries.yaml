@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: telemetries.telemetry.openstack.org
 spec:
@@ -18,7 +18,7 @@ spec:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Ceilometer is the Schema for the telemetries API
+        description: Telemetry is the Schema for the telemetry API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,89 +33,14 @@ spec:
           metadata:
             type: object
           spec:
-            description: CeilometerSpec defines the desired state of Ceilometer
+            description: TelemetrySpec defines the desired state of Telemetry
             properties:
-              centralImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
-                type: string
-              customServiceConfig:
-                default: '# add your customization here'
-                description: CustomServiceConfig - customize the service config using
-                  this parameter to change service defaults, or overwrite rendered
-                  information using raw OpenStack config format. The content gets
-                  added to to /etc/<service>/<service>.conf.d directory as custom.conf
-                  file.
-                type: string
-              defaultConfigOverwrite:
-                additionalProperties:
-                  type: string
-                description: 'ConfigOverwrite - interface to overwrite default config
-                  files like e.g. logging.conf or policy.json. But can also be used
-                  to add additional files. Those get added to the service config dir
-                  in /etc/<service> . TODO: -> implement'
-                type: object
               description:
                 default: A ceilometer agent
                 type: string
-              initImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
-                type: string
-              networkAttachmentDefinitions:
-                description: NetworkAttachmentDefinitions list of network attachment
-                  definitions the service pod gets attached to
-                items:
-                  type: string
-                type: array
-              notificationImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo
-                type: string
-              passwordSelector:
-                default:
-                  password: password
-                  username: username
-                description: PasswordSelectors - Selectors to identify host, username
-                  and password from the Secret
-                properties:
-                  host:
-                    default: host
-                    description: Host - Selector to get the host of the RabbitMQ connection
-                    type: string
-                  password:
-                    default: password
-                    description: Password - Selector to get the password of the RabbitMQ
-                      connection
-                    type: string
-                  service:
-                    default: CeilometerPassword
-                    description: Service - Selector to get the ceilometer service
-                      password from the Secret
-                    type: string
-                  username:
-                    default: username
-                    description: Username - Selector to get the username of the RabbitMQ
-                      connection
-                    type: string
-                type: object
-              rabbitMQSecret:
-                default: rabbitmq-default-user
-                description: The needed values to connect to RabbitMQ
-                type: string
-              secret:
-                default: osp-secret
-                description: Secret containing OpenStack password information for
-                  ceilometer
-                type: string
-              serviceUser:
-                default: ceilometer
-                description: ServiceUser - optional username used for this service
-                  to register in keystone
-                type: string
-              sgCoreImage:
-                default: quay.io/infrawatch/sg-core:latest
-                type: string
             type: object
           status:
-            description: CeilometerStatus defines the observed state of Ceilometer
+            description: TelemetryStatus defines the observed state of Telemetry
             properties:
               conditions:
                 description: Conditions
@@ -165,19 +90,6 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
-              networks:
-                description: Networks in addtion to the cluster network, the service
-                  is attached to
-                items:
-                  type: string
-                type: array
-              readyCount:
-                description: ReadyCount of keystone API instances
-                format: int32
-                type: integer
-              serviceID:
-                description: ServiceID
-                type: string
             type: object
         type: object
     served: true

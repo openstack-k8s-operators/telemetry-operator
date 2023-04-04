@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package telemetry
+package ceilometer
 
 import (
 	"fmt"
@@ -21,12 +21,13 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/annotations"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
-	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
 
 const (
@@ -36,7 +37,7 @@ const (
 
 // Deployment func
 func Deployment(
-	instance *telemetryv1.Ceilometer,
+	instance *telemetryv1.CeilometerCentral,
 	configHash string,
 	labels map[string]string,
 ) (*appsv1.Deployment, error) {
@@ -122,7 +123,7 @@ func Deployment(
 
 	pod := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
+			Name:      ServiceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
@@ -138,7 +139,7 @@ func Deployment(
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
+			Name:      ServiceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
@@ -151,7 +152,7 @@ func Deployment(
 		},
 	}
 
-	deployment.Spec.Template.Spec.Volumes = getVolumes(instance.Name)
+	deployment.Spec.Template.Spec.Volumes = getVolumes(ServiceName)
 
 	// networks to attach to
 	nwAnnotation, err := annotations.GetNADAnnotation(instance.Namespace, instance.Spec.NetworkAttachmentDefinitions)
