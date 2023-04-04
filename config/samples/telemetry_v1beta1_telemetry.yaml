@@ -1,0 +1,7 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Telemetry
+metadata:
+  name: telemetry
+  namespace: openstack
+spec:
+  description: "A telemetry deployment"
