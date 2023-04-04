@@ -22,13 +22,4 @@ const (
 	ServiceType = "telemetry"
 	// ServiceAccount -
 	ServiceAccount = "telemetry-operator-telemetry"
-
-	// CeilometerPrometheusPort -
-	CeilometerPrometheusPort int32 = 3000
-
-	// KollaConfigCentral -
-	KollaConfigCentral = "/var/lib/config-data/merged/config-central.json"
-
-	// KollaConfigNotification -
-	KollaConfigNotification = "/var/lib/config-data/merged/config-notification.json"
 )
