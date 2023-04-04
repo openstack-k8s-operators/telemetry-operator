@@ -293,8 +293,14 @@ github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230127072022-e
 github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230127072022-efdd85d844e1/go.mod h1:XFyHi+hnGUkiwgD2swefHjq8tSRzjq2tmbfP4MvRyTs=
 github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230207162833-94c25ed85b4c h1:fGV+R0B/JbXw01wV7GwiegAKbzUe1gxeKdawiS5AAJQ=
 github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230207162833-94c25ed85b4c/go.mod h1:qV9OlokZRpqbHI3lmeN5EOmIKynWphw6GPl3zP9KOGM=
+github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230215134634-d31141e5bbba h1:IIM8K8j1mOJx16Epwrau6bx5DU2rxj8NGTjjxrjlF4I=
+github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230215134634-d31141e5bbba/go.mod h1:+EDQmWZRA8ruHnWPcw9s/el3UMi6u4EZkcSe7dCQ50k=
 github.com/openstack-k8s-operators/lib-common/modules/openstack v0.0.0-20220915080953-f73a201a1da6 h1:MVNEHyqD0ZdO9jiyUSKw5M2T9Lc4l4Wx1pdC2/BSJ5Y=
 github.com/openstack-k8s-operators/lib-common/modules/openstack v0.0.0-20220915080953-f73a201a1da6/go.mod h1:YsqouRH8DoZAjFaxcIErspk59BcwXtVjPxK/yV17Wrc=
+github.com/openstack-k8s-operators/lib-common/modules/storage v0.0.0-20221207150746-c4fe7a228d42 h1:i4rlmlVfAeoQQGKYCsPvcGosDoAtBpwiQpY/bJ+uqaw=
+github.com/openstack-k8s-operators/lib-common/modules/storage v0.0.0-20221207150746-c4fe7a228d42/go.mod h1:I8t9nOD+GpfOakInGk9C47aIrI0ZvKTKiuhz9G3tehU=
+github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230327144131-090f0d5f8dd4 h1:RYmNhH/m/rOYazLBdQZMPten1qPr43a60BCRtasCA70=
+github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230327144131-090f0d5f8dd4/go.mod h1:NI3NHazp637VOmH/hWgnH50uE5gj+YXF2aIFNh5z/28=
 github.com/owenrumney/go-sarif v1.1.1/go.mod h1:dNDiPlF04ESR/6fHlPyq7gHKmrM0sHUvAGjsoh8ZH0U=
 github.com/owenrumney/go-sarif/v2 v2.1.2 h1:PMDK7tXShJ9zsB7bfvlpADH5NEw1dfA9xwU8Xtdj73U=
 github.com/owenrumney/go-sarif/v2 v2.1.2/go.mod h1:MSqMMx9WqlBSY7pXoOZWgEsVB4FDNfhcaXDA1j6Sr+w=

@@ -1,7 +1,7 @@
-apiVersion: ceilometer.openstack.org/v1beta1
-kind: Ceilometer
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Telemetry
 metadata:
-  name: ceilometer
+  name: telemetry
   namespace: openstack
 spec:
-  description: "A ceilometer agent"
+  description: "A telemetry deployment"

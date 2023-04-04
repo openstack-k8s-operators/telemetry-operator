@@ -1,4 +1,4 @@
-name: Ceilometer Operator image builder
+name: Telemetry Operator image builder
 
 on:
   push:
@@ -22,8 +22,8 @@ jobs:
     outputs:
       have-secrets: ${{ steps.have-secrets.outputs.ok }}
 
-  build-ceilometer-operator:
-    name: Build ceilometer-operator image using buildah
+  build-telemetry-operator:
+    name: Build telemetry-operator image using buildah
     runs-on: ubuntu-latest
     needs: [check-secrets]
     if: needs.check-secrets.outputs.have-secrets == 'true'
@@ -41,26 +41,26 @@ jobs:
         echo "latesttag=${{ steps.branch-name.outputs.current_branch }}-latest" >> $GITHUB_ENV
 
     - name: Buildah Action
-      id: build-ceilometer-operator
+      id: build-telemetry-operator
       uses: redhat-actions/buildah-build@v2
       with:
-        image: ceilometer-operator
+        image: telemetry-operator
         tags: ${{ env.latesttag }} ${{ github.sha }}
         containerfiles: |
           ./Dockerfile
 
-    - name: Push ceilometer-operator To ${{ env.imageregistry }}
+    - name: Push telemetry-operator To ${{ env.imageregistry }}
       uses: redhat-actions/push-to-registry@v2
       with:
-        image: ${{ steps.build-ceilometer-operator.outputs.image }}
-        tags: ${{ steps.build-ceilometer-operator.outputs.tags }}
+        image: ${{ steps.build-telemetry-operator.outputs.image }}
+        tags: ${{ steps.build-telemetry-operator.outputs.tags }}
         registry: ${{ env.imageregistry }}/${{ env.imagenamespace }}
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_PASSWORD }}
 
-  build-ceilometer-operator-bundle:
-    needs: [ check-secrets, build-ceilometer-operator ]
-    name: ceilometer-operator-bundle
+  build-telemetry-operator-bundle:
+    needs: [ check-secrets, build-telemetry-operator ]
+    name: telemetry-operator-bundle
     runs-on: ubuntu-latest
     if: needs.check-secrets.outputs.have-secrets == 'true'
 
@@ -70,7 +70,7 @@ jobs:
       with:
         go-version: 1.19.x
 
-    - name: Checkout ceilometer-operator repository
+    - name: Checkout telemetry-operator repository
       uses: actions/checkout@v2
 
     - name: Install operator-sdk
@@ -102,7 +102,7 @@ jobs:
       env:
         REGISTRY:  ${{ env.imageregistry }}/${{ env.imagenamespace }}
         GITHUB_SHA: ${{ github.sha }}
-        BASE_IMAGE: ceilometer-operator
+        BASE_IMAGE: telemetry-operator
 
     - name: Get branch name
       id: branch-name
@@ -113,32 +113,32 @@ jobs:
       run: |
         echo "latesttag=${{ steps.branch-name.outputs.current_branch }}-latest" >> $GITHUB_ENV
 
-    - name: Build ceilometer-operator-bundle using buildah
-      id: build-ceilometer-operator-bundle
+    - name: Build telemetry-operator-bundle using buildah
+      id: build-telemetry-operator-bundle
       uses: redhat-actions/buildah-build@v2
       with:
-        image: ceilometer-operator-bundle
+        image: telemetry-operator-bundle
         tags: ${{ env.latesttag }} ${{ github.sha }}
         containerfiles: |
           ./bundle.Dockerfile
 
-    - name: Push ceilometer-operator To ${{ env.imageregistry }}
+    - name: Push telemetry-operator To ${{ env.imageregistry }}
       uses: redhat-actions/push-to-registry@v2
       with:
-        image: ${{ steps.build-ceilometer-operator-bundle.outputs.image }}
-        tags: ${{ steps.build-ceilometer-operator-bundle.outputs.tags }}
+        image: ${{ steps.build-telemetry-operator-bundle.outputs.image }}
+        tags: ${{ steps.build-telemetry-operator-bundle.outputs.tags }}
         registry:  ${{ env.imageregistry }}/${{ env.imagenamespace }}
         username: ${{ secrets.QUAY_USERNAME }}
         password: ${{ secrets.QUAY_PASSWORD }}
 
-  build-ceilometer-operator-index:
-    needs: [ check-secrets, build-ceilometer-operator-bundle ]
-    name: ceilometer-operator-index
+  build-telemetry-operator-index:
+    needs: [ check-secrets, build-telemetry-operator-bundle ]
+    name: telemetry-operator-index
     runs-on: ubuntu-latest
     if: needs.check-secrets.outputs.have-secrets == 'true'
 
     steps:
-    - name: Checkout ceilometer-operator repository
+    - name: Checkout telemetry-operator repository
       uses: actions/checkout@v2
 
     - name: Get branch name
@@ -172,14 +172,14 @@ jobs:
       env:
         REGISTRY:  ${{ env.imageregistry }}/${{ env.imagenamespace }}
         GITHUB_SHA: ${{ github.sha }}
-        BUNDLE_IMAGE: ceilometer-operator-bundle
+        BUNDLE_IMAGE: telemetry-operator-bundle
         INDEX_IMAGE_TAG: ${{ env.latesttag }}
-        INDEX_IMAGE: ceilometer-operator-index
+        INDEX_IMAGE: telemetry-operator-index
 
-    - name: Push ceilometer-operator-index To ${{ env.imageregistry }}
+    - name: Push telemetry-operator-index To ${{ env.imageregistry }}
       uses: redhat-actions/push-to-registry@v2
       with:
-        image: ceilometer-operator-index
+        image: telemetry-operator-index
         tags: ${{ env.latesttag }} ${{ github.sha }}
         registry:  ${{ env.imageregistry }}/${{ env.imagenamespace }}
         username: ${{ secrets.QUAY_USERNAME }}

@@ -13,15 +13,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometer
+package telemetry
 
 import (
 	"fmt"
 
-	ceilometerv1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/annotations"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,7 +36,7 @@ const (
 
 // Deployment func
 func Deployment(
-	instance *ceilometerv1.Ceilometer,
+	instance *telemetryv1.Ceilometer,
 	configHash string,
 	labels map[string]string,
 ) (*appsv1.Deployment, error) {

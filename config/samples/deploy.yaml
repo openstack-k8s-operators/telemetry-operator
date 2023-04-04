@@ -4,20 +4,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: ceilometers.ceilometer.openstack.org
+  name: telemetries.telemetry.openstack.org
 spec:
-  group: ceilometer.openstack.org
+  group: telemetry.openstack.org
   names:
-    kind: Ceilometer
-    listKind: CeilometerList
-    plural: ceilometers
-    singular: ceilometer
+    kind: Telemetry
+    listKind: TelemetryList
+    plural: telemetries
+    singular: telemetry
   scope: Namespaced
   versions:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Ceilometer is the Schema for the ceilometers API
+        description: Telemetry is the Schema for the telemetries API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -32,7 +32,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: CeilometerSpec defines the desired state of Ceilometer
+            description: TelemetrySpec defines the desired state of Telemetry
             properties:
               customServiceConfig:
                 default: '# add your customization here'
@@ -56,7 +56,7 @@ spec:
                 type: string
             type: object
           status:
-            description: CeilometerStatus defines the observed state of Ceilometer
+            description: TelemetryStatus defines the observed state of Telemetry
             properties:
               conditions:
                 description: Conditions
@@ -116,13 +116,13 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ceilometer-operator-controller-manager
+  name: telemetry-operator-controller-manager
   namespace: openstack
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: ceilometer-operator-leader-election-role
+  name: telemetry-operator-leader-election-role
   namespace: openstack
 rules:
 - apiGroups:
@@ -161,7 +161,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: ceilometer-operator-manager-role
+  name: telemetry-operator-manager-role
 rules:
 - apiGroups:
   - apps
@@ -176,9 +176,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ceilometer.openstack.org
+  - telemetry.openstack.org
   resources:
-  - ceilometers
+  - telemetries
   verbs:
   - create
   - delete
@@ -188,15 +188,15 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ceilometer.openstack.org
+  - telemetry.openstack.org
   resources:
-  - ceilometers/finalizers
+  - telemetries/finalizers
   verbs:
   - update
 - apiGroups:
-  - ceilometer.openstack.org
+  - telemetry.openstack.org
   resources:
-  - ceilometers/status
+  - telemetries/status
   verbs:
   - get
   - patch
@@ -236,7 +236,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: ceilometer-operator-metrics-reader
+  name: telemetry-operator-metrics-reader
 rules:
 - nonResourceURLs:
   - /metrics
@@ -246,7 +246,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: ceilometer-operator-proxy-role
+  name: telemetry-operator-proxy-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -264,41 +264,41 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: ceilometer-operator-leader-election-rolebinding
+  name: telemetry-operator-leader-election-rolebinding
   namespace: openstack
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: ceilometer-operator-leader-election-role
+  name: telemetry-operator-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: ceilometer-operator-controller-manager
+  name: telemetry-operator-controller-manager
   namespace: openstack
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: ceilometer-operator-manager-rolebinding
+  name: telemetry-operator-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: ceilometer-operator-manager-role
+  name: telemetry-operator-manager-role
 subjects:
 - kind: ServiceAccount
-  name: ceilometer-operator-controller-manager
+  name: telemetry-operator-controller-manager
   namespace: openstack
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: ceilometer-operator-proxy-rolebinding
+  name: telemetry-operator-proxy-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: ceilometer-operator-proxy-role
+  name: telemetry-operator-proxy-role
 subjects:
 - kind: ServiceAccount
-  name: ceilometer-operator-controller-manager
+  name: telemetry-operator-controller-manager
   namespace: openstack
 ---
 apiVersion: v1
@@ -318,7 +318,7 @@ data:
     true\n"
 kind: ConfigMap
 metadata:
-  name: ceilometer-operator-manager-config
+  name: telemetry-operator-manager-config
   namespace: openstack
 ---
 apiVersion: v1
@@ -326,7 +326,7 @@ kind: Service
 metadata:
   labels:
     control-plane: controller-manager
-  name: ceilometer-operator-controller-manager-metrics-service
+  name: telemetry-operator-controller-manager-metrics-service
   namespace: openstack
 spec:
   ports:
@@ -342,7 +342,7 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: ceilometer-operator-controller-manager
+  name: telemetry-operator-controller-manager
   namespace: openstack
 spec:
   replicas: 1
@@ -383,7 +383,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: quay.io/jlarriba/ceilometer-operator:latest
+        image: quay.io/jlarriba/telemetry-operator:latest
         livenessProbe:
           httpGet:
             path: /healthz
@@ -408,5 +408,5 @@ spec:
           allowPrivilegeEscalation: false
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: ceilometer-operator-controller-manager
+      serviceAccountName: telemetry-operator-controller-manager
       terminationGracePeriodSeconds: 10

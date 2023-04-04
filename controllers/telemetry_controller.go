@@ -42,9 +42,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 
-	ceilometerv1 "github.com/openstack-k8s-operators/ceilometer-operator/api/v1beta1"
-	"github.com/openstack-k8s-operators/ceilometer-operator/pkg/ceilometer"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
+	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
+	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	"github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 )
 
 // CeilometerReconciler reconciles a Ceilometer object
@@ -55,14 +56,15 @@ type CeilometerReconciler struct {
 	Scheme  *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=ceilometer.openstack.org,resources=ceilometers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=ceilometer.openstack.org,resources=ceilometers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=ceilometer.openstack.org,resources=ceilometers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
+//+kubebuilder:rbac:groups=ansibleee.openstack.org,resources=openstackansibleees,verbs=get;list;watch;create;update;patch;delete;
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -77,7 +79,7 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	_ = r.Log.WithValues("ceilometer", req.NamespacedName)
 
 	// Fetch the Ceilometer instance
-	instance := &ceilometerv1.Ceilometer{}
+	instance := &telemetryv1.Ceilometer{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -151,11 +153,11 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
-func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *ceilometerv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
+func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
 
 	// Remove the finalizer from our KeystoneService CR
-	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, ceilometer.ServiceName, instance.Namespace)
+	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, telemetry.ServiceName, instance.Namespace)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -185,12 +187,23 @@ func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *ce
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
 	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", instance.Name))
 
+	// Delete the openstack-ansibleee when the ceilometer is deleted
+	ansibleee := &ansibleeev1.OpenStackAnsibleEE{}
+	err = r.Get(ctx, types.NamespacedName{Name: instance.Name + "-ansibleee", Namespace: instance.Namespace}, ansibleee)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = helper.GetClient().Delete(ctx, ansibleee)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
 func (r *CeilometerReconciler) reconcileInit(
 	ctx context.Context,
-	instance *ceilometerv1.Ceilometer,
+	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
@@ -208,8 +221,8 @@ func (r *CeilometerReconciler) reconcileInit(
 	}
 
 	ksSvcSpec := keystonev1.KeystoneServiceSpec{
-		ServiceType:        ceilometer.ServiceType,
-		ServiceName:        ceilometer.ServiceName,
+		ServiceType:        telemetry.ServiceType,
+		ServiceName:        telemetry.ServiceName,
 		ServiceDescription: "Ceilometer Service",
 		Enabled:            true,
 		ServiceUser:        instance.Spec.ServiceUser,
@@ -244,8 +257,7 @@ func (r *CeilometerReconciler) reconcileInit(
 	return ctrl.Result{}, nil
 }
 
-// podForCeilometer returns a ceilometer Pod object
-func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ceilometerv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
+func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
@@ -309,7 +321,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
-		common.AppSelector: ceilometer.ServiceName,
+		common.AppSelector: telemetry.ServiceName,
 	}
 
 	// Handle service init
@@ -321,7 +333,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 	}
 
 	// Define a new Deployment object
-	deplDef, err := ceilometer.Deployment(instance, inputHash, serviceLabels)
+	deplDef, err := telemetry.Deployment(instance, inputHash, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -366,11 +378,11 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *ce
 func (r *CeilometerReconciler) generateServiceConfigMaps(
 	ctx context.Context,
 	h *helper.Helper,
-	instance *ceilometerv1.Ceilometer,
+	instance *telemetryv1.Ceilometer,
 	envVars *map[string]env.Setter,
 ) error {
 
-	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
+	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(telemetry.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
 		customData[key] = data
@@ -408,7 +420,7 @@ func (r *CeilometerReconciler) generateServiceConfigMaps(
 // returns the hash, whether the hash changed (as a bool) and any error
 func (r *CeilometerReconciler) createHashOfInputHashes(
 	ctx context.Context,
-	instance *ceilometerv1.Ceilometer,
+	instance *telemetryv1.Ceilometer,
 	envVars map[string]env.Setter,
 ) (string, bool, error) {
 	var hashMap map[string]string
@@ -428,8 +440,9 @@ func (r *CeilometerReconciler) createHashOfInputHashes(
 // SetupWithManager sets up the controller with the Manager.
 func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&ceilometerv1.Ceilometer{}).
+		For(&telemetryv1.Ceilometer{}).
 		Owns(&keystonev1.KeystoneService{}).
+		Owns(&ansibleeev1.OpenStackAnsibleEE{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{}).

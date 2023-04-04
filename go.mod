@@ -1,16 +1,17 @@
-module github.com/openstack-k8s-operators/ceilometer-operator
+module github.com/openstack-k8s-operators/telemetry-operator
 
 go 1.19
 
-replace github.com/openstack-k8s-operators/ceilometer-operator/api => ./api
+replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 
 require (
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.27.2
-	github.com/openstack-k8s-operators/ceilometer-operator/api v0.0.0-00010101000000-000000000000
 	github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230127072022-efdd85d844e1
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230207162833-94c25ed85b4c
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230215134634-d31141e5bbba
+	github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230327144131-090f0d5f8dd4
+	github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-00010101000000-000000000000
 	k8s.io/api v0.26.2
 	k8s.io/apimachinery v0.26.2
 	k8s.io/client-go v0.26.2
@@ -89,6 +90,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc2 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.0.0-20220915080953-f73a201a1da6 // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.0.0-20221207150746-c4fe7a228d42 // indirect
 	github.com/owenrumney/go-sarif/v2 v2.1.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect

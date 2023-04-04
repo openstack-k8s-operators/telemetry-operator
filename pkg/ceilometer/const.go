@@ -13,15 +13,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometer
+package telemetry
 
 const (
 	// ServiceName -
-	ServiceName = "ceilometer"
+	ServiceName = "telemetry"
 	// ServiceType -
 	ServiceType = "telemetry"
 	// ServiceAccount -
-	ServiceAccount = "ceilometer-operator-ceilometer"
+	ServiceAccount = "telemetry-operator-telemetry"
 
 	// CeilometerPrometheusPort -
 	CeilometerPrometheusPort int32 = 3000
