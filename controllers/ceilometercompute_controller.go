@@ -37,7 +37,7 @@ import (
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
-	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
+	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
@@ -138,7 +138,7 @@ func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
-func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, instance *ceilometerv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
+func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.CeilometerCompute, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
 
 	// Delete the openstack-ansibleee when the ceilometercompute is deleted
@@ -172,7 +172,7 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
 
-	rabbitSecret, hash, err := oko_secret.GetSecret(ctx, helper, instance.Spec.RabbitMQSecret, instance.Namespace)
+	/*rabbitSecret, hash, err := oko_secret.GetSecret(ctx, helper, instance.Spec.RabbitMQSecret, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -192,7 +192,7 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	}
 
 	configMapVars[rabbitSecret.Name] = env.SetValue(hash)
-	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
+	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)*/
 
 	//
 	// create Configmap required for ceilometer input
@@ -200,7 +200,7 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	// - %-config configmap holding minimal ceilometer config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
-	err = r.generateServiceConfigMaps(ctx, helper, instance, &configMapVars)
+	err := r.generateServiceConfigMaps(ctx, helper, instance, &configMapVars)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -215,11 +215,11 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
 	//
-	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
+	/*inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
 	fmt.Printf("hashChanged: %v\n", hashChanged)
 	if err != nil {
 		return ctrl.Result{}, err
-	}
+	}*/
 	/*if err != nil {
 		return ctrl.Result{}, err
 	} else if hashChanged {
@@ -246,7 +246,7 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	return ctrl.Result{}, nil
 }
 
-func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context, instance *ceilometerv1.CeilometerCompute,
+func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context, instance *telemetryv1.CeilometerCompute,
 	configHash string, labels map[string]string) (ctrl.Result, error) {
 	fmt.Println("Creating new ansibleEE")
 	// Define a new AnsibleEE
@@ -277,6 +277,34 @@ func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context
 	}
 
 	fmt.Println("Returning...")
+	return ctrl.Result{}, nil
+}
+
+// getSecret - get the specified secret, and add its hash to envVars
+func getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
+	secret, hash, err := secret.GetSecret(ctx, h, secretName, instance.Namespace)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.InputReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				condition.InputReadyWaitingMessage))
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Secret %s not found", secretName)
+		}
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.InputReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.InputReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	// Add a prefix to the var name to avoid accidental collision with other non-secret
+	// vars. The secret names themselves will be unique.
+	(*envVars)["secret-"+secret.Name] = env.SetValue(hash)
+
 	return ctrl.Result{}, nil
 }
 

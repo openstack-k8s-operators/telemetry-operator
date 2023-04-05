@@ -36,6 +36,17 @@ type CeilometerComputeSpec struct {
 
 	// +kubebuilder:default:="A ceilometer compute agent"
 	Description string `json:"description,omitempty"`
+
+	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
+	// or overwrite rendered information using raw OpenStack config format. The content gets added to
+	// to /etc/<service>/<service>.conf.d directory as custom.conf file.
+	// +kubebuilder:default:="# add your customization here"
+	CustomServiceConfig string `json:"customServiceConfig,omitempty"`
+
+	// ConfigOverwrite - interface to overwrite default config files like e.g. logging.conf or policy.json.
+	// But can also be used to add additional files. Those get added to the service config dir in /etc/<service> .
+	// TODO: -> implement
+	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
 }
 
 // CeilometerComputeStatus defines the observed state of CeilometerCompute
