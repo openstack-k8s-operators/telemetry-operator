@@ -1,0 +1,7 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CeilometerCompute
+metadata:
+  name: ceilometercompute-sample
+  namespace: openstack
+spec:
+  # TODO(user): Add fields here

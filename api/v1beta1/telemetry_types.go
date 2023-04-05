@@ -29,6 +29,12 @@ import (
 type TelemetrySpec struct {
 	// +kubebuilder:default:="A ceilometer agent"
 	Description string `json:"description,omitempty"`
+
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=rabbitmq
+	// RabbitMQ instance name
+	// Needed to request a transportURL that is created and used in Telemetry
+	RabbitMqClusterName string `json:"rabbitMqClusterName"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry
@@ -38,6 +44,9 @@ type TelemetryStatus struct {
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
+
+	// TransportURLSecret - Secret containing RabbitMQ transportURL
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 }
 
 //+kubebuilder:object:root=true
