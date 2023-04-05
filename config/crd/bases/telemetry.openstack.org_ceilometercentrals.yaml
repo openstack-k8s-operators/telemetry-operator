@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: ceilometers.telemetry.openstack.org
+  name: ceilometercentrals.telemetry.openstack.org
 spec:
   group: telemetry.openstack.org
   names:
-    kind: Ceilometer
-    listKind: CeilometerList
-    plural: ceilometers
-    singular: ceilometer
+    kind: CeilometerCentral
+    listKind: CeilometerCentralList
+    plural: ceilometercentrals
+    singular: ceilometercentral
   scope: Namespaced
   versions:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Ceilometer is the Schema for the ceilometers API
+        description: CeilometerCentral is the Schema for the ceilometercentrals API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,7 +33,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: CeilometerSpec defines the desired state of Ceilometer
+            description: CeilometerCentralSpec defines the desired state of CeilometerCentral
             properties:
               centralImage:
                 default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
@@ -115,7 +115,7 @@ spec:
                 type: string
             type: object
           status:
-            description: CeilometerStatus defines the observed state of Ceilometer
+            description: CeilometerCentralStatus defines the observed state of CeilometerCentral
             properties:
               conditions:
                 description: Conditions

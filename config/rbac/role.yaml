@@ -6,18 +6,6 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ansibleee.openstack.org
-  resources:
-  - openstackansibleees
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - apps
   resources:
   - deployments
@@ -76,7 +64,7 @@ rules:
 - apiGroups:
   - telemetry.openstack.org
   resources:
-  - ceilometers
+  - ceilometercentrals
   verbs:
   - create
   - delete
@@ -88,13 +76,39 @@ rules:
 - apiGroups:
   - telemetry.openstack.org
   resources:
-  - ceilometers/finalizers
+  - ceilometercentrals/finalizers
   verbs:
   - update
 - apiGroups:
   - telemetry.openstack.org
   resources:
-  - ceilometers/status
+  - ceilometercentrals/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - telemetries
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - telemetries/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - telemetries/status
   verbs:
   - get
   - patch

@@ -1,0 +1,24 @@
+# permissions for end users to edit ceilometercentrals.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ceilometercentral-editor-role
+rules:
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - ceilometercentrals
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - ceilometercentrals/status
+  verbs:
+  - get

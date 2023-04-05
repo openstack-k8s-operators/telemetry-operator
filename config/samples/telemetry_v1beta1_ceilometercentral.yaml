@@ -1,0 +1,7 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CeilometerCentral
+metadata:
+  name: ceilometercentral
+  namespace: openstack
+spec:
+  description: "A Ceilometer Central deployment"

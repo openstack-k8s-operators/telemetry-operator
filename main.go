@@ -22,16 +22,19 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
+
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
 	//+kubebuilder:scaffold:imports
@@ -91,12 +94,34 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.CeilometerReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Telemetry"),
+	cfg, err := config.GetConfig()
+	if err != nil {
+		setupLog.Error(err, "")
+		os.Exit(1)
+	}
+	kclient, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		setupLog.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.TelemetryReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+		Log:     ctrl.Log.WithName("controllers").WithName("Telemetry"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create Telemetry controller")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.CeilometerCentralReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+		Log:     ctrl.Log.WithName("controllers").WithName("CeilometerCentral"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create CeilometerCentral controller")
 		os.Exit(1)
 	}
 
