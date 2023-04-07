@@ -35,6 +35,14 @@ type TelemetrySpec struct {
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Telemetry
 	RabbitMqClusterName string `json:"rabbitMqClusterName"`
+
+	// +kubebuilder:validation:Required
+	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment
+	CeilometerCentral CeilometerCentralSpec `json:"ceilometerCentral"`
+
+	// +kubebuilder:validation:Required
+	// CeilometerCompute - Spec definition for the CeilometerCompute service of this Telemetry deployment
+	CeilometerCompute CeilometerComputeSpec `json:"ceilometerCompute"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry

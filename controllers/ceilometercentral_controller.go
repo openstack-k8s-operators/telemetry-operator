@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,6 +39,7 @@ import (
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
+	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
@@ -253,27 +255,23 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
 
-	rabbitSecret, hash, err := oko_secret.GetSecret(ctx, helper, instance.Spec.RabbitMQSecret, instance.Namespace)
+	//
+	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
+	//
+	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.Secret, &configMapVars)
 	if err != nil {
-		if k8s_errors.IsNotFound(err) {
-			instance.Status.Conditions.Set(condition.FalseCondition(
-				condition.InputReadyCondition,
-				condition.RequestedReason,
-				condition.SeverityInfo,
-				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("RabbitMQ secret %s not found", instance.Spec.RabbitMQSecret)
-		}
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.InputReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.InputReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
+		return ctrlResult, err
 	}
+	// run check OpenStack secret - end
 
-	configMapVars[rabbitSecret.Name] = env.SetValue(hash)
-	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
+	//
+	// check for required TransportURL secret holding transport URL string
+	//
+	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Spec.TransportURLSecret, &configMapVars)
+	if err != nil {
+		return ctrlResult, err
+	}
+	// run check TransportURL secret - end
 
 	//
 	// create Configmap required for ceilometer input
@@ -363,6 +361,64 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	instance.Status.Networks = instance.Spec.NetworkAttachmentDefinitions
 
 	r.Log.Info("Reconciled Service successfully")
+	return ctrl.Result{}, nil
+}
+
+func (r *CeilometerCentralReconciler) schedulerDeploymentCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.CeilometerCentral, controllerutil.OperationResult, error) {
+	deployment := &telemetryv1.CeilometerCentral{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-scheduler", instance.Name),
+			Namespace: instance.Namespace,
+		},
+	}
+
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, deployment, func() error {
+		deployment.Spec = instance.Spec.CeilometerCentral
+		// Add in transfers from umbrella Telemetry CR (this instance) spec
+		deployment.Spec.ServiceUser = instance.Spec.ServiceUser
+		deployment.Spec.Secret = instance.Spec.Secret
+		deployment.Spec.TransportURLSecret = instance.Status.TransportURLSecret
+		deployment.Spec.ExtraMounts = instance.Spec.ExtraMounts
+		if len(deployment.Spec.NodeSelector) == 0 {
+			deployment.Spec.NodeSelector = instance.Spec.NodeSelector
+		}
+
+		err := controllerutil.SetControllerReference(instance, deployment, r.Scheme)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return deployment, op, err
+}
+
+// getSecret - get the specified secret, and add its hash to envVars
+func (r *CeilometerCentralReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCentral, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
+	secret, hash, err := secret.GetSecret(ctx, h, secretName, instance.Namespace)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.InputReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				condition.InputReadyWaitingMessage))
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Secret %s not found", secretName)
+		}
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.InputReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.InputReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	// Add a prefix to the var name to avoid accidental collision with other non-secret
+	// vars. The secret names themselves will be unique.
+	(*envVars)["secret-"+secret.Name] = env.SetValue(hash)
+
 	return ctrl.Result{}, nil
 }
 

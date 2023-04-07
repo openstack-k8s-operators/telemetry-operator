@@ -4,4 +4,10 @@ metadata:
   name: telemetry
   namespace: openstack
 spec:
-  description: "A telemetry deployment"
+  description: A telemetry deployment
+  ceilometerCentral:
+    description: A ceilometer deployment
+    initImage: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
+    centralImage: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
+    notificationImage: quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo
+    sgCoreImage: quay.io/infrawatch/sg-core:latest

@@ -163,14 +163,11 @@ func Deployment(
 	deployment.Spec.Template.Annotations = util.MergeStringMaps(deployment.Spec.Template.Annotations, nwAnnotation)
 
 	initContainerDetails := APIDetails{
-		ContainerImage:           instance.Spec.InitImage,
-		RabbitMQSecret:           instance.Spec.RabbitMQSecret,
-		RabbitMQHostSelector:     instance.Spec.PasswordSelectors.Host,
-		RabbitMQUsernameSelector: instance.Spec.PasswordSelectors.Username,
-		RabbitMQPasswordSelector: instance.Spec.PasswordSelectors.Password,
-		OSPSecret:                instance.Spec.Secret,
-		ServiceSelector:          instance.Spec.PasswordSelectors.Service,
-		VolumeMounts:             getInitVolumeMounts(),
+		ContainerImage:     instance.Spec.InitImage,
+		TransportURLSecret: instance.Spec.TransportURLSecret,
+		OSPSecret:          instance.Spec.Secret,
+		ServiceSelector:    instance.Spec.PasswordSelectors.Service,
+		VolumeMounts:       getInitVolumeMounts(),
 	}
 	deployment.Spec.Template.Spec.InitContainers = initContainer(initContainerDetails)
 

@@ -17,21 +17,12 @@ limitations under the License.
 package v1beta1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PasswordsSelector to identify the DB and AdminUser password from the Secret
 type PasswordsSelector struct {
-	// Host - Selector to get the host of the RabbitMQ connection
-	// +kubebuilder:default:="host"
-	Host string `json:"host,omitempty"`
-	// Username - Selector to get the username of the RabbitMQ connection
-	// +kubebuilder:default:="username"
-	Username string `json:"username,omitempty"`
-	// Password - Selector to get the password of the RabbitMQ connection
-	// +kubebuilder:default:="password"
-	Password string `json:"password,omitempty"`
 	// Service - Selector to get the ceilometer service password from the Secret
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=CeilometerPassword
@@ -44,10 +35,9 @@ type PasswordsSelector struct {
 // CeilometerCentralSpec defines the desired state of CeilometerCentral
 type CeilometerCentralSpec struct {
 	// The needed values to connect to RabbitMQ
-	// +kubebuilder:default:=rabbitmq-default-user
-	RabbitMQSecret string `json:"rabbitMQSecret,omitempty"`
+	TransportURLSecret string `json:"transportURLSecret"`
 
-	// PasswordSelectors - Selectors to identify host, username and password from the Secret
+	// PasswordSelectors - Selectors to identify username and password from the Secret
 	// +kubebuilder:default:={username: username, password: password}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
 
