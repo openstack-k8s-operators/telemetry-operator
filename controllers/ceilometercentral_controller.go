@@ -23,7 +23,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -362,36 +361,6 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 
 	r.Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
-}
-
-func (r *CeilometerCentralReconciler) schedulerDeploymentCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.CeilometerCentral, controllerutil.OperationResult, error) {
-	deployment := &telemetryv1.CeilometerCentral{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-scheduler", instance.Name),
-			Namespace: instance.Namespace,
-		},
-	}
-
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, deployment, func() error {
-		deployment.Spec = instance.Spec.CeilometerCentral
-		// Add in transfers from umbrella Telemetry CR (this instance) spec
-		deployment.Spec.ServiceUser = instance.Spec.ServiceUser
-		deployment.Spec.Secret = instance.Spec.Secret
-		deployment.Spec.TransportURLSecret = instance.Status.TransportURLSecret
-		deployment.Spec.ExtraMounts = instance.Spec.ExtraMounts
-		if len(deployment.Spec.NodeSelector) == 0 {
-			deployment.Spec.NodeSelector = instance.Spec.NodeSelector
-		}
-
-		err := controllerutil.SetControllerReference(instance, deployment, r.Scheme)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return deployment, op, err
 }
 
 // getSecret - get the specified secret, and add its hash to envVars

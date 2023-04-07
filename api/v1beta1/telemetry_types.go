@@ -55,6 +55,12 @@ type TelemetryStatus struct {
 
 	// TransportURLSecret - Secret containing RabbitMQ transportURL
 	TransportURLSecret string `json:"transportURLSecret,omitempty"`
+
+	// ReadyCount of CeilometerCentral instance
+	CeilometerCentralReadyCount int32 `json:"ceilometerCentralReadyCount,omitempty"`
+
+	// ReadyCount of CeilometerCompute instance
+	CeilometerComputeReadyCount int32 `json:"ceilometerComputeReadyCount,omitempty"`
 }
 
 //+kubebuilder:object:root=true

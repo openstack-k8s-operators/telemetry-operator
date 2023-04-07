@@ -83,7 +83,7 @@ type CeilometerCentralSpec struct {
 
 // CeilometerCentralStatus defines the observed state of CeilometerCentral
 type CeilometerCentralStatus struct {
-	// ReadyCount of keystone API instances
+	// ReadyCount of ceilometercentral instances
 	ReadyCount int32 `json:"readyCount,omitempty"`
 
 	// Map of hashes to track e.g. job status
