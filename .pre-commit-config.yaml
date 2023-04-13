@@ -60,12 +60,14 @@ repos:
       entry: make
       args: ['kube-linter']
       pass_filenames: false
+      exclude: CI_TOOLS_REPO
     - id: make-operator-lint
       name: make-operator-lint
       language: system
       entry: make
       args: ['operator-lint']
       pass_filenames: false
+      exclude: CI_TOOLS_REPO
 
 - repo: https://github.com/openstack/bashate.git
   rev: 2.1.1
