@@ -23,14 +23,11 @@ import (
 
 // APIDetails information
 type APIDetails struct {
-	ContainerImage           string
-	RabbitMQSecret           string
-	RabbitMQHostSelector     string
-	RabbitMQUsernameSelector string
-	RabbitMQPasswordSelector string
-	OSPSecret                string
-	ServiceSelector          string
-	VolumeMounts             []corev1.VolumeMount
+	ContainerImage     string
+	TransportURLSecret string
+	OSPSecret          string
+	ServiceSelector    string
+	VolumeMounts       []corev1.VolumeMount
 }
 
 const (
@@ -48,43 +45,9 @@ func initContainer(init APIDetails) []corev1.Container {
 	}
 
 	envVars := map[string]env.Setter{}
-	envVars["RabbitMQSecret"] = env.SetValue(init.RabbitMQSecret)
 	envVars["OSPSecret"] = env.SetValue(init.OSPSecret)
 
 	envs := []corev1.EnvVar{
-		{
-			Name: "RabbitMQHost",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: init.RabbitMQSecret,
-					},
-					Key: init.RabbitMQHostSelector,
-				},
-			},
-		},
-		{
-			Name: "RabbitMQUsername",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: init.RabbitMQSecret,
-					},
-					Key: init.RabbitMQUsernameSelector,
-				},
-			},
-		},
-		{
-			Name: "RabbitMQPassword",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: init.RabbitMQSecret,
-					},
-					Key: init.RabbitMQPasswordSelector,
-				},
-			},
-		},
 		{
 			Name: "CeilometerPassword",
 			ValueFrom: &corev1.EnvVarSource{
@@ -97,6 +60,22 @@ func initContainer(init APIDetails) []corev1.Container {
 			},
 		},
 	}
+
+	if init.TransportURLSecret != "" {
+		envTransport := corev1.EnvVar{
+			Name: "TransportURL",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: init.TransportURLSecret,
+					},
+					Key: "transport_url",
+				},
+			},
+		}
+		envs = append(envs, envTransport)
+	}
+
 	envs = env.MergeEnvs(envs, envVars)
 
 	return []corev1.Container{

@@ -39,8 +39,8 @@ spec:
   - Telemetry
   - Ceilometer
   links:
-  - name: Ceilometer Operator
-    url: https://github.com/openstack-k8s-operators/ceilometer-operator
+  - name: Telemetry Operator
+    url: https://github.com/openstack-k8s-operators/elemetry-operator
   maturity: beta
   provider:
     name: Red Hat Inc.

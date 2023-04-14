@@ -29,6 +29,20 @@ import (
 type TelemetrySpec struct {
 	// +kubebuilder:default:="A ceilometer agent"
 	Description string `json:"description,omitempty"`
+
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=rabbitmq
+	// RabbitMQ instance name
+	// Needed to request a transportURL that is created and used in Telemetry
+	RabbitMqClusterName string `json:"rabbitMqClusterName"`
+
+	// +kubebuilder:validation:Required
+	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment
+	CeilometerCentral CeilometerCentralSpec `json:"ceilometerCentral"`
+
+	// +kubebuilder:validation:Required
+	// CeilometerCompute - Spec definition for the CeilometerCompute service of this Telemetry deployment
+	CeilometerCompute CeilometerComputeSpec `json:"ceilometerCompute"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry
@@ -38,6 +52,15 @@ type TelemetryStatus struct {
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
+
+	// TransportURLSecret - Secret containing RabbitMQ transportURL
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
+
+	// ReadyCount of CeilometerCentral instance
+	CeilometerCentralReadyCount int32 `json:"ceilometerCentralReadyCount,omitempty"`
+
+	// ReadyCount of CeilometerCompute instance
+	CeilometerComputeReadyCount int32 `json:"ceilometerComputeReadyCount,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -16,7 +16,9 @@
 set -ex
 
 # Secrets are obtained from ENV variables.
-export TRANSPORT_URL=${TransportURL:-""}
+export RABBITMQ_HOST=${RabbitMQHost:?"Please specify a RabbitMQHost variable."}
+export RABBITMQ_USER=${RabbitMQUsername:?"Please specify a RabbitMQUsername variable."}
+export RABBITMQ_PASS=${RabbitMQPassword:?"Please specify a RabbitMQPassword variable."}
 export CEILOMETER_PASS=${CeilometerPassword:?"Please specify a CeilometerPassword variable."}
 
 SVC_CFG=/etc/ceilometer/ceilometer.conf
@@ -35,6 +37,6 @@ for dir in /var/lib/config-data/default; do
 done
 
 # set secrets
-crudini --set ${SVC_CFG_MERGED} DEFAULT transport_url ${TRANSPORT_URL}
-crudini --set ${SVC_CFG_MERGED} oslo_messaging_notifications transport_url ${TRANSPORTURL}
+crudini --set ${SVC_CFG_MERGED} DEFAULT transport_url rabbit://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:5672/?ssl=0
+crudini --set ${SVC_CFG_MERGED} oslo_messaging_notifications transport_url rabbit://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}:5672/?ssl=0
 crudini --set ${SVC_CFG_MERGED} service_credentials password ${CEILOMETER_PASS}

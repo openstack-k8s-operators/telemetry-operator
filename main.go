@@ -35,6 +35,8 @@ import (
 
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
 	//+kubebuilder:scaffold:imports
@@ -50,6 +52,8 @@ func init() {
 
 	utilruntime.Must(telemetryv1.AddToScheme(scheme))
 	utilruntime.Must(keystonev1.AddToScheme(scheme))
+	utilruntime.Must(rabbitmqv1.AddToScheme(scheme))
+	utilruntime.Must(ansibleeev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -122,6 +126,16 @@ func main() {
 		Log:     ctrl.Log.WithName("controllers").WithName("CeilometerCentral"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CeilometerCentral controller")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.CeilometerComputeReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+		Log:     ctrl.Log.WithName("controllers").WithName("CeilometerCompute"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create CeilometerCompute controller")
 		os.Exit(1)
 	}
 

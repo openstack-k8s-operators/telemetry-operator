@@ -17,21 +17,12 @@ limitations under the License.
 package v1beta1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PasswordsSelector to identify the DB and AdminUser password from the Secret
+// PasswordsSelector to identify the Service password from the Secret
 type PasswordsSelector struct {
-	// Host - Selector to get the host of the RabbitMQ connection
-	// +kubebuilder:default:="host"
-	Host string `json:"host,omitempty"`
-	// Username - Selector to get the username of the RabbitMQ connection
-	// +kubebuilder:default:="username"
-	Username string `json:"username,omitempty"`
-	// Password - Selector to get the password of the RabbitMQ connection
-	// +kubebuilder:default:="password"
-	Password string `json:"password,omitempty"`
 	// Service - Selector to get the ceilometer service password from the Secret
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=CeilometerPassword
@@ -44,11 +35,10 @@ type PasswordsSelector struct {
 // CeilometerCentralSpec defines the desired state of CeilometerCentral
 type CeilometerCentralSpec struct {
 	// The needed values to connect to RabbitMQ
-	// +kubebuilder:default:=rabbitmq-default-user
-	RabbitMQSecret string `json:"rabbitMQSecret,omitempty"`
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
-	// PasswordSelectors - Selectors to identify host, username and password from the Secret
-	// +kubebuilder:default:={username: username, password: password}
+	// PasswordSelectors - Selectors to identify the service from the Secret
+	// +kubebuilder:default:={service: CeilometerPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
 
 	// ServiceUser - optional username used for this service to register in keystone
@@ -93,7 +83,7 @@ type CeilometerCentralSpec struct {
 
 // CeilometerCentralStatus defines the observed state of CeilometerCentral
 type CeilometerCentralStatus struct {
-	// ReadyCount of keystone API instances
+	// ReadyCount of ceilometercentral instances
 	ReadyCount int32 `json:"readyCount,omitempty"`
 
 	// Map of hashes to track e.g. job status
