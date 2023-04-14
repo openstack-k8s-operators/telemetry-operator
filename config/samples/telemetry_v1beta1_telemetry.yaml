@@ -5,9 +5,12 @@ metadata:
   namespace: openstack
 spec:
   description: A telemetry deployment
+  rabbitMqClusterName: rabbitmq
   ceilometerCentral:
-    description: A ceilometer deployment
+    description: A ceilometer central deployment
     initImage: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
     centralImage: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
     notificationImage: quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo
     sgCoreImage: quay.io/infrawatch/sg-core:latest
+  ceilometerCompute:
+    description: A ceilometer compute deployment

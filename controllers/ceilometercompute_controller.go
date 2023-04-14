@@ -19,10 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	logr "github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,13 +34,10 @@ import (
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
-	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
-	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
-	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	ceilometercompute "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometercompute"
 )
 
@@ -141,6 +136,9 @@ func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Re
 func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.CeilometerCompute, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
 
+	// Service is deleted so remove the finalizer.
+	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
+
 	// Delete the openstack-ansibleee when the ceilometercompute is deleted
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{}
 	err := r.Get(ctx, types.NamespacedName{Name: instance.Name + "-ansibleee", Namespace: instance.Namespace}, ansibleee)
@@ -152,18 +150,6 @@ func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, insta
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
-}
-
-func (r *CeilometerComputeReconciler) reconcileInit(
-	ctx context.Context,
-	instance *telemetryv1.CeilometerCompute,
-	helper *helper.Helper,
-	serviceLabels map[string]string,
-) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service init")
-
-	r.Log.Info("Reconciled Service init successfully")
 	return ctrl.Result{}, nil
 }
 
@@ -234,12 +220,10 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 		common.AppSelector: ceilometercompute.ServiceName,
 	}
 
-	// Handle service init
-	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
+	fmt.Println("Creating ansible execution")
+	_, err = r.createAnsibleExecution(ctx, instance, serviceLabels)
 	if err != nil {
-		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
-		return ctrlResult, nil
+		return ctrl.Result{}, err
 	}
 
 	r.Log.Info("Reconciled Service successfully")
@@ -247,10 +231,10 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 }
 
 func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context, instance *telemetryv1.CeilometerCompute,
-	configHash string, labels map[string]string) (ctrl.Result, error) {
+	labels map[string]string) (ctrl.Result, error) {
 	fmt.Println("Creating new ansibleEE")
 	// Define a new AnsibleEE
-	ansibleEE, err := ceilometercompute.AnsibleEE(instance, configHash, labels)
+	ansibleEE, err := ceilometercompute.AnsibleEE(instance, labels)
 	if err != nil {
 		fmt.Println("Error defining new ansibleEE")
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -281,7 +265,7 @@ func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context
 }
 
 // getSecret - get the specified secret, and add its hash to envVars
-func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
+/* func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
 	secret, hash, err := secret.GetSecret(ctx, h, secretName, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -306,7 +290,7 @@ func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.H
 	(*envVars)["secret-"+secret.Name] = env.SetValue(hash)
 
 	return ctrl.Result{}, nil
-}
+} */
 
 func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	ctx context.Context,
@@ -315,16 +299,16 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	envVars *map[string]env.Setter,
 ) error {
 
-	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
+	/* cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
 		customData[key] = data
 	}
 
-	templateParameters := make(map[string]interface{})
+	templateParameters := make(map[string]interface{}) */
 
 	cms := []util.Template{
-		// ScriptsConfigMap
+		/* // ScriptsConfigMap
 		{
 			Name:               fmt.Sprintf("%s-scripts", instance.Name),
 			Namespace:          instance.Namespace,
@@ -342,7 +326,7 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 			CustomData:    customData,
 			ConfigOptions: templateParameters,
 			Labels:        cmLabels,
-		},
+		}, */
 	}
 	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 }
@@ -351,7 +335,7 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 // if any of the input resources change, like configs, passwords, ...
 //
 // returns the hash, whether the hash changed (as a bool) and any error
-func (r *CeilometerComputeReconciler) createHashOfInputHashes(
+/* func (r *CeilometerComputeReconciler) createHashOfInputHashes(
 	ctx context.Context,
 	instance *telemetryv1.CeilometerCompute,
 	envVars map[string]env.Setter,
@@ -368,11 +352,12 @@ func (r *CeilometerComputeReconciler) createHashOfInputHashes(
 		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
 	}
 	return hash, changed, nil
-}
+} */
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CeilometerComputeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CeilometerCompute{}).
+		Owns(&ansibleeev1.OpenStackAnsibleEE{}).
 		Complete(r)
 }

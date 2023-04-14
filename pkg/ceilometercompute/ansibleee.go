@@ -23,10 +23,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// Deployment func
+// AnsibleEE is the deployment function that deploys AnsibleEE
 func AnsibleEE(
 	instance *telemetryv1.CeilometerCompute,
-	configHash string,
 	labels map[string]string,
 ) (*ansibleeev1.OpenStackAnsibleEE, error) {
 

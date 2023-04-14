@@ -35,8 +35,8 @@ import (
 
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
-	telemetryv1beta1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -51,7 +51,7 @@ func init() {
 
 	utilruntime.Must(telemetryv1.AddToScheme(scheme))
 	utilruntime.Must(keystonev1.AddToScheme(scheme))
-	utilruntime.Must(telemetryv1beta1.AddToScheme(scheme))
+	utilruntime.Must(rabbitmqv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

@@ -52,7 +52,11 @@ type TelemetryReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=telemetries/finalizers,verbs=update
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/finalizers,verbs=update
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/finalizers,verbs=update;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile reconciles a Telemetry
 func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -149,8 +153,12 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 func (r *TelemetryReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service delete")
+	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete", instance.Name))
 
+	// Service is deleted so remove the finalizer.
+	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
+
+	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", instance.Name))
 	return ctrl.Result{}, nil
 }
 
@@ -176,6 +184,7 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	transportURL, op, err := r.transportURLCreateOrUpdate(instance)
 
 	if err != nil {
+		r.Log.Info("Error getting transportURL. Setting error condition on status and returning")
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.TelemetryRabbitMqTransportURLReadyCondition,
 			condition.ErrorReason,
@@ -245,9 +254,6 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
 	}
 
-	// Mirror CeilometerCentral status ReadyCount to this parent CR
-	instance.Status.CeilometerComputeReadyCount = ceilometercompute.Status.ReadyCount
-
 	// Mirror ceilometercompute's condition status
 	ccompute := ceilometercompute.Status.Conditions.Mirror(telemetryv1.CeilometerComputeReadyCondition)
 	if ccompute != nil {
@@ -260,43 +266,45 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 }
 
 func (r *TelemetryReconciler) transportURLCreateOrUpdate(instance *telemetryv1.Telemetry) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
+	r.Log.Info("transportURLCreateOrUpdate 1")
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-cinder-transport", instance.Name),
+			Name:      fmt.Sprintf("%s-telemetry-transport", instance.Name),
 			Namespace: instance.Namespace,
 		},
 	}
-
+	r.Log.Info("transportURLCreateOrUpdate transportURL Name: " + transportURL.ObjectMeta.Name)
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, transportURL, func() error {
 		transportURL.Spec.RabbitmqClusterName = instance.Spec.RabbitMqClusterName
-
+		r.Log.Info("transportURLCreateOrUpdate transportURL: " + transportURL.Spec.RabbitmqClusterName)
 		err := controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
 		return err
 	})
-
+	r.Log.Info("returning transportURL")
 	return transportURL, op, err
 }
 
 func (r *TelemetryReconciler) ceilometerCentralCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.CeilometerCentral, controllerutil.OperationResult, error) {
-	deployment := &telemetryv1.CeilometerCentral{
+	ccentral := &telemetryv1.CeilometerCentral{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-ceilometer-central", instance.Name),
 			Namespace: instance.Namespace,
 		},
 	}
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, deployment, func() error {
-		deployment.Spec = instance.Spec.CeilometerCentral
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ccentral, func() error {
+		ccentral.Spec = instance.Spec.CeilometerCentral
+		ccentral.Spec.TransportURLSecret = instance.Status.TransportURLSecret
 		// Add in transfers from umbrella Telemetry CR (this instance) spec
-		deployment.Spec.ServiceUser = instance.Spec.ServiceUser
-		deployment.Spec.Secret = instance.Spec.Secret
-		deployment.Spec.TransportURLSecret = instance.Status.TransportURLSecret
-		deployment.Spec.ExtraMounts = instance.Spec.ExtraMounts
-		if len(deployment.Spec.NodeSelector) == 0 {
-			deployment.Spec.NodeSelector = instance.Spec.NodeSelector
-		}
+		//ccentral.Spec.ServiceUser = instance.Spec.ServiceUser
+		//ccentral.Spec.Secret = instance.Spec.Secret
+		//ccentral.Spec.TransportURLSecret = instance.Status.TransportURLSecret
+		//ccentral.Spec.ExtraMounts = instance.Spec.ExtraMounts
+		//if len(ccentral.Spec.NodeSelector) == 0 {
+		//	ccentral.Spec.NodeSelector = instance.Spec.NodeSelector
+		//}
 
-		err := controllerutil.SetControllerReference(instance, deployment, r.Scheme)
+		err := controllerutil.SetControllerReference(instance, ccentral, r.Scheme)
 		if err != nil {
 			return err
 		}
@@ -304,29 +312,29 @@ func (r *TelemetryReconciler) ceilometerCentralCreateOrUpdate(instance *telemetr
 		return nil
 	})
 
-	return deployment, op, err
+	return ccentral, op, err
 }
 
 func (r *TelemetryReconciler) ceilometerComputeCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.CeilometerCompute, controllerutil.OperationResult, error) {
-	deployment := &telemetryv1.CeilometerCentral{
+	ccompute := &telemetryv1.CeilometerCompute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-ceilometer-compute", instance.Name),
 			Namespace: instance.Namespace,
 		},
 	}
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, deployment, func() error {
-		deployment.Spec = instance.Spec.CeilometerCentral
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ccompute, func() error {
+		ccompute.Spec = instance.Spec.CeilometerCompute
 		// Add in transfers from umbrella Telemetry CR (this instance) spec
-		deployment.Spec.ServiceUser = instance.Spec.ServiceUser
-		deployment.Spec.Secret = instance.Spec.Secret
-		deployment.Spec.TransportURLSecret = instance.Status.TransportURLSecret
-		deployment.Spec.ExtraMounts = instance.Spec.ExtraMounts
-		if len(deployment.Spec.NodeSelector) == 0 {
-			deployment.Spec.NodeSelector = instance.Spec.NodeSelector
-		}
+		//ccentral.Spec.ServiceUser = instance.Spec.ServiceUser
+		//ccentral.Spec.Secret = instance.Spec.Secret
+		//ccentral.Spec.TransportURLSecret = instance.Status.TransportURLSecret
+		//ccentral.Spec.ExtraMounts = instance.Spec.ExtraMounts
+		//if len(ccentral.Spec.NodeSelector) == 0 {
+		//	ccentral.Spec.NodeSelector = instance.Spec.NodeSelector
+		//}
 
-		err := controllerutil.SetControllerReference(instance, deployment, r.Scheme)
+		err := controllerutil.SetControllerReference(instance, ccompute, r.Scheme)
 		if err != nil {
 			return err
 		}
@@ -334,7 +342,7 @@ func (r *TelemetryReconciler) ceilometerComputeCreateOrUpdate(instance *telemetr
 		return nil
 	})
 
-	return deployment, op, err
+	return ccompute, op, err
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -343,5 +351,6 @@ func (r *TelemetryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&telemetryv1.Telemetry{}).
 		Owns(&telemetryv1.CeilometerCentral{}).
 		Owns(&telemetryv1.CeilometerCompute{}).
+		Owns(&rabbitmqv1.TransportURL{}).
 		Complete(r)
 }

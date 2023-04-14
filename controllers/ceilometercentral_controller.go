@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -44,9 +43,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
-	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
-	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
+	ceilometercentral "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometercentral"
 )
 
 // CeilometerCentralReconciler reconciles a Ceilometer object
@@ -149,7 +147,7 @@ func (r *CeilometerCentralReconciler) reconcileDelete(ctx context.Context, insta
 	r.Log.Info("Reconciling Service delete")
 
 	// Remove the finalizer from our KeystoneService CR
-	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, ceilometer.ServiceName, instance.Namespace)
+	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, ceilometercentral.ServiceName, instance.Namespace)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -162,33 +160,9 @@ func (r *CeilometerCentralReconciler) reconcileDelete(ctx context.Context, insta
 		util.LogForObject(helper, "Removed finalizer from our KeystoneService", instance)
 	}
 
-	err = helper.GetClient().Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", instance.Name, instance.Namespace), Namespace: instance.Namespace}, instance)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-
-	if err == nil {
-		controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
-		if err = helper.GetClient().Update(ctx, instance); err != nil && !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-		util.LogForObject(helper, fmt.Sprintf("Removed finalizer from Ceilometer %s", instance.Name), instance)
-	}
-
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
 	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", instance.Name))
-
-	// Delete the openstack-ansibleee when the ceilometer is deleted
-	ansibleee := &ansibleeev1.OpenStackAnsibleEE{}
-	err = r.Get(ctx, types.NamespacedName{Name: instance.Name + "-ansibleee", Namespace: instance.Namespace}, ansibleee)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	err = helper.GetClient().Delete(ctx, ansibleee)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	return ctrl.Result{}, nil
 }
@@ -213,8 +187,8 @@ func (r *CeilometerCentralReconciler) reconcileInit(
 	}
 
 	ksSvcSpec := keystonev1.KeystoneServiceSpec{
-		ServiceType:        ceilometer.ServiceType,
-		ServiceName:        ceilometer.ServiceName,
+		ServiceType:        ceilometercentral.ServiceType,
+		ServiceName:        ceilometercentral.ServiceName,
 		ServiceDescription: "Ceilometer Central Service",
 		Enabled:            true,
 		ServiceUser:        instance.Spec.ServiceUser,
@@ -309,11 +283,11 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
-		common.AppSelector: ceilometer.ServiceName,
+		common.AppSelector: ceilometercentral.ServiceName,
 	}
 
 	// Handle service init
-	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
+	ctrlResult, err = r.reconcileInit(ctx, instance, helper, serviceLabels)
 	if err != nil {
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
@@ -321,7 +295,7 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	}
 
 	// Define a new Deployment object
-	deplDef, err := ceilometer.Deployment(instance, inputHash, serviceLabels)
+	deplDef, err := ceilometercentral.Deployment(instance, inputHash, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -398,7 +372,7 @@ func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
 	envVars *map[string]env.Setter,
 ) error {
 
-	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
+	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometercentral.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
 		customData[key] = data
@@ -409,7 +383,7 @@ func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
 	cms := []util.Template{
 		// ScriptsConfigMap
 		{
-			Name:               fmt.Sprintf("%s-scripts", ceilometer.ServiceName),
+			Name:               fmt.Sprintf("%s-scripts", ceilometercentral.ServiceName),
 			Namespace:          instance.Namespace,
 			Type:               util.TemplateTypeScripts,
 			InstanceType:       instance.Kind,
@@ -418,7 +392,7 @@ func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
 		},
 		// ConfigMap
 		{
-			Name:          fmt.Sprintf("%s-config-data", ceilometer.ServiceName),
+			Name:          fmt.Sprintf("%s-config-data", ceilometercentral.ServiceName),
 			Namespace:     instance.Namespace,
 			Type:          util.TemplateTypeConfig,
 			InstanceType:  instance.Kind,

@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PasswordsSelector to identify the DB and AdminUser password from the Secret
+// PasswordsSelector to identify the Service password from the Secret
 type PasswordsSelector struct {
 	// Service - Selector to get the ceilometer service password from the Secret
 	// +kubebuilder:validation:Optional
@@ -35,10 +35,10 @@ type PasswordsSelector struct {
 // CeilometerCentralSpec defines the desired state of CeilometerCentral
 type CeilometerCentralSpec struct {
 	// The needed values to connect to RabbitMQ
-	TransportURLSecret string `json:"transportURLSecret"`
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
-	// PasswordSelectors - Selectors to identify username and password from the Secret
-	// +kubebuilder:default:={username: username, password: password}
+	// PasswordSelectors - Selectors to identify the service from the Secret
+	// +kubebuilder:default:={service: CeilometerPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
 
 	// ServiceUser - optional username used for this service to register in keystone

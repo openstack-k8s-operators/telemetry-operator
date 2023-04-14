@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: ceilometercentrals.telemetry.openstack.org
+  name: ceilometercomputes.telemetry.openstack.org
 spec:
   group: telemetry.openstack.org
   names:
-    kind: CeilometerCentral
-    listKind: CeilometerCentralList
-    plural: ceilometercentrals
-    singular: ceilometercentral
+    kind: CeilometerCompute
+    listKind: CeilometerComputeList
+    plural: ceilometercomputes
+    singular: ceilometercompute
   scope: Namespaced
   versions:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: CeilometerCentral is the Schema for the ceilometercentrals API
+        description: CeilometerCompute is the Schema for the ceilometercomputes API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,11 +33,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: CeilometerCentralSpec defines the desired state of CeilometerCentral
+            description: CeilometerComputeSpec defines the desired state of CeilometerCompute
             properties:
-              centralImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
-                type: string
               customServiceConfig:
                 default: '# add your customization here'
                 description: CustomServiceConfig - customize the service config using
@@ -55,51 +52,15 @@ spec:
                   in /etc/<service> . TODO: -> implement'
                 type: object
               description:
-                default: A ceilometer agent
+                default: A ceilometer compute agent
                 type: string
-              initImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
+              inventory:
                 type: string
-              networkAttachmentDefinitions:
-                description: NetworkAttachmentDefinitions list of network attachment
-                  definitions the service pod gets attached to
-                items:
-                  type: string
-                type: array
-              notificationImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo
-                type: string
-              passwordSelector:
-                default:
-                  service: CeilometerPassword
-                description: PasswordSelectors - Selectors to identify the service
-                  from the Secret
-                properties:
-                  service:
-                    default: CeilometerPassword
-                    description: Service - Selector to get the ceilometer service
-                      password from the Secret
-                    type: string
-                type: object
-              secret:
-                default: osp-secret
-                description: Secret containing OpenStack password information for
-                  ceilometer
-                type: string
-              serviceUser:
-                default: ceilometer
-                description: ServiceUser - optional username used for this service
-                  to register in keystone
-                type: string
-              sgCoreImage:
-                default: quay.io/infrawatch/sg-core:latest
-                type: string
-              transportURLSecret:
-                description: The needed values to connect to RabbitMQ
+              play:
                 type: string
             type: object
           status:
-            description: CeilometerCentralStatus defines the observed state of CeilometerCentral
+            description: CeilometerComputeStatus defines the observed state of CeilometerCompute
             properties:
               conditions:
                 description: Conditions
@@ -155,10 +116,6 @@ spec:
                 items:
                   type: string
                 type: array
-              readyCount:
-                description: ReadyCount of ceilometercentral instances
-                format: int32
-                type: integer
               serviceID:
                 description: ServiceID
                 type: string
