@@ -31,7 +31,7 @@ func AnsibleEE(
 
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name + "-ansibleee",
+			Name:      ServiceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
@@ -44,7 +44,8 @@ func AnsibleEE(
 				{Name: "ANSIBLE_ENABLE_TASK_DEBUGGER", Value: "True"},
 				{Name: "ANSIBLE_VERBOSITY", Value: "1"},
 			},
-			ExtraMounts: getExtraMounts(instance.Name),
+			// TO-DO add the extra mounts with the config files "unsecreted"
+			//ExtraMounts: getExtraMounts(ServiceName),
 		},
 	}
 

@@ -15,7 +15,7 @@ limitations under the License.
 
 package ceilometercompute
 
-import (
+/* import (
 	"github.com/openstack-k8s-operators/lib-common/modules/storage"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -108,4 +108,4 @@ func getExtraMounts(name string) []storage.VolMounts {
 			}),
 		},
 	}
-}
+} */

@@ -116,6 +116,10 @@ spec:
                 items:
                   type: string
                 type: array
+              readyCount:
+                description: ReadyCount of ceilometercompute instances
+                format: int32
+                type: integer
               serviceID:
                 description: ServiceID
                 type: string

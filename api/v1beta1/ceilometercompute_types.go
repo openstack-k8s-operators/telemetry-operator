@@ -51,8 +51,8 @@ type CeilometerComputeSpec struct {
 
 // CeilometerComputeStatus defines the observed state of CeilometerCompute
 type CeilometerComputeStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// ReadyCount of ceilometercompute instances
+	ReadyCount int32 `json:"readyCount,omitempty"`
 
 	// Map of hashes to track e.g. job status
 	Hash map[string]string `json:"hash,omitempty"`

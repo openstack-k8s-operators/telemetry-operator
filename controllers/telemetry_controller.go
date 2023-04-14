@@ -240,6 +240,7 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	// end deploy ceilometercentral
 
 	// deploy ceilometercompute
+	r.Log.Info("Deploying ceilometercompute")
 	ceilometercompute, op, err := r.ceilometerComputeCreateOrUpdate(instance)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -254,33 +255,32 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
 	}
 
+	// Mirror ceilometercompute's status ReadyCount to this parent CR
+	instance.Status.CeilometerComputeReadyCount = ceilometercompute.Status.ReadyCount
+
 	// Mirror ceilometercompute's condition status
 	ccompute := ceilometercompute.Status.Conditions.Mirror(telemetryv1.CeilometerComputeReadyCondition)
 	if ccompute != nil {
 		instance.Status.Conditions.Set(ccompute)
 	}
-	// end deploy ceilometercentral
+	// end deploy ceilometercompute
 
 	r.Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
 
 func (r *TelemetryReconciler) transportURLCreateOrUpdate(instance *telemetryv1.Telemetry) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
-	r.Log.Info("transportURLCreateOrUpdate 1")
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-telemetry-transport", instance.Name),
 			Namespace: instance.Namespace,
 		},
 	}
-	r.Log.Info("transportURLCreateOrUpdate transportURL Name: " + transportURL.ObjectMeta.Name)
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, transportURL, func() error {
 		transportURL.Spec.RabbitmqClusterName = instance.Spec.RabbitMqClusterName
-		r.Log.Info("transportURLCreateOrUpdate transportURL: " + transportURL.Spec.RabbitmqClusterName)
 		err := controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
 		return err
 	})
-	r.Log.Info("returning transportURL")
 	return transportURL, op, err
 }
 
@@ -316,6 +316,7 @@ func (r *TelemetryReconciler) ceilometerCentralCreateOrUpdate(instance *telemetr
 }
 
 func (r *TelemetryReconciler) ceilometerComputeCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.CeilometerCompute, controllerutil.OperationResult, error) {
+	r.Log.Info("Inside ceilometerComputeCreateOrUpdate")
 	ccompute := &telemetryv1.CeilometerCompute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-ceilometer-compute", instance.Name),
@@ -342,6 +343,7 @@ func (r *TelemetryReconciler) ceilometerComputeCreateOrUpdate(instance *telemetr
 		return nil
 	})
 
+	r.Log.Info("Returning created ccompute")
 	return ccompute, op, err
 }
 

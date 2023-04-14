@@ -141,7 +141,7 @@ func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, insta
 
 	// Delete the openstack-ansibleee when the ceilometercompute is deleted
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{}
-	err := r.Get(ctx, types.NamespacedName{Name: instance.Name + "-ansibleee", Namespace: instance.Namespace}, ansibleee)
+	err := r.Get(ctx, types.NamespacedName{Name: ceilometercompute.ServiceName, Namespace: instance.Namespace}, ansibleee)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -232,7 +232,6 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 
 func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context, instance *telemetryv1.CeilometerCompute,
 	labels map[string]string) (ctrl.Result, error) {
-	fmt.Println("Creating new ansibleEE")
 	// Define a new AnsibleEE
 	ansibleEE, err := ceilometercompute.AnsibleEE(instance, labels)
 	if err != nil {
@@ -247,16 +246,24 @@ func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context
 		return ctrl.Result{}, err
 	}
 
-	err = r.Create(ctx, ansibleEE)
+	err = r.Client.Get(ctx, types.NamespacedName{Namespace: ansibleEE.Namespace, Name: ansibleEE.Name}, ansibleEE)
 	if err != nil {
-		fmt.Println("Error creating ansibleEE")
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.AnsibleEECondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.AnsibleEEReadyErrorMessage,
-			err.Error(),
-		))
+		if k8s_errors.IsNotFound(err) {
+			err = r.Create(ctx, ansibleEE)
+			if err != nil {
+				fmt.Println("Error creating ansibleEE")
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.AnsibleEECondition,
+					condition.ErrorReason,
+					condition.SeverityWarning,
+					condition.AnsibleEEReadyErrorMessage,
+					err.Error(),
+				))
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
 
@@ -299,7 +306,7 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	envVars *map[string]env.Setter,
 ) error {
 
-	/* cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
+	/* cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometercompute.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
 		customData[key] = data
@@ -308,9 +315,9 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	templateParameters := make(map[string]interface{}) */
 
 	cms := []util.Template{
-		/* // ScriptsConfigMap
-		{
-			Name:               fmt.Sprintf("%s-scripts", instance.Name),
+		// ScriptsConfigMap
+		/* {
+			Name:               fmt.Sprintf("%s-scripts", ceilometercompute.ServiceName),
 			Namespace:          instance.Namespace,
 			Type:               util.TemplateTypeScripts,
 			InstanceType:       instance.Kind,
@@ -319,7 +326,7 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 		},
 		// ConfigMap
 		{
-			Name:          fmt.Sprintf("%s-config-data", instance.Name),
+			Name:          fmt.Sprintf("%s-config-data", ceilometercompute.ServiceName),
 			Namespace:     instance.Namespace,
 			Type:          util.TemplateTypeConfig,
 			InstanceType:  instance.Kind,
