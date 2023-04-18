@@ -8,9 +8,9 @@ spec:
   rabbitMqClusterName: rabbitmq
   ceilometerCentral:
     description: A ceilometer central deployment
-    initImage: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
-    centralImage: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
-    notificationImage: quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo
+    initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+    centralImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+    notificationImage: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
     sgCoreImage: quay.io/infrawatch/sg-core:latest
   ceilometerCompute:
     description: A ceilometer compute deployment

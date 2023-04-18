@@ -36,7 +36,7 @@ spec:
             description: CeilometerSpec defines the desired state of Ceilometer
             properties:
               centralImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
+                default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
                 type: string
               customServiceConfig:
                 default: '# add your customization here'
@@ -58,7 +58,7 @@ spec:
                 default: A ceilometer agent
                 type: string
               initImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo
+                default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
                 type: string
               networkAttachmentDefinitions:
                 description: NetworkAttachmentDefinitions list of network attachment
@@ -67,7 +67,7 @@ spec:
                   type: string
                 type: array
               notificationImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo
+                default: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
                 type: string
               passwordSelector:
                 default:

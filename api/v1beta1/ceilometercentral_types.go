@@ -65,16 +65,16 @@ type CeilometerCentralSpec struct {
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
 
-	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo"
+	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
 	CentralImage string `json:"centralImage,omitempty"`
 
-	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-notification:current-tripleo"
+	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
 	NotificationImage string `json:"notificationImage,omitempty"`
 
 	// +kubebuilder:default:="quay.io/infrawatch/sg-core:latest"
 	SgCoreImage string `json:"sgCoreImage,omitempty"`
 
-	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-central:current-tripleo"
+	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
 	InitImage string `json:"initImage,omitempty"`
 
 	// +kubebuilder:default:="A ceilometer agent"
