@@ -1,7 +1,8 @@
 apiVersion: telemetry.openstack.org/v1beta1
 kind: CeilometerCompute
 metadata:
-  name: ceilometercompute-sample
+  name: ceilometercompute
   namespace: openstack
 spec:
-  # TODO(user): Add fields here
+  description: A ceilometer compute deployment
+  computeImage: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo

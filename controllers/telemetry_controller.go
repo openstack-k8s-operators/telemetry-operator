@@ -295,14 +295,6 @@ func (r *TelemetryReconciler) ceilometerCentralCreateOrUpdate(instance *telemetr
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ccentral, func() error {
 		ccentral.Spec = instance.Spec.CeilometerCentral
 		ccentral.Spec.TransportURLSecret = instance.Status.TransportURLSecret
-		// Add in transfers from umbrella Telemetry CR (this instance) spec
-		//ccentral.Spec.ServiceUser = instance.Spec.ServiceUser
-		//ccentral.Spec.Secret = instance.Spec.Secret
-		//ccentral.Spec.TransportURLSecret = instance.Status.TransportURLSecret
-		//ccentral.Spec.ExtraMounts = instance.Spec.ExtraMounts
-		//if len(ccentral.Spec.NodeSelector) == 0 {
-		//	ccentral.Spec.NodeSelector = instance.Spec.NodeSelector
-		//}
 
 		err := controllerutil.SetControllerReference(instance, ccentral, r.Scheme)
 		if err != nil {
@@ -326,14 +318,7 @@ func (r *TelemetryReconciler) ceilometerComputeCreateOrUpdate(instance *telemetr
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ccompute, func() error {
 		ccompute.Spec = instance.Spec.CeilometerCompute
-		// Add in transfers from umbrella Telemetry CR (this instance) spec
-		//ccentral.Spec.ServiceUser = instance.Spec.ServiceUser
-		//ccentral.Spec.Secret = instance.Spec.Secret
-		//ccentral.Spec.TransportURLSecret = instance.Status.TransportURLSecret
-		//ccentral.Spec.ExtraMounts = instance.Spec.ExtraMounts
-		//if len(ccentral.Spec.NodeSelector) == 0 {
-		//	ccentral.Spec.NodeSelector = instance.Spec.NodeSelector
-		//}
+		ccompute.Spec.TransportURLSecret = instance.Status.TransportURLSecret
 
 		err := controllerutil.SetControllerReference(instance, ccompute, r.Scheme)
 		if err != nil {

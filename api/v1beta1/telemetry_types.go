@@ -25,6 +25,14 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
+// PasswordsSelector to identify the Service password from the Secret
+type PasswordsSelector struct {
+	// Service - Selector to get the ceilometer service password from the Secret
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=CeilometerPassword
+	Service string `json:"service,omitempty"`
+}
+
 // TelemetrySpec defines the desired state of Telemetry
 type TelemetrySpec struct {
 	// +kubebuilder:default:="A ceilometer agent"

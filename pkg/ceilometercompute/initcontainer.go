@@ -13,13 +13,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometercentral
+package ceilometercompute
 
 import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
-	"github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 
 	corev1 "k8s.io/api/core/v1"
+
+	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 )
 
 // APIDetails information
@@ -59,10 +60,7 @@ func initContainer(init APIDetails) []corev1.Container {
 				},
 			},
 		},
-	}
-
-	if init.TransportURLSecret != "" {
-		envTransport := corev1.EnvVar{
+		{
 			Name: "TransportURL",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
@@ -72,8 +70,7 @@ func initContainer(init APIDetails) []corev1.Container {
 					Key: "transport_url",
 				},
 			},
-		}
-		envs = append(envs, envTransport)
+		},
 	}
 
 	envs = env.MergeEnvs(envs, envVars)

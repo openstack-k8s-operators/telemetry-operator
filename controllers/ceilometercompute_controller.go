@@ -19,9 +19,14 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
+	"time"
 
 	logr "github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -34,6 +39,8 @@ import (
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
+	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
+	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
@@ -158,27 +165,14 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
 
-	/*rabbitSecret, hash, err := oko_secret.GetSecret(ctx, helper, instance.Spec.RabbitMQSecret, instance.Namespace)
+	//
+	// check for required TransportURL secret holding transport URL string
+	//
+	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.TransportURLSecret, &configMapVars)
 	if err != nil {
-		if k8s_errors.IsNotFound(err) {
-			instance.Status.Conditions.Set(condition.FalseCondition(
-				condition.InputReadyCondition,
-				condition.RequestedReason,
-				condition.SeverityInfo,
-				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("RabbitMQ secret %s not found", instance.Spec.RabbitMQSecret)
-		}
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.InputReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.InputReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
+		return ctrlResult, err
 	}
-
-	configMapVars[rabbitSecret.Name] = env.SetValue(hash)
-	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)*/
+	// run check TransportURL secret - end
 
 	//
 	// create Configmap required for ceilometer input
@@ -186,7 +180,7 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	// - %-config configmap holding minimal ceilometer config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
-	err := r.generateServiceConfigMaps(ctx, helper, instance, &configMapVars)
+	err = r.generateServiceConfigMaps(ctx, helper, instance, &configMapVars)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -197,30 +191,24 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 		return ctrl.Result{}, err
 	}
 
-	//
-	// create hash over all the different input resources to identify if any those changed
-	// and a restart/recreate is required.
-	//
-	/*inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
-	fmt.Printf("hashChanged: %v\n", hashChanged)
+	// Create a configmap with the playbooks that will be run
+	err = r.ensurePlaybooks(ctx, helper, instance)
 	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
 		return ctrl.Result{}, err
-	}*/
-	/*if err != nil {
-		return ctrl.Result{}, err
-	} else if hashChanged {
-		// Hash changed and instance status should be updated (which will be done by main defer func),
-		// so we need to return and reconcile again
-		return ctrl.Result{}, nil
 	}
-	fmt.Printf("MarkTrue\n")*/
+
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
 		common.AppSelector: ceilometercompute.ServiceName,
 	}
 
-	fmt.Println("Creating ansible execution")
 	_, err = r.createAnsibleExecution(ctx, instance, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -272,7 +260,7 @@ func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context
 }
 
 // getSecret - get the specified secret, and add its hash to envVars
-/* func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
+func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
 	secret, hash, err := secret.GetSecret(ctx, h, secretName, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -297,7 +285,7 @@ func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context
 	(*envVars)["secret-"+secret.Name] = env.SetValue(hash)
 
 	return ctrl.Result{}, nil
-} */
+}
 
 func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	ctx context.Context,
@@ -306,17 +294,19 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	envVars *map[string]env.Setter,
 ) error {
 
-	/* cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometercompute.ServiceName), map[string]string{})
+	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometercompute.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
 		customData[key] = data
 	}
 
-	templateParameters := make(map[string]interface{}) */
+	templateParameters := map[string]interface{}{
+		"ceilometer_compute_image": instance.Spec.ComputeImage,
+	}
 
 	cms := []util.Template{
 		// ScriptsConfigMap
-		/* {
+		{
 			Name:               fmt.Sprintf("%s-scripts", ceilometercompute.ServiceName),
 			Namespace:          instance.Namespace,
 			Type:               util.TemplateTypeScripts,
@@ -333,33 +323,53 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 			CustomData:    customData,
 			ConfigOptions: templateParameters,
 			Labels:        cmLabels,
-		}, */
+		},
 	}
 	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 }
 
-// createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
-// if any of the input resources change, like configs, passwords, ...
-//
-// returns the hash, whether the hash changed (as a bool) and any error
-/* func (r *CeilometerComputeReconciler) createHashOfInputHashes(
-	ctx context.Context,
-	instance *telemetryv1.CeilometerCompute,
-	envVars map[string]env.Setter,
-) (string, bool, error) {
-	var hashMap map[string]string
-	changed := false
-	mergedMapVars := env.MergeEnvs([]corev1.EnvVar{}, envVars)
-	hash, err := util.ObjectHash(mergedMapVars)
+func (r *CeilometerComputeReconciler) ensurePlaybooks(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute) error {
+	playbookPath, found := os.LookupEnv("OPERATOR_PLAYBOOKS")
+	if !found {
+		playbookPath = "playbooks"
+		os.Setenv("OPERATOR_PLAYBOOKS", playbookPath)
+		util.LogForObject(h, "OPERATOR_PLAYBOOKS not set in env when reconciling ", instance, "defaulting to ", playbookPath)
+	}
+
+	util.LogForObject(h, "using playbooks for instance ", instance, "from ", playbookPath)
+
+	playbookDirEntries, err := os.ReadDir(playbookPath)
 	if err != nil {
-		return hash, changed, err
+		return err
 	}
-	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
-		instance.Status.Hash = hashMap
-		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
+	// EnsureConfigMaps is not used as we do not want the templating behavior that adds.
+	playbookCMName := fmt.Sprintf("%s-external-compute-playbook", ceilometercompute.ServiceName)
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        playbookCMName,
+			Namespace:   instance.Namespace,
+			Annotations: map[string]string{},
+		},
+		Data: map[string]string{},
 	}
-	return hash, changed, nil
-} */
+	_, err = controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
+		for _, entry := range playbookDirEntries {
+			filename := entry.Name()
+			filePath := path.Join(playbookPath, filename)
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				return err
+			}
+			configMap.Data[filename] = string(data)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error create/updating configmap: %w", err)
+	}
+
+	return nil
+}
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CeilometerComputeReconciler) SetupWithManager(mgr ctrl.Manager) error {
