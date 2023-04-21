@@ -71,6 +71,10 @@ type CeilometerComputeSpec struct {
 	// DataplaneInventoryConfigMap 
 	// +kubebuilder:default:="dataplanerole-edpm-compute-inventory"
 	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap,omitempty"`
+
+	// Playbook executed
+	// +kubebuilder:default:="deploy-ceilometer.yaml"
+	Playbook string `json:"playbook,omitempty"`
 }
 
 // CeilometerComputeStatus defines the observed state of CeilometerCompute

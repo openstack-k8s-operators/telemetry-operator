@@ -215,7 +215,7 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	// end transportURL
 
 	// deploy ceilometercentral
-	ceilometercentral, op, err := r.ceilometerCentralCreateOrUpdate(instance)
+	/* ceilometercentral, op, err := r.ceilometerCentralCreateOrUpdate(instance)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.CeilometerCentralReadyCondition,
@@ -236,7 +236,7 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	ccentral := ceilometercentral.Status.Conditions.Mirror(telemetryv1.CeilometerCentralReadyCondition)
 	if ccentral != nil {
 		instance.Status.Conditions.Set(ccentral)
-	}
+	} */
 	// end deploy ceilometercentral
 
 	// deploy ceilometercompute

@@ -329,21 +329,21 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 }
 
 func (r *CeilometerComputeReconciler) ensurePlaybooks(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute) error {
-	playbookPath, found := os.LookupEnv("OPERATOR_PLAYBOOKS")
+	playbooksPath, found := os.LookupEnv("OPERATOR_PLAYBOOKS")
 	if !found {
-		playbookPath = "playbooks"
-		os.Setenv("OPERATOR_PLAYBOOKS", playbookPath)
-		util.LogForObject(h, "OPERATOR_PLAYBOOKS not set in env when reconciling ", instance, "defaulting to ", playbookPath)
+		playbooksPath = "playbooks"
+		os.Setenv("OPERATOR_PLAYBOOKS", playbooksPath)
+		util.LogForObject(h, "OPERATOR_PLAYBOOKS not set in env when reconciling ", instance, "defaulting to ", playbooksPath)
 	}
 
-	util.LogForObject(h, "using playbooks for instance ", instance, "from ", playbookPath)
+	util.LogForObject(h, "using playbooks for instance ", instance, "from ", playbooksPath)
 
-	playbookDirEntries, err := os.ReadDir(playbookPath)
+	playbookDirEntries, err := os.ReadDir(playbooksPath)
 	if err != nil {
 		return err
 	}
 	// EnsureConfigMaps is not used as we do not want the templating behavior that adds.
-	playbookCMName := fmt.Sprintf("%s-external-compute-playbook", ceilometercompute.ServiceName)
+	playbookCMName := fmt.Sprintf("%s-external-compute-playbooks", ceilometercompute.ServiceName)
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        playbookCMName,
@@ -355,7 +355,7 @@ func (r *CeilometerComputeReconciler) ensurePlaybooks(ctx context.Context, h *he
 	_, err = controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
 		for _, entry := range playbookDirEntries {
 			filename := entry.Name()
-			filePath := path.Join(playbookPath, filename)
+			filePath := path.Join(playbooksPath, filename)
 			data, err := os.ReadFile(filePath)
 			if err != nil {
 				return err

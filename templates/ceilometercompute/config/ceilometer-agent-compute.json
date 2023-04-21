@@ -1,5 +1,5 @@
 {
-    "command": "/usr/bin/ceilometer-polling --polling-namespaces compute --logfile /var/log/ceilometer/compute.log",
+    "command": "/usr/bin/ceilometer-polling --polling-namespaces compute --logfile /var/log/containers/ceilometer/compute.log",
     "config_files": [
       {
         "source": "/var/lib/openstack/config/ceilometer.conf",
@@ -13,5 +13,12 @@
         "owner": "ceilometer",
         "perm": "0600"
       }
-    ]
+    ],
+    "permissions": [
+      {
+          "path": "/var/log/containers/ceilometer",
+          "owner": "ceilometer:ceilometer",
+          "recurse": true
+      }
+  ]
   }

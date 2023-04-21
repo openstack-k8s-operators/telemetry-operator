@@ -85,3 +85,5 @@ require (
 )
 
 replace cloud.google.com/go => cloud.google.com/go v0.100.2
+
+replace github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230419203517-e2dc6bc77bae => github.com/jlarriba/openstack-ansibleee-operator/api v0.0.0-20230420105752-f79c6f293d8d

@@ -12,6 +12,7 @@
         mode: "{{ item.mode | default('750') }}"
         recurse: true
       with_items:
+      - { 'path': /var/lib/openstack/config/containers}
       - { 'path': /var/lib/openstack/config/ceilometer}
 
     - name: create persistent directories
@@ -34,7 +35,7 @@
       with_items:
       - { 'src': "/var/lib/config-data/merged/ceilometer.conf", "dest": "/var/lib/openstack/config/ceilometer/ceilometer.conf" }
       - { 'src': "/var/lib/config-data/merged/polling.yaml", "dest": "/var/lib/openstack/config/ceilometer/polling.yaml" }
-      - { 'src': "/var/lib/config-data/merged/ceilometer_agent_compute.json", "dest": "/var/lib/openstack/config/ceilometer/ceilometer_agent_compute.json" }
+      - { 'src': "/var/lib/config-data/merged/ceilometer_agent_compute.json", "dest": "/var/lib/openstack/config/containers/ceilometer_agent_compute.json" }
       - { 'src': "/var/lib/config-data/merged/ceilometer-agent-compute.json", "dest": "/var/lib/openstack/config/ceilometer/ceilometer-agent-compute.json" }
     
     - name: deploy ceilometer container
@@ -51,4 +52,4 @@
       become: true
       ansible.builtin.systemd:
         state: restarted
-        name: edpm_ceilometer.service
+        name: edpm_ceilometer_agent_compute.service

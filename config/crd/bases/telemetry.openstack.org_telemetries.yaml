@@ -154,6 +154,10 @@ spec:
                           password from the Secret
                         type: string
                     type: object
+                  playbook:
+                    default: deploy-ceilometer.yaml
+                    description: Playbook executed
+                    type: string
                   secret:
                     default: osp-secret
                     description: Secret containing OpenStack password information

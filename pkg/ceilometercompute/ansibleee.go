@@ -43,7 +43,7 @@ func AnsibleEE(
 			Labels:    labels,
 		},
 		Spec: ansibleeev1.OpenStackAnsibleEESpec{
-			Playbook: "deploy-ceilometer.yaml",
+			Playbook: instance.Spec.Playbook,
 			Env: []corev1.EnvVar{
 				{Name: "ANSIBLE_FORCE_COLOR", Value: "True"},
 				{Name: "ANSIBLE_SSH_ARGS", Value: "-C -o ControlMaster=auto -o ControlPersist=80s"},
@@ -52,7 +52,8 @@ func AnsibleEE(
 			},
 			InitContainers: initContainer(initContainerDetails),
 			// TO-DO add the extra mounts with the config files "unsecreted"
-			ExtraMounts: getExtraMounts(ServiceName, instance),
+			ExtraMounts:        getExtraMounts(ServiceName, instance),
+			ServiceAccountName: ServiceAccount,
 		},
 	}
 
