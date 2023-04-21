@@ -470,7 +470,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: quay.io/jlarriba/telemetry-operator:latest
+        image: quay.io/openstack-k8s-operators/telemetry-operator:latest
         livenessProbe:
           httpGet:
             path: /healthz
