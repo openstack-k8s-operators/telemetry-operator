@@ -37,7 +37,7 @@
       - { 'src': "/var/lib/config-data/merged/polling.yaml", "dest": "/var/lib/openstack/config/ceilometer/polling.yaml" }
       - { 'src': "/var/lib/config-data/merged/ceilometer_agent_compute.json", "dest": "/var/lib/openstack/config/containers/ceilometer_agent_compute.json" }
       - { 'src': "/var/lib/config-data/merged/ceilometer-agent-compute.json", "dest": "/var/lib/openstack/config/ceilometer/ceilometer-agent-compute.json" }
-    
+
     - name: deploy ceilometer container
       ansible.builtin.include_role:
         name: osp.edpm.edpm_container_manage
@@ -47,7 +47,7 @@
         edpm_container_manage_debug: true
         edpm_container_manage_config_patterns: 'ceilometer_agent_compute.json'
         edpm_container_manage_clean_orphans: false
-    
+
     - name: restart ceilometer
       become: true
       ansible.builtin.systemd:
