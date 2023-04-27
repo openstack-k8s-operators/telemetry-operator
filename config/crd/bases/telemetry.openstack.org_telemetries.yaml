@@ -107,7 +107,7 @@ spec:
                   service of this Telemetry deployment
                 properties:
                   computeImage:
-                    default: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
                     description: ComputeImage is the image used for the ceilometer-agent-compute
                       container
                     type: string
@@ -139,7 +139,7 @@ spec:
                     default: A ceilometer compute agent
                     type: string
                   initImage:
-                    default: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
                     description: InitImage is the image used for the init container
                     type: string
                   passwordSelector:

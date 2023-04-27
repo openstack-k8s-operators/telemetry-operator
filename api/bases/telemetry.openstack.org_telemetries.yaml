@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: telemetries.telemetry.openstack.org
 spec:
@@ -18,7 +18,7 @@ spec:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Telemetry is the Schema for the telemetries API
+        description: Telemetry is the Schema for the telemetry API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,90 +33,170 @@ spec:
           metadata:
             type: object
           spec:
-            description: CeilometerSpec defines the desired state of Ceilometer
+            description: TelemetrySpec defines the desired state of Telemetry
             properties:
-              centralImage:
-                default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
-                type: string
-              customServiceConfig:
-                default: '# add your customization here'
-                description: CustomServiceConfig - customize the service config using
-                  this parameter to change service defaults, or overwrite rendered
-                  information using raw OpenStack config format. The content gets
-                  added to to /etc/<service>/<service>.conf.d directory as custom.conf
-                  file.
-                type: string
-              defaultConfigOverwrite:
-                additionalProperties:
-                  type: string
-                description: 'ConfigOverwrite - interface to overwrite default config
-                  files like e.g. logging.conf or policy.json. But can also be used
-                  to add additional files. Those get added to the service config dir
-                  in /etc/<service> . TODO: -> implement'
+              ceilometerCentral:
+                description: CeilometerCentral - Spec definition for the CeilometerCentral
+                  service of this Telemetry deployment
+                properties:
+                  centralImage:
+                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+                    type: string
+                  customServiceConfig:
+                    default: '# add your customization here'
+                    description: CustomServiceConfig - customize the service config
+                      using this parameter to change service defaults, or overwrite
+                      rendered information using raw OpenStack config format. The
+                      content gets added to to /etc/<service>/<service>.conf.d directory
+                      as custom.conf file.
+                    type: string
+                  defaultConfigOverwrite:
+                    additionalProperties:
+                      type: string
+                    description: 'ConfigOverwrite - interface to overwrite default
+                      config files like e.g. logging.conf or policy.json. But can
+                      also be used to add additional files. Those get added to the
+                      service config dir in /etc/<service> . TODO: -> implement'
+                    type: object
+                  description:
+                    default: A ceilometer agent
+                    type: string
+                  initImage:
+                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+                    type: string
+                  networkAttachmentDefinitions:
+                    description: NetworkAttachmentDefinitions list of network attachment
+                      definitions the service pod gets attached to
+                    items:
+                      type: string
+                    type: array
+                  notificationImage:
+                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
+                    type: string
+                  passwordSelector:
+                    default:
+                      service: CeilometerPassword
+                    description: PasswordSelectors - Selectors to identify the service
+                      from the Secret
+                    properties:
+                      service:
+                        default: CeilometerPassword
+                        description: Service - Selector to get the ceilometer service
+                          password from the Secret
+                        type: string
+                    type: object
+                  secret:
+                    default: osp-secret
+                    description: Secret containing OpenStack password information
+                      for ceilometer
+                    type: string
+                  serviceUser:
+                    default: ceilometer
+                    description: ServiceUser - optional username used for this service
+                      to register in keystone
+                    type: string
+                  sgCoreImage:
+                    default: quay.io/infrawatch/sg-core:latest
+                    type: string
+                  transportURLSecret:
+                    description: The needed values to connect to RabbitMQ
+                    type: string
+                type: object
+              ceilometerCompute:
+                description: CeilometerCompute - Spec definition for the CeilometerCompute
+                  service of this Telemetry deployment
+                properties:
+                  computeImage:
+                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
+                    description: ComputeImage is the image used for the ceilometer-agent-compute
+                      container
+                    type: string
+                  customServiceConfig:
+                    default: '# add your customization here'
+                    description: CustomServiceConfig - customize the service config
+                      using this parameter to change service defaults, or overwrite
+                      rendered information using raw OpenStack config format. The
+                      content gets added to to /etc/<service>/<service>.conf.d directory
+                      as custom.conf file.
+                    type: string
+                  dataplaneInventoryConfigMap:
+                    default: dataplanerole-edpm-compute-inventory
+                    description: DataplaneInventoryConfigMap
+                    type: string
+                  dataplaneSSHSecret:
+                    default: dataplane-ansible-ssh-private-key-secret
+                    description: DataplaneSSHSecret
+                    type: string
+                  defaultConfigOverwrite:
+                    additionalProperties:
+                      type: string
+                    description: 'DefaultConfigOverwrite - interface to overwrite
+                      default config files like e.g. logging.conf or policy.json.
+                      But can also be used to add additional files. Those get added
+                      to the service config dir in /etc/<service> . TODO: -> implement'
+                    type: object
+                  description:
+                    default: A ceilometer compute agent
+                    type: string
+                  initImage:
+                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
+                    description: InitImage is the image used for the init container
+                    type: string
+                  passwordSelector:
+                    default:
+                      service: CeilometerPassword
+                    description: PasswordSelectors - Selectors to identify the service
+                      from the Secret
+                    properties:
+                      service:
+                        default: CeilometerPassword
+                        description: Service - Selector to get the ceilometer service
+                          password from the Secret
+                        type: string
+                    type: object
+                  playbook:
+                    default: deploy-ceilometer.yaml
+                    description: Playbook executed
+                    type: string
+                  secret:
+                    default: osp-secret
+                    description: Secret containing OpenStack password information
+                      for ceilometer
+                    type: string
+                  serviceUser:
+                    default: ceilometer
+                    description: ServiceUser - optional username used for this service
+                      to register in keystone
+                    type: string
+                  transportURLSecret:
+                    description: TransportURLSecret contains the needed values to
+                      connect to RabbitMQ
+                    type: string
                 type: object
               description:
                 default: A ceilometer agent
                 type: string
-              initImage:
-                default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+              rabbitMqClusterName:
+                default: rabbitmq
+                description: RabbitMQ instance name Needed to request a transportURL
+                  that is created and used in Telemetry
                 type: string
-              networkAttachmentDefinitions:
-                description: NetworkAttachmentDefinitions list of network attachment
-                  definitions the service pod gets attached to
-                items:
-                  type: string
-                type: array
-              notificationImage:
-                default: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
-                type: string
-              passwordSelector:
-                default:
-                  password: password
-                  username: username
-                description: PasswordSelectors - Selectors to identify host, username
-                  and password from the Secret
-                properties:
-                  host:
-                    default: host
-                    description: Host - Selector to get the host of the RabbitMQ connection
-                    type: string
-                  password:
-                    default: password
-                    description: Password - Selector to get the password of the RabbitMQ
-                      connection
-                    type: string
-                  service:
-                    default: CeilometerPassword
-                    description: Service - Selector to get the ceilometer service
-                      password from the Secret
-                    type: string
-                  username:
-                    default: username
-                    description: Username - Selector to get the username of the RabbitMQ
-                      connection
-                    type: string
-                type: object
-              rabbitMQSecret:
-                default: rabbitmq-default-user
-                description: The needed values to connect to RabbitMQ
-                type: string
-              secret:
-                default: osp-secret
-                description: Secret containing OpenStack password information for
-                  ceilometer
-                type: string
-              serviceUser:
-                default: ceilometer
-                description: ServiceUser - optional username used for this service
-                  to register in keystone
-                type: string
-              sgCoreImage:
-                default: quay.io/infrawatch/sg-core:latest
-                type: string
+            required:
+            - ceilometerCentral
+            - ceilometerCompute
+            - rabbitMqClusterName
             type: object
           status:
-            description: CeilometerStatus defines the observed state of Ceilometer
+            description: TelemetryStatus defines the observed state of Telemetry
             properties:
+              ceilometerCentralReadyCount:
+                description: ReadyCount of CeilometerCentral instance
+                format: int32
+                type: integer
+              ceilometerComputeReadyCount:
+                description: ReadyCount of CeilometerCompute instance
+                format: int32
+                type: integer
               conditions:
                 description: Conditions
                 items:
@@ -165,18 +245,8 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
-              networks:
-                description: Networks in addtion to the cluster network, the service
-                  is attached to
-                items:
-                  type: string
-                type: array
-              readyCount:
-                description: ReadyCount of keystone API instances
-                format: int32
-                type: integer
-              serviceID:
-                description: ServiceID
+              transportURLSecret:
+                description: TransportURLSecret - Secret containing RabbitMQ transportURL
                 type: string
             type: object
         type: object

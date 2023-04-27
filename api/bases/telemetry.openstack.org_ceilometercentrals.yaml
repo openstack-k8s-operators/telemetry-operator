@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: ceilometercomputes.telemetry.openstack.org
+  name: ceilometercentrals.telemetry.openstack.org
 spec:
   group: telemetry.openstack.org
   names:
-    kind: CeilometerCompute
-    listKind: CeilometerComputeList
-    plural: ceilometercomputes
-    singular: ceilometercompute
+    kind: CeilometerCentral
+    listKind: CeilometerCentralList
+    plural: ceilometercentrals
+    singular: ceilometercentral
   scope: Namespaced
   versions:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: CeilometerCompute is the Schema for the ceilometercomputes API
+        description: CeilometerCentral is the Schema for the ceilometercentrals API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,12 +33,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: CeilometerComputeSpec defines the desired state of CeilometerCompute
+            description: CeilometerCentralSpec defines the desired state of CeilometerCentral
             properties:
-              computeImage:
-                default: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
-                description: ComputeImage is the image used for the ceilometer-agent-compute
-                  container
+              centralImage:
+                default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
                 type: string
               customServiceConfig:
                 default: '# add your customization here'
@@ -48,28 +46,28 @@ spec:
                   added to to /etc/<service>/<service>.conf.d directory as custom.conf
                   file.
                 type: string
-              dataplaneInventoryConfigMap:
-                default: dataplanerole-edpm-compute-inventory
-                description: DataplaneInventoryConfigMap
-                type: string
-              dataplaneSSHSecret:
-                default: dataplane-ansible-ssh-private-key-secret
-                description: DataplaneSSHSecret
-                type: string
               defaultConfigOverwrite:
                 additionalProperties:
                   type: string
-                description: 'DefaultConfigOverwrite - interface to overwrite default
-                  config files like e.g. logging.conf or policy.json. But can also
-                  be used to add additional files. Those get added to the service
-                  config dir in /etc/<service> . TODO: -> implement'
+                description: 'ConfigOverwrite - interface to overwrite default config
+                  files like e.g. logging.conf or policy.json. But can also be used
+                  to add additional files. Those get added to the service config dir
+                  in /etc/<service> . TODO: -> implement'
                 type: object
               description:
-                default: A ceilometer compute agent
+                default: A ceilometer agent
                 type: string
               initImage:
-                default: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
-                description: InitImage is the image used for the init container
+                default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+                type: string
+              networkAttachmentDefinitions:
+                description: NetworkAttachmentDefinitions list of network attachment
+                  definitions the service pod gets attached to
+                items:
+                  type: string
+                type: array
+              notificationImage:
+                default: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
                 type: string
               passwordSelector:
                 default:
@@ -83,10 +81,6 @@ spec:
                       password from the Secret
                     type: string
                 type: object
-              playbook:
-                default: deploy-ceilometer.yaml
-                description: Playbook executed
-                type: string
               secret:
                 default: osp-secret
                 description: Secret containing OpenStack password information for
@@ -97,13 +91,15 @@ spec:
                 description: ServiceUser - optional username used for this service
                   to register in keystone
                 type: string
+              sgCoreImage:
+                default: quay.io/infrawatch/sg-core:latest
+                type: string
               transportURLSecret:
-                description: TransportURLSecret contains the needed values to connect
-                  to RabbitMQ
+                description: The needed values to connect to RabbitMQ
                 type: string
             type: object
           status:
-            description: CeilometerComputeStatus defines the observed state of CeilometerCompute
+            description: CeilometerCentralStatus defines the observed state of CeilometerCentral
             properties:
               conditions:
                 description: Conditions
@@ -160,7 +156,7 @@ spec:
                   type: string
                 type: array
               readyCount:
-                description: ReadyCount of ceilometercompute instances
+                description: ReadyCount of ceilometercentral instances
                 format: int32
                 type: integer
               serviceID:

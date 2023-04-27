@@ -5,4 +5,4 @@ metadata:
   namespace: openstack
 spec:
   description: A ceilometer compute deployment
-  computeImage: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+  computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
