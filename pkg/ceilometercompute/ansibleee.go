@@ -29,6 +29,13 @@ func AnsibleEE(
 	labels map[string]string,
 ) (*ansibleeev1.OpenStackAnsibleEE, error) {
 
+	initContainerDetails := APIDetails{
+		ContainerImage:     instance.Spec.InitImage,
+		TransportURLSecret: instance.Spec.TransportURLSecret,
+		OSPSecret:          instance.Spec.Secret,
+		ServiceSelector:    instance.Spec.PasswordSelectors.Service,
+	}
+
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ServiceName,
@@ -36,16 +43,17 @@ func AnsibleEE(
 			Labels:    labels,
 		},
 		Spec: ansibleeev1.OpenStackAnsibleEESpec{
-			Play:      instance.Spec.Play,
-			Inventory: instance.Spec.Inventory,
+			Playbook: instance.Spec.Playbook,
 			Env: []corev1.EnvVar{
 				{Name: "ANSIBLE_FORCE_COLOR", Value: "True"},
 				{Name: "ANSIBLE_SSH_ARGS", Value: "-C -o ControlMaster=auto -o ControlPersist=80s"},
 				{Name: "ANSIBLE_ENABLE_TASK_DEBUGGER", Value: "True"},
 				{Name: "ANSIBLE_VERBOSITY", Value: "1"},
 			},
+			InitContainers: initContainer(initContainerDetails),
 			// TO-DO add the extra mounts with the config files "unsecreted"
-			//ExtraMounts: getExtraMounts(ServiceName),
+			ExtraMounts:        getExtraMounts(ServiceName, instance),
+			ServiceAccountName: ServiceAccount,
 		},
 	}
 

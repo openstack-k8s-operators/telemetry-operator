@@ -14,23 +14,6 @@ spec:
     sgCoreImage: quay.io/infrawatch/sg-core:latest
   ceilometerCompute:
     description: A ceilometer compute deployment
-    play: |
-      - name: Print hello world
-        hosts: all
-        tasks:
-          - name: Using debug statement
-            ansible.builtin.debug:
-              msg: "Hello, world this is ceilometer-ansibleee.yaml"
-    inventory: |
-      Compute:
-        hosts:
-          compute-0:
-            ansible_host: 192.168.122.197
-        vars:
-          ansible_ssh_user: root
-      allovercloud:
-        children:
-          Compute:
-      overcloud:
-        children:
-          Compute:
+    initImage: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+    computeImage: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+    playbook: deploy-ceilometer.yaml

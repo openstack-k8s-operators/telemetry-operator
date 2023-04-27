@@ -25,6 +25,7 @@ RUN if [ ! -f $CACHITO_ENV_FILE ]; then go mod download ; fi
 RUN if [ -f $CACHITO_ENV_FILE ] ; then source $CACHITO_ENV_FILE ; fi ; CGO_ENABLED=0  GO111MODULE=on go build ${GO_BUILD_EXTRA_ARGS} -a -o ${DEST_ROOT}/manager main.go
 
 RUN cp -r templates ${DEST_ROOT}/templates
+RUN cp -r playbooks ${DEST_ROOT}/playbooks
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
@@ -56,7 +57,8 @@ LABEL com.redhat.component="${IMAGE_COMPONENT}" \
 ### DO NOT EDIT LINES ABOVE
 
 ENV USER_UID=$USER_ID \
-    OPERATOR_TEMPLATES=/usr/share/telemetry-operator/templates/
+    OPERATOR_TEMPLATES=/usr/share/telemetry-operator/templates/ \
+    OPERATOR_PLAYBOOKS=/usr/share/telemetry-operator/playbooks/
 
 WORKDIR /
 
@@ -65,6 +67,7 @@ COPY --from=builder ${DEST_ROOT}/manager .
 
 # Install templates
 COPY --from=builder ${DEST_ROOT}/templates ${OPERATOR_TEMPLATES}
+COPY --from=builder ${DEST_ROOT}/playbooks ${OPERATOR_PLAYBOOKS}
 
 USER $USER_ID
 

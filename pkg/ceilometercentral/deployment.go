@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometer
+package ceilometercentral
 
 import (
 	"fmt"
@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 )
 
 const (
@@ -93,7 +94,7 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts(),
+		VolumeMounts: telemetry.GetVolumeMounts(),
 	}
 	notificationAgentContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
@@ -107,7 +108,7 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts(),
+		VolumeMounts: telemetry.GetVolumeMounts(),
 	}
 	sgCoreContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
@@ -167,7 +168,6 @@ func Deployment(
 		TransportURLSecret: instance.Spec.TransportURLSecret,
 		OSPSecret:          instance.Spec.Secret,
 		ServiceSelector:    instance.Spec.PasswordSelectors.Service,
-		VolumeMounts:       getInitVolumeMounts(),
 	}
 	deployment.Spec.Template.Spec.InitContainers = initContainer(initContainerDetails)
 

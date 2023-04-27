@@ -22,17 +22,22 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // CeilometerComputeSpec defines the desired state of CeilometerCompute
 type CeilometerComputeSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 
-	Play string `json:"play,omitempty"`
+	// PasswordSelectors - Selectors to identify the service from the Secret
+	// +kubebuilder:default:={service: CeilometerPassword}
+	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
 
-	Inventory string `json:"inventory,omitempty"`
+	// ServiceUser - optional username used for this service to register in keystone
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=ceilometer
+	ServiceUser string `json:"serviceUser,omitempty"`
+
+	// Secret containing OpenStack password information for ceilometer
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=osp-secret
+	Secret string `json:"secret,omitempty"`
 
 	// +kubebuilder:default:="A ceilometer compute agent"
 	Description string `json:"description,omitempty"`
@@ -43,10 +48,33 @@ type CeilometerComputeSpec struct {
 	// +kubebuilder:default:="# add your customization here"
 	CustomServiceConfig string `json:"customServiceConfig,omitempty"`
 
-	// ConfigOverwrite - interface to overwrite default config files like e.g. logging.conf or policy.json.
+	// DefaultConfigOverwrite - interface to overwrite default config files like e.g. logging.conf or policy.json.
 	// But can also be used to add additional files. Those get added to the service config dir in /etc/<service> .
 	// TODO: -> implement
 	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
+
+	// TransportURLSecret contains the needed values to connect to RabbitMQ
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
+
+	// InitImage is the image used for the init container
+	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo"
+	InitImage string `json:"initImage,omitempty"`
+
+	// ComputeImage is the image used for the ceilometer-agent-compute container
+	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo"
+	ComputeImage string `json:"computeImage,omitempty"`
+
+	// DataplaneSSHSecret
+	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"
+	DataplaneSSHSecret string `json:"dataplaneSSHSecret,omitempty"`
+
+	// DataplaneInventoryConfigMap
+	// +kubebuilder:default:="dataplanerole-edpm-compute-inventory"
+	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap,omitempty"`
+
+	// Playbook executed
+	// +kubebuilder:default:="deploy-ceilometer.yaml"
+	Playbook string `json:"playbook,omitempty"`
 }
 
 // CeilometerComputeStatus defines the observed state of CeilometerCompute
