@@ -12,7 +12,7 @@ require (
 	github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230405110152-0fa46d782d90
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230404094840-40d9ff1586e1
 	github.com/openstack-k8s-operators/lib-common/modules/storage v0.0.0-20230403103332-2c2153569243
-	github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230419203517-e2dc6bc77bae
+	github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230426095147-f8a2b7fe1b15
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-00010101000000-000000000000
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
@@ -85,5 +85,3 @@ require (
 )
 
 replace cloud.google.com/go => cloud.google.com/go v0.100.2
-
-replace github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230419203517-e2dc6bc77bae => github.com/jlarriba/openstack-ansibleee-operator/api v0.0.0-20230420105752-f79c6f293d8d
