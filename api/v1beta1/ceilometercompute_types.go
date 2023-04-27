@@ -64,9 +64,9 @@ type CeilometerComputeSpec struct {
 	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo"
 	ComputeImage string `json:"computeImage,omitempty"`
 
-	// DataPlaneSshSecret 
+	// DataplaneSSHSecret 
 	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"
-	DataplaneSshSecret string `json:"dataplaneSshSecret,omitempty"`
+	DataplaneSSHSecret string `json:"dataplaneSSHSecret,omitempty"`
 
 	// DataplaneInventoryConfigMap 
 	// +kubebuilder:default:="dataplanerole-edpm-compute-inventory"

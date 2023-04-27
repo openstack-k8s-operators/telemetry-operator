@@ -29,7 +29,7 @@ func getExtraMounts(name string, instance *telemetryv1.CeilometerCompute) []stor
 			Name: "sshkey",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: instance.Spec.DataplaneSshSecret,
+					SecretName: instance.Spec.DataplaneSSHSecret,
 					Items: []corev1.KeyToPath{
 						{
 							Key:  "ssh-privatekey",

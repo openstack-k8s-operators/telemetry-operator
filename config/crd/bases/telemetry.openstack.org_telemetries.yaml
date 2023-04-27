@@ -123,9 +123,9 @@ spec:
                     default: dataplanerole-edpm-compute-inventory
                     description: DataplaneInventoryConfigMap
                     type: string
-                  dataplaneSshSecret:
+                  dataplaneSSHSecret:
                     default: dataplane-ansible-ssh-private-key-secret
-                    description: DataPlaneSshSecret
+                    description: DataplaneSSHSecret
                     type: string
                   defaultConfigOverwrite:
                     additionalProperties:

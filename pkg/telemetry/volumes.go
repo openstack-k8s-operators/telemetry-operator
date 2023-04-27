@@ -20,7 +20,9 @@ import (
 )
 
 var (
+	// ScriptsVolumeDefaultMode is the default permissions mode for Scripts volume
 	ScriptsVolumeDefaultMode int32 = 0755
+	// Config0640AccessMode is the 640 permissions mode
 	Config0640AccessMode     int32 = 0640
 )
 
