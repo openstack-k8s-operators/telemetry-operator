@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -37,8 +38,10 @@ import (
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
+
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
+	"github.com/openstack-k8s-operators/telemetry-operator/pkg/common"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -137,6 +140,26 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CeilometerCompute controller")
 		os.Exit(1)
+	}
+
+	// Acquire environmental defaults and initialize Telemetry defaults with them
+	telemetryDefaults := telemetryv1.TelemetryDefaults{
+		CentralContainerImageURL:      common.GetEnvDefault("CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", telemetryv1.CeilometerCentralContainerImage),
+		CentralInitContainerImageURL:  common.GetEnvDefault("CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT", telemetryv1.CeilometerCentralInitContainerImage),
+		ComputeContainerImageURL:      common.GetEnvDefault("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", telemetryv1.CeilometerComputeContainerImage),
+		ComputeInitContainerImageURL:  common.GetEnvDefault("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", telemetryv1.CeilometerComputeInitContainerImage),
+		NotificationContainerImageURL: common.GetEnvDefault("CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", telemetryv1.CeilometerNotificationContainerImage),
+		SgCoreContainerImageURL:       common.GetEnvDefault("CEILOMETER_SGCORE_INIT_IMAGE_URL_DEFAULT", telemetryv1.CeilometerSgCoreContainerImage),
+	}
+
+	telemetryv1.SetupTelemetryDefaults(telemetryDefaults)
+
+	// Setup webhooks if requested
+	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) != "false" {
+		if err = (&telemetryv1.Telemetry{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Telemetry")
+			os.Exit(1)
+		}
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

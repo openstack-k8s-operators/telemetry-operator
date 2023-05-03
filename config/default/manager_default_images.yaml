@@ -1,0 +1,25 @@
+# This patch inject custom ENV settings to the manager container
+# Used to set our default image locations
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT
+          value: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+        - name: CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT
+          value: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+        - name: CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT
+          value: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+        - name: CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT
+          value: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+        - name: CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT
+          value: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
+        - name: CEILOMETER_SGCORE_IMAGE_URL_DEFAULT
+          value: quay.io/infrawatch/sg-core:latest

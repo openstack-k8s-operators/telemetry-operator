@@ -36,7 +36,6 @@ spec:
             description: CeilometerComputeSpec defines the desired state of CeilometerCompute
             properties:
               computeImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
                 description: ComputeImage is the image used for the ceilometer-agent-compute
                   container
                 type: string
@@ -68,7 +67,6 @@ spec:
                 default: A ceilometer compute agent
                 type: string
               initImage:
-                default: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
                 description: InitImage is the image used for the init container
                 type: string
               passwordSelector:
@@ -101,6 +99,9 @@ spec:
                 description: TransportURLSecret contains the needed values to connect
                   to RabbitMQ
                 type: string
+            required:
+            - computeImage
+            - initImage
             type: object
           status:
             description: CeilometerComputeStatus defines the observed state of CeilometerCompute

@@ -32,12 +32,12 @@ type CeilometerComputeSpec struct {
 	// ServiceUser - optional username used for this service to register in keystone
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=ceilometer
-	ServiceUser string `json:"serviceUser,omitempty"`
+	ServiceUser string `json:"serviceUser"`
 
 	// Secret containing OpenStack password information for ceilometer
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=osp-secret
-	Secret string `json:"secret,omitempty"`
+	Secret string `json:"secret"`
 
 	// +kubebuilder:default:="A ceilometer compute agent"
 	Description string `json:"description,omitempty"`
@@ -57,12 +57,12 @@ type CeilometerComputeSpec struct {
 	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
 	// InitImage is the image used for the init container
-	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo"
-	InitImage string `json:"initImage,omitempty"`
+	// +kubebuilder:validation:Required
+	InitImage string `json:"initImage"`
 
 	// ComputeImage is the image used for the ceilometer-agent-compute container
-	// +kubebuilder:default:="quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo"
-	ComputeImage string `json:"computeImage,omitempty"`
+	// +kubebuilder:validation:Required
+	ComputeImage string `json:"computeImage"`
 
 	// DataplaneSSHSecret
 	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"

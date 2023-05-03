@@ -21,9 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // CeilometerCentralSpec defines the desired state of CeilometerCentral
 type CeilometerCentralSpec struct {
 	// The needed values to connect to RabbitMQ
@@ -36,12 +33,12 @@ type CeilometerCentralSpec struct {
 	// ServiceUser - optional username used for this service to register in keystone
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=ceilometer
-	ServiceUser string `json:"serviceUser,omitempty"`
+	ServiceUser string `json:"serviceUser"`
 
 	// Secret containing OpenStack password information for ceilometer
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=osp-secret
-	Secret string `json:"secret,omitempty"`
+	Secret string `json:"secret"`
 
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
 	// or overwrite rendered information using raw OpenStack config format. The content gets added to
@@ -57,17 +54,17 @@ type CeilometerCentralSpec struct {
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
 
-	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
-	CentralImage string `json:"centralImage,omitempty"`
+	// +kubebuilder:validation:Required
+	CentralImage string `json:"centralImage"`
 
-	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
-	NotificationImage string `json:"notificationImage,omitempty"`
+	// +kubebuilder:validation:Required
+	NotificationImage string `json:"notificationImage"`
 
-	// +kubebuilder:default:="quay.io/infrawatch/sg-core:latest"
-	SgCoreImage string `json:"sgCoreImage,omitempty"`
+	// +kubebuilder:validation:Required
+	SgCoreImage string `json:"sgCoreImage"`
 
-	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
-	InitImage string `json:"initImage,omitempty"`
+	// +kubebuilder:validation:Required
+	InitImage string `json:"initImage"`
 
 	// +kubebuilder:default:="A ceilometer agent"
 	Description string `json:"description,omitempty"`
