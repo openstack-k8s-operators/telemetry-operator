@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 package v1beta1
 
 import (
@@ -25,12 +22,27 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
+const (
+	// CeilometerCentralContainerImage - default fall-back image for Ceilometer Central
+	CeilometerCentralContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+	// CeilometerCentralInitContainerImage - default fall-back image for Ceilometer Central Init
+	CeilometerCentralInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
+	CeilometerComputeContainerImage = "quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo"
+	// CeilometerComputeInitContainerImage - default fall-back image for Ceilometer Compute Init
+	CeilometerComputeInitContainerImage = "quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo"
+	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notifcation
+	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
+	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
+	CeilometerSgCoreContainerImage = "quay.io/infrawatch/sg-core:latest"
+)
+
 // PasswordsSelector to identify the Service password from the Secret
 type PasswordsSelector struct {
 	// Service - Selector to get the ceilometer service password from the Secret
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=CeilometerPassword
-	Service string `json:"service,omitempty"`
+	Service string `json:"service"`
 }
 
 // TelemetrySpec defines the desired state of Telemetry

@@ -40,7 +40,6 @@ spec:
                   service of this Telemetry deployment
                 properties:
                   centralImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
                     type: string
                   customServiceConfig:
                     default: '# add your customization here'
@@ -62,7 +61,6 @@ spec:
                     default: A ceilometer agent
                     type: string
                   initImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
                     type: string
                   networkAttachmentDefinitions:
                     description: NetworkAttachmentDefinitions list of network attachment
@@ -71,7 +69,6 @@ spec:
                       type: string
                     type: array
                   notificationImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
                     type: string
                   passwordSelector:
                     default:
@@ -96,11 +93,15 @@ spec:
                       to register in keystone
                     type: string
                   sgCoreImage:
-                    default: quay.io/infrawatch/sg-core:latest
                     type: string
                   transportURLSecret:
                     description: The needed values to connect to RabbitMQ
                     type: string
+                required:
+                - centralImage
+                - initImage
+                - notificationImage
+                - sgCoreImage
                 type: object
               ceilometerCompute:
                 description: CeilometerCompute - Spec definition for the CeilometerCompute
@@ -172,6 +173,9 @@ spec:
                     description: TransportURLSecret contains the needed values to
                       connect to RabbitMQ
                     type: string
+                required:
+                - computeImage
+                - initImage
                 type: object
               description:
                 default: A ceilometer agent

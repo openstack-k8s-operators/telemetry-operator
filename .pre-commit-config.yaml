@@ -1,4 +1,31 @@
 repos:
+- repo: local
+  hooks:
+    - id: gotidy
+      name: gotidy
+      language: system
+      entry: make
+      args: ["tidy"]
+      pass_filenames: false
+    - id: make-manifests
+      name: make-manifests
+      language: system
+      entry: make
+      args: ['manifests']
+      pass_filenames: false
+    - id: make-generate
+      name: make-generate
+      language: system
+      entry: make
+      args: ['generate']
+      pass_filenames: false
+    - id: make-operator-lint
+      name: make-operator-lint
+      language: system
+      entry: make
+      args: ['operator-lint']
+      pass_filenames: false
+
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.4.0
   hooks:
@@ -22,47 +49,14 @@ repos:
     - id: trailing-whitespace
       exclude: ^vendor
 
-- repo: local
-  hooks:
-    - id: make-golangci
-      name: make-golangci
-      language: system
-      entry: make
-      args: ['golangci']
-      pass_filenames: false
-    - id: make-gofmt
-      name: make-gofmt
-      language: system
-      entry: make
-      args: ['gofmt']
-      pass_filenames: false
-    - id: make-govet
-      name: make-govet
-      language: system
-      entry: make
-      args: ['govet']
-      pass_filenames: false
-    - id: make-golint
-      name: make-golint
-      language: system
-      entry: make
-      args: ['golint']
-      pass_filenames: false
-    - id: make-generate
-      name: make-generate
-      language: system
-      entry: make
-      args: ['generate']
-      pass_filenames: false
-    - id: make-operator-lint
-      name: make-operator-lint
-      language: system
-      entry: make
-      args: ['operator-lint']
-      pass_filenames: false
-
 - repo: https://github.com/openstack/bashate.git
   rev: 2.1.1
   hooks:
     - id: bashate
-      entry: bashate --error . --ignore=E006,E040,E043
+      entry: bashate --error . --ignore=E006,E040,E011,E020,E012
+
+- repo: https://github.com/golangci/golangci-lint
+  rev: v1.52.2
+  hooks:
+    - id: golangci-lint
+      args: ["-v"]

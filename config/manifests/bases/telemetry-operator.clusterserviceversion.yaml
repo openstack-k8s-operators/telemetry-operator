@@ -11,7 +11,17 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: Telemetry is the Schema for the telemetries API
+    - description: CeilometerCentral is the Schema for the ceilometercentrals API
+      displayName: Ceilometer Central
+      kind: CeilometerCentral
+      name: ceilometercentrals.telemetry.openstack.org
+      version: v1beta1
+    - description: CeilometerCompute is the Schema for the ceilometercomputes API
+      displayName: Ceilometer Compute
+      kind: CeilometerCompute
+      name: ceilometercomputes.telemetry.openstack.org
+      version: v1beta1
+    - description: Telemetry is the Schema for the telemetry API
       displayName: Telemetry
       kind: Telemetry
       name: telemetries.telemetry.openstack.org

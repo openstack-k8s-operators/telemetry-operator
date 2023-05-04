@@ -101,6 +101,9 @@ spec:
                 description: TransportURLSecret contains the needed values to connect
                   to RabbitMQ
                 type: string
+            required:
+            - computeImage
+            - initImage
             type: object
           status:
             description: CeilometerComputeStatus defines the observed state of CeilometerCompute

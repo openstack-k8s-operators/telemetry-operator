@@ -34,12 +34,12 @@ type CeilometerComputeSpec struct {
 	// ServiceUser - optional username used for this service to register in keystone
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=ceilometer
-	ServiceUser string `json:"serviceUser,omitempty"`
+	ServiceUser string `json:"serviceUser"`
 
 	// Secret containing OpenStack password information for ceilometer
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=osp-secret
-	Secret string `json:"secret,omitempty"`
+	Secret string `json:"secret"`
 
 	// +kubebuilder:default:="A ceilometer compute agent"
 	Description string `json:"description,omitempty"`
