@@ -166,9 +166,18 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	configMapVars := make(map[string]env.Setter)
 
 	//
+	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
+	//
+	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.Secret, &configMapVars)
+	if err != nil {
+		return ctrlResult, err
+	}
+	// run check OpenStack secret - end
+
+	//
 	// check for required TransportURL secret holding transport URL string
 	//
-	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.TransportURLSecret, &configMapVars)
+	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Spec.TransportURLSecret, &configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}

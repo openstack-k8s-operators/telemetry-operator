@@ -1,13 +1,15 @@
 ---
 sources:
     - name: some_pollsters
-      interval: 10
+      interval: 30
       meters:
         - cpu
+        - disk.*
+        - ip.*
+        - image.*
         - memory
         - memory.*
         - network.*
-        - disk.*
         - perf.*
         - port
         - port.*
@@ -15,5 +17,3 @@ sources:
         - switch.*
         - storage.*
         - volume.*
-        - image.*
-        - hardware.*

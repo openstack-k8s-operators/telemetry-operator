@@ -14,6 +14,7 @@ spec:
     sgCoreImage: quay.io/infrawatch/sg-core:latest
   ceilometerCompute:
     description: A ceilometer compute deployment
-    initImage: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
-    computeImage: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+    initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
+    computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
     playbook: deploy-ceilometer.yaml
+    dataplaneInventoryConfigMap: dataplanerole-edpm-compute

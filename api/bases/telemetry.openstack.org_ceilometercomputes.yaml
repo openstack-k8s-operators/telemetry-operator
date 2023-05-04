@@ -49,7 +49,7 @@ spec:
                   file.
                 type: string
               dataplaneInventoryConfigMap:
-                default: dataplanerole-edpm-compute
+                default: dataplanerole-edpm-compute-inventory
                 description: DataplaneInventoryConfigMap
                 type: string
               dataplaneSSHSecret:
