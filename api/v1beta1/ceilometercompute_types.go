@@ -24,6 +24,8 @@ import (
 
 // CeilometerComputeSpec defines the desired state of CeilometerCompute
 type CeilometerComputeSpec struct {
+	// TransportURLSecret contains the needed values to connect to RabbitMQ
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
 	// PasswordSelectors - Selectors to identify the service from the Secret
 	// +kubebuilder:default:={service: CeilometerPassword}
@@ -53,9 +55,6 @@ type CeilometerComputeSpec struct {
 	// TODO: -> implement
 	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
 
-	// TransportURLSecret contains the needed values to connect to RabbitMQ
-	TransportURLSecret string `json:"transportURLSecret,omitempty"`
-
 	// InitImage is the image used for the init container
 	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	InitImage string `json:"initImage,omitempty"`
@@ -69,7 +68,7 @@ type CeilometerComputeSpec struct {
 	DataplaneSSHSecret string `json:"dataplaneSSHSecret,omitempty"`
 
 	// DataplaneInventoryConfigMap
-	// +kubebuilder:default:="dataplanerole-edpm-compute-inventory"
+	// +kubebuilder:default:="dataplanerole-edpm-compute"
 	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap,omitempty"`
 
 	// Playbook executed
