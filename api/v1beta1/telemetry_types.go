@@ -28,9 +28,9 @@ const (
 	// CeilometerCentralInitContainerImage - default fall-back image for Ceilometer Central Init
 	CeilometerCentralInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
 	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
-	CeilometerComputeContainerImage = "quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo"
+	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerComputeInitContainerImage - default fall-back image for Ceilometer Compute Init
-	CeilometerComputeInitContainerImage = "quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo"
+	CeilometerComputeInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notifcation
 	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
 	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
