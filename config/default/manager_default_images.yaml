@@ -16,9 +16,9 @@ spec:
         - name: CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
         - name: CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT
-          value: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+          value: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
         - name: CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT
-          value: quay.io/tripleomastercentos9/openstack-ceilometer-compute:current-tripleo
+          value: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
         - name: CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
         - name: CEILOMETER_SGCORE_IMAGE_URL_DEFAULT
