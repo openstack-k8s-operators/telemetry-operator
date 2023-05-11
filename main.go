@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -37,6 +38,7 @@ import (
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
+
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
 	//+kubebuilder:scaffold:imports
@@ -137,6 +139,22 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CeilometerCompute controller")
 		os.Exit(1)
+	}
+
+	// Acquire environmental defaults and initialize PlacementAPI defaults with them
+	telemetryv1.SetupTelemetryDefaults(telemetryv1.TelemetryDefaults{
+		InitImageURL:         os.Getenv("TELEMETRY_CEILOMETER_INIT_IMAGE_URL_DEFAULT"),
+		CentralImageURL:      os.Getenv("TELEMETRY_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT"),
+		NotificationImageURL: os.Getenv("TELEMETRY_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT"),
+		SgCoreImageURL:       os.Getenv("TELEMETRY_SG_CORE_IMAGE_URL_DEFAULT"),
+	})
+
+	// Setup webhooks if requested
+	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) != "false" {
+		if err = (&telemetryv1.Telemetry{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Telemetry")
+			os.Exit(1)
+		}
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

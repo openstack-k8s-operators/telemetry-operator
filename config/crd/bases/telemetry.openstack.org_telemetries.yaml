@@ -40,7 +40,8 @@ spec:
                   service of this Telemetry deployment
                 properties:
                   centralImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+                    description: CentralImage containing container image URL of Ceilometer
+                      central agent (will be set to environmental default if empty)
                     type: string
                   customServiceConfig:
                     default: '# add your customization here'
@@ -62,7 +63,8 @@ spec:
                     default: A ceilometer agent
                     type: string
                   initImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+                    description: InitImage containing init container image URL (will
+                      be set to environmental default if empty)
                     type: string
                   networkAttachmentDefinitions:
                     description: NetworkAttachmentDefinitions list of network attachment
@@ -71,7 +73,9 @@ spec:
                       type: string
                     type: array
                   notificationImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
+                    description: NotificationImage containing container image URL
+                      of Ceilometer notification agent (will be set to environmental
+                      default if empty)
                     type: string
                   passwordSelector:
                     default:
@@ -96,7 +100,8 @@ spec:
                       to register in keystone
                     type: string
                   sgCoreImage:
-                    default: quay.io/infrawatch/sg-core:latest
+                    description: SgCoreImage containing container image URL of sg-core
+                      (will be set to environmental default if empty)
                     type: string
                   transportURLSecret:
                     description: The needed values to connect to RabbitMQ

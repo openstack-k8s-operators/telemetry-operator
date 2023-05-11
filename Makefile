@@ -290,3 +290,20 @@ operator-lint:
 	go get golang.stackrox.io/kube-linter/cmd/kube-linter
 	GO111MODULE=on go install golang.stackrox.io/kube-linter/cmd/kube-linter
 	kube-linter lint --config ./.kube-linter.yaml ./config
+
+# Used for webhook testing
+# Please ensure the telemetry-controller-manager deployment and
+# webhook definitions are removed from the csv before running
+# this. Also, cleanup the webhook configuration for local testing
+# before deploying with olm again.
+# $oc delete -n openstack validatingwebhookconfiguration/vtelemetry.kb.io
+# $oc delete -n openstack mutatingwebhookconfiguration/mtelemetry.kb.io
+SKIP_CERT ?=false
+.PHONY: run-with-webhook
+run-with-webhook: export TELEMETRY_CEILOMETER_INIT_IMAGE_URL_DEFAULT=quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+run-with-webhook: export TELEMETRY_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT=quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+run-with-webhook: export TELEMETRY_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT=quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
+run-with-webhook: export TELEMETRY_SG_CORE_IMAGE_URL_DEFAULT=quay.io/infrawatch/sg-core:latest
+run-with-webhook: manifests generate fmt vet ## Run a controller from your host.
+	/bin/bash hack/configure_local_webhook.sh
+	go run ./main.go

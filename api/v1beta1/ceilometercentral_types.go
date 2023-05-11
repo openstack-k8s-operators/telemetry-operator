@@ -57,16 +57,20 @@ type CeilometerCentralSpec struct {
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
 
-	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+	// CentralImage containing container image URL of Ceilometer central agent (will be set to environmental default if empty)
+	// +kubebuilder:validation:Required
 	CentralImage string `json:"centralImage,omitempty"`
 
-	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
+	// NotificationImage containing container image URL of Ceilometer notification agent (will be set to environmental default if empty)
+	// +kubebuilder:validation:Required
 	NotificationImage string `json:"notificationImage,omitempty"`
 
-	// +kubebuilder:default:="quay.io/infrawatch/sg-core:latest"
+	// SgCoreImage containing container image URL of sg-core (will be set to environmental default if empty)
+	// +kubebuilder:validation:Required
 	SgCoreImage string `json:"sgCoreImage,omitempty"`
 
-	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+	// InitImage containing init container image URL (will be set to environmental default if empty)
+	// +kubebuilder:validation:Required
 	InitImage string `json:"initImage,omitempty"`
 
 	// +kubebuilder:default:="A ceilometer agent"
