@@ -56,11 +56,9 @@ type CeilometerComputeSpec struct {
 	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
 
 	// InitImage is the image used for the init container
-	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	InitImage string `json:"initImage,omitempty"`
 
 	// ComputeImage is the image used for the ceilometer-agent-compute container
-	// +kubebuilder:default:="quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	ComputeImage string `json:"computeImage,omitempty"`
 
 	// DataplaneSSHSecret
