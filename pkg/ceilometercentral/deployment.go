@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
-	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 )
 
 const (
@@ -94,7 +93,7 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: telemetry.GetVolumeMounts(),
+		VolumeMounts: getVolumeMounts(),
 	}
 	notificationAgentContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
@@ -108,7 +107,7 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: telemetry.GetVolumeMounts(),
+		VolumeMounts: getVolumeMounts(),
 	}
 	sgCoreContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,

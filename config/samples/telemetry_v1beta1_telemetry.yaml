@@ -18,3 +18,7 @@ spec:
     computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
     playbook: deploy-ceilometer.yaml
     dataplaneInventoryConfigMap: dataplanerole-edpm-compute
+  infraCompute:
+    description: An infracompute
+    nodeExporterImage: quay.io/prometheus/node-exporter:v1.5.0
+    playbook: deploy-infra.yaml

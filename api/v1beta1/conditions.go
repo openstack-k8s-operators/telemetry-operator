@@ -29,6 +29,9 @@ const (
 
 	// CeilometerComputeReadyCondition Status=True condition which indicates if the CeilometerCompute is configured and operational
 	CeilometerComputeReadyCondition condition.Type = "CeilometerComputeReady"
+
+	// InfraComputeReadyCondition Status=True condition which indicates if the CeilometerCompute is configured and operational
+	InfraComputeReadyCondition condition.Type = "InfraComputeReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -68,4 +71,13 @@ const (
 
 	// CeilometerComputeReadyErrorMessage
 	CeilometerComputeReadyErrorMessage = "CeilometerCompute error occured %s"
+
+	//
+	// InfraComputeReady condition messages
+	//
+	// InfraComputeReadyInitMessage
+	InfraComputeReadyInitMessage = "InfraCompute not started"
+
+	// InfraComputeReadyErrorMessage
+	InfraComputeReadyErrorMessage = "InfraCompute error occured %s"
 )

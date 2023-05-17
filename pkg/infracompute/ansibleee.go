@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometercompute
+package infracompute
 
 import (
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
@@ -25,16 +25,9 @@ import (
 
 // AnsibleEE is the deployment function that deploys AnsibleEE
 func AnsibleEE(
-	instance *telemetryv1.CeilometerCompute,
+	instance *telemetryv1.InfraCompute,
 	labels map[string]string,
 ) (*ansibleeev1.OpenStackAnsibleEE, error) {
-
-	initContainerDetails := APIDetails{
-		ContainerImage:     instance.Spec.InitImage,
-		TransportURLSecret: instance.Spec.TransportURLSecret,
-		OSPSecret:          instance.Spec.Secret,
-		ServiceSelector:    instance.Spec.PasswordSelectors.Service,
-	}
 
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{
 		ObjectMeta: metav1.ObjectMeta{
@@ -50,8 +43,7 @@ func AnsibleEE(
 				{Name: "ANSIBLE_ENABLE_TASK_DEBUGGER", Value: "True"},
 				{Name: "ANSIBLE_VERBOSITY", Value: "1"},
 			},
-			InitContainers:     initContainer(initContainerDetails),
-			ExtraMounts:        getExtraMounts(ServiceName, instance),
+			ExtraMounts:        getExtraMounts(instance),
 			ServiceAccountName: ServiceAccount,
 		},
 	}

@@ -35,6 +35,9 @@ const (
 	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
 	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
 	CeilometerSgCoreContainerImage = "quay.io/infrawatch/sg-core:latest"
+	// NodeExporterContainerImage - default fall-back image for node_exporter
+	// NodeExporterContainerImage = "registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.13"
+	NodeExporterContainerImage = "quay.io/prometheus/node-exporter:v1.5.0"
 )
 
 // PasswordsSelector to identify the Service password from the Secret
@@ -63,6 +66,10 @@ type TelemetrySpec struct {
 	// +kubebuilder:validation:Required
 	// CeilometerCompute - Spec definition for the CeilometerCompute service of this Telemetry deployment
 	CeilometerCompute CeilometerComputeSpec `json:"ceilometerCompute"`
+
+	// +kubebuilder:validation:Required
+	// InfraCompute - Spec definition for the InfraCompute service of this Telemetry deployment
+	InfraCompute InfraComputeSpec `json:"infraCompute"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry
@@ -81,6 +88,9 @@ type TelemetryStatus struct {
 
 	// ReadyCount of CeilometerCompute instance
 	CeilometerComputeReadyCount int32 `json:"ceilometerComputeReadyCount,omitempty"`
+
+	// ReadyCount of InfraCompute instance
+	InfraComputeReadyCount int32 `json:"infraComputeReadyCount,omitempty"`
 }
 
 //+kubebuilder:object:root=true

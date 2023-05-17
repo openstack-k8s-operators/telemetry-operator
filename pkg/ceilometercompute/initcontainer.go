@@ -19,8 +19,6 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
 
 	corev1 "k8s.io/api/core/v1"
-
-	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 )
 
 // APIDetails information
@@ -87,7 +85,7 @@ func initContainer(init APIDetails) []corev1.Container {
 			},
 			Args:         args,
 			Env:          envs,
-			VolumeMounts: telemetry.GetInitVolumeMounts(),
+			VolumeMounts: getInitVolumeMounts(),
 		},
 	}
 }

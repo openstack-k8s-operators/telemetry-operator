@@ -141,6 +141,32 @@ rules:
 - apiGroups:
   - telemetry.openstack.org
   resources:
+  - infracomputes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - infracomputes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - infracomputes/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
   - telemetries
   verbs:
   - create

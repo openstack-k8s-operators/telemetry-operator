@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometercompute
+package infracompute
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -30,76 +30,7 @@ var (
 	Config0640AccessMode int32 = 0640
 )
 
-// getVolumes - service volumes
-func getVolumes(name string) []corev1.Volume {
-	return []corev1.Volume{
-		{
-			Name: "scripts",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					DefaultMode: &ScriptsVolumeDefaultMode,
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: name + "-scripts",
-					},
-				},
-			},
-		}, {
-			Name: "config-data",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					DefaultMode: &Config0640AccessMode,
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: name + "-config-data",
-					},
-				},
-			},
-		}, {
-			Name: "config-data-merged",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
-			},
-		},
-	}
-}
-
-// getInitVolumeMounts - general init task VolumeMounts
-func getInitVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
-		{
-			Name:      "scripts",
-			MountPath: "/usr/local/bin/container-scripts",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data",
-			MountPath: "/var/lib/config-data/default",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data-merged",
-			MountPath: "/var/lib/config-data/merged",
-			ReadOnly:  false,
-		},
-	}
-}
-
-// getVolumeMounts - general VolumeMounts
-func getVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
-		{
-			Name:      "scripts",
-			MountPath: "/usr/local/bin/container-scripts",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data-merged",
-			MountPath: "/var/lib/config-data/merged",
-			ReadOnly:  false,
-		},
-	}
-}
-
-func getExtraMounts(name string, instance *telemetryv1.CeilometerCompute) []storage.VolMounts {
+func getExtraMounts(instance *telemetryv1.InfraCompute) []storage.VolMounts {
 	volumes := []corev1.Volume{
 		{
 			Name: "sshkey",
@@ -133,6 +64,15 @@ func getExtraMounts(name string, instance *telemetryv1.CeilometerCompute) []stor
 					},
 				},
 			},
+		}, {
+			Name: "extravars",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: telemetry.ServiceName + "-compute-extravars",
+					},
+				},
+			},
 		},
 	}
 
@@ -150,12 +90,17 @@ func getExtraMounts(name string, instance *telemetryv1.CeilometerCompute) []stor
 			Name:      "playbooks",
 			MountPath: "/runner/project/",
 		},
+		{
+			Name:      "extravars",
+			MountPath: "/runner/env/extravars",
+			SubPath:   "extravars",
+		},
 	}
 
 	return []storage.VolMounts{
 		{
-			Volumes: append(getVolumes(name), volumes...),
-			Mounts:  append(getVolumeMounts(), mounts...),
+			Volumes: volumes,
+			Mounts:  mounts,
 		},
 	}
 }
