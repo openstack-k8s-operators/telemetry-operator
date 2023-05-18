@@ -118,7 +118,7 @@ func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		cl := condition.CreateList(
 			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+			condition.UnknownCondition(condition.AnsibleEECondition, condition.InitReason, condition.AnsibleEEReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -264,6 +264,8 @@ func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context
 		return ctrl.Result{}, err
 	}
 
+	instance.Status.Conditions.MarkTrue(condition.AnsibleEECondition, condition.AnsibleEEReadyMessage)
+
 	fmt.Println("Returning...")
 	return ctrl.Result{}, nil
 }
@@ -292,6 +294,8 @@ func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.H
 	// Add a prefix to the var name to avoid accidental collision with other non-secret
 	// vars. The secret names themselves will be unique.
 	(*envVars)["secret-"+secret.Name] = env.SetValue(hash)
+
+	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
 	return ctrl.Result{}, nil
 }

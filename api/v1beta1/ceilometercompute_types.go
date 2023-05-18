@@ -115,7 +115,7 @@ type CeilometerComputeList struct {
 
 // IsReady - returns true if service is ready
 func (instance CeilometerCompute) IsReady() bool {
-	return instance.Status.Conditions.IsTrue(condition.DeploymentReadyCondition)
+	return instance.Status.Conditions.IsTrue(condition.AnsibleEECondition)
 }
 
 func init() {

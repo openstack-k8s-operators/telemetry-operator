@@ -106,7 +106,7 @@ type TelemetryList struct {
 
 // IsReady - returns true if service is ready
 func (instance Telemetry) IsReady() bool {
-	return instance.Status.Conditions.IsTrue(condition.DeploymentReadyCondition)
+	return instance.Status.Conditions.IsTrue(CeilometerCentralReadyCondition) && instance.Status.Conditions.IsTrue(CeilometerComputeReadyCondition)
 }
 
 func init() {

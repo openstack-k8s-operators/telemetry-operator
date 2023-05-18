@@ -113,12 +113,9 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		instance.Status.Conditions = condition.Conditions{}
 		// initialize conditions used later as Status=Unknown
 		cl := condition.CreateList(
-			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.TelemetryRabbitMqTransportURLReadyCondition, condition.InitReason, telemetryv1.TelemetryRabbitMqTransportURLReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.CeilometerCentralReadyCondition, condition.InitReason, telemetryv1.CeilometerCentralReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.CeilometerComputeReadyCondition, condition.InitReason, telemetryv1.CeilometerComputeReadyInitMessage),
-			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -210,7 +207,7 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 
-	instance.Status.Conditions.MarkTrue(telemetryv1.TelemetryRabbitMqTransportURLReadyCondition, telemetryv1.TelemetryRabbitMqTransportURLReadyRunningMessage)
+	instance.Status.Conditions.MarkTrue(telemetryv1.TelemetryRabbitMqTransportURLReadyCondition, telemetryv1.TelemetryRabbitMqTransportURLReadyMessage)
 
 	// end transportURL
 
