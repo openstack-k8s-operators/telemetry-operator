@@ -53,7 +53,7 @@ func AnsibleEE(
 			InitContainers: initContainer(initContainerDetails),
 			// TO-DO add the extra mounts with the config files "unsecreted"
 			ExtraMounts:        getExtraMounts(ServiceName, instance),
-			ServiceAccountName: ServiceAccount,
+			ServiceAccountName: instance.Spec.ServiceAccount,
 		},
 	}
 

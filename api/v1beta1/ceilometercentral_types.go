@@ -68,6 +68,9 @@ type CeilometerCentralSpec struct {
 
 	// +kubebuilder:default:="A ceilometer agent"
 	Description string `json:"description,omitempty"`
+
+	// ServiceAccount - service account name used internally to provide the default SA name
+	ServiceAccount string `json:"serviceAccount"`
 }
 
 // CeilometerCentralStatus defines the observed state of CeilometerCentral

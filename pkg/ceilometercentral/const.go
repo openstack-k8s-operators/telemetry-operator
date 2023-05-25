@@ -20,8 +20,6 @@ const (
 	ServiceName = "ceilometer-central"
 	// ServiceType -
 	ServiceType = "CeilometerCentral"
-	// ServiceAccount -
-	ServiceAccount = "telemetry-operator-telemetry"
 
 	// CeilometerPrometheusPort -
 	CeilometerPrometheusPort int32 = 3000
