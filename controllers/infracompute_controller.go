@@ -51,6 +51,7 @@ type InfraComputeReconciler struct {
 //+kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes/finalizers,verbs=update
 //+kubebuilder:rbac:groups=ansibleee.openstack.org,resources=openstackansibleees,verbs=get;list;watch;create;update;patch;delete;
 
+// Reconcile reconciles an InfraCompute
 func (r *InfraComputeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
 	_ = r.Log.WithValues("infra-compute", req.NamespacedName)
 

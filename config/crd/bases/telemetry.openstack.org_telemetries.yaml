@@ -107,7 +107,6 @@ spec:
                 - notificationImage
                 - serviceAccount
                 - sgCoreImage
-                - transportURLSecret
                 type: object
               ceilometerCompute:
                 description: CeilometerCompute - Spec definition for the CeilometerCompute
@@ -182,6 +181,8 @@ spec:
                       connect to RabbitMQ
                     type: string
                 required:
+                - computeImage
+                - initImage
                 - serviceAccount
                 type: object
               description:
@@ -219,6 +220,7 @@ spec:
                       to provide the default SA name
                     type: string
                 required:
+                - nodeExporterImage
                 - serviceAccount
                 type: object
               rabbitMqClusterName:
@@ -230,7 +232,6 @@ spec:
             - ceilometerCentral
             - ceilometerCompute
             - infraCompute
-            - rabbitMqClusterName
             type: object
           status:
             description: TelemetryStatus defines the observed state of Telemetry

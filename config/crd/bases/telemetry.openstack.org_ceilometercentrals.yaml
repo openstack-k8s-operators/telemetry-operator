@@ -103,7 +103,6 @@ spec:
             - notificationImage
             - serviceAccount
             - sgCoreImage
-            - transportURLSecret
             type: object
           status:
             description: CeilometerCentralStatus defines the observed state of CeilometerCentral

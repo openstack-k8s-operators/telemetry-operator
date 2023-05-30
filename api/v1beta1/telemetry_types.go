@@ -53,7 +53,6 @@ type TelemetrySpec struct {
 	// +kubebuilder:default:="A ceilometer agent"
 	Description string `json:"description,omitempty"`
 
-	// +kubebuilder:validation:Required
 	// +kubebuilder:default=rabbitmq
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Telemetry
