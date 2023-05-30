@@ -24,7 +24,7 @@ import (
 // CeilometerCentralSpec defines the desired state of CeilometerCentral
 type CeilometerCentralSpec struct {
 	// The needed values to connect to RabbitMQ
-	TransportURLSecret string `json:"transportURLSecret,omitDempty"`
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
 	// PasswordSelectors - Selectors to identify the service from the Secret
 	// +kubebuilder:default:={service: CeilometerPassword}

@@ -34,7 +34,8 @@ type InfraComputeSpec struct {
 	Description string `json:"description,omitempty"`
 
 	// NodeExporterImage is the image used for the node_exporter container
-	NodeExporterImage string `json:"nodeExporterImage,omitempty"`
+	// +kubebuilder:validation:Required
+	NodeExporterImage string `json:"nodeExporterImage"`
 
 	// DataplaneSSHSecret
 	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"

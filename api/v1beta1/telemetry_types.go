@@ -57,7 +57,7 @@ type TelemetrySpec struct {
 	// +kubebuilder:default=rabbitmq
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Telemetry
-	RabbitMqClusterName string `json:"rabbitMqClusterName"`
+	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
 	// +kubebuilder:validation:Required
 	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment

@@ -56,10 +56,12 @@ type CeilometerComputeSpec struct {
 	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
 
 	// InitImage is the image used for the init container
-	InitImage string `json:"initImage,omitempty"`
+	// +kubebuilder:validation:Required
+	InitImage string `json:"initImage"`
 
 	// ComputeImage is the image used for the ceilometer-agent-compute container
-	ComputeImage string `json:"computeImage,omitempty"`
+	// +kubebuilder:validation:Required
+	ComputeImage string `json:"computeImage"`
 
 	// DataplaneSSHSecret
 	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"
