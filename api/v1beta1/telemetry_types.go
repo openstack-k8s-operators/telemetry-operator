@@ -112,3 +112,18 @@ func (instance Telemetry) IsReady() bool {
 func init() {
 	SchemeBuilder.Register(&Telemetry{}, &TelemetryList{})
 }
+
+// RbacConditionsSet - set the conditions for the rbac object
+func (instance Telemetry) RbacConditionsSet(c *condition.Condition) {
+	instance.Status.Conditions.Set(c)
+}
+
+// RbacNamespace - return the namespace
+func (instance Telemetry) RbacNamespace() string {
+	return instance.Namespace
+}
+
+// RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
+func (instance Telemetry) RbacResourceName() string {
+	return "telemetry-" + instance.Name
+}

@@ -72,6 +72,9 @@ type CeilometerComputeSpec struct {
 	// Playbook executed
 	// +kubebuilder:default:="deploy-ceilometer.yaml"
 	Playbook string `json:"playbook,omitempty"`
+
+	// ServiceAccount - service account name used internally to provide the default SA name
+	ServiceAccount string `json:"serviceAccount"`
 }
 
 // CeilometerComputeStatus defines the observed state of CeilometerCompute

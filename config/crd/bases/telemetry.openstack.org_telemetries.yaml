@@ -87,6 +87,10 @@ spec:
                     description: Secret containing OpenStack password information
                       for ceilometer
                     type: string
+                  serviceAccount:
+                    description: ServiceAccount - service account name used internally
+                      to provide the default SA name
+                    type: string
                   serviceUser:
                     default: ceilometer
                     description: ServiceUser - optional username used for this service
@@ -101,6 +105,7 @@ spec:
                 - centralImage
                 - initImage
                 - notificationImage
+                - serviceAccount
                 - sgCoreImage
                 type: object
               ceilometerCompute:
@@ -162,6 +167,10 @@ spec:
                     description: Secret containing OpenStack password information
                       for ceilometer
                     type: string
+                  serviceAccount:
+                    description: ServiceAccount - service account name used internally
+                      to provide the default SA name
+                    type: string
                   serviceUser:
                     default: ceilometer
                     description: ServiceUser - optional username used for this service
@@ -171,6 +180,8 @@ spec:
                     description: TransportURLSecret contains the needed values to
                       connect to RabbitMQ
                     type: string
+                required:
+                - serviceAccount
                 type: object
               description:
                 default: A ceilometer agent

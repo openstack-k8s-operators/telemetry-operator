@@ -20,6 +20,4 @@ const (
 	ServiceName = "ceilometer-compute"
 	// ServiceType -
 	ServiceType = "telemetry"
-	// ServiceAccount -
-	ServiceAccount = "telemetry-operator-telemetry"
 )
