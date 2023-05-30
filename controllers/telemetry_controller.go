@@ -37,8 +37,8 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
-	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
+	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	"k8s.io/client-go/kubernetes"
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
@@ -470,6 +470,7 @@ func (r *TelemetryReconciler) infraComputeCreateOrUpdate(instance *telemetryv1.T
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, icompute, func() error {
 		icompute.Spec = instance.Spec.InfraCompute
+		icompute.Spec.ServiceAccount = instance.RbacResourceName()
 
 		err := controllerutil.SetControllerReference(instance, icompute, r.Scheme)
 		if err != nil {

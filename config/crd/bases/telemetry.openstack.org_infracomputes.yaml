@@ -58,6 +58,12 @@ spec:
                 default: deploy-infra.yaml
                 description: Playbook executed
                 type: string
+              serviceAccount:
+                description: ServiceAccount - service account name used internally
+                  to provide the default SA name
+                type: string
+            required:
+            - serviceAccount
             type: object
           status:
             description: InfraComputeStatus defines the observed state of InfraCompute

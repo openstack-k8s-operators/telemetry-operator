@@ -20,6 +20,4 @@ const (
 	ServiceName = "infra-compute"
 	// ServiceType -
 	ServiceType = "InfraCompute"
-	// ServiceAccount -
-	ServiceAccount = "telemetry-operator-telemetry"
 )

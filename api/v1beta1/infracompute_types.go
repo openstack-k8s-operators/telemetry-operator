@@ -51,6 +51,9 @@ type InfraComputeSpec struct {
 	// The extravars ConfigMap to pass to ansible execution
 	// +kubebuilder:default:="telemetry-infracompute-extravars"
 	ExtravarsConfigMap string `json:"extravarsConfigMap,omitempty"`
+
+	// ServiceAccount - service account name used internally to provide the default SA name
+	ServiceAccount string `json:"serviceAccount"`
 }
 
 // InfraComputeStatus defines the observed state of InfraCompute

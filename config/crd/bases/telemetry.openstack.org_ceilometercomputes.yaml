@@ -104,8 +104,6 @@ spec:
                   to RabbitMQ
                 type: string
             required:
-            - computeImage
-            - initImage
             - serviceAccount
             type: object
           status:
