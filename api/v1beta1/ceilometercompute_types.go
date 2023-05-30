@@ -56,10 +56,10 @@ type CeilometerComputeSpec struct {
 	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
 
 	// InitImage is the image used for the init container
-	InitImage string `json:"initImage"`
+	InitImage string `json:"initImage,omitempty"`
 
 	// ComputeImage is the image used for the ceilometer-agent-compute container
-	ComputeImage string `json:"computeImage"`
+	ComputeImage string `json:"computeImage,omitempty"`
 
 	// DataplaneSSHSecret
 	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"
@@ -72,6 +72,9 @@ type CeilometerComputeSpec struct {
 	// Playbook executed
 	// +kubebuilder:default:="deploy-ceilometer.yaml"
 	Playbook string `json:"playbook,omitempty"`
+
+	// ServiceAccount - service account name used internally to provide the default SA name
+	ServiceAccount string `json:"serviceAccount"`
 }
 
 // CeilometerComputeStatus defines the observed state of CeilometerCompute
@@ -115,7 +118,7 @@ type CeilometerComputeList struct {
 
 // IsReady - returns true if service is ready
 func (instance CeilometerCompute) IsReady() bool {
-	return instance.Status.Conditions.IsTrue(condition.DeploymentReadyCondition)
+	return instance.Status.Conditions.IsTrue(condition.AnsibleEECondition)
 }
 
 func init() {

@@ -161,8 +161,8 @@ func main() {
 		ComputeContainerImageURL:      common.GetEnvDefault("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", telemetryv1.CeilometerComputeContainerImage),
 		ComputeInitContainerImageURL:  common.GetEnvDefault("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", telemetryv1.CeilometerComputeInitContainerImage),
 		NotificationContainerImageURL: common.GetEnvDefault("CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", telemetryv1.CeilometerNotificationContainerImage),
-		SgCoreContainerImageURL:       common.GetEnvDefault("CEILOMETER_SGCORE_INIT_IMAGE_URL_DEFAULT", telemetryv1.CeilometerSgCoreContainerImage),
 		NodeExporterContainerImageURL: common.GetEnvDefault("NODE_EXPORTER_IMAGE_URL_DEFAULT", telemetryv1.NodeExporterContainerImage),
+		SgCoreContainerImageURL:       common.GetEnvDefault("CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", telemetryv1.CeilometerSgCoreContainerImage),
 	}
 
 	telemetryv1.SetupTelemetryDefaults(telemetryDefaults)

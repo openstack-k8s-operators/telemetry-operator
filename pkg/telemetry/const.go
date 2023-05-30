@@ -20,6 +20,4 @@ const (
 	ServiceName = "telemetry"
 	// ServiceType -
 	ServiceType = "telemetry"
-	// ServiceAccount -
-	ServiceAccount = "telemetry-operator-telemetry"
 )

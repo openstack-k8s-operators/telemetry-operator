@@ -52,7 +52,7 @@ func AnsibleEE(
 			},
 			InitContainers:     initContainer(initContainerDetails),
 			ExtraMounts:        getExtraMounts(ServiceName, instance),
-			ServiceAccountName: ServiceAccount,
+			ServiceAccountName: instance.Spec.ServiceAccount,
 		},
 	}
 
