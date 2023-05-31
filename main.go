@@ -40,6 +40,7 @@ import (
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	telemetryv1beta1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/common"
 	//+kubebuilder:scaffold:imports
@@ -57,6 +58,7 @@ func init() {
 	utilruntime.Must(keystonev1.AddToScheme(scheme))
 	utilruntime.Must(rabbitmqv1.AddToScheme(scheme))
 	utilruntime.Must(ansibleeev1.AddToScheme(scheme))
+	utilruntime.Must(telemetryv1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -142,6 +144,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.InfraComputeReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+		Log:     ctrl.Log.WithName("controllers").WithName("InfraCompute"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create InfraCompute controller")
+		os.Exit(1)
+	}
+
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	telemetryDefaults := telemetryv1.TelemetryDefaults{
 		CentralContainerImageURL:      common.GetEnvDefault("CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", telemetryv1.CeilometerCentralContainerImage),
@@ -149,6 +161,7 @@ func main() {
 		ComputeContainerImageURL:      common.GetEnvDefault("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", telemetryv1.CeilometerComputeContainerImage),
 		ComputeInitContainerImageURL:  common.GetEnvDefault("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", telemetryv1.CeilometerComputeInitContainerImage),
 		NotificationContainerImageURL: common.GetEnvDefault("CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", telemetryv1.CeilometerNotificationContainerImage),
+		NodeExporterContainerImageURL: common.GetEnvDefault("NODE_EXPORTER_IMAGE_URL_DEFAULT", telemetryv1.NodeExporterContainerImage),
 		SgCoreContainerImageURL:       common.GetEnvDefault("CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", telemetryv1.CeilometerSgCoreContainerImage),
 	}
 

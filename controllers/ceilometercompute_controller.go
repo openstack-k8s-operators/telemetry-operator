@@ -19,14 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"os"
-	"path"
 	"time"
 
 	logr "github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -200,18 +196,6 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 		return ctrl.Result{}, err
 	}
 
-	// Create a configmap with the playbooks that will be run
-	err = r.ensurePlaybooks(ctx, helper, instance)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.ServiceConfigReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
-
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
@@ -339,49 +323,6 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 		},
 	}
 	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
-}
-
-func (r *CeilometerComputeReconciler) ensurePlaybooks(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute) error {
-	playbooksPath, found := os.LookupEnv("OPERATOR_PLAYBOOKS")
-	if !found {
-		playbooksPath = "playbooks"
-		os.Setenv("OPERATOR_PLAYBOOKS", playbooksPath)
-		util.LogForObject(h, "OPERATOR_PLAYBOOKS not set in env when reconciling ", instance, "defaulting to ", playbooksPath)
-	}
-
-	util.LogForObject(h, "using playbooks for instance ", instance, "from ", playbooksPath)
-
-	playbookDirEntries, err := os.ReadDir(playbooksPath)
-	if err != nil {
-		return err
-	}
-	// EnsureConfigMaps is not used as we do not want the templating behavior that adds.
-	playbookCMName := fmt.Sprintf("%s-external-compute-playbooks", ceilometercompute.ServiceName)
-	configMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        playbookCMName,
-			Namespace:   instance.Namespace,
-			Annotations: map[string]string{},
-		},
-		Data: map[string]string{},
-	}
-	_, err = controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
-		for _, entry := range playbookDirEntries {
-			filename := entry.Name()
-			filePath := path.Join(playbooksPath, filename)
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				return err
-			}
-			configMap.Data[filename] = string(data)
-		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error create/updating configmap: %w", err)
-	}
-
-	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

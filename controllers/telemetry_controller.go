@@ -19,8 +19,11 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,8 +35,10 @@ import (
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
+	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	"k8s.io/client-go/kubernetes"
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
@@ -58,6 +63,12 @@ type TelemetryReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes/finalizers,verbs=update
 // +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
 // service account, role, rolebinding
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
@@ -165,6 +176,36 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *TelemetryReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete", instance.Name))
 
+	// remove playbookCM
+	playbookCMName := fmt.Sprintf("%s-compute-playbooks", telemetry.ServiceName)
+	playbookCM, _, err := configmap.GetConfigMapAndHashWithName(ctx, helper, playbookCMName, instance.Namespace)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+
+	if err == nil {
+		if err = helper.GetClient().Delete(ctx, playbookCM); err != nil && !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+		util.LogForObject(helper, "Removed our playbook configmap", instance)
+	}
+	// end remove playbookCM
+
+	// remove extravarsCM
+	extravarsCMName := fmt.Sprintf("%s-compute-extravars", telemetry.ServiceName)
+	extravarsCM, _, err := configmap.GetConfigMapAndHashWithName(ctx, helper, extravarsCMName, instance.Namespace)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+
+	if err == nil {
+		if err = helper.GetClient().Delete(ctx, extravarsCM); err != nil && !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+		util.LogForObject(helper, "Removed our extravars configmap", instance)
+	}
+	// end remove extravarsCM
+
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
 
@@ -245,6 +286,34 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 
 	// end transportURL
 
+	// create ConfigMap with all the telemetry playbooks ready for ansibleEE execution
+
+	// Create a configmap with the playbooks that will be run
+	err = r.ensurePlaybooks(ctx, helper, instance)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	// end telemetry playbooks
+
+	// Create the extravars configmap
+	err = r.ensureExtravars(ctx, helper, instance)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	// end create extravars configmap
+
 	// deploy ceilometercentral
 	ceilometercentral, op, err := r.ceilometerCentralCreateOrUpdate(instance)
 	if err != nil {
@@ -295,6 +364,32 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 		instance.Status.Conditions.Set(ccompute)
 	}
 	// end deploy ceilometercompute
+
+	// deploy infracompute
+	r.Log.Info("Deploying infracompute")
+	infracompute, op, err := r.infraComputeCreateOrUpdate(instance)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.InfraComputeReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.InfraComputeReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
+	}
+
+	// Mirror infracompute's status ReadyCount to this parent CR
+	instance.Status.InfraComputeReadyCount = infracompute.Status.ReadyCount
+
+	// Mirror ceilometercompute's condition status
+	icompute := infracompute.Status.Conditions.Mirror(telemetryv1.InfraComputeReadyCondition)
+	if icompute != nil {
+		instance.Status.Conditions.Set(icompute)
+	}
+	// end deploy infracompute
 
 	r.Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
@@ -365,12 +460,98 @@ func (r *TelemetryReconciler) ceilometerComputeCreateOrUpdate(instance *telemetr
 	return ccompute, op, err
 }
 
+func (r *TelemetryReconciler) infraComputeCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.InfraCompute, controllerutil.OperationResult, error) {
+	icompute := &telemetryv1.InfraCompute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-infra-compute", instance.Name),
+			Namespace: instance.Namespace,
+		},
+	}
+
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, icompute, func() error {
+		icompute.Spec = instance.Spec.InfraCompute
+		icompute.Spec.ServiceAccount = instance.RbacResourceName()
+
+		err := controllerutil.SetControllerReference(instance, icompute, r.Scheme)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return icompute, op, err
+}
+
+func (r *TelemetryReconciler) ensurePlaybooks(ctx context.Context, h *helper.Helper, instance *telemetryv1.Telemetry) error {
+	playbooksPath, found := os.LookupEnv("OPERATOR_PLAYBOOKS")
+	if !found {
+		playbooksPath = "playbooks"
+		os.Setenv("OPERATOR_PLAYBOOKS", playbooksPath)
+		util.LogForObject(h, "OPERATOR_PLAYBOOKS not set in env when reconciling ", instance, "defaulting to ", playbooksPath)
+	}
+
+	util.LogForObject(h, "using playbooks for instance ", instance, "from ", playbooksPath)
+
+	playbookDirEntries, err := os.ReadDir(playbooksPath)
+	if err != nil {
+		return err
+	}
+	// EnsureConfigMaps is not used as we do not want the templating behavior that adds.
+	playbookCMName := fmt.Sprintf("%s-compute-playbooks", telemetry.ServiceName)
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        playbookCMName,
+			Namespace:   instance.Namespace,
+			Annotations: map[string]string{},
+		},
+		Data: map[string]string{},
+	}
+	_, err = controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
+		for _, entry := range playbookDirEntries {
+			filename := entry.Name()
+			filePath := path.Join(playbooksPath, filename)
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				return err
+			}
+			configMap.Data[filename] = string(data)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error create/updating configmap: %w", err)
+	}
+
+	return nil
+}
+
+func (r *TelemetryReconciler) ensureExtravars(ctx context.Context, h *helper.Helper, instance *telemetryv1.Telemetry) error {
+	data := make(map[string]string)
+	data["extravars"] = fmt.Sprintf("telemetry_node_exporter_image: %s", instance.Spec.InfraCompute.NodeExporterImage)
+
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-compute-extravars", telemetry.ServiceName),
+			Namespace: instance.Namespace,
+		},
+		Data: data,
+	}
+	_, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error { return nil })
+	if err != nil {
+		return fmt.Errorf("error create/updating configmap: %w", err)
+	}
+
+	return nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *TelemetryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Telemetry{}).
 		Owns(&telemetryv1.CeilometerCentral{}).
 		Owns(&telemetryv1.CeilometerCompute{}).
+		Owns(&telemetryv1.InfraCompute{}).
 		Owns(&rabbitmqv1.TransportURL{}).
 		Complete(r)
 }

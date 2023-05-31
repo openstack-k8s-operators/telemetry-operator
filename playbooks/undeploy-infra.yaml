@@ -1,0 +1,12 @@
+---
+- hosts: all
+  tasks:
+    - name: undeploy node_exporter container
+      containers.podman.podman_container:
+        name: node_exporter
+        state: absent
+
+    - name: remove node_exporter systemd file
+      file:
+        path: /etc/systemd/system/edpm_node_exporter.service
+        state: absent

@@ -17,7 +17,6 @@ package ceilometercentral
 
 import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
-	"github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -90,7 +89,7 @@ func initContainer(init APIDetails) []corev1.Container {
 			},
 			Args:         args,
 			Env:          envs,
-			VolumeMounts: telemetry.GetInitVolumeMounts(),
+			VolumeMounts: getInitVolumeMounts(),
 		},
 	}
 }
