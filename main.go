@@ -154,12 +154,22 @@ func main() {
 	}
 
 	// Acquire environmental defaults and initialize defaults with them
-	telemetryv1.SetupDefaults()
+	telemetryv1.SetupDefaultsCeilometerCentral()
+	telemetryv1.SetupDefaultsCeilometerCompute()
+	telemetryv1.SetupDefaultsInfraCompute()
 
 	// Setup webhooks if requested
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) != "false" {
-		if err = (&telemetryv1.Telemetry{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Telemetry")
+		if err = (&telemetryv1.CeilometerCentral{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CeilometerCentral")
+			os.Exit(1)
+		}
+		if err = (&telemetryv1.CeilometerCompute{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CeilometerCompute")
+			os.Exit(1)
+		}
+		if err = (&telemetryv1.InfraCompute{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "InfraCompute")
 			os.Exit(1)
 		}
 	}

@@ -20,6 +20,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+)
+
+const (
+	// NodeExporterContainerImage - default fall-back image for node_exporter
+	// NodeExporterContainerImage = "registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.13"
+	NodeExporterContainerImage = "quay.io/prometheus/node-exporter:v1.5.0"
 )
 
 // InfraComputeSpec defines the desired state of InfraCompute
@@ -115,4 +122,14 @@ func (instance InfraCompute) RbacNamespace() string {
 // RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
 func (instance InfraCompute) RbacResourceName() string {
 	return "telemetry-" + instance.Name
+}
+
+// SetupDefaultsInfraCompute - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaultsInfraCompute() {
+	// Acquire environmental defaults and initialize Telemetry defaults with them
+	infracomputeDefaults := InfraComputeDefaults{
+		NodeExporterContainerImageURL: util.GetEnvVar("TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),
+	}
+
+	SetupInfraComputeDefaults(infracomputeDefaults)
 }

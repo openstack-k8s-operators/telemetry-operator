@@ -19,6 +19,19 @@ package v1beta1
 import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+)
+
+const (
+	// CeilometerCentralContainerImage - default fall-back image for Ceilometer Central
+	CeilometerCentralContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+	// CeilometerCentralInitContainerImage - default fall-back image for Ceilometer Central Init
+	CeilometerCentralInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notifcation
+	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
+	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
+	CeilometerSgCoreContainerImage = "quay.io/infrawatch/sg-core:latest"
 )
 
 // CeilometerCentralSpec defines the desired state of CeilometerCentral
@@ -139,4 +152,16 @@ func (instance CeilometerCentral) RbacNamespace() string {
 // RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
 func (instance CeilometerCentral) RbacResourceName() string {
 	return "telemetry-" + instance.Name
+}
+
+// SetupDefaultsCeilometerCentral - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaultsCeilometerCentral() {
+	// Acquire environmental defaults and initialize Telemetry defaults with them
+	ceilometercentralDefaults := CeilometerCentralDefaults{
+		CentralContainerImageURL:      util.GetEnvVar("CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
+		CentralInitContainerImageURL:  util.GetEnvVar("CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT", CeilometerCentralInitContainerImage),
+		SgCoreContainerImageURL:       util.GetEnvVar("CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
+	}
+
+	SetupCeilometerCentralDefaults(ceilometercentralDefaults)
 }

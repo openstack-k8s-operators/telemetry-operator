@@ -20,25 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
-)
-
-const (
-	// CeilometerCentralContainerImage - default fall-back image for Ceilometer Central
-	CeilometerCentralContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
-	// CeilometerCentralInitContainerImage - default fall-back image for Ceilometer Central Init
-	CeilometerCentralInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
-	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
-	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
-	// CeilometerComputeInitContainerImage - default fall-back image for Ceilometer Compute Init
-	CeilometerComputeInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
-	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notifcation
-	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
-	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
-	CeilometerSgCoreContainerImage = "quay.io/infrawatch/sg-core:latest"
-	// NodeExporterContainerImage - default fall-back image for node_exporter
-	// NodeExporterContainerImage = "registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.13"
-	NodeExporterContainerImage = "quay.io/prometheus/node-exporter:v1.5.0"
 )
 
 // PasswordsSelector to identify the Service password from the Secret
@@ -113,20 +94,4 @@ func (instance Telemetry) IsReady() bool {
 
 func init() {
 	SchemeBuilder.Register(&Telemetry{}, &TelemetryList{})
-}
-
-// SetupDefaults - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
-func SetupDefaults() {
-	// Acquire environmental defaults and initialize Telemetry defaults with them
-	telemetryDefaults := TelemetryDefaults{
-		CentralContainerImageURL:      util.GetEnvVar("CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
-		CentralInitContainerImageURL:  util.GetEnvVar("CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT", CeilometerCentralInitContainerImage),
-		ComputeContainerImageURL:      util.GetEnvVar("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
-		ComputeInitContainerImageURL:  util.GetEnvVar("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeInitContainerImage),
-		NotificationContainerImageURL: util.GetEnvVar("CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
-		NodeExporterContainerImageURL: util.GetEnvVar("TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),
-		SgCoreContainerImageURL:       util.GetEnvVar("CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
-	}
-
-	SetupTelemetryDefaults(telemetryDefaults)
 }

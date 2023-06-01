@@ -20,6 +20,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+)
+
+const (
+	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
+	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
+	// CeilometerComputeInitContainerImage - default fall-back image for Ceilometer Compute Init
+	CeilometerComputeInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 )
 
 // CeilometerComputeSpec defines the desired state of CeilometerCompute
@@ -145,4 +153,15 @@ func (instance CeilometerCompute) RbacNamespace() string {
 // RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
 func (instance CeilometerCompute) RbacResourceName() string {
 	return "telemetry-" + instance.Name
+}
+
+// SetupDefaultsCeilometerCompute - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaultsCeilometerCompute() {
+	// Acquire environmental defaults and initialize Telemetry defaults with them
+	ceilometercomputeDefaults := CeilometerComputeDefaults{
+		ComputeContainerImageURL:      util.GetEnvVar("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
+		ComputeInitContainerImageURL:  util.GetEnvVar("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeInitContainerImage),
+	}
+
+	SetupCeilometerComputeDefaults(ceilometercomputeDefaults)
 }
