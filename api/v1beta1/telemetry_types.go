@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 )
 
 const (
@@ -135,4 +136,20 @@ func (instance Telemetry) RbacNamespace() string {
 // RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
 func (instance Telemetry) RbacResourceName() string {
 	return "telemetry-" + instance.Name
+}
+
+// SetupDefaults - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaults() {
+	// Acquire environmental defaults and initialize Telemetry defaults with them
+	telemetryDefaults := TelemetryDefaults{
+		CentralContainerImageURL:      util.GetEnvVar("CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
+		CentralInitContainerImageURL:  util.GetEnvVar("CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT", CeilometerCentralInitContainerImage),
+		ComputeContainerImageURL:      util.GetEnvVar("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
+		ComputeInitContainerImageURL:  util.GetEnvVar("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeInitContainerImage),
+		NotificationContainerImageURL: util.GetEnvVar("CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
+		NodeExporterContainerImageURL: util.GetEnvVar("TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),
+		SgCoreContainerImageURL:       util.GetEnvVar("CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
+	}
+
+	SetupTelemetryDefaults(telemetryDefaults)
 }
