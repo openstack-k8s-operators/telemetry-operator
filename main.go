@@ -42,7 +42,6 @@ import (
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	telemetryv1beta1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
-	"github.com/openstack-k8s-operators/telemetry-operator/pkg/common"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -154,18 +153,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Acquire environmental defaults and initialize Telemetry defaults with them
-	telemetryDefaults := telemetryv1.TelemetryDefaults{
-		CentralContainerImageURL:      common.GetEnvDefault("CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", telemetryv1.CeilometerCentralContainerImage),
-		CentralInitContainerImageURL:  common.GetEnvDefault("CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT", telemetryv1.CeilometerCentralInitContainerImage),
-		ComputeContainerImageURL:      common.GetEnvDefault("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", telemetryv1.CeilometerComputeContainerImage),
-		ComputeInitContainerImageURL:  common.GetEnvDefault("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", telemetryv1.CeilometerComputeInitContainerImage),
-		NotificationContainerImageURL: common.GetEnvDefault("CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", telemetryv1.CeilometerNotificationContainerImage),
-		NodeExporterContainerImageURL: common.GetEnvDefault("NODE_EXPORTER_IMAGE_URL_DEFAULT", telemetryv1.NodeExporterContainerImage),
-		SgCoreContainerImageURL:       common.GetEnvDefault("CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", telemetryv1.CeilometerSgCoreContainerImage),
-	}
-
-	telemetryv1.SetupTelemetryDefaults(telemetryDefaults)
+	// Acquire environmental defaults and initialize defaults with them
+	telemetryv1.SetupDefaults()
 
 	// Setup webhooks if requested
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) != "false" {

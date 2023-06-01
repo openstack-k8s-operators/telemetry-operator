@@ -21,6 +21,11 @@ spec:
       kind: CeilometerCompute
       name: ceilometercomputes.telemetry.openstack.org
       version: v1beta1
+    - description: InfraCompute is the Schema for the infracomputes API
+      displayName: Infra Compute
+      kind: InfraCompute
+      name: infracomputes.telemetry.openstack.org
+      version: v1beta1
     - description: Telemetry is the Schema for the telemetry API
       displayName: Telemetry
       kind: Telemetry
