@@ -19,9 +19,15 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
 	"time"
 
 	logr "github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,12 +42,15 @@ import (
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
+	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometercompute "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometercompute"
+	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 )
 
 // CeilometerComputeReconciler reconciles a Ceilometer object
@@ -56,6 +65,15 @@ type CeilometerComputeReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/finalizers,verbs=update
 // +kubebuilder:rbac:groups=ansibleee.openstack.org,resources=openstackansibleees,verbs=get;list;watch;create;update;patch;delete;
+// +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
+// service account, role, rolebinding
+// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
+// service account permissions that are needed to grant permission to the above
+// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
+// +kubebuilder:rbac:groups="",resources=pods,verbs=create;delete;get;list;patch;update;watch
 
 // Reconcile reconciles a CeilometerCompute
 func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -115,6 +133,10 @@ func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 			condition.UnknownCondition(condition.AnsibleEECondition, condition.InitReason, condition.AnsibleEEReadyInitMessage),
+			// service account, role, rolebinding conditions
+			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
+			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
+			condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -158,6 +180,76 @@ func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, insta
 
 func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.CeilometerCompute, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
+
+	// Service account, role, binding
+	rbacRules := []rbacv1.PolicyRule{
+		{
+			APIGroups:     []string{"security.openshift.io"},
+			ResourceNames: []string{"anyuid"},
+			Resources:     []string{"securitycontextconstraints"},
+			Verbs:         []string{"use"},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"pods"},
+			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
+		},
+	}
+	rbacResult, err := common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
+	if err != nil {
+		return rbacResult, err
+	} else if (rbacResult != ctrl.Result{}) {
+		return rbacResult, nil
+	}
+
+	//
+	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
+	//
+	transportURL, op, err := r.transportURLCreateOrUpdate(instance)
+
+	if err != nil {
+		r.Log.Info("Error getting transportURL. Setting error condition on status and returning")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.TelemetryRabbitMqTransportURLReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.TelemetryRabbitMqTransportURLReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	if op != controllerutil.OperationResultNone {
+		r.Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
+	}
+
+	instance.Spec.TransportURLSecret = transportURL.Status.SecretName
+
+	if instance.Spec.TransportURLSecret == "" {
+		r.Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.TelemetryRabbitMqTransportURLReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.TelemetryRabbitMqTransportURLReadyRunningMessage))
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
+	}
+
+	instance.Status.Conditions.MarkTrue(telemetryv1.TelemetryRabbitMqTransportURLReadyCondition, telemetryv1.TelemetryRabbitMqTransportURLReadyMessage)
+	// end transportURL
+
+	// Create a configmap with the playbooks that will be run
+	err = r.ensurePlaybooks(ctx, helper, instance)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	// end telemetry playbooks
+
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
 
@@ -254,6 +346,49 @@ func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context
 	return ctrl.Result{}, nil
 }
 
+func (r *CeilometerComputeReconciler) ensurePlaybooks(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute) error {
+	playbooksPath, found := os.LookupEnv("OPERATOR_PLAYBOOKS")
+	if !found {
+		playbooksPath = "playbooks"
+		os.Setenv("OPERATOR_PLAYBOOKS", playbooksPath)
+		util.LogForObject(h, "OPERATOR_PLAYBOOKS not set in env when reconciling ", instance, "defaulting to ", playbooksPath)
+	}
+
+	util.LogForObject(h, "using playbooks for instance ", instance, "from ", playbooksPath)
+
+	playbookDirEntries, err := os.ReadDir(playbooksPath)
+	if err != nil {
+		return err
+	}
+	// EnsureConfigMaps is not used as we do not want the templating behavior that adds.
+	playbookCMName := fmt.Sprintf("%s-compute-playbooks", telemetry.ServiceName)
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        playbookCMName,
+			Namespace:   instance.Namespace,
+			Annotations: map[string]string{},
+		},
+		Data: map[string]string{},
+	}
+	_, err = controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
+		for _, entry := range playbookDirEntries {
+			filename := entry.Name()
+			filePath := path.Join(playbooksPath, filename)
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				return err
+			}
+			configMap.Data[filename] = string(data)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error create/updating configmap: %w", err)
+	}
+
+	return nil
+}
+
 // getSecret - get the specified secret, and add its hash to envVars
 func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
 	secret, hash, err := secret.GetSecret(ctx, h, secretName, instance.Namespace)
@@ -325,10 +460,27 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 }
 
+func (r *CeilometerComputeReconciler) transportURLCreateOrUpdate(instance *telemetryv1.CeilometerCompute) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
+	transportURL := &rabbitmqv1.TransportURL{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-telemetry-transport", instance.Name),
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, transportURL, func() error {
+		transportURL.Spec.RabbitmqClusterName = instance.Spec.RabbitMqClusterName
+		err := controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
+		return err
+	})
+	return transportURL, op, err
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *CeilometerComputeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CeilometerCompute{}).
 		Owns(&ansibleeev1.OpenStackAnsibleEE{}).
+		Owns(&rabbitmqv1.TransportURL{}).
+		Owns(&corev1.Secret{}).
 		Complete(r)
 }

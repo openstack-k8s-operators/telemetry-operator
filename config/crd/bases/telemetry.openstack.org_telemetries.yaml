@@ -82,6 +82,11 @@ spec:
                           password from the Secret
                         type: string
                     type: object
+                  rabbitMqClusterName:
+                    default: rabbitmq
+                    description: RabbitMQ instance name Needed to request a transportURL
+                      that is created and used in Telemetry
+                    type: string
                   secret:
                     default: osp-secret
                     description: Secret containing OpenStack password information
@@ -162,6 +167,11 @@ spec:
                     default: deploy-ceilometer.yaml
                     description: Playbook executed
                     type: string
+                  rabbitMqClusterName:
+                    default: rabbitmq
+                    description: RabbitMQ instance name Needed to request a transportURL
+                      that is created and used in Telemetry
+                    type: string
                   secret:
                     default: osp-secret
                     description: Secret containing OpenStack password information
@@ -223,11 +233,6 @@ spec:
                 - nodeExporterImage
                 - serviceAccount
                 type: object
-              rabbitMqClusterName:
-                default: rabbitmq
-                description: RabbitMQ instance name Needed to request a transportURL
-                  that is created and used in Telemetry
-                type: string
             required:
             - ceilometerCentral
             - ceilometerCompute
@@ -296,9 +301,6 @@ spec:
                 description: ReadyCount of InfraCompute instance
                 format: int32
                 type: integer
-              transportURLSecret:
-                description: TransportURLSecret - Secret containing RabbitMQ transportURL
-                type: string
             type: object
         type: object
     served: true

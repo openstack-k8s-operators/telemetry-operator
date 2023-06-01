@@ -22,9 +22,6 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // InfraComputeSpec defines the desired state of InfraCompute
 type InfraComputeSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -103,4 +100,19 @@ func (instance InfraCompute) IsReady() bool {
 
 func init() {
 	SchemeBuilder.Register(&InfraCompute{}, &InfraComputeList{})
+}
+
+// RbacConditionsSet - set the conditions for the rbac object
+func (instance InfraCompute) RbacConditionsSet(c *condition.Condition) {
+	instance.Status.Conditions.Set(c)
+}
+
+// RbacNamespace - return the namespace
+func (instance InfraCompute) RbacNamespace() string {
+	return instance.Namespace
+}
+
+// RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
+func (instance InfraCompute) RbacResourceName() string {
+	return "telemetry-" + instance.Name
 }

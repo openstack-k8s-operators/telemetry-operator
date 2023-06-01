@@ -1,12 +1,9 @@
 apiVersion: telemetry.openstack.org/v1beta1
 kind: InfraCompute
 metadata:
-  labels:
-    app.kubernetes.io/name: infracompute
-    app.kubernetes.io/instance: infracompute-sample
-    app.kubernetes.io/part-of: telemetry-operator
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/created-by: telemetry-operator
-  name: infracompute-sample
+  name: infracompute
+  namespace: openstack
 spec:
-  # TODO(user): Add fields here
+  serviceAccount: telemetry-operator-telemetry
+  nodeExporterImage: quay.io/prometheus/node-exporter:v1.5.0
+  playbook: deploy-infra.yaml

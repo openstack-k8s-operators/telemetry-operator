@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: ceilometercomputes.telemetry.openstack.org
+  name: infracomputes.telemetry.openstack.org
 spec:
   group: telemetry.openstack.org
   names:
-    kind: CeilometerCompute
-    listKind: CeilometerComputeList
-    plural: ceilometercomputes
-    singular: ceilometercompute
+    kind: InfraCompute
+    listKind: InfraComputeList
+    plural: infracomputes
+    singular: infracompute
   scope: Namespaced
   versions:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: CeilometerCompute is the Schema for the ceilometercomputes API
+        description: InfraCompute is the Schema for the infracomputes API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,20 +33,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: CeilometerComputeSpec defines the desired state of CeilometerCompute
+            description: InfraComputeSpec defines the desired state of InfraCompute
             properties:
-              computeImage:
-                description: ComputeImage is the image used for the ceilometer-agent-compute
-                  container
-                type: string
-              customServiceConfig:
-                default: '# add your customization here'
-                description: CustomServiceConfig - customize the service config using
-                  this parameter to change service defaults, or overwrite rendered
-                  information using raw OpenStack config format. The content gets
-                  added to to /etc/<service>/<service>.conf.d directory as custom.conf
-                  file.
-                type: string
               dataplaneInventoryConfigMap:
                 default: dataplanerole-edpm-compute
                 description: DataplaneInventoryConfigMap
@@ -55,66 +43,31 @@ spec:
                 default: dataplane-ansible-ssh-private-key-secret
                 description: DataplaneSSHSecret
                 type: string
-              defaultConfigOverwrite:
-                additionalProperties:
-                  type: string
-                description: 'DefaultConfigOverwrite - interface to overwrite default
-                  config files like e.g. logging.conf or policy.json. But can also
-                  be used to add additional files. Those get added to the service
-                  config dir in /etc/<service> . TODO: -> implement'
-                type: object
               description:
-                default: A ceilometer compute agent
+                default: An infra compute agent
                 type: string
-              initImage:
-                description: InitImage is the image used for the init container
+              extravarsConfigMap:
+                default: telemetry-infracompute-extravars
+                description: The extravars ConfigMap to pass to ansible execution
                 type: string
-              passwordSelector:
-                default:
-                  service: CeilometerPassword
-                description: PasswordSelectors - Selectors to identify the service
-                  from the Secret
-                properties:
-                  service:
-                    default: CeilometerPassword
-                    description: Service - Selector to get the ceilometer service
-                      password from the Secret
-                    type: string
-                type: object
+              nodeExporterImage:
+                description: NodeExporterImage is the image used for the node_exporter
+                  container
+                type: string
               playbook:
-                default: deploy-ceilometer.yaml
+                default: deploy-infra.yaml
                 description: Playbook executed
-                type: string
-              rabbitMqClusterName:
-                default: rabbitmq
-                description: RabbitMQ instance name Needed to request a transportURL
-                  that is created and used in Telemetry
-                type: string
-              secret:
-                default: osp-secret
-                description: Secret containing OpenStack password information for
-                  ceilometer
                 type: string
               serviceAccount:
                 description: ServiceAccount - service account name used internally
                   to provide the default SA name
                 type: string
-              serviceUser:
-                default: ceilometer
-                description: ServiceUser - optional username used for this service
-                  to register in keystone
-                type: string
-              transportURLSecret:
-                description: TransportURLSecret contains the needed values to connect
-                  to RabbitMQ
-                type: string
             required:
-            - computeImage
-            - initImage
+            - nodeExporterImage
             - serviceAccount
             type: object
           status:
-            description: CeilometerComputeStatus defines the observed state of CeilometerCompute
+            description: InfraComputeStatus defines the observed state of InfraCompute
             properties:
               conditions:
                 description: Conditions

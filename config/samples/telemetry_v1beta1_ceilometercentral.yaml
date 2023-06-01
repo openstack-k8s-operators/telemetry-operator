@@ -4,4 +4,8 @@ metadata:
   name: ceilometercentral
   namespace: openstack
 spec:
-  description: "A Ceilometer Central deployment"
+  serviceAccount: telemetry-operator-telemetry
+  initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+  centralImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
+  notificationImage: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
+  sgCoreImage: quay.io/infrawatch/sg-core:latest

@@ -40,7 +40,6 @@ spec:
                   service of this Telemetry deployment
                 properties:
                   centralImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
                     type: string
                   customServiceConfig:
                     default: '# add your customization here'
@@ -62,7 +61,6 @@ spec:
                     default: A ceilometer agent
                     type: string
                   initImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
                     type: string
                   networkAttachmentDefinitions:
                     description: NetworkAttachmentDefinitions list of network attachment
@@ -71,7 +69,6 @@ spec:
                       type: string
                     type: array
                   notificationImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
                     type: string
                   passwordSelector:
                     default:
@@ -85,10 +82,19 @@ spec:
                           password from the Secret
                         type: string
                     type: object
+                  rabbitMqClusterName:
+                    default: rabbitmq
+                    description: RabbitMQ instance name Needed to request a transportURL
+                      that is created and used in Telemetry
+                    type: string
                   secret:
                     default: osp-secret
                     description: Secret containing OpenStack password information
                       for ceilometer
+                    type: string
+                  serviceAccount:
+                    description: ServiceAccount - service account name used internally
+                      to provide the default SA name
                     type: string
                   serviceUser:
                     default: ceilometer
@@ -96,18 +102,22 @@ spec:
                       to register in keystone
                     type: string
                   sgCoreImage:
-                    default: quay.io/infrawatch/sg-core:latest
                     type: string
                   transportURLSecret:
                     description: The needed values to connect to RabbitMQ
                     type: string
+                required:
+                - centralImage
+                - initImage
+                - notificationImage
+                - serviceAccount
+                - sgCoreImage
                 type: object
               ceilometerCompute:
                 description: CeilometerCompute - Spec definition for the CeilometerCompute
                   service of this Telemetry deployment
                 properties:
                   computeImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
                     description: ComputeImage is the image used for the ceilometer-agent-compute
                       container
                     type: string
@@ -120,7 +130,7 @@ spec:
                       as custom.conf file.
                     type: string
                   dataplaneInventoryConfigMap:
-                    default: dataplanerole-edpm-compute-inventory
+                    default: dataplanerole-edpm-compute
                     description: DataplaneInventoryConfigMap
                     type: string
                   dataplaneSSHSecret:
@@ -139,7 +149,6 @@ spec:
                     default: A ceilometer compute agent
                     type: string
                   initImage:
-                    default: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
                     description: InitImage is the image used for the init container
                     type: string
                   passwordSelector:
@@ -158,10 +167,19 @@ spec:
                     default: deploy-ceilometer.yaml
                     description: Playbook executed
                     type: string
+                  rabbitMqClusterName:
+                    default: rabbitmq
+                    description: RabbitMQ instance name Needed to request a transportURL
+                      that is created and used in Telemetry
+                    type: string
                   secret:
                     default: osp-secret
                     description: Secret containing OpenStack password information
                       for ceilometer
+                    type: string
+                  serviceAccount:
+                    description: ServiceAccount - service account name used internally
+                      to provide the default SA name
                     type: string
                   serviceUser:
                     default: ceilometer
@@ -172,19 +190,53 @@ spec:
                     description: TransportURLSecret contains the needed values to
                       connect to RabbitMQ
                     type: string
+                required:
+                - computeImage
+                - initImage
+                - serviceAccount
                 type: object
               description:
                 default: A ceilometer agent
                 type: string
-              rabbitMqClusterName:
-                default: rabbitmq
-                description: RabbitMQ instance name Needed to request a transportURL
-                  that is created and used in Telemetry
-                type: string
+              infraCompute:
+                description: InfraCompute - Spec definition for the InfraCompute service
+                  of this Telemetry deployment
+                properties:
+                  dataplaneInventoryConfigMap:
+                    default: dataplanerole-edpm-compute
+                    description: DataplaneInventoryConfigMap
+                    type: string
+                  dataplaneSSHSecret:
+                    default: dataplane-ansible-ssh-private-key-secret
+                    description: DataplaneSSHSecret
+                    type: string
+                  description:
+                    default: An infra compute agent
+                    type: string
+                  extravarsConfigMap:
+                    default: telemetry-infracompute-extravars
+                    description: The extravars ConfigMap to pass to ansible execution
+                    type: string
+                  nodeExporterImage:
+                    description: NodeExporterImage is the image used for the node_exporter
+                      container
+                    type: string
+                  playbook:
+                    default: deploy-infra.yaml
+                    description: Playbook executed
+                    type: string
+                  serviceAccount:
+                    description: ServiceAccount - service account name used internally
+                      to provide the default SA name
+                    type: string
+                required:
+                - nodeExporterImage
+                - serviceAccount
+                type: object
             required:
             - ceilometerCentral
             - ceilometerCompute
-            - rabbitMqClusterName
+            - infraCompute
             type: object
           status:
             description: TelemetryStatus defines the observed state of Telemetry
@@ -245,9 +297,10 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
-              transportURLSecret:
-                description: TransportURLSecret - Secret containing RabbitMQ transportURL
-                type: string
+              infraComputeReadyCount:
+                description: ReadyCount of InfraCompute instance
+                format: int32
+                type: integer
             type: object
         type: object
     served: true

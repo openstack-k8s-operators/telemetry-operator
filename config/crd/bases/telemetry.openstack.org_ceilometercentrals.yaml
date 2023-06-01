@@ -78,6 +78,11 @@ spec:
                       password from the Secret
                     type: string
                 type: object
+              rabbitMqClusterName:
+                default: rabbitmq
+                description: RabbitMQ instance name Needed to request a transportURL
+                  that is created and used in Telemetry
+                type: string
               secret:
                 default: osp-secret
                 description: Secret containing OpenStack password information for

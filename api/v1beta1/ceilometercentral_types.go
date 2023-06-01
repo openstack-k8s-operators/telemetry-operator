@@ -23,6 +23,11 @@ import (
 
 // CeilometerCentralSpec defines the desired state of CeilometerCentral
 type CeilometerCentralSpec struct {
+	// RabbitMQ instance name
+	// Needed to request a transportURL that is created and used in Telemetry
+	// +kubebuilder:default=rabbitmq
+	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
+
 	// The needed values to connect to RabbitMQ
 	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
@@ -119,4 +124,19 @@ func (instance CeilometerCentral) IsReady() bool {
 
 func init() {
 	SchemeBuilder.Register(&CeilometerCentral{}, &CeilometerCentralList{})
+}
+
+// RbacConditionsSet - set the conditions for the rbac object
+func (instance CeilometerCentral) RbacConditionsSet(c *condition.Condition) {
+	instance.Status.Conditions.Set(c)
+}
+
+// RbacNamespace - return the namespace
+func (instance CeilometerCentral) RbacNamespace() string {
+	return instance.Namespace
+}
+
+// RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
+func (instance CeilometerCentral) RbacResourceName() string {
+	return "telemetry-" + instance.Name
 }

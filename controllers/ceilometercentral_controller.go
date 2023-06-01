@@ -21,9 +21,13 @@ import (
 	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -36,11 +40,11 @@ import (
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
+	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/client-go/kubernetes"
 
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometercentral "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometercentral"
@@ -60,8 +64,15 @@ type CeilometerCentralReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
+// +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
+// service account, role, rolebinding
+// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
+// service account permissions that are needed to grant permission to the above
+// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
 
 // Reconcile reconciles a CeilometerCentral
 func (r *CeilometerCentralReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -121,6 +132,10 @@ func (r *CeilometerCentralReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+			// service account, role, rolebinding conditions
+			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
+			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
+			condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -224,6 +239,63 @@ func (r *CeilometerCentralReconciler) reconcileInit(
 
 func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.CeilometerCentral, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
+
+	// Service account, role, binding
+	rbacRules := []rbacv1.PolicyRule{
+		{
+			APIGroups:     []string{"security.openshift.io"},
+			ResourceNames: []string{"anyuid"},
+			Resources:     []string{"securitycontextconstraints"},
+			Verbs:         []string{"use"},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"pods"},
+			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
+		},
+	}
+	rbacResult, err := common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
+	if err != nil {
+		return rbacResult, err
+	} else if (rbacResult != ctrl.Result{}) {
+		return rbacResult, nil
+	}
+
+	//
+	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
+	//
+	transportURL, op, err := r.transportURLCreateOrUpdate(instance)
+
+	if err != nil {
+		r.Log.Info("Error getting transportURL. Setting error condition on status and returning")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.TelemetryRabbitMqTransportURLReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.TelemetryRabbitMqTransportURLReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	if op != controllerutil.OperationResultNone {
+		r.Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
+	}
+
+	instance.Spec.TransportURLSecret = transportURL.Status.SecretName
+
+	if instance.Spec.TransportURLSecret == "" {
+		r.Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.TelemetryRabbitMqTransportURLReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.TelemetryRabbitMqTransportURLReadyRunningMessage))
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
+	}
+
+	instance.Status.Conditions.MarkTrue(telemetryv1.TelemetryRabbitMqTransportURLReadyCondition, telemetryv1.TelemetryRabbitMqTransportURLReadyMessage)
+	// end transportURL
+
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
 
@@ -346,7 +418,7 @@ func (r *CeilometerCentralReconciler) getSecret(ctx context.Context, h *helper.H
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Secret %s not found", secretName)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("secret %s not found", secretName)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
@@ -426,6 +498,21 @@ func (r *CeilometerCentralReconciler) createHashOfInputHashes(
 	return hash, changed, nil
 }
 
+func (r *CeilometerCentralReconciler) transportURLCreateOrUpdate(instance *telemetryv1.CeilometerCentral) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
+	transportURL := &rabbitmqv1.TransportURL{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-telemetry-transport", instance.Name),
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, transportURL, func() error {
+		transportURL.Spec.RabbitmqClusterName = instance.Spec.RabbitMqClusterName
+		err := controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
+		return err
+	})
+	return transportURL, op, err
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *CeilometerCentralReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -434,5 +521,6 @@ func (r *CeilometerCentralReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{}).
+		Owns(&rabbitmqv1.TransportURL{}).
 		Complete(r)
 }
