@@ -106,9 +106,7 @@ func (r *InfraComputeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		instance.Status.Conditions = condition.Conditions{}
 		// initialize conditions used later as Status=Unknown
 		cl := condition.CreateList(
-			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
-			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+			condition.UnknownCondition(condition.AnsibleEECondition, condition.InitReason, condition.AnsibleEEReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -204,6 +202,8 @@ func (r *InfraComputeReconciler) createAnsibleExecution(ctx context.Context, ins
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
+
+	instance.Status.Conditions.MarkTrue(condition.AnsibleEECondition, condition.AnsibleEEReadyMessage)
 
 	fmt.Println("Returning...")
 	return ctrl.Result{}, nil
