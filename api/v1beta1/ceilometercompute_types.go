@@ -118,9 +118,9 @@ type CeilometerComputeList struct {
 	Items           []CeilometerCompute `json:"items"`
 }
 
-// IsReady - returns true if service is ready
+// IsReady - returns true if CeilometerCompute is reconciled successfully
 func (instance CeilometerCompute) IsReady() bool {
-	return instance.Status.Conditions.IsTrue(condition.AnsibleEECondition)
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {
