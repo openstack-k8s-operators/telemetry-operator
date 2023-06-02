@@ -44,7 +44,7 @@ func AnsibleEE(
 				{Name: "ANSIBLE_VERBOSITY", Value: "1"},
 			},
 			ExtraMounts:        getExtraMounts(instance),
-			ServiceAccountName: instance.Spec.ServiceAccount,
+			ServiceAccountName: instance.RbacResourceName(),
 		},
 	}
 
