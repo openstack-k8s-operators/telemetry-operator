@@ -112,9 +112,9 @@ type CeilometerCentralList struct {
 	Items           []CeilometerCentral `json:"items"`
 }
 
-// IsReady - returns true if service is ready
+// IsReady - returns true if CeilometerCentral is reconciled successfully
 func (instance CeilometerCentral) IsReady() bool {
-	return instance.Status.Conditions.IsTrue(condition.DeploymentReadyCondition)
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {

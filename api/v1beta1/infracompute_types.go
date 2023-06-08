@@ -96,9 +96,9 @@ type InfraComputeList struct {
 	Items           []InfraCompute `json:"items"`
 }
 
-// IsReady - returns true if service is ready
+// IsReady - returns true if InfraCompute is reconciled successfully
 func (instance InfraCompute) IsReady() bool {
-	return instance.Status.Conditions.IsTrue(condition.DeploymentReadyCondition)
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {

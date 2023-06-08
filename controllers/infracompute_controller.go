@@ -82,11 +82,18 @@ func (r *InfraComputeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Always patch the instance status when exiting this function so we can persist any changes.
 	defer func() {
-		// update the overall status condition if service is ready
-		if instance.IsReady() {
-			instance.Status.Conditions.MarkTrue(condition.ReadyCondition, condition.ReadyMessage)
+		// update the Ready condition based on the sub conditions
+		if instance.Status.Conditions.AllSubConditionIsTrue() {
+			instance.Status.Conditions.MarkTrue(
+				condition.ReadyCondition, condition.ReadyMessage)
+		} else {
+			// something is not ready so reset the Ready condition
+			instance.Status.Conditions.MarkUnknown(
+				condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage)
+			// and recalculate it based on the state of the rest of the conditions
+			instance.Status.Conditions.Set(
+				instance.Status.Conditions.Mirror(condition.ReadyCondition))
 		}
-
 		err := helper.PatchInstance(ctx, instance)
 		if err != nil {
 			_err = err
@@ -106,9 +113,7 @@ func (r *InfraComputeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		instance.Status.Conditions = condition.Conditions{}
 		// initialize conditions used later as Status=Unknown
 		cl := condition.CreateList(
-			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
-			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+			condition.UnknownCondition(condition.AnsibleEECondition, condition.InitReason, condition.AnsibleEEReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -204,6 +209,8 @@ func (r *InfraComputeReconciler) createAnsibleExecution(ctx context.Context, ins
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
+
+	instance.Status.Conditions.MarkTrue(condition.AnsibleEECondition, condition.AnsibleEEReadyMessage)
 
 	fmt.Println("Returning...")
 	return ctrl.Result{}, nil
