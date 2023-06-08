@@ -58,6 +58,7 @@ type CeilometerComputeReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/finalizers,verbs=update
 // +kubebuilder:rbac:groups=ansibleee.openstack.org,resources=openstackansibleees,verbs=get;list;watch;create;update;patch;delete;
+// +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch;
 
 // Reconcile reconciles a CeilometerCompute
 func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -350,5 +351,6 @@ func (r *CeilometerComputeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CeilometerCompute{}).
 		Owns(&ansibleeev1.OpenStackAnsibleEE{}).
+		Owns(&keystonev1.KeystoneAPI{}).
 		Complete(r)
 }
