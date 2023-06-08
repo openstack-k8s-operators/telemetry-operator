@@ -61,6 +61,9 @@ DATAPLANE_SINGLE_NODE=false DATAPLANE_CHRONY_NTP_SERVER=clock.redhat.com make ed
 ```
 cd telemetry-operator
 
+oc delete -f config/crd/bases/
+oc apply -f config/crd/bases/
+
 make manifests generate
 OPERATOR_TEMPLATES=$PWD/templates OPERATOR_PLAYBOOKS=$PWD/playbooks make run
 ```
