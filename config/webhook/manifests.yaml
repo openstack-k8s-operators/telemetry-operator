@@ -31,7 +31,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-telemetry-openstack-org-v1beta1-ceilometercentral
+      path: /mutate-telemetry-openstack-org-v1beta1-ceilometercompute
   failurePolicy: Fail
   name: mceilometercompute.kb.io
   rules:

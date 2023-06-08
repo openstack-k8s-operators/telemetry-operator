@@ -39,6 +39,7 @@ import (
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
+	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
@@ -47,6 +48,7 @@ import (
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometercompute "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometercompute"
@@ -65,15 +67,6 @@ type CeilometerComputeReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/finalizers,verbs=update
 // +kubebuilder:rbac:groups=ansibleee.openstack.org,resources=openstackansibleees,verbs=get;list;watch;create;update;patch;delete;
-// +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
-// service account, role, rolebinding
-// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
-// service account permissions that are needed to grant permission to the above
-// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
-// +kubebuilder:rbac:groups="",resources=pods,verbs=create;delete;get;list;patch;update;watch
 
 // Reconcile reconciles a CeilometerCompute
 func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -106,11 +99,18 @@ func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Always patch the instance status when exiting this function so we can persist any changes.
 	defer func() {
-		// update the overall status condition if service is ready
-		if instance.IsReady() {
-			instance.Status.Conditions.MarkTrue(condition.ReadyCondition, condition.ReadyMessage)
+		// update the Ready condition based on the sub conditions
+		if instance.Status.Conditions.AllSubConditionIsTrue() {
+			instance.Status.Conditions.MarkTrue(
+				condition.ReadyCondition, condition.ReadyMessage)
+		} else {
+			// something is not ready so reset the Ready condition
+			instance.Status.Conditions.MarkUnknown(
+				condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage)
+			// and recalculate it based on the state of the rest of the conditions
+			instance.Status.Conditions.Set(
+				instance.Status.Conditions.Mirror(condition.ReadyCondition))
 		}
-
 		err := helper.PatchInstance(ctx, instance)
 		if err != nil {
 			_err = err
@@ -432,7 +432,18 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 		customData[key] = data
 	}
 
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
+	if err != nil {
+		return err
+	}
+
+	keystoneInternalURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
+	if err != nil {
+		return err
+	}
+
 	templateParameters := map[string]interface{}{
+		"KeystoneInternalURL":      keystoneInternalURL,
 		"ceilometer_compute_image": instance.Spec.ComputeImage,
 	}
 
@@ -480,7 +491,5 @@ func (r *CeilometerComputeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CeilometerCompute{}).
 		Owns(&ansibleeev1.OpenStackAnsibleEE{}).
-		Owns(&rabbitmqv1.TransportURL{}).
-		Owns(&corev1.Secret{}).
 		Complete(r)
 }

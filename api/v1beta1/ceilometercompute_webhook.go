@@ -49,13 +49,13 @@ func (r *CeilometerCompute) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-telemetry-openstack-org-v1beta1-ceilometercentral,mutating=true,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=ceilometercomputes,verbs=create;update,versions=v1beta1,name=mceilometercompute.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-telemetry-openstack-org-v1beta1-ceilometercompute,mutating=true,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=ceilometercomputes,verbs=create;update,versions=v1beta1,name=mceilometercompute.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &CeilometerCompute{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CeilometerCompute) Default() {
-	ceilometercentrallog.Info("default", "name", r.Name)
+	ceilometercomputelog.Info("default", "name", r.Name)
 
 	// TODO(user): fill in your defaulting logic.
 }

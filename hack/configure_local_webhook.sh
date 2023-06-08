@@ -38,6 +38,174 @@ webhooks:
   - v1
   clientConfig:
     caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-ceilometercentral
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: vtelemetry.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - ceilometercentrals
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mtelemetry.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/mutate-telemetry-openstack-org-v1beta1-ceilometercentral
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: mtelemetry.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - ceilometercentrals
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: vtelemetry.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-ceilometercompute
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: vtelemetry.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - ceilometercomputes
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mtelemetry.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/mutate-telemetry-openstack-org-v1beta1-ceilometercompute
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: mtelemetry.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - ceilometercomputes
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: vtelemetry.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-infracompute
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: vtelemetry.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - infracomputes
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mtelemetry.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/mutate-telemetry-openstack-org-v1beta1-infracompute
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: mtelemetry.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - infracomputes
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: vtelemetry.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
     url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-telemetry
   failurePolicy: Fail
   matchPolicy: Equivalent

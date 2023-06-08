@@ -104,9 +104,6 @@ type CeilometerCentralStatus struct {
 
 	// Networks in addtion to the cluster network, the service is attached to
 	Networks []string `json:"networks,omitempty"`
-
-	// ServiceID
-	ServiceID string `json:"serviceID,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -130,9 +127,9 @@ type CeilometerCentralList struct {
 	Items           []CeilometerCentral `json:"items"`
 }
 
-// IsReady - returns true if service is ready
+// IsReady - returns true if CeilometerCentral is reconciled successfully
 func (instance CeilometerCentral) IsReady() bool {
-	return instance.Status.Conditions.IsTrue(condition.DeploymentReadyCondition)
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {

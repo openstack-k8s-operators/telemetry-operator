@@ -37,6 +37,7 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	deployment "github.com/openstack-k8s-operators/lib-common/modules/common/deployment"
+	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
@@ -67,6 +68,7 @@ type CeilometerCentralReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch;
 // service account, role, rolebinding
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
@@ -105,11 +107,18 @@ func (r *CeilometerCentralReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Always patch the instance status when exiting this function so we can persist any changes.
 	defer func() {
-		// update the overall status condition if service is ready
-		if instance.IsReady() {
-			instance.Status.Conditions.MarkTrue(condition.ReadyCondition, condition.ReadyMessage)
+		// update the Ready condition based on the sub conditions
+		if instance.Status.Conditions.AllSubConditionIsTrue() {
+			instance.Status.Conditions.MarkTrue(
+				condition.ReadyCondition, condition.ReadyMessage)
+		} else {
+			// something is not ready so reset the Ready condition
+			instance.Status.Conditions.MarkUnknown(
+				condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage)
+			// and recalculate it based on the state of the rest of the conditions
+			instance.Status.Conditions.Set(
+				instance.Status.Conditions.Mirror(condition.ReadyCondition))
 		}
-
 		err := helper.PatchInstance(ctx, instance)
 		if err != nil {
 			_err = err
@@ -136,6 +145,8 @@ func (r *CeilometerCentralReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
 			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
 			condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
+			// right now we have no dedicated KeystoneServiceReadyInitMessage
+			condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -226,8 +237,6 @@ func (r *CeilometerCentralReconciler) reconcileInit(
 	if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
-
-	instance.Status.ServiceID = ksSvc.GetServiceID()
 
 	if instance.Status.Hash == nil {
 		instance.Status.Hash = map[string]string{}
@@ -449,7 +458,19 @@ func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
 		customData[key] = data
 	}
 
-	templateParameters := make(map[string]interface{})
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
+	if err != nil {
+		return err
+	}
+
+	keystoneInternalURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
+	if err != nil {
+		return err
+	}
+
+	templateParameters := map[string]interface{}{
+		"KeystoneInternalURL": keystoneInternalURL,
+	}
 
 	cms := []util.Template{
 		// ScriptsConfigMap
@@ -518,6 +539,7 @@ func (r *CeilometerCentralReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CeilometerCentral{}).
 		Owns(&keystonev1.KeystoneService{}).
+		Owns(&keystonev1.KeystoneAPI{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{}).

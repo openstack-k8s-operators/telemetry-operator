@@ -88,9 +88,9 @@ type TelemetryList struct {
 	Items           []Telemetry `json:"items"`
 }
 
-// IsReady - returns true if service is ready
+// IsReady - returns true if Telemetry is reconciled successfully
 func (instance Telemetry) IsReady() bool {
-	return instance.Status.Conditions.IsTrue(CeilometerCentralReadyCondition) && instance.Status.Conditions.IsTrue(CeilometerComputeReadyCondition)
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {
