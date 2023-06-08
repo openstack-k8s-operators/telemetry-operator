@@ -33,6 +33,7 @@ import (
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
+	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
@@ -40,6 +41,7 @@ import (
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometercompute "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometercompute"
 )
@@ -297,7 +299,18 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 		customData[key] = data
 	}
 
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
+	if err != nil {
+		return err
+	}
+
+	keystoneInternalURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
+	if err != nil {
+		return err
+	}
+
 	templateParameters := map[string]interface{}{
+		"KeystoneInternalURL":      keystoneInternalURL,
 		"ceilometer_compute_image": instance.Spec.ComputeImage,
 	}
 

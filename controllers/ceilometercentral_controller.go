@@ -33,6 +33,7 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	deployment "github.com/openstack-k8s-operators/lib-common/modules/common/deployment"
+	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
@@ -377,7 +378,19 @@ func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
 		customData[key] = data
 	}
 
-	templateParameters := make(map[string]interface{})
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
+	if err != nil {
+		return err
+	}
+
+	keystoneInternalURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
+	if err != nil {
+		return err
+	}
+
+	templateParameters := map[string]interface{}{
+		"KeystoneInternalURL": keystoneInternalURL,
+	}
 
 	cms := []util.Template{
 		// ScriptsConfigMap
