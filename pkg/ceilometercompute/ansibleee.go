@@ -36,24 +36,26 @@ func AnsibleEE(
 		ServiceSelector:    instance.Spec.PasswordSelectors.Service,
 	}
 
+	ansibleeeSpec := ansibleeev1.NewOpenStackAnsibleEE(ServiceName)
+
+	ansibleeeSpec.Playbook = instance.Spec.Playbook
+	ansibleeeSpec.Env = []corev1.EnvVar{
+		{Name: "ANSIBLE_FORCE_COLOR", Value: "True"},
+		{Name: "ANSIBLE_SSH_ARGS", Value: "-C -o ControlMaster=auto -o ControlPersist=80s"},
+		{Name: "ANSIBLE_ENABLE_TASK_DEBUGGER", Value: "True"},
+		{Name: "ANSIBLE_VERBOSITY", Value: "1"},
+	}
+	ansibleeeSpec.InitContainers = initContainer(initContainerDetails)
+	ansibleeeSpec.ExtraMounts = getExtraMounts(ServiceName, instance)
+	ansibleeeSpec.ServiceAccountName = instance.Spec.ServiceAccount
+
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ServiceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
-		Spec: ansibleeev1.OpenStackAnsibleEESpec{
-			Playbook: instance.Spec.Playbook,
-			Env: []corev1.EnvVar{
-				{Name: "ANSIBLE_FORCE_COLOR", Value: "True"},
-				{Name: "ANSIBLE_SSH_ARGS", Value: "-C -o ControlMaster=auto -o ControlPersist=80s"},
-				{Name: "ANSIBLE_ENABLE_TASK_DEBUGGER", Value: "True"},
-				{Name: "ANSIBLE_VERBOSITY", Value: "1"},
-			},
-			InitContainers:     initContainer(initContainerDetails),
-			ExtraMounts:        getExtraMounts(ServiceName, instance),
-			ServiceAccountName: instance.Spec.ServiceAccount,
-		},
+		Spec: ansibleeeSpec,
 	}
 
 	return ansibleee, nil
