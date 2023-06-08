@@ -86,9 +86,6 @@ type CeilometerCentralStatus struct {
 
 	// Networks in addtion to the cluster network, the service is attached to
 	Networks []string `json:"networks,omitempty"`
-
-	// ServiceID
-	ServiceID string `json:"serviceID,omitempty"`
 }
 
 //+kubebuilder:object:root=true
