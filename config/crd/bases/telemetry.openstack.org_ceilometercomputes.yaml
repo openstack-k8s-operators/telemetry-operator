@@ -159,19 +159,10 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
-              networks:
-                description: Networks in addtion to the cluster network, the service
-                  is attached to
-                items:
-                  type: string
-                type: array
               readyCount:
                 description: ReadyCount of ceilometercompute instances
                 format: int32
                 type: integer
-              serviceID:
-                description: ServiceID
-                type: string
             type: object
         type: object
     served: true

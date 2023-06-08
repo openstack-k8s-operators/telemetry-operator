@@ -222,8 +222,6 @@ func (r *CeilometerCentralReconciler) reconcileInit(
 		return ctrlResult, nil
 	}
 
-	instance.Status.ServiceID = ksSvc.GetServiceID()
-
 	if instance.Status.Hash == nil {
 		instance.Status.Hash = map[string]string{}
 	}
