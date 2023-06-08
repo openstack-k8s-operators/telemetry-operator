@@ -70,6 +70,12 @@ OPERATOR_TEMPLATES=$PWD/templates OPERATOR_PLAYBOOKS=$PWD/playbooks make run
 oc apply -f config/samples/telemetry_v1beta1_telemetry.yaml
 ```
 
+## Emergency rescue access to CRC VM
+If you need to connect directly to the CRC VM just use
+```
+ssh -i ~/.crc/machines/crc/id_ecdsa core@"192.168.130.11"
+```
+
 ## License
 
 Copyright 2023.
