@@ -34,13 +34,9 @@ make openstack
 ```
 oc project openstack-operators
 
-export OPERATOR_NAME="telemetry-operator"
-OPERATOR_INDEX=(oc get csv openstack-operator.v0.0.1 -o json | jq -r '.spec.install.spec.deployments | map(.name == $ENV.OPERATOR_NAME + "-controller-manager") | index(true)'
-
-oc patch csv openstack-operator.v0.0.1 --type json \
-  -p="[{"op": "remove", "path": "/spec/install/spec/deployments/${OPERATOR_INDEX}"}]"
-
-oc delete deployment telemetry-operator-controller-manager
+oc edit csv telemetry-operator.v0.0.1
+    	Search for "replicas"
+		Change "replicas" to 0
 ```
 
 5.- Deploy openstack and disable telemetry
@@ -48,8 +44,8 @@ oc delete deployment telemetry-operator-controller-manager
 make openstack_deploy
 
 oc edit openstackcontrolplane
-      Search for "telemetry"
-	  Change "enabled" to false
+	Search for "telemetry"
+		Change "enabled" to false
 ```
 
 6.- Deploy dataplane operator
