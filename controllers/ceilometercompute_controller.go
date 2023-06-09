@@ -189,6 +189,8 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	}
 	// run check TransportURL secret - end
 
+	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
+
 	//
 	// create Configmap required for ceilometer input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
@@ -288,8 +290,6 @@ func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.H
 	// Add a prefix to the var name to avoid accidental collision with other non-secret
 	// vars. The secret names themselves will be unique.
 	(*envVars)["secret-"+secret.Name] = env.SetValue(hash)
-
-	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
 	return ctrl.Result{}, nil
 }

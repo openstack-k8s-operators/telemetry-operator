@@ -254,6 +254,8 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	}
 	// run check TransportURL secret - end
 
+	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
+
 	//
 	// create Configmap required for ceilometer input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
