@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,7 +29,9 @@ import (
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -158,13 +161,29 @@ func (r *InfraComputeReconciler) reconcileDelete(ctx context.Context, instance *
 func (r *InfraComputeReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.InfraCompute, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 
+	// check for required DataplaneSSHSecret secret holding ssh key for dataplane access
+	_, _, err := secret.GetSecret(ctx, helper, instance.Spec.DataplaneSSHSecret, instance.Namespace)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(condition.InputReadyCondition, condition.ErrorReason, condition.SeverityWarning, condition.InputReadyErrorMessage, err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	// this is a workaround for the missing timeout in the reconcile r.
+	timeout := time.Duration(5 * time.Second)
+	// check for required DataplaneInventoryConfigMap configmap holding inventory for dataplane
+	_, ctrlResult, err := configmap.GetConfigMap(ctx, helper, instance, instance.Spec.DataplaneInventoryConfigMap, timeout)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(condition.InputReadyCondition, condition.ErrorReason, condition.SeverityWarning, condition.InputReadyErrorMessage, err.Error()))
+		return ctrlResult, err
+	}
+
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
 		common.AppSelector: infracompute.ServiceName,
 	}
 
-	_, err := r.createAnsibleExecution(ctx, instance, serviceLabels)
+	_, err = r.createAnsibleExecution(ctx, instance, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

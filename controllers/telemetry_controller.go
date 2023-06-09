@@ -346,55 +346,61 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	}
 	// end deploy ceilometercentral
 
-	// deploy ceilometercompute
-	r.Log.Info("Deploying ceilometercompute")
-	ceilometercompute, op, err := r.ceilometerComputeCreateOrUpdate(instance)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.CeilometerComputeReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			telemetryv1.CeilometerComputeReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
-	if op != controllerutil.OperationResultNone {
-		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
-	}
+	if instance.Spec.CeilometerCompute != nil {
+		// deploy ceilometercompute
+		r.Log.Info("Deploying ceilometercompute")
+		ceilometercompute, op, err := r.ceilometerComputeCreateOrUpdate(instance)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.CeilometerComputeReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				telemetryv1.CeilometerComputeReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
+		}
+		// Mirror ceilometercompute's status ReadyCount to this parent CR
+		instance.Status.CeilometerComputeReadyCount = ceilometercompute.Status.ReadyCount
 
-	// Mirror ceilometercompute's status ReadyCount to this parent CR
-	instance.Status.CeilometerComputeReadyCount = ceilometercompute.Status.ReadyCount
-
-	// Mirror ceilometercompute's condition status
-	ccompute := ceilometercompute.Status.Conditions.Mirror(telemetryv1.CeilometerComputeReadyCondition)
-	if ccompute != nil {
-		instance.Status.Conditions.Set(ccompute)
+		// Mirror ceilometercompute's condition status
+		ccompute := ceilometercompute.Status.Conditions.Mirror(telemetryv1.CeilometerComputeReadyCondition)
+		if ccompute != nil {
+			instance.Status.Conditions.Set(ccompute)
+		}
+	} else {
+		instance.Status.Conditions.Remove(telemetryv1.CeilometerComputeReadyCondition)
 	}
 	// end deploy ceilometercompute
+	if instance.Spec.InfraCompute != nil {
+		// deploy infracompute
+		r.Log.Info("Deploying infracompute")
+		infracompute, op, err := r.infraComputeCreateOrUpdate(instance)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.InfraComputeReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				telemetryv1.InfraComputeReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
+		}
 
-	// deploy infracompute
-	r.Log.Info("Deploying infracompute")
-	infracompute, op, err := r.infraComputeCreateOrUpdate(instance)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.InfraComputeReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			telemetryv1.InfraComputeReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
-	if op != controllerutil.OperationResultNone {
-		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
-	}
+		// Mirror infracompute's status ReadyCount to this parent CR
+		instance.Status.InfraComputeReadyCount = infracompute.Status.ReadyCount
 
-	// Mirror infracompute's status ReadyCount to this parent CR
-	instance.Status.InfraComputeReadyCount = infracompute.Status.ReadyCount
-
-	// Mirror ceilometercompute's condition status
-	icompute := infracompute.Status.Conditions.Mirror(telemetryv1.InfraComputeReadyCondition)
-	if icompute != nil {
-		instance.Status.Conditions.Set(icompute)
+		// Mirror ceilometercompute's condition status
+		icompute := infracompute.Status.Conditions.Mirror(telemetryv1.InfraComputeReadyCondition)
+		if icompute != nil {
+			instance.Status.Conditions.Set(icompute)
+		}
+	} else {
+		instance.Status.Conditions.Remove(telemetryv1.InfraComputeReadyCondition)
 	}
 	// end deploy infracompute
 
@@ -451,7 +457,7 @@ func (r *TelemetryReconciler) ceilometerComputeCreateOrUpdate(instance *telemetr
 	}
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ccompute, func() error {
-		ccompute.Spec = instance.Spec.CeilometerCompute
+		ccompute.Spec = *instance.Spec.CeilometerCompute
 		ccompute.Spec.TransportURLSecret = instance.Status.TransportURLSecret
 		ccompute.Spec.ServiceAccount = instance.RbacResourceName()
 
@@ -476,7 +482,7 @@ func (r *TelemetryReconciler) infraComputeCreateOrUpdate(instance *telemetryv1.T
 	}
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, icompute, func() error {
-		icompute.Spec = instance.Spec.InfraCompute
+		icompute.Spec = *instance.Spec.InfraCompute
 		icompute.Spec.ServiceAccount = instance.RbacResourceName()
 
 		err := controllerutil.SetControllerReference(instance, icompute, r.Scheme)

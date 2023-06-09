@@ -38,12 +38,12 @@ type InfraComputeSpec struct {
 	NodeExporterImage string `json:"nodeExporterImage"`
 
 	// DataplaneSSHSecret
-	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"
-	DataplaneSSHSecret string `json:"dataplaneSSHSecret,omitempty"`
+	// +kubebuilder:validation:Required
+	DataplaneSSHSecret string `json:"dataplaneSSHSecret"`
 
 	// DataplaneInventoryConfigMap
-	// +kubebuilder:default:="dataplanerole-edpm-compute"
-	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap,omitempty"`
+	// +kubebuilder:validation:Required
+	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap"`
 
 	// Playbook executed
 	// +kubebuilder:default:="deploy-infra.yaml"

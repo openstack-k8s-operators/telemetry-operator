@@ -189,6 +189,22 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	}
 	// run check TransportURL secret - end
 
+	// check for required DataplaneSSHSecret secret holding ssh key for dataplane access
+	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Spec.DataplaneSSHSecret, &configMapVars)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(condition.InputReadyCondition, condition.ErrorReason, condition.SeverityWarning, condition.InputReadyErrorMessage, err.Error()))
+		return ctrlResult, err
+	}
+
+	// this is a workaround for the missing timeout in the reconcile r.
+	timeout := time.Duration(5 * time.Second)
+	// check for required DataplaneInventoryConfigMap configmap holding inventory for dataplane
+	_, ctrlResult, err = configmap.GetConfigMap(ctx, helper, instance, instance.Spec.DataplaneInventoryConfigMap, timeout)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(condition.InputReadyCondition, condition.ErrorReason, condition.SeverityWarning, condition.InputReadyErrorMessage, err.Error()))
+		return ctrlResult, err
+	}
+
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
 	//

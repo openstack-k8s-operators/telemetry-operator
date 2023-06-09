@@ -63,13 +63,13 @@ type TelemetrySpec struct {
 	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment
 	CeilometerCentral CeilometerCentralSpec `json:"ceilometerCentral"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:optional
 	// CeilometerCompute - Spec definition for the CeilometerCompute service of this Telemetry deployment
-	CeilometerCompute CeilometerComputeSpec `json:"ceilometerCompute"`
+	CeilometerCompute *CeilometerComputeSpec `json:"ceilometerCompute"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:optional
 	// InfraCompute - Spec definition for the InfraCompute service of this Telemetry deployment
-	InfraCompute InfraComputeSpec `json:"infraCompute"`
+	InfraCompute *InfraComputeSpec `json:"infraCompute"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry
