@@ -36,11 +36,9 @@ spec:
             description: InfraComputeSpec defines the desired state of InfraCompute
             properties:
               dataplaneInventoryConfigMap:
-                default: dataplanerole-edpm-compute
                 description: DataplaneInventoryConfigMap
                 type: string
               dataplaneSSHSecret:
-                default: dataplane-ansible-ssh-private-key-secret
                 description: DataplaneSSHSecret
                 type: string
               description:
@@ -63,6 +61,8 @@ spec:
                   to provide the default SA name
                 type: string
             required:
+            - dataplaneInventoryConfigMap
+            - dataplaneSSHSecret
             - nodeExporterImage
             - serviceAccount
             type: object
