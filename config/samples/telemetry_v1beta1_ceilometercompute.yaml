@@ -5,7 +5,8 @@ metadata:
   namespace: openstack
 spec:
   serviceAccount: telemetry-operator-telemetry
+  dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
+  dataplaneInventoryConfigMap: dataplanerole-edpm-compute
   initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
   computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
   playbook: deploy-ceilometer.yaml
-  dataplaneInventoryConfigMap: dataplanerole-edpm-compute
