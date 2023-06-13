@@ -165,23 +165,27 @@ func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, insta
 	// Delete the openstack-ansibleee when the ceilometercompute is deleted
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{}
 	err := r.Get(ctx, types.NamespacedName{Name: ceilometercompute.ServiceName, Namespace: instance.Namespace}, ansibleee)
-	if err != nil {
+	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
-	err = helper.GetClient().Delete(ctx, ansibleee)
-	if err != nil {
-		return ctrl.Result{}, err
+	if err == nil {
+		err = helper.GetClient().Delete(ctx, ansibleee)
+		if err != nil && !k8s_errors.IsNotFound(err)  {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Delete the extravars cm when the ceilometercompute is deleted
 	extravars := &corev1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-ceilometer-extravars", telemetry.ServiceName), Namespace: instance.Namespace}, extravars)
-	if err != nil {
+	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
-	err = helper.GetClient().Delete(ctx, extravars)
-	if err != nil {
-		return ctrl.Result{}, err
+	if err == nil {
+		err = helper.GetClient().Delete(ctx, extravars)
+		if err != nil && !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -453,17 +457,18 @@ func (r *CeilometerComputeReconciler) transportURLCreateOrUpdate(instance *telem
 }
 
 func (r *CeilometerComputeReconciler) ensureExtravars(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute) error {
-	data := make(map[string]string)
-	data["extravars"] = fmt.Sprintf("deploy_target_host: %s", "all")
-
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-ceilometer-extravars", telemetry.ServiceName),
 			Namespace: instance.Namespace,
 		},
-		Data: data,
+		Data: map[string]string{},
 	}
-	_, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error { return nil })
+
+	_, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
+		configMap.Data["extravars"] = "deploy_target_host: all"
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("error create/updating configmap: %w", err)
 	}

@@ -160,23 +160,27 @@ func (r *InfraComputeReconciler) reconcileDelete(ctx context.Context, instance *
 	// Delete the openstack-ansibleee when the infracompute is deleted
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{}
 	err := r.Get(ctx, types.NamespacedName{Name: infracompute.ServiceName, Namespace: instance.Namespace}, ansibleee)
-	if err != nil {
+	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
-	err = helper.GetClient().Delete(ctx, ansibleee)
-	if err != nil {
-		return ctrl.Result{}, err
+	if err == nil {
+		err = helper.GetClient().Delete(ctx, ansibleee)
+		if err != nil && !k8s_errors.IsNotFound(err)  {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Delete the extravars cm when the infracompute is deleted
 	extravars := &corev1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-infra-extravars", telemetry.ServiceName), Namespace: instance.Namespace}, extravars)
-	if err != nil {
+	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
-	err = helper.GetClient().Delete(ctx, extravars)
-	if err != nil {
-		return ctrl.Result{}, err
+	if err == nil {
+		err = helper.GetClient().Delete(ctx, ansibleee)
+		if err != nil && !k8s_errors.IsNotFound(err)  {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -278,17 +282,17 @@ func (r *InfraComputeReconciler) createAnsibleExecution(ctx context.Context, ins
 }
 
 func (r *InfraComputeReconciler) ensureExtravars(ctx context.Context, h *helper.Helper, instance *telemetryv1.InfraCompute) error {
-	data := make(map[string]string)
-	data["extravars"] = fmt.Sprintf("telemetry_node_exporter_image: %s\ndeploy_target_host: %s", instance.Spec.NodeExporterImage, "all")
-
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-infra-extravars", telemetry.ServiceName),
 			Namespace: instance.Namespace,
 		},
-		Data: data,
+		Data: map[string]string{},
 	}
-	_, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error { return nil })
+	_, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
+		configMap.Data["extravars"] = fmt.Sprintf("telemetry_node_exporter_image: %s\ndeploy_target_host: all", instance.Spec.NodeExporterImage)
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("error create/updating configmap: %w", err)
 	}
