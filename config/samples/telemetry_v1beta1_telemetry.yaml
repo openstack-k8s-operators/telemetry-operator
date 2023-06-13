@@ -14,9 +14,12 @@ spec:
     initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
     computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
     playbook: deploy-ceilometer.yaml
+    dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
     dataplaneInventoryConfigMap: dataplanerole-edpm-compute
     serviceAccount: telemetry-operator-telemetry
   infraCompute:
     nodeExporterImage: quay.io/prometheus/node-exporter:v1.5.0
     playbook: deploy-infra.yaml
     serviceAccount: telemetry-operator-telemetry
+    dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
+    dataplaneInventoryConfigMap: dataplanerole-edpm-compute
