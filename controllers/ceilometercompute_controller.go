@@ -19,8 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"os"
-	"path"
 	"time"
 
 	logr "github.com/go-logr/logr"
@@ -167,12 +165,27 @@ func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, insta
 	// Delete the openstack-ansibleee when the ceilometercompute is deleted
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{}
 	err := r.Get(ctx, types.NamespacedName{Name: ceilometercompute.ServiceName, Namespace: instance.Namespace}, ansibleee)
-	if err != nil {
+	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
-	err = helper.GetClient().Delete(ctx, ansibleee)
-	if err != nil {
+	if err == nil {
+		err = helper.GetClient().Delete(ctx, ansibleee)
+		if err != nil && !k8s_errors.IsNotFound(err)  {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Delete the extravars cm when the ceilometercompute is deleted
+	extravars := &corev1.ConfigMap{}
+	err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-ceilometer-extravars", telemetry.ServiceName), Namespace: instance.Namespace}, extravars)
+	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
+	}
+	if err == nil {
+		err = helper.GetClient().Delete(ctx, extravars)
+		if err != nil && !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -237,19 +250,6 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	instance.Status.Conditions.MarkTrue(telemetryv1.TelemetryRabbitMqTransportURLReadyCondition, telemetryv1.TelemetryRabbitMqTransportURLReadyMessage)
 	// end transportURL
 
-	// Create a configmap with the playbooks that will be run
-	err = r.ensurePlaybooks(ctx, helper, instance)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.ServiceConfigReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
-	// end telemetry playbooks
-
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
 
@@ -272,6 +272,19 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	// run check TransportURL secret - end
 
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
+
+	// Create the extravars configmap
+	err = r.ensureExtravars(ctx, helper, instance)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	// end create extravars configmap
 
 	//
 	// create Configmap required for ceilometer input
@@ -346,49 +359,6 @@ func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context
 
 	fmt.Println("Returning...")
 	return ctrl.Result{}, nil
-}
-
-func (r *CeilometerComputeReconciler) ensurePlaybooks(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute) error {
-	playbooksPath, found := os.LookupEnv("OPERATOR_PLAYBOOKS")
-	if !found {
-		playbooksPath = "playbooks"
-		os.Setenv("OPERATOR_PLAYBOOKS", playbooksPath)
-		util.LogForObject(h, "OPERATOR_PLAYBOOKS not set in env when reconciling ", instance, "defaulting to ", playbooksPath)
-	}
-
-	util.LogForObject(h, "using playbooks for instance ", instance, "from ", playbooksPath)
-
-	playbookDirEntries, err := os.ReadDir(playbooksPath)
-	if err != nil {
-		return err
-	}
-	// EnsureConfigMaps is not used as we do not want the templating behavior that adds.
-	playbookCMName := fmt.Sprintf("%s-compute-playbooks", telemetry.ServiceName)
-	configMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        playbookCMName,
-			Namespace:   instance.Namespace,
-			Annotations: map[string]string{},
-		},
-		Data: map[string]string{},
-	}
-	_, err = controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
-		for _, entry := range playbookDirEntries {
-			filename := entry.Name()
-			filePath := path.Join(playbooksPath, filename)
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				return err
-			}
-			configMap.Data[filename] = string(data)
-		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error create/updating configmap: %w", err)
-	}
-
-	return nil
 }
 
 // getSecret - get the specified secret, and add its hash to envVars
@@ -484,6 +454,26 @@ func (r *CeilometerComputeReconciler) transportURLCreateOrUpdate(instance *telem
 		return err
 	})
 	return transportURL, op, err
+}
+
+func (r *CeilometerComputeReconciler) ensureExtravars(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute) error {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-ceilometer-extravars", telemetry.ServiceName),
+			Namespace: instance.Namespace,
+		},
+		Data: map[string]string{},
+	}
+
+	_, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
+		configMap.Data["extravars"] = "deploy_target_host: all"
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error create/updating configmap: %w", err)
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

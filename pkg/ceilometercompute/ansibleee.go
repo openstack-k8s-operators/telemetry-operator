@@ -39,6 +39,7 @@ func AnsibleEE(
 	ansibleeeSpec := ansibleeev1.NewOpenStackAnsibleEE(ServiceName)
 
 	ansibleeeSpec.Playbook = instance.Spec.Playbook
+
 	ansibleeeSpec.Env = []corev1.EnvVar{
 		{Name: "ANSIBLE_FORCE_COLOR", Value: "True"},
 		{Name: "ANSIBLE_SSH_ARGS", Value: "-C -o ControlMaster=auto -o ControlPersist=80s"},

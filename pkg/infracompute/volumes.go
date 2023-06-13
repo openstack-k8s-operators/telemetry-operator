@@ -56,20 +56,11 @@ func getExtraMounts(instance *telemetryv1.InfraCompute) []storage.VolMounts {
 				},
 			},
 		}, {
-			Name: "playbooks",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: telemetry.ServiceName + "-compute-playbooks",
-					},
-				},
-			},
-		}, {
 			Name: "extravars",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: telemetry.ServiceName + "-compute-extravars",
+						Name: telemetry.ServiceName + "-infra-extravars",
 					},
 				},
 			},
@@ -85,10 +76,6 @@ func getExtraMounts(instance *telemetryv1.InfraCompute) []storage.VolMounts {
 			Name:      "inventory",
 			MountPath: "/runner/inventory/hosts",
 			SubPath:   "inventory",
-		},
-		{
-			Name:      "playbooks",
-			MountPath: "/runner/project/",
 		},
 		{
 			Name:      "extravars",

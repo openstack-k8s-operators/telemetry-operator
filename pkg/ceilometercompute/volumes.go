@@ -125,11 +125,11 @@ func getExtraMounts(name string, instance *telemetryv1.CeilometerCompute) []stor
 				},
 			},
 		}, {
-			Name: "playbooks",
+			Name: "extravars",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: telemetry.ServiceName + "-compute-playbooks",
+						Name: telemetry.ServiceName + "-ceilometer-extravars",
 					},
 				},
 			},
@@ -147,8 +147,9 @@ func getExtraMounts(name string, instance *telemetryv1.CeilometerCompute) []stor
 			SubPath:   "inventory",
 		},
 		{
-			Name:      "playbooks",
-			MountPath: "/runner/project/",
+			Name:      "extravars",
+			MountPath: "/runner/env/extravars",
+			SubPath:   "extravars",
 		},
 	}
 

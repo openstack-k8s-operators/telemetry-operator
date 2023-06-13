@@ -19,8 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"os"
-	"path"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -35,7 +33,6 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
-	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -163,12 +160,27 @@ func (r *InfraComputeReconciler) reconcileDelete(ctx context.Context, instance *
 	// Delete the openstack-ansibleee when the infracompute is deleted
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{}
 	err := r.Get(ctx, types.NamespacedName{Name: infracompute.ServiceName, Namespace: instance.Namespace}, ansibleee)
-	if err != nil {
+	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
-	err = helper.GetClient().Delete(ctx, ansibleee)
-	if err != nil {
+	if err == nil {
+		err = helper.GetClient().Delete(ctx, ansibleee)
+		if err != nil && !k8s_errors.IsNotFound(err)  {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Delete the extravars cm when the infracompute is deleted
+	extravars := &corev1.ConfigMap{}
+	err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-infra-extravars", telemetry.ServiceName), Namespace: instance.Namespace}, extravars)
+	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
+	}
+	if err == nil {
+		err = helper.GetClient().Delete(ctx, ansibleee)
+		if err != nil && !k8s_errors.IsNotFound(err)  {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -199,19 +211,6 @@ func (r *InfraComputeReconciler) reconcileNormal(ctx context.Context, instance *
 	}
 
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
-
-	// Create a configmap with the playbooks that will be run
-	err = r.ensurePlaybooks(ctx, helper, instance)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.ServiceConfigReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
-	// end telemetry playbooks
 
 	// Create the extravars configmap
 	err = r.ensureExtravars(ctx, helper, instance)
@@ -282,61 +281,18 @@ func (r *InfraComputeReconciler) createAnsibleExecution(ctx context.Context, ins
 	return ctrl.Result{}, nil
 }
 
-func (r *InfraComputeReconciler) ensurePlaybooks(ctx context.Context, h *helper.Helper, instance *telemetryv1.InfraCompute) error {
-	playbooksPath, found := os.LookupEnv("OPERATOR_PLAYBOOKS")
-	if !found {
-		playbooksPath = "playbooks"
-		os.Setenv("OPERATOR_PLAYBOOKS", playbooksPath)
-		util.LogForObject(h, "OPERATOR_PLAYBOOKS not set in env when reconciling ", instance, "defaulting to ", playbooksPath)
-	}
-
-	util.LogForObject(h, "using playbooks for instance ", instance, "from ", playbooksPath)
-
-	playbookDirEntries, err := os.ReadDir(playbooksPath)
-	if err != nil {
-		return err
-	}
-	// EnsureConfigMaps is not used as we do not want the templating behavior that adds.
-	playbookCMName := fmt.Sprintf("%s-compute-playbooks", telemetry.ServiceName)
+func (r *InfraComputeReconciler) ensureExtravars(ctx context.Context, h *helper.Helper, instance *telemetryv1.InfraCompute) error {
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        playbookCMName,
-			Namespace:   instance.Namespace,
-			Annotations: map[string]string{},
+			Name:      fmt.Sprintf("%s-infra-extravars", telemetry.ServiceName),
+			Namespace: instance.Namespace,
 		},
 		Data: map[string]string{},
 	}
-	_, err = controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
-		for _, entry := range playbookDirEntries {
-			filename := entry.Name()
-			filePath := path.Join(playbooksPath, filename)
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				return err
-			}
-			configMap.Data[filename] = string(data)
-		}
+	_, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
+		configMap.Data["extravars"] = fmt.Sprintf("telemetry_node_exporter_image: %s\ndeploy_target_host: all", instance.Spec.NodeExporterImage)
 		return nil
 	})
-	if err != nil {
-		return fmt.Errorf("error create/updating configmap: %w", err)
-	}
-
-	return nil
-}
-
-func (r *InfraComputeReconciler) ensureExtravars(ctx context.Context, h *helper.Helper, instance *telemetryv1.InfraCompute) error {
-	data := make(map[string]string)
-	data["extravars"] = fmt.Sprintf("telemetry_node_exporter_image: %s", instance.Spec.NodeExporterImage)
-
-	configMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-compute-extravars", telemetry.ServiceName),
-			Namespace: instance.Namespace,
-		},
-		Data: data,
-	}
-	_, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error { return nil })
 	if err != nil {
 		return fmt.Errorf("error create/updating configmap: %w", err)
 	}
