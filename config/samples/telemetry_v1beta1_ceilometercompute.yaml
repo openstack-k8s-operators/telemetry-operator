@@ -7,5 +7,5 @@ spec:
   serviceAccount: telemetry-operator-telemetry
   initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
   computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
-  playbook: deploy-ceilometer.yaml
+  playbook: osp.edpm.deploy_edpm_telemetry_ceilometer.yml
   dataplaneInventoryConfigMap: dataplanerole-edpm-compute

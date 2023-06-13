@@ -6,4 +6,4 @@ metadata:
 spec:
   serviceAccount: telemetry-operator-telemetry
   nodeExporterImage: quay.io/prometheus/node-exporter:v1.5.0
-  playbook: deploy-infra.yaml
+  playbook: osp.edpm.deploy_edpm_telemetry_infra.yml
