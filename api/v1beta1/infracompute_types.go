@@ -20,10 +20,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+const (
+	// NodeExporterContainerImage - default fall-back image for node_exporter
+	// NodeExporterContainerImage = "registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.13"
+	NodeExporterContainerImage = "quay.io/prometheus/node-exporter:v1.5.0"
+)
 
 // InfraComputeSpec defines the desired state of InfraCompute
 type InfraComputeSpec struct {
@@ -38,12 +42,12 @@ type InfraComputeSpec struct {
 	NodeExporterImage string `json:"nodeExporterImage"`
 
 	// DataplaneSSHSecret
-	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"
-	DataplaneSSHSecret string `json:"dataplaneSSHSecret,omitempty"`
+	// +kubebuilder:validation:Required
+	DataplaneSSHSecret string `json:"dataplaneSSHSecret"`
 
 	// DataplaneInventoryConfigMap
-	// +kubebuilder:default:="dataplanerole-edpm-compute"
-	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap,omitempty"`
+	// +kubebuilder:validation:Required
+	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap"`
 
 	// Playbook executed
 	// +kubebuilder:default:="deploy-infra.yaml"
@@ -97,4 +101,29 @@ func (instance InfraCompute) IsReady() bool {
 
 func init() {
 	SchemeBuilder.Register(&InfraCompute{}, &InfraComputeList{})
+}
+
+// RbacConditionsSet - set the conditions for the rbac object
+func (instance InfraCompute) RbacConditionsSet(c *condition.Condition) {
+	instance.Status.Conditions.Set(c)
+}
+
+// RbacNamespace - return the namespace
+func (instance InfraCompute) RbacNamespace() string {
+	return instance.Namespace
+}
+
+// RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
+func (instance InfraCompute) RbacResourceName() string {
+	return "telemetry-" + instance.Name
+}
+
+// SetupDefaultsInfraCompute - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaultsInfraCompute() {
+	// Acquire environmental defaults and initialize Telemetry defaults with them
+	infracomputeDefaults := InfraComputeDefaults{
+		NodeExporterContainerImageURL: util.GetEnvVar("TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),
+	}
+
+	SetupInfraComputeDefaults(infracomputeDefaults)
 }

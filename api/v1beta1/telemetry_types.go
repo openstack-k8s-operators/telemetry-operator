@@ -23,24 +23,6 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 )
 
-const (
-	// CeilometerCentralContainerImage - default fall-back image for Ceilometer Central
-	CeilometerCentralContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
-	// CeilometerCentralInitContainerImage - default fall-back image for Ceilometer Central Init
-	CeilometerCentralInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
-	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
-	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
-	// CeilometerComputeInitContainerImage - default fall-back image for Ceilometer Compute Init
-	CeilometerComputeInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
-	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notifcation
-	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
-	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
-	CeilometerSgCoreContainerImage = "quay.io/infrawatch/sg-core:latest"
-	// NodeExporterContainerImage - default fall-back image for node_exporter
-	// NodeExporterContainerImage = "registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.13"
-	NodeExporterContainerImage = "quay.io/prometheus/node-exporter:v1.5.0"
-)
-
 // PasswordsSelector to identify the Service password from the Secret
 type PasswordsSelector struct {
 	// Service - Selector to get the ceilometer service password from the Secret
@@ -53,11 +35,6 @@ type PasswordsSelector struct {
 type TelemetrySpec struct {
 	// +kubebuilder:default:="A ceilometer agent"
 	Description string `json:"description,omitempty"`
-
-	// +kubebuilder:default=rabbitmq
-	// RabbitMQ instance name
-	// Needed to request a transportURL that is created and used in Telemetry
-	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
 	// +kubebuilder:validation:Required
 	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment
@@ -79,9 +56,6 @@ type TelemetryStatus struct {
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
-
-	// TransportURLSecret - Secret containing RabbitMQ transportURL
-	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
 	// ReadyCount of CeilometerCentral instance
 	CeilometerCentralReadyCount int32 `json:"ceilometerCentralReadyCount,omitempty"`
@@ -123,23 +97,8 @@ func init() {
 	SchemeBuilder.Register(&Telemetry{}, &TelemetryList{})
 }
 
-// RbacConditionsSet - set the conditions for the rbac object
-func (instance Telemetry) RbacConditionsSet(c *condition.Condition) {
-	instance.Status.Conditions.Set(c)
-}
-
-// RbacNamespace - return the namespace
-func (instance Telemetry) RbacNamespace() string {
-	return instance.Namespace
-}
-
-// RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
-func (instance Telemetry) RbacResourceName() string {
-	return "telemetry-" + instance.Name
-}
-
-// SetupDefaults - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
-func SetupDefaults() {
+// SetupDefaultsTelemetry - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaultsTelemetry() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	telemetryDefaults := TelemetryDefaults{
 		CentralContainerImageURL:      util.GetEnvVar("CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),

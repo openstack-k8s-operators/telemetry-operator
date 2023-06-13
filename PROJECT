@@ -30,6 +30,10 @@ resources:
   kind: CeilometerCentral
   path: github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1
   version: v1beta1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
@@ -39,6 +43,10 @@ resources:
   kind: CeilometerCompute
   path: github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1
   version: v1beta1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
@@ -48,4 +56,8 @@ resources:
   kind: InfraCompute
   path: github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1
   version: v1beta1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 version: "3"

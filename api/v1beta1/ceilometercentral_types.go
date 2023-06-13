@@ -19,10 +19,28 @@ package v1beta1
 import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+)
+
+const (
+	// CeilometerCentralContainerImage - default fall-back image for Ceilometer Central
+	CeilometerCentralContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+	// CeilometerCentralInitContainerImage - default fall-back image for Ceilometer Central Init
+	CeilometerCentralInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notifcation
+	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
+	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
+	CeilometerSgCoreContainerImage = "quay.io/infrawatch/sg-core:latest"
 )
 
 // CeilometerCentralSpec defines the desired state of CeilometerCentral
 type CeilometerCentralSpec struct {
+	// RabbitMQ instance name
+	// Needed to request a transportURL that is created and used in Telemetry
+	// +kubebuilder:default=rabbitmq
+	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
+
 	// The needed values to connect to RabbitMQ
 	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
@@ -116,4 +134,32 @@ func (instance CeilometerCentral) IsReady() bool {
 
 func init() {
 	SchemeBuilder.Register(&CeilometerCentral{}, &CeilometerCentralList{})
+}
+
+// RbacConditionsSet - set the conditions for the rbac object
+func (instance CeilometerCentral) RbacConditionsSet(c *condition.Condition) {
+	instance.Status.Conditions.Set(c)
+}
+
+// RbacNamespace - return the namespace
+func (instance CeilometerCentral) RbacNamespace() string {
+	return instance.Namespace
+}
+
+// RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
+func (instance CeilometerCentral) RbacResourceName() string {
+	return "telemetry-" + instance.Name
+}
+
+// SetupDefaultsCeilometerCentral - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaultsCeilometerCentral() {
+	// Acquire environmental defaults and initialize Telemetry defaults with them
+	ceilometercentralDefaults := CeilometerCentralDefaults{
+		CentralContainerImageURL:      util.GetEnvVar("CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
+		CentralInitContainerImageURL:  util.GetEnvVar("CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT", CeilometerCentralInitContainerImage),
+		SgCoreContainerImageURL:       util.GetEnvVar("CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
+		NotificationContainerImageURL: util.GetEnvVar("CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
+	}
+
+	SetupCeilometerCentralDefaults(ceilometercentralDefaults)
 }

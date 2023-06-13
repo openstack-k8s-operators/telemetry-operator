@@ -39,7 +39,8 @@ func AnsibleEE(
 		{Name: "ANSIBLE_VERBOSITY", Value: "1"},
 	}
 	ansibleeeSpec.ExtraMounts = getExtraMounts(instance)
-	ansibleeeSpec.ServiceAccountName = instance.Spec.ServiceAccount
+	ansibleeeSpec.ServiceAccountName = instance.RbacResourceName()
+
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ServiceName,

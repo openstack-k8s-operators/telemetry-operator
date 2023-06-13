@@ -47,7 +47,7 @@ func AnsibleEE(
 	}
 	ansibleeeSpec.InitContainers = initContainer(initContainerDetails)
 	ansibleeeSpec.ExtraMounts = getExtraMounts(ServiceName, instance)
-	ansibleeeSpec.ServiceAccountName = instance.Spec.ServiceAccount
+	ansibleeeSpec.ServiceAccountName = instance.RbacResourceName()
 
 	ansibleee := &ansibleeev1.OpenStackAnsibleEE{
 		ObjectMeta: metav1.ObjectMeta{

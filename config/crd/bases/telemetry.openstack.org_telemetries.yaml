@@ -82,6 +82,11 @@ spec:
                           password from the Secret
                         type: string
                     type: object
+                  rabbitMqClusterName:
+                    default: rabbitmq
+                    description: RabbitMQ instance name Needed to request a transportURL
+                      that is created and used in Telemetry
+                    type: string
                   secret:
                     default: osp-secret
                     description: Secret containing OpenStack password information
@@ -125,11 +130,9 @@ spec:
                       as custom.conf file.
                     type: string
                   dataplaneInventoryConfigMap:
-                    default: dataplanerole-edpm-compute
                     description: DataplaneInventoryConfigMap
                     type: string
                   dataplaneSSHSecret:
-                    default: dataplane-ansible-ssh-private-key-secret
                     description: DataplaneSSHSecret
                     type: string
                   defaultConfigOverwrite:
@@ -162,6 +165,11 @@ spec:
                     default: deploy-ceilometer.yaml
                     description: Playbook executed
                     type: string
+                  rabbitMqClusterName:
+                    default: rabbitmq
+                    description: RabbitMQ instance name Needed to request a transportURL
+                      that is created and used in Telemetry
+                    type: string
                   secret:
                     default: osp-secret
                     description: Secret containing OpenStack password information
@@ -182,6 +190,8 @@ spec:
                     type: string
                 required:
                 - computeImage
+                - dataplaneInventoryConfigMap
+                - dataplaneSSHSecret
                 - initImage
                 - serviceAccount
                 type: object
@@ -193,11 +203,9 @@ spec:
                   of this Telemetry deployment
                 properties:
                   dataplaneInventoryConfigMap:
-                    default: dataplanerole-edpm-compute
                     description: DataplaneInventoryConfigMap
                     type: string
                   dataplaneSSHSecret:
-                    default: dataplane-ansible-ssh-private-key-secret
                     description: DataplaneSSHSecret
                     type: string
                   description:
@@ -220,14 +228,11 @@ spec:
                       to provide the default SA name
                     type: string
                 required:
+                - dataplaneInventoryConfigMap
+                - dataplaneSSHSecret
                 - nodeExporterImage
                 - serviceAccount
                 type: object
-              rabbitMqClusterName:
-                default: rabbitmq
-                description: RabbitMQ instance name Needed to request a transportURL
-                  that is created and used in Telemetry
-                type: string
             required:
             - ceilometerCentral
             - ceilometerCompute
@@ -296,9 +301,6 @@ spec:
                 description: ReadyCount of InfraCompute instance
                 format: int32
                 type: integer
-              transportURLSecret:
-                description: TransportURLSecret - Secret containing RabbitMQ transportURL
-                type: string
             type: object
         type: object
     served: true

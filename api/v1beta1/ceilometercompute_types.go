@@ -20,10 +20,23 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+)
+
+const (
+	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
+	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
+	// CeilometerComputeInitContainerImage - default fall-back image for Ceilometer Compute Init
+	CeilometerComputeInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 )
 
 // CeilometerComputeSpec defines the desired state of CeilometerCompute
 type CeilometerComputeSpec struct {
+	// RabbitMQ instance name
+	// Needed to request a transportURL that is created and used in Telemetry
+	// +kubebuilder:default=rabbitmq
+	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
+
 	// TransportURLSecret contains the needed values to connect to RabbitMQ
 	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
@@ -64,12 +77,12 @@ type CeilometerComputeSpec struct {
 	ComputeImage string `json:"computeImage"`
 
 	// DataplaneSSHSecret
-	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"
-	DataplaneSSHSecret string `json:"dataplaneSSHSecret,omitempty"`
+	// +kubebuilder:validation:Required
+	DataplaneSSHSecret string `json:"dataplaneSSHSecret"`
 
 	// DataplaneInventoryConfigMap
-	// +kubebuilder:default:="dataplanerole-edpm-compute"
-	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap,omitempty"`
+	// +kubebuilder:validation:Required
+	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap"`
 
 	// Playbook executed
 	// +kubebuilder:default:="deploy-ceilometer.yaml"
@@ -119,4 +132,30 @@ func (instance CeilometerCompute) IsReady() bool {
 
 func init() {
 	SchemeBuilder.Register(&CeilometerCompute{}, &CeilometerComputeList{})
+}
+
+// RbacConditionsSet - set the conditions for the rbac object
+func (instance CeilometerCompute) RbacConditionsSet(c *condition.Condition) {
+	instance.Status.Conditions.Set(c)
+}
+
+// RbacNamespace - return the namespace
+func (instance CeilometerCompute) RbacNamespace() string {
+	return instance.Namespace
+}
+
+// RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
+func (instance CeilometerCompute) RbacResourceName() string {
+	return "telemetry-" + instance.Name
+}
+
+// SetupDefaultsCeilometerCompute - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaultsCeilometerCompute() {
+	// Acquire environmental defaults and initialize Telemetry defaults with them
+	ceilometercomputeDefaults := CeilometerComputeDefaults{
+		ComputeContainerImageURL:      util.GetEnvVar("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
+		ComputeInitContainerImageURL:  util.GetEnvVar("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeInitContainerImage),
+	}
+
+	SetupCeilometerComputeDefaults(ceilometercomputeDefaults)
 }

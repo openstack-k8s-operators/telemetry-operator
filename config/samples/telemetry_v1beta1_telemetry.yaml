@@ -4,21 +4,19 @@ metadata:
   name: telemetry
   namespace: openstack
 spec:
-  description: A telemetry deployment
-  rabbitMqClusterName: rabbitmq
   ceilometerCentral:
-    description: A ceilometer central deployment
     initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
     centralImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
     notificationImage: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
     sgCoreImage: quay.io/infrawatch/sg-core:latest
+    serviceAccount: telemetry-operator-telemetry
   ceilometerCompute:
-    description: A ceilometer compute deployment
     initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
     computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
     playbook: deploy-ceilometer.yaml
     dataplaneInventoryConfigMap: dataplanerole-edpm-compute
+    serviceAccount: telemetry-operator-telemetry
   infraCompute:
-    description: An infracompute
     nodeExporterImage: quay.io/prometheus/node-exporter:v1.5.0
     playbook: deploy-infra.yaml
+    serviceAccount: telemetry-operator-telemetry
