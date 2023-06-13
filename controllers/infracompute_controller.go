@@ -165,7 +165,7 @@ func (r *InfraComputeReconciler) reconcileDelete(ctx context.Context, instance *
 	}
 	if err == nil {
 		err = helper.GetClient().Delete(ctx, ansibleee)
-		if err != nil && !k8s_errors.IsNotFound(err)  {
+		if err != nil && !k8s_errors.IsNotFound(err) {
 			return ctrl.Result{}, err
 		}
 	}
@@ -178,7 +178,7 @@ func (r *InfraComputeReconciler) reconcileDelete(ctx context.Context, instance *
 	}
 	if err == nil {
 		err = helper.GetClient().Delete(ctx, ansibleee)
-		if err != nil && !k8s_errors.IsNotFound(err)  {
+		if err != nil && !k8s_errors.IsNotFound(err) {
 			return ctrl.Result{}, err
 		}
 	}

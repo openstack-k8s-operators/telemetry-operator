@@ -61,7 +61,7 @@ oc delete -f config/crd/bases/
 oc apply -f config/crd/bases/
 
 make manifests generate
-OPERATOR_TEMPLATES=$PWD/templates OPERATOR_PLAYBOOKS=$PWD/playbooks make run
+OPERATOR_TEMPLATES=$PWD/templates make run
 ```
 
 8.- Deploy a telemetry in the cluster

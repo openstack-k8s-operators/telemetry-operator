@@ -170,7 +170,7 @@ func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, insta
 	}
 	if err == nil {
 		err = helper.GetClient().Delete(ctx, ansibleee)
-		if err != nil && !k8s_errors.IsNotFound(err)  {
+		if err != nil && !k8s_errors.IsNotFound(err) {
 			return ctrl.Result{}, err
 		}
 	}
