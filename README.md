@@ -21,36 +21,34 @@ EDPM_COMPUTE_SUFFIX=0 make edpm_compute_repos
 EDPM_COMPUTE_SUFFIX=1 make edpm_compute_repos
 ```
 
-3.- Deploy openstack-operator
+3.- Deploy openstack-operator and openstack
 ```
 cd ..
 make crc_storage
 make input
 
 make openstack
-```
-
-4.- Disable stock telemetry-operator
-```
-oc project openstack-operators
-
-oc edit csv telemetry-operator.v0.0.1
-    	Search for "replicas"
-		Change "replicas" to 0
-```
-
-5.- Deploy openstack and disable telemetry
-```
 make openstack_deploy
-
-oc edit openstackcontrolplane
-	Search for "telemetry"
-		Change "enabled" to false
 ```
 
-6.- Deploy dataplane operator
+4.- Deploy dataplane operator
 ```
 DATAPLANE_SINGLE_NODE=false DATAPLANE_CHRONY_NTP_SERVER=clock.redhat.com make edpm_deploy
+```
+When edpm_deploy finishes (to know, you have to keep lookgin at "dataplane-deployment-*" pods keep appearing that run ansible on the compute nodes. Those will complete eventually. When those stop appearing, it is finished and we have a default openstack on openshift environment.
+
+Now, we proceed to run our own telemetry-operator instance:
+
+5.- Remove telemetry-operator from the deployment
+```
+make telemetry_cleanup
+```
+
+6.- Remove CeilometerCentral deployment
+```
+oc edit openstackcontrolplane
+	Search "ceilometer"
+		Set "enabled" to false
 ```
 
 7.- Deploy custom telemetry-operator version
@@ -64,9 +62,11 @@ make manifests generate
 OPERATOR_TEMPLATES=$PWD/templates make run
 ```
 
-8.- Deploy a telemetry in the cluster
+8.- Deploy any telemetry object you want. It is not needed to run all three, just use the one you want to test.
 ```
-oc apply -f config/samples/telemetry_v1beta1_telemetry.yaml
+oc apply -f config/samples/telemetry_v1beta1_ceilometercentral.yaml
+oc apply -f config/samples/telemetry_v1beta1_ceilometercompute.yaml
+oc apply -f config/samples/telemetry_v1beta1_infracompute.yaml
 ```
 
 ## Emergency rescue access to CRC VM
