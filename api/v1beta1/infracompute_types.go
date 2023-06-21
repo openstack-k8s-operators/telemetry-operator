@@ -50,7 +50,7 @@ type InfraComputeSpec struct {
 	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap"`
 
 	// Playbook executed
-	// +kubebuilder:default:="deploy-infra.yaml"
+	// +kubebuilder:default:="osp.edpm.deploy_edpm_telemetry_infra.yml"
 	Playbook string `json:"playbook,omitempty"`
 
 	// The extravars ConfigMap to pass to ansible execution
