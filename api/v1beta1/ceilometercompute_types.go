@@ -85,7 +85,7 @@ type CeilometerComputeSpec struct {
 	DataplaneInventoryConfigMap string `json:"dataplaneInventoryConfigMap"`
 
 	// Playbook executed
-	// +kubebuilder:default:="deploy-ceilometer.yaml"
+	// +kubebuilder:default:="osp.edpm.deploy_edpm_telemetry_ceilometer.yml"
 	Playbook string `json:"playbook,omitempty"`
 
 	// ServiceAccount - service account name used internally to provide the default SA name

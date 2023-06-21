@@ -53,7 +53,7 @@ spec:
                   container
                 type: string
               playbook:
-                default: deploy-infra.yaml
+                default: osp.edpm.deploy_edpm_telemetry_infra.yml
                 description: Playbook executed
                 type: string
               serviceAccount:
