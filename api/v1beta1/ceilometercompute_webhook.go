@@ -25,8 +25,8 @@ import (
 
 // CeilometerComputeDefaults -
 type CeilometerComputeDefaults struct {
-	ComputeContainerImageURL      string
-	ComputeInitContainerImageURL  string
+	ComputeContainerImageURL     string
+	ComputeInitContainerImageURL string
 }
 
 var ceilometercomputeDefaults CeilometerComputeDefaults
@@ -57,7 +57,7 @@ var _ webhook.Defaulter = &CeilometerCompute{}
 func (r *CeilometerCompute) Default() {
 	ceilometercomputelog.Info("default", "name", r.Name)
 
-	// TODO(user): fill in your defaulting logic.
+	r.Spec.Default()
 }
 
 // Default - set defaults for this CeilometerCompute spec

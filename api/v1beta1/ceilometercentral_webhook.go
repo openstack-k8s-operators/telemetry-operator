@@ -59,7 +59,7 @@ var _ webhook.Defaulter = &CeilometerCentral{}
 func (r *CeilometerCentral) Default() {
 	ceilometercentrallog.Info("default", "name", r.Name)
 
-	// TODO(user): fill in your defaulting logic.
+	r.Spec.Default()
 }
 
 // Default - set defaults for this CeilometerCentral spec
