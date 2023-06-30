@@ -66,6 +66,7 @@ type CeilometerCentralReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch;
@@ -78,7 +79,7 @@ type CeilometerCentralReconciler struct {
 
 // Reconcile reconciles a CeilometerCentral
 func (r *CeilometerCentralReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
-	_ = r.Log.WithValues("ceilometer-central", req.NamespacedName)
+	_ = r.Log.WithValues(ceilometercentral.ServiceName, req.NamespacedName)
 
 	// Fetch the Ceilometer instance
 	instance := &telemetryv1.CeilometerCentral{}
@@ -187,7 +188,7 @@ func (r *CeilometerCentralReconciler) reconcileDelete(ctx context.Context, insta
 
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
-	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", instance.Name))
+	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", ceilometercentral.ServiceName))
 
 	return ctrl.Result{}, nil
 }
@@ -247,7 +248,7 @@ func (r *CeilometerCentralReconciler) reconcileInit(
 }
 
 func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.CeilometerCentral, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
+	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", ceilometercentral.ServiceName))
 
 	// Service account, role, binding
 	rbacRules := []rbacv1.PolicyRule{
@@ -415,6 +416,11 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	}
 	instance.Status.Networks = instance.Spec.NetworkAttachmentDefinitions
 
+	_, _, err = ceilometercentral.Service(instance, helper, ceilometercentral.CeilometerPrometheusPort, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	r.Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
@@ -524,7 +530,7 @@ func (r *CeilometerCentralReconciler) createHashOfInputHashes(
 func (r *CeilometerCentralReconciler) transportURLCreateOrUpdate(instance *telemetryv1.CeilometerCentral) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-telemetry-transport", instance.Name),
+			Name:      fmt.Sprintf("%s-transport", ceilometercentral.ServiceName),
 			Namespace: instance.Namespace,
 		},
 	}
@@ -545,6 +551,7 @@ func (r *CeilometerCentralReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{}).
+		Owns(&corev1.Service{}).
 		Owns(&rabbitmqv1.TransportURL{}).
 		Complete(r)
 }

@@ -444,7 +444,7 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 func (r *CeilometerComputeReconciler) transportURLCreateOrUpdate(instance *telemetryv1.CeilometerCompute) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-telemetry-transport", instance.Name),
+			Name:      fmt.Sprintf("%s-transport", instance.Name),
 			Namespace: instance.Namespace,
 		},
 	}
