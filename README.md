@@ -35,7 +35,7 @@ make openstack_deploy
 ```
 DATAPLANE_SINGLE_NODE=false DATAPLANE_CHRONY_NTP_SERVER=clock.redhat.com make edpm_deploy
 ```
-When edpm_deploy finishes (to know, you have to keep lookgin at "dataplane-deployment-*" pods keep appearing that run ansible on the compute nodes. Those will complete eventually. When those stop appearing, it is finished and we have a default openstack on openshift environment.
+To know when dataplane-operator finishes, you have to keep looking at "dataplane-deployment-*" pods that keep appearing to run ansible on the compute nodes. They will appear one after the other. When those stop appearing, it is finished and we have a default openstack environment.
 
 Now, we proceed to run our own telemetry-operator instance:
 
@@ -67,6 +67,18 @@ OPERATOR_TEMPLATES=$PWD/templates make run
 oc apply -f config/samples/telemetry_v1beta1_ceilometercentral.yaml
 oc apply -f config/samples/telemetry_v1beta1_ceilometercompute.yaml
 oc apply -f config/samples/telemetry_v1beta1_infracompute.yaml
+```
+
+## Destroy the environment to start again
+```
+cd install_yamls/devsetup
+
+# Delete the CRC node
+make crc_cleanup
+
+# Destroy edpm VMS
+EDPM_COMPUTE_SUFFIX=0 make edpm_compute_cleanup
+EDPM_COMPUTE_SUFFIX=1 make edpm_compute_cleanup
 ```
 
 ## Emergency rescue access to CRC VM
