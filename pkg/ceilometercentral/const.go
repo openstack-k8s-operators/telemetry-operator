@@ -17,12 +17,12 @@ package ceilometercentral
 
 const (
 	// ServiceName -
-	ServiceName = "ceilometer-central"
+	ServiceName = "ceilometer"
 	// ServiceType -
-	ServiceType = "CeilometerCentral"
+	ServiceType = "Ceilometer"
 
 	// CeilometerPrometheusPort -
-	CeilometerPrometheusPort int32 = 3000
+	CeilometerPrometheusPort int = 3000
 
 	// KollaConfigCentral -
 	KollaConfigCentral = "/var/lib/config-data/merged/config-central.json"
