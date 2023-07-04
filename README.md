@@ -31,25 +31,23 @@ make openstack
 make openstack_deploy
 ```
 
-4.- Deploy dataplane operator
+4.- Remove CeilometerCentral deployment
+```
+oc patch openstackcontrolplane openstack --type='json' -p='[{"op": "replace", "path": "/spec/ceilometer/enabled", "value":false}]'
+```
+
+5.- Remove telemetry-operator from the deployments
+```
+make telemetry_cleanup
+```
+
+6.- Deploy dataplane operator
 ```
 DATAPLANE_SINGLE_NODE=false DATAPLANE_CHRONY_NTP_SERVER=clock.redhat.com make edpm_deploy
 ```
 To know when dataplane-operator finishes, you have to keep looking at "dataplane-deployment-*" pods that keep appearing to run ansible on the compute nodes. They will appear one after the other. When those stop appearing, it is finished and we have a default openstack environment.
 
 Now, we proceed to run our own telemetry-operator instance:
-
-5.- Remove telemetry-operator from the deployment
-```
-make telemetry_cleanup
-```
-
-6.- Remove CeilometerCentral deployment
-```
-oc edit openstackcontrolplane
-	Search "ceilometer"
-		Set "enabled" to false
-```
 
 7.- Deploy custom telemetry-operator version
 ```
@@ -68,6 +66,18 @@ oc apply -f config/samples/telemetry_v1beta1_ceilometercentral.yaml
 oc apply -f config/samples/telemetry_v1beta1_ceilometercompute.yaml
 oc apply -f config/samples/telemetry_v1beta1_infracompute.yaml
 ```
+
+## Testing edpm-ansible changes
+
+1.- Build your custom `openstack-ansibleee-runner` image using these [steps](https://github.com/openstack-k8s-operators/edpm-ansible/tree/main#build-and-push-the-openstack-ansibleee-runner-container-image) and push it to a registry
+
+2.- Override `DATAPLANE_RUNNER_IMG` and `ANSIBLEEE_IMAGE_URL_DEFAULT` when running `edpm_deploy`
+```
+cd ~/install_yamls/
+DATAPLANE_RUNNER_IMG=<url_to_custom_image> ANSIBLEEE_IMAGE_URL_DEFAULT=<url_to_custom_image> make edpm_deploy
+```
+
+3.- During deployment `dataplane-deployment-*` pods would get spawned with the custom image.
 
 ## Destroy the environment to start again
 ```
