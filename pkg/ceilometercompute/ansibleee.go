@@ -38,7 +38,22 @@ func AnsibleEE(
 
 	ansibleeeSpec := ansibleeev1.NewOpenStackAnsibleEE(ServiceName)
 
-	ansibleeeSpec.Playbook = instance.Spec.Playbook
+	role := &ansibleeev1.Role{
+		Strategy: "free",
+		Become:   true,
+		Tasks: []ansibleeev1.Task{
+			{
+				Name: "Deploy ceilometer",
+				ImportRole: ansibleeev1.ImportRole{
+					Name:      "osp.edpm.edpm_telemetry",
+					TasksFrom: instance.Spec.Playbook,
+				},
+				Tags: []string{"edpm_telemetry"},
+			},
+		},
+	}
+
+	ansibleeeSpec.Role = role
 
 	ansibleeeSpec.Env = []corev1.EnvVar{
 		{Name: "ANSIBLE_FORCE_COLOR", Value: "True"},
