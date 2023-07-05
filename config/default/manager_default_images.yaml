@@ -21,6 +21,8 @@ spec:
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
         - name: CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
+        - name: CEILOMETER_IPMI_IMAGE_URL_DEFAULT
+          value: quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified
         - name: CEILOMETER_SGCORE_IMAGE_URL_DEFAULT
           value: quay.io/infrawatch/sg-core:latest
         - name: TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT

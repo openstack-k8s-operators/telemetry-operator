@@ -415,6 +415,7 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	templateParameters := map[string]interface{}{
 		"KeystoneInternalURL":      keystoneInternalURL,
 		"ceilometer_compute_image": instance.Spec.ComputeImage,
+		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
 	}
 
 	cms := []util.Template{

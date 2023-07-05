@@ -27,6 +27,7 @@ import (
 type CeilometerComputeDefaults struct {
 	ComputeContainerImageURL     string
 	ComputeInitContainerImageURL string
+	IpmiContainerImageURL        string
 }
 
 var ceilometercomputeDefaults CeilometerComputeDefaults
@@ -67,6 +68,9 @@ func (spec *CeilometerComputeSpec) Default() {
 	}
 	if spec.InitImage == "" {
 		spec.InitImage = ceilometercomputeDefaults.ComputeInitContainerImageURL
+	}
+	if spec.IpmiImage == "" {
+		spec.IpmiImage = ceilometercomputeDefaults.IpmiContainerImageURL
 	}
 }
 

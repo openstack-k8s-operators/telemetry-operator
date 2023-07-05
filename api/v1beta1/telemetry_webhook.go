@@ -35,6 +35,7 @@ type TelemetryDefaults struct {
 	NotificationContainerImageURL string
 	SgCoreContainerImageURL       string
 	NodeExporterContainerImageURL string
+	IpmiContainerImageURL         string
 }
 
 var telemetryDefaults TelemetryDefaults
@@ -76,6 +77,9 @@ func (spec *TelemetrySpec) Default() {
 	}
 	if spec.CeilometerCompute.ComputeImage == "" {
 		spec.CeilometerCompute.ComputeImage = telemetryDefaults.ComputeContainerImageURL
+	}
+	if spec.CeilometerCompute.IpmiImage == "" {
+		spec.CeilometerCompute.IpmiImage = telemetryDefaults.IpmiContainerImageURL
 	}
 	if spec.CeilometerCompute.InitImage == "" {
 		spec.CeilometerCompute.InitImage = telemetryDefaults.ComputeInitContainerImageURL

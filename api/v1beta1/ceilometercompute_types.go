@@ -28,6 +28,8 @@ const (
 	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerComputeInitContainerImage - default fall-back image for Ceilometer Compute Init
 	CeilometerComputeInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
+	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
+	CeilometerIpmiContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
 )
 
 // CeilometerComputeSpec defines the desired state of CeilometerCompute
@@ -75,6 +77,10 @@ type CeilometerComputeSpec struct {
 	// ComputeImage is the image used for the ceilometer-agent-compute container
 	// +kubebuilder:validation:Required
 	ComputeImage string `json:"computeImage"`
+
+	// IpmiImage is the image used for the ceilometer-agent-ipmi container
+	// +kubebuilder:validation:Required
+	IpmiImage string `json:"ipmiImage"`
 
 	// DataplaneSSHSecret
 	// +kubebuilder:validation:Required
@@ -155,6 +161,7 @@ func SetupDefaultsCeilometerCompute() {
 	ceilometercomputeDefaults := CeilometerComputeDefaults{
 		ComputeContainerImageURL:      util.GetEnvVar("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
 		ComputeInitContainerImageURL:  util.GetEnvVar("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeInitContainerImage),
+		IpmiContainerImageURL:         util.GetEnvVar("CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
 	}
 
 	SetupCeilometerComputeDefaults(ceilometercomputeDefaults)
