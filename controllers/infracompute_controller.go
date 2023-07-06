@@ -305,5 +305,8 @@ func (r *InfraComputeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.InfraCompute{}).
 		Owns(&ansibleeev1.OpenStackAnsibleEE{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&rbacv1.Role{}).
+		Owns(&rbacv1.RoleBinding{}).
 		Complete(r)
 }
