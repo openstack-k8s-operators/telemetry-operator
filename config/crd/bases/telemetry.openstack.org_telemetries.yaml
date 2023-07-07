@@ -149,6 +149,10 @@ spec:
                   initImage:
                     description: InitImage is the image used for the init container
                     type: string
+                  ipmiImage:
+                    description: IpmiImage is the image used for the ceilometer-agent-ipmi
+                      container
+                    type: string
                   passwordSelector:
                     default:
                       service: CeilometerPassword
@@ -193,6 +197,7 @@ spec:
                 - dataplaneInventoryConfigMap
                 - dataplaneSSHSecret
                 - initImage
+                - ipmiImage
                 - serviceAccount
                 type: object
               description:

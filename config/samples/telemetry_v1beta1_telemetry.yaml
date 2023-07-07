@@ -13,6 +13,7 @@ spec:
   ceilometerCompute:
     initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
     computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
+    ipmiImage: quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified
     dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
     dataplaneInventoryConfigMap: dataplanerole-edpm-compute
     serviceAccount: telemetry-operator-telemetry
