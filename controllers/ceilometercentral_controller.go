@@ -31,6 +31,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
@@ -65,7 +68,7 @@ type CeilometerCentralReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
@@ -544,17 +547,64 @@ func (r *CeilometerCentralReconciler) transportURLCreateOrUpdate(instance *telem
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CeilometerCentralReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	// transportURLSecretFn - Watch for changes made to the secret associated with the RabbitMQ
+	// TransportURL created and used by CeilometerCentral CRs.  Watch functions return a list of namespace-scoped
+	// CRs that then get fed  to the reconciler.  Hence, in this case, we need to know the name of the
+	// CeilometerCentral CR associated with the secret we are examining in the function.  We could parse the name
+	// out of the "%s-transport" secret label, which would be faster than getting the list of
+	// the CeilometerCentral CRs and trying to match on each one.  The downside there, however, is that technically
+	// someone could randomly label a secret "something-transport" where "something" actually
+	// matches the name of an existing CeilometerCentral CR.  In that case changes to that secret would trigger
+	// reconciliation for a CeilometerCentral CR that does not need it.
+	//
+	// TODO: We also need a watch func to monitor for changes to the secret referenced by CeilometerCentral.Spec.Secret
+	transportURLSecretFn := func(o client.Object) []reconcile.Request {
+		result := []reconcile.Request{}
+
+		// get all CeilometerCentral CRs
+		ceilometerCentrals := &telemetryv1.CeilometerCentralList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(o.GetNamespace()),
+		}
+		if err := r.Client.List(context.Background(), ceilometerCentrals, listOpts...); err != nil {
+			r.Log.Error(err, "Unable to retrieve CeilometerCentral CRs %v")
+			return nil
+		}
+
+		for _, ownerRef := range o.GetOwnerReferences() {
+			if ownerRef.Kind == "TransportURL" {
+				for _, cr := range ceilometerCentrals.Items {
+					if ownerRef.Name == fmt.Sprintf("%s-transport", cr.Name) {
+						// return namespace and Name of CR
+						name := client.ObjectKey{
+							Namespace: o.GetNamespace(),
+							Name:      cr.Name,
+						}
+						r.Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to CeilometerCentral CR %s", o.GetName(), cr.Name))
+						result = append(result, reconcile.Request{NamespacedName: name})
+					}
+				}
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CeilometerCentral{}).
 		Owns(&keystonev1.KeystoneService{}).
-		Owns(&keystonev1.KeystoneAPI{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.Secret{}).
 		Owns(&corev1.Service{}).
 		Owns(&rabbitmqv1.TransportURL{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
+		// Watch for TransportURL Secrets which belong to any TransportURLs created by CeilometerCentral CRs
+		Watches(&source.Kind{Type: &corev1.Secret{}},
+			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
 		Complete(r)
 }

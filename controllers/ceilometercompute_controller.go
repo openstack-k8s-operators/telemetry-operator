@@ -33,6 +33,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
@@ -64,6 +67,9 @@ type CeilometerComputeReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=ansibleee.openstack.org,resources=openstackansibleees,verbs=get;list;watch;create;update;patch;delete;
 
 // Reconcile reconciles a CeilometerCompute
@@ -479,11 +485,60 @@ func (r *CeilometerComputeReconciler) ensureExtravars(ctx context.Context, h *he
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CeilometerComputeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	// transportURLSecretFn - Watch for changes made to the secret associated with the RabbitMQ
+	// TransportURL created and used by CeilometerCompute CRs.  Watch functions return a list of namespace-scoped
+	// CRs that then get fed  to the reconciler.  Hence, in this case, we need to know the name of the
+	// CeilometerCompute CR associated with the secret we are examining in the function.  We could parse the name
+	// out of the "%s-transport" secret label, which would be faster than getting the list of
+	// the CeilometerCompute CRs and trying to match on each one.  The downside there, however, is that technically
+	// someone could randomly label a secret "something-transport" where "something" actually
+	// matches the name of an existing CeilometerCompute CR.  In that case changes to that secret would trigger
+	// reconciliation for a CeilometerCompute CR that does not need it.
+	//
+	// TODO: We also need a watch func to monitor for changes to the secret referenced by CeilometerCompute.Spec.Secret
+	transportURLSecretFn := func(o client.Object) []reconcile.Request {
+		result := []reconcile.Request{}
+
+		// get all CeilometerCompute CRs
+		ceilometerComputes := &telemetryv1.CeilometerComputeList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(o.GetNamespace()),
+		}
+		if err := r.Client.List(context.Background(), ceilometerComputes, listOpts...); err != nil {
+			r.Log.Error(err, "Unable to retrieve CeilometerCompute CRs %v")
+			return nil
+		}
+
+		for _, ownerRef := range o.GetOwnerReferences() {
+			if ownerRef.Kind == "TransportURL" {
+				for _, cr := range ceilometerComputes.Items {
+					if ownerRef.Name == fmt.Sprintf("%s-transport", cr.Name) {
+						// return namespace and Name of CR
+						name := client.ObjectKey{
+							Namespace: o.GetNamespace(),
+							Name:      cr.Name,
+						}
+						r.Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to CeilometerCompute CR %s", o.GetName(), cr.Name))
+						result = append(result, reconcile.Request{NamespacedName: name})
+					}
+				}
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CeilometerCompute{}).
 		Owns(&ansibleeev1.OpenStackAnsibleEE{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
+		// Watch for TransportURL Secrets which belong to any TransportURLs created by Heat CRs
+		Watches(&source.Kind{Type: &corev1.Secret{}},
+			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
 		Complete(r)
 }
