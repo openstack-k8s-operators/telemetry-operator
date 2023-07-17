@@ -12,7 +12,7 @@
     "volumes": [
         "/var/lib/openstack/config/ceilometer:/var/lib/openstack/config/:z",
         "/var/log/containers/ceilometer:/var/log/containers/ceilometer:z",
-        "/run/libvirt:/run/libvirt:z",
+        "/run/libvirt:/run/libvirt:shared,z",
         "/etc/hosts:/etc/hosts:z",
         "/etc/pki/tls/certs/ca-bundle.trust.crt:/etc/pki/tls/certs/ca-bundle.trust.crt:z",
         "/etc/localtime:/etc/localtime:z",
