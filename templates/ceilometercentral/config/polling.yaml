@@ -1,18 +1,8 @@
 ---
 sources:
-    - name: some_pollsters
-      interval: 10
+    - name: pollsters
+      interval: 300
       meters:
-        - cpu
-        - memory
-        - memory.*
-        - network.*
-        - disk.*
-        - perf.*
-        - port
-        - port.*
-        - switch
-        - switch.*
+        - volume.size
+        - image.size
         - storage.*
-        - volume.*
-        - image.*
