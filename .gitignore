@@ -27,6 +27,7 @@ testbin/*
 #Operator SDK generated files
 /bundle/
 bundle.Dockerfile
+config/manager/kustomization.yaml
 
 # Common CI tools repository
 CI_TOOLS_REPO
