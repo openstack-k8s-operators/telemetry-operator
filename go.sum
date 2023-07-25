@@ -191,8 +191,8 @@ github.com/openstack-k8s-operators/lib-common/modules/openstack v0.1.0 h1:mMeJvC
 github.com/openstack-k8s-operators/lib-common/modules/openstack v0.1.0/go.mod h1:+paEFOL5IlJzhg9fy7/1+HSErVkWUgUj1ORLFwgvxnI=
 github.com/openstack-k8s-operators/lib-common/modules/storage v0.1.0 h1:rHn0wlwBBggRl65gWDniF97XW+1XB2+4PsGZS2RIJ5E=
 github.com/openstack-k8s-operators/lib-common/modules/storage v0.1.0/go.mod h1:KDe/7CC/9iIEaQSBI8Z5lLKP9t+x3IUHznpRNMf8MU0=
-github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230724113526-e6b8043f772d h1:MGoBWEKPIx+bIk7Oh2BcD+z5bYcJUZKQ6CD2X3DuXHo=
-github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230724113526-e6b8043f772d/go.mod h1:B1bnsQa8fcVI4sEf04rza1gGh/04kONvi6Vz58WdNr0=
+github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.1.0 h1:M0WPgJ4ceFFg80amyOJY694zaMtovQyRN0AM0IuG8JA=
+github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.1.0/go.mod h1:kkCrsqex/cB2DqupYTG0VOTZXQZLrKNhX9L4mHqEEgM=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

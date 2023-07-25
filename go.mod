@@ -12,7 +12,7 @@ require (
 	github.com/openstack-k8s-operators/keystone-operator/api v0.1.0
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.1.0
 	github.com/openstack-k8s-operators/lib-common/modules/storage v0.1.0
-	github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.0.0-20230724113526-e6b8043f772d
+	github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.1.0
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-20230724094901-c35ee9fd8b2f
 	k8s.io/api v0.26.7
 	k8s.io/apimachinery v0.26.7
