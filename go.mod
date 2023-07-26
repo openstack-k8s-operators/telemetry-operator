@@ -14,8 +14,8 @@ require (
 	github.com/openstack-k8s-operators/lib-common/modules/storage v0.1.0
 	github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.1.0
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.1.0
-	k8s.io/api v0.26.7
-	k8s.io/apimachinery v0.26.7
+	k8s.io/api v0.27.1
+	k8s.io/apimachinery v0.27.1
 	k8s.io/client-go v0.26.7
 	sigs.k8s.io/controller-runtime v0.14.6
 )
@@ -87,4 +87,4 @@ replace cloud.google.com/go => cloud.google.com/go v0.100.2
 
 // mschuppert: map to latest commit from release-4.13 tag
 // must consistent within modules and service operators
-replace github.com/openshift/api => github.com/openshift/api v0.0.0-20230414143018-3367bc7e6ac7 //allow-merging
+replace github.com/openshift/api => github.com/openshift/api v0.0.0-20230726162818-81f778f3b3ec //allow-merging
