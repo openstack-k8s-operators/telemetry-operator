@@ -126,7 +126,7 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		instance.Status.Conditions = condition.Conditions{}
 		// initialize conditions used later as Status=Unknown
 		cl := condition.CreateList(
-			condition.UnknownCondition(telemetryv1.TelemetryRabbitMqTransportURLReadyCondition, condition.InitReason, telemetryv1.TelemetryRabbitMqTransportURLReadyInitMessage),
+			condition.UnknownCondition(condition.RabbitMqTransportURLReadyCondition, condition.InitReason, condition.RabbitMqTransportURLReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.CeilometerCentralReadyCondition, condition.InitReason, telemetryv1.CeilometerCentralReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.CeilometerComputeReadyCondition, condition.InitReason, telemetryv1.CeilometerComputeReadyInitMessage),
 			// service account, role, rolebinding conditions

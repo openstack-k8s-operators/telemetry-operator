@@ -229,10 +229,10 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	if err != nil {
 		r.Log.Info("Error getting transportURL. Setting error condition on status and returning")
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.TelemetryRabbitMqTransportURLReadyCondition,
+			condition.RabbitMqTransportURLReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
-			telemetryv1.TelemetryRabbitMqTransportURLReadyErrorMessage,
+			condition.RabbitMqTransportURLReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, err
 	}
@@ -246,14 +246,14 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	if instance.Spec.TransportURLSecret == "" {
 		r.Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.TelemetryRabbitMqTransportURLReadyCondition,
+			condition.RabbitMqTransportURLReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
-			telemetryv1.TelemetryRabbitMqTransportURLReadyRunningMessage))
+			condition.RabbitMqTransportURLReadyRunningMessage))
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 
-	instance.Status.Conditions.MarkTrue(telemetryv1.TelemetryRabbitMqTransportURLReadyCondition, telemetryv1.TelemetryRabbitMqTransportURLReadyMessage)
+	instance.Status.Conditions.MarkTrue(condition.RabbitMqTransportURLReadyCondition, condition.RabbitMqTransportURLReadyMessage)
 	// end transportURL
 
 	// ConfigMap

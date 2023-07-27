@@ -21,9 +21,6 @@ import (
 
 // Telemetry Condition Types used by API objects.
 const (
-	// TelemetryRabbitMqTransportURLReadyCondition Status=True condition which indicates if the RabbitMQ TransportURLUrl is ready
-	TelemetryRabbitMqTransportURLReadyCondition condition.Type = "TelemetryRabbitMqTransportURLReady"
-
 	// CeilometerCentralReadyCondition Status=True condition which indicates if the CeilometerCentral is configured and operational
 	CeilometerCentralReadyCondition condition.Type = "CeilometerCentralReady"
 
@@ -39,21 +36,6 @@ const ()
 
 // Common Messages used by API objects.
 const (
-	//
-	// TelemetryRabbitMqTransportURLReady condition messages
-	//
-	// TelemetryRabbitMqTransportURLReadyInitMessage
-	TelemetryRabbitMqTransportURLReadyInitMessage = "TelemetryRabbitMqTransportURL not started"
-
-	// TelemetryRabbitMqTransportURLReadyRunningMessage
-	TelemetryRabbitMqTransportURLReadyRunningMessage = "TelemetryRabbitMqTransportURL creation in progress"
-
-	// TelemetryRabbitMqTransportURLReadyMessage
-	TelemetryRabbitMqTransportURLReadyMessage = "TelemetryRabbitMqTransportURL successfully created"
-
-	// TelemetryRabbitMqTransportURLReadyErrorMessage
-	TelemetryRabbitMqTransportURLReadyErrorMessage = "TelemetryRabbitMqTransportURL error occured %s"
-
 	//
 	// CeilometerCentralReady condition messages
 	//
