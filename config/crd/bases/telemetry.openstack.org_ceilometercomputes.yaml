@@ -61,9 +61,6 @@ spec:
                   be used to add additional files. Those get added to the service
                   config dir in /etc/<service> . TODO: -> implement'
                 type: object
-              description:
-                default: A ceilometer compute agent
-                type: string
               initImage:
                 description: InitImage is the image used for the init container
                 type: string

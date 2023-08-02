@@ -33,9 +33,6 @@ type PasswordsSelector struct {
 
 // TelemetrySpec defines the desired state of Telemetry
 type TelemetrySpec struct {
-	// +kubebuilder:default:="A ceilometer agent"
-	Description string `json:"description,omitempty"`
-
 	// +kubebuilder:validation:Required
 	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment
 	CeilometerCentral CeilometerCentralSpec `json:"ceilometerCentral"`

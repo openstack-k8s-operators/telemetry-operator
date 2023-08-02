@@ -57,9 +57,6 @@ spec:
                       also be used to add additional files. Those get added to the
                       service config dir in /etc/<service> . TODO: -> implement'
                     type: object
-                  description:
-                    default: A ceilometer agent
-                    type: string
                   initImage:
                     type: string
                   networkAttachmentDefinitions:
@@ -135,9 +132,6 @@ spec:
                       But can also be used to add additional files. Those get added
                       to the service config dir in /etc/<service> . TODO: -> implement'
                     type: object
-                  description:
-                    default: A ceilometer compute agent
-                    type: string
                   initImage:
                     description: InitImage is the image used for the init container
                     type: string
@@ -183,9 +177,6 @@ spec:
                 - ipmiImage
                 - secret
                 type: object
-              description:
-                default: A ceilometer agent
-                type: string
               infraCompute:
                 description: InfraCompute - Spec definition for the InfraCompute service
                   of this Telemetry deployment

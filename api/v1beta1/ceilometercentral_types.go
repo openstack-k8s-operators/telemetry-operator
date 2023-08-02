@@ -79,9 +79,6 @@ type CeilometerCentralSpec struct {
 
 	// +kubebuilder:validation:Required
 	InitImage string `json:"initImage"`
-
-	// +kubebuilder:default:="A ceilometer agent"
-	Description string `json:"description,omitempty"`
 }
 
 // CeilometerCentralStatus defines the observed state of CeilometerCentral
