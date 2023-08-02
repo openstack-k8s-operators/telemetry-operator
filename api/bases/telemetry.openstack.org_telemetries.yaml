@@ -91,10 +91,6 @@ spec:
                     description: Secret containing OpenStack password information
                       for ceilometer
                     type: string
-                  serviceAccount:
-                    description: ServiceAccount - service account name used internally
-                      to provide the default SA name
-                    type: string
                   serviceUser:
                     default: ceilometer
                     description: ServiceUser - optional username used for this service
@@ -110,7 +106,6 @@ spec:
                 - initImage
                 - notificationImage
                 - secret
-                - serviceAccount
                 - sgCoreImage
                 type: object
               ceilometerCompute:
@@ -178,10 +173,6 @@ spec:
                     description: Secret containing OpenStack password information
                       for ceilometer
                     type: string
-                  serviceAccount:
-                    description: ServiceAccount - service account name used internally
-                      to provide the default SA name
-                    type: string
                   serviceUser:
                     default: ceilometer
                     description: ServiceUser - optional username used for this service
@@ -198,7 +189,6 @@ spec:
                 - initImage
                 - ipmiImage
                 - secret
-                - serviceAccount
                 type: object
               description:
                 default: A ceilometer agent
@@ -228,15 +218,10 @@ spec:
                     default: deploy_infra.yml
                     description: Playbook executed
                     type: string
-                  serviceAccount:
-                    description: ServiceAccount - service account name used internally
-                      to provide the default SA name
-                    type: string
                 required:
                 - dataplaneInventoryConfigMap
                 - dataplaneSSHSecret
                 - nodeExporterImage
-                - serviceAccount
                 type: object
             required:
             - ceilometerCentral

@@ -87,10 +87,6 @@ spec:
                 description: Secret containing OpenStack password information for
                   ceilometer
                 type: string
-              serviceAccount:
-                description: ServiceAccount - service account name used internally
-                  to provide the default SA name
-                type: string
               serviceUser:
                 default: ceilometer
                 description: ServiceUser - optional username used for this service
@@ -106,7 +102,6 @@ spec:
             - initImage
             - notificationImage
             - secret
-            - serviceAccount
             - sgCoreImage
             type: object
           status:
