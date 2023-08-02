@@ -182,11 +182,13 @@ func (r *CeilometerCentralReconciler) reconcileDelete(ctx context.Context, insta
 	}
 
 	if err == nil {
-		controllerutil.RemoveFinalizer(keystoneService, helper.GetFinalizer())
-		if err = helper.GetClient().Update(ctx, keystoneService); err != nil && !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
+		if controllerutil.RemoveFinalizer(keystoneService, helper.GetFinalizer()) {
+			err = r.Update(ctx, keystoneService)
+			if err != nil && !k8s_errors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
+			util.LogForObject(helper, "Removed finalizer from our KeystoneService", instance)
 		}
-		util.LogForObject(helper, "Removed finalizer from our KeystoneService", instance)
 	}
 
 	// Service is deleted so remove the finalizer.
