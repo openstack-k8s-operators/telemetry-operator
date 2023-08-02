@@ -39,9 +39,6 @@ type CeilometerComputeSpec struct {
 	// +kubebuilder:default=rabbitmq
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
-	// TransportURLSecret contains the needed values to connect to RabbitMQ
-	TransportURLSecret string `json:"transportURLSecret,omitempty"`
-
 	// PasswordSelectors - Selectors to identify the service from the Secret
 	// +kubebuilder:default:={service: CeilometerPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
@@ -104,6 +101,9 @@ type CeilometerComputeStatus struct {
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
+
+	// TransportURLSecret - Secret containing RabbitMQ transportURL
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 }
 
 //+kubebuilder:object:root=true

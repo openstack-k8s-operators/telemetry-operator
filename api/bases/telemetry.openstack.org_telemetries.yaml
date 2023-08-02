@@ -98,9 +98,6 @@ spec:
                     type: string
                   sgCoreImage:
                     type: string
-                  transportURLSecret:
-                    description: The needed values to connect to RabbitMQ
-                    type: string
                 required:
                 - centralImage
                 - initImage
@@ -177,10 +174,6 @@ spec:
                     default: ceilometer
                     description: ServiceUser - optional username used for this service
                       to register in keystone
-                    type: string
-                  transportURLSecret:
-                    description: TransportURLSecret contains the needed values to
-                      connect to RabbitMQ
                     type: string
                 required:
                 - computeImage

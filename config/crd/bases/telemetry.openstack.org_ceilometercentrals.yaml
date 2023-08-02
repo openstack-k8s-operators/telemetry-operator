@@ -94,9 +94,6 @@ spec:
                 type: string
               sgCoreImage:
                 type: string
-              transportURLSecret:
-                description: The needed values to connect to RabbitMQ
-                type: string
             required:
             - centralImage
             - initImage
@@ -165,6 +162,9 @@ spec:
                 description: ReadyCount of ceilometercentral instances
                 format: int32
                 type: integer
+              transportURLSecret:
+                description: TransportURLSecret - Secret containing RabbitMQ transportURL
+                type: string
             type: object
         type: object
     served: true

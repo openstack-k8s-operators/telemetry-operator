@@ -241,9 +241,9 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 		r.Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
 	}
 
-	instance.Spec.TransportURLSecret = transportURL.Status.SecretName
+	instance.Status.TransportURLSecret = transportURL.Status.SecretName
 
-	if instance.Spec.TransportURLSecret == "" {
+	if instance.Status.TransportURLSecret == "" {
 		r.Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.RabbitMqTransportURLReadyCondition,
@@ -271,7 +271,7 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	//
 	// check for required TransportURL secret holding transport URL string
 	//
-	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Spec.TransportURLSecret, &configMapVars)
+	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Status.TransportURLSecret, &configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}
