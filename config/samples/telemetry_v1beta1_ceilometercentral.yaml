@@ -4,7 +4,7 @@ metadata:
   name: ceilometercentral
   namespace: openstack
 spec:
-  serviceAccount: telemetry-operator-telemetry
+  secret: osp-secret
   initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
   centralImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
   notificationImage: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified

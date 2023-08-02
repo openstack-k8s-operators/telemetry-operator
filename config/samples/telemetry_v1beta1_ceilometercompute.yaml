@@ -4,7 +4,7 @@ metadata:
   name: ceilometercompute
   namespace: openstack
 spec:
-  serviceAccount: telemetry-operator-telemetry
+  secret: osp-secret
   dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
   dataplaneInventoryConfigMap: dataplanerole-edpm-compute
   initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified

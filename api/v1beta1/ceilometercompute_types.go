@@ -39,9 +39,6 @@ type CeilometerComputeSpec struct {
 	// +kubebuilder:default=rabbitmq
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
-	// TransportURLSecret contains the needed values to connect to RabbitMQ
-	TransportURLSecret string `json:"transportURLSecret,omitempty"`
-
 	// PasswordSelectors - Selectors to identify the service from the Secret
 	// +kubebuilder:default:={service: CeilometerPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
@@ -52,12 +49,8 @@ type CeilometerComputeSpec struct {
 	ServiceUser string `json:"serviceUser"`
 
 	// Secret containing OpenStack password information for ceilometer
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=osp-secret
+	// +kubebuilder:validation:Required
 	Secret string `json:"secret"`
-
-	// +kubebuilder:default:="A ceilometer compute agent"
-	Description string `json:"description,omitempty"`
 
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
 	// or overwrite rendered information using raw OpenStack config format. The content gets added to
@@ -93,9 +86,6 @@ type CeilometerComputeSpec struct {
 	// Playbook executed
 	// +kubebuilder:default:="deploy_ceilometer.yml"
 	Playbook string `json:"playbook,omitempty"`
-
-	// ServiceAccount - service account name used internally to provide the default SA name
-	ServiceAccount string `json:"serviceAccount"`
 }
 
 // CeilometerComputeStatus defines the observed state of CeilometerCompute
@@ -108,6 +98,9 @@ type CeilometerComputeStatus struct {
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
+
+	// TransportURLSecret - Secret containing RabbitMQ transportURL
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 }
 
 //+kubebuilder:object:root=true

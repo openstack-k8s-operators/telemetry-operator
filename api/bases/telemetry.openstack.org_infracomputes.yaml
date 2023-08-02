@@ -56,15 +56,10 @@ spec:
                 default: deploy_infra.yml
                 description: Playbook executed
                 type: string
-              serviceAccount:
-                description: ServiceAccount - service account name used internally
-                  to provide the default SA name
-                type: string
             required:
             - dataplaneInventoryConfigMap
             - dataplaneSSHSecret
             - nodeExporterImage
-            - serviceAccount
             type: object
           status:
             description: InfraComputeStatus defines the observed state of InfraCompute

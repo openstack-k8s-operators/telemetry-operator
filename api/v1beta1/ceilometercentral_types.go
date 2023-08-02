@@ -41,9 +41,6 @@ type CeilometerCentralSpec struct {
 	// +kubebuilder:default=rabbitmq
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
-	// The needed values to connect to RabbitMQ
-	TransportURLSecret string `json:"transportURLSecret,omitempty"`
-
 	// PasswordSelectors - Selectors to identify the service from the Secret
 	// +kubebuilder:default:={service: CeilometerPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
@@ -54,8 +51,7 @@ type CeilometerCentralSpec struct {
 	ServiceUser string `json:"serviceUser"`
 
 	// Secret containing OpenStack password information for ceilometer
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=osp-secret
+	// +kubebuilder:validation:Required
 	Secret string `json:"secret"`
 
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
@@ -83,12 +79,6 @@ type CeilometerCentralSpec struct {
 
 	// +kubebuilder:validation:Required
 	InitImage string `json:"initImage"`
-
-	// +kubebuilder:default:="A ceilometer agent"
-	Description string `json:"description,omitempty"`
-
-	// ServiceAccount - service account name used internally to provide the default SA name
-	ServiceAccount string `json:"serviceAccount"`
 }
 
 // CeilometerCentralStatus defines the observed state of CeilometerCentral
@@ -101,6 +91,9 @@ type CeilometerCentralStatus struct {
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
+
+	// TransportURLSecret - Secret containing RabbitMQ transportURL
+	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
 	// Networks in addtion to the cluster network, the service is attached to
 	Networks []string `json:"networks,omitempty"`

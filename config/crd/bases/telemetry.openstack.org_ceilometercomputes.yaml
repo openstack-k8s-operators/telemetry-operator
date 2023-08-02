@@ -61,9 +61,6 @@ spec:
                   be used to add additional files. Those get added to the service
                   config dir in /etc/<service> . TODO: -> implement'
                 type: object
-              description:
-                default: A ceilometer compute agent
-                type: string
               initImage:
                 description: InitImage is the image used for the init container
                 type: string
@@ -93,22 +90,13 @@ spec:
                   that is created and used in Telemetry
                 type: string
               secret:
-                default: osp-secret
                 description: Secret containing OpenStack password information for
                   ceilometer
-                type: string
-              serviceAccount:
-                description: ServiceAccount - service account name used internally
-                  to provide the default SA name
                 type: string
               serviceUser:
                 default: ceilometer
                 description: ServiceUser - optional username used for this service
                   to register in keystone
-                type: string
-              transportURLSecret:
-                description: TransportURLSecret contains the needed values to connect
-                  to RabbitMQ
                 type: string
             required:
             - computeImage
@@ -116,7 +104,7 @@ spec:
             - dataplaneSSHSecret
             - initImage
             - ipmiImage
-            - serviceAccount
+            - secret
             type: object
           status:
             description: CeilometerComputeStatus defines the observed state of CeilometerCompute
@@ -173,6 +161,9 @@ spec:
                 description: ReadyCount of ceilometercompute instances
                 format: int32
                 type: integer
+              transportURLSecret:
+                description: TransportURLSecret - Secret containing RabbitMQ transportURL
+                type: string
             type: object
         type: object
     served: true

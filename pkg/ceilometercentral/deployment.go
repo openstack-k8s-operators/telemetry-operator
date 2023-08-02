@@ -164,7 +164,7 @@ func Deployment(
 
 	initContainerDetails := APIDetails{
 		ContainerImage:     instance.Spec.InitImage,
-		TransportURLSecret: instance.Spec.TransportURLSecret,
+		TransportURLSecret: instance.Status.TransportURLSecret,
 		OSPSecret:          instance.Spec.Secret,
 		ServiceSelector:    instance.Spec.PasswordSelectors.Service,
 	}

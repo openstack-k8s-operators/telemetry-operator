@@ -4,7 +4,6 @@ metadata:
   name: infracompute
   namespace: openstack
 spec:
-  serviceAccount: telemetry-operator-telemetry
   dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
   dataplaneInventoryConfigMap: dataplanerole-edpm-compute
   nodeExporterImage: quay.io/prometheus/node-exporter:v1.5.0
