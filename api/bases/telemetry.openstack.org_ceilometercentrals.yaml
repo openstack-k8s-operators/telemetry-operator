@@ -84,7 +84,6 @@ spec:
                   that is created and used in Telemetry
                 type: string
               secret:
-                default: osp-secret
                 description: Secret containing OpenStack password information for
                   ceilometer
                 type: string
@@ -106,6 +105,7 @@ spec:
             - centralImage
             - initImage
             - notificationImage
+            - secret
             - serviceAccount
             - sgCoreImage
             type: object

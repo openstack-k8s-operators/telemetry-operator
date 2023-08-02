@@ -54,8 +54,7 @@ type CeilometerCentralSpec struct {
 	ServiceUser string `json:"serviceUser"`
 
 	// Secret containing OpenStack password information for ceilometer
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=osp-secret
+	// +kubebuilder:validation:Required
 	Secret string `json:"secret"`
 
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,

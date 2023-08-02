@@ -4,6 +4,7 @@ metadata:
   name: ceilometercompute
   namespace: openstack
 spec:
+  secret: osp-secret
   serviceAccount: telemetry-operator-telemetry
   dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
   dataplaneInventoryConfigMap: dataplanerole-edpm-compute
