@@ -93,7 +93,7 @@ func getInitVolumeMounts() []corev1.VolumeMount {
 }
 
 // getVolumeMounts - general VolumeMounts
-func getVolumeMounts() []corev1.VolumeMount {
+func getVolumeMounts(serviceName string) []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
 			Name:      "scripts",
@@ -105,11 +105,17 @@ func getVolumeMounts() []corev1.VolumeMount {
 			MountPath: "/var/lib/config-data/merged",
 			ReadOnly:  false,
 		},
+		{
+			Name:      "config-data-merged",
+			MountPath: "/var/lib/kolla/config_files/config.json",
+			SubPath:   serviceName + "-config.json",
+			ReadOnly:  true,
+		},
 	}
 }
 
-// getVolumeMountsSgCore - VolumeMounts for SGCore container
-func getVolumeMountsSgCore() []corev1.VolumeMount {
+// getSgCoreVolumeMounts - VolumeMounts for SGCore container
+func getSgCoreVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
 			Name:      "sg-core-conf-yaml",

@@ -70,12 +70,10 @@ func Deployment(
 	}
 
 	envVarsCentral := map[string]env.Setter{}
-	envVarsCentral["KOLLA_CONFIG_FILE"] = env.SetValue(KollaConfigCentral)
 	envVarsCentral["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
 	envVarsCentral["CONFIG_HASH"] = env.SetValue(configHash)
 
 	envVarsNotification := map[string]env.Setter{}
-	envVarsNotification["KOLLA_CONFIG_FILE"] = env.SetValue(KollaConfigNotification)
 	envVarsNotification["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
 	envVarsNotification["CONFIG_HASH"] = env.SetValue(configHash)
 
@@ -93,7 +91,7 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts(),
+		VolumeMounts: getVolumeMounts("ceilometer-central"),
 	}
 	notificationAgentContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
@@ -107,7 +105,7 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts(),
+		VolumeMounts: getVolumeMounts("ceilometer-notification"),
 	}
 	sgCoreContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
@@ -116,7 +114,7 @@ func Deployment(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts:   getVolumeMountsSgCore(),
+		VolumeMounts:   getSgCoreVolumeMounts(),
 		ReadinessProbe: readinessProbe,
 		LivenessProbe:  livenessProbe,
 	}
