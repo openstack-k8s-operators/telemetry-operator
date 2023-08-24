@@ -6,11 +6,11 @@
     "net": "host",
     "environment": {
         "KOLLA_CONFIG_STRATEGY":"COPY_ALWAYS",
-        "KOLLA_CONFIG_FILE":"/var/lib/openstack/config/ceilometer-agent-compute.json",
         "OS_ENDPOINT_TYPE":"internal"
     },
     "volumes": [
         "/var/lib/openstack/config/ceilometer:/var/lib/openstack/config/:z",
+        "/var/lib/openstack/config/ceilometer/ceilometer-agent-compute.json:/var/lib/kolla/config_files/config.json:z",
         "/var/log/containers/ceilometer:/var/log/containers/ceilometer:z",
         "/run/libvirt:/run/libvirt:shared,z",
         "/etc/hosts:/etc/hosts:z",
