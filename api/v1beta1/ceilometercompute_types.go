@@ -152,9 +152,9 @@ func (instance CeilometerCompute) RbacResourceName() string {
 func SetupDefaultsCeilometerCompute() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	ceilometercomputeDefaults := CeilometerComputeDefaults{
-		ComputeContainerImageURL:      util.GetEnvVar("CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
-		ComputeInitContainerImageURL:  util.GetEnvVar("CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeInitContainerImage),
-		IpmiContainerImageURL:         util.GetEnvVar("CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
+		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
+		ComputeInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeInitContainerImage),
+		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
 	}
 
 	SetupCeilometerComputeDefaults(ceilometercomputeDefaults)

@@ -11,19 +11,19 @@ spec:
       containers:
       - name: manager
         env:
-        - name: CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT
+        - name: RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
-        - name: CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT
+        - name: RELATED_IMAGE_CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
-        - name: CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT
+        - name: RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
-        - name: CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT
+        - name: RELATED_IMAGE_CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
-        - name: CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT
+        - name: RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
-        - name: CEILOMETER_IPMI_IMAGE_URL_DEFAULT
+        - name: RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified
-        - name: CEILOMETER_SGCORE_IMAGE_URL_DEFAULT
+        - name: RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT
           value: quay.io/infrawatch/sg-core:latest
-        - name: TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT
+        - name: RELATED_IMAGE_TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT
           value: quay.io/prometheus/node-exporter:v1.5.0
