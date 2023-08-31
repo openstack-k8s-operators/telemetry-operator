@@ -356,18 +356,14 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	// and a restart/recreate is required.
 	//
 	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
-	fmt.Printf("hashChanged: %v\n", hashChanged)
+	r.Log.Info("hashChanged: %v\n", hashChanged)
 	if err != nil {
-		return ctrl.Result{}, err
-	}
-	/*if err != nil {
 		return ctrl.Result{}, err
 	} else if hashChanged {
 		// Hash changed and instance status should be updated (which will be done by main defer func),
 		// so we need to return and reconcile again
 		return ctrl.Result{}, nil
 	}
-	fmt.Printf("MarkTrue\n")*/
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
