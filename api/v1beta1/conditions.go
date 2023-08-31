@@ -29,6 +29,9 @@ const (
 
 	// InfraComputeReadyCondition Status=True condition which indicates if the CeilometerCompute is configured and operational
 	InfraComputeReadyCondition condition.Type = "InfraComputeReady"
+
+	// AutoscalingReadyCondition Status=True condition which indicates if the Autoscaling is configured and operational
+	AutoscalingReadyCondition condition.Type = "AutoscalingComputeReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -62,4 +65,13 @@ const (
 
 	// InfraComputeReadyErrorMessage
 	InfraComputeReadyErrorMessage = "InfraCompute error occured %s"
+
+	//
+	// AutoscalingReady condition messages
+	//
+	// AutoscalingReadyInitMessage
+	AutoscalingReadyInitMessage = "Autoscaling not started"
+
+	// AutoscalingReadyErrorMessage
+	AutoscalingReadyErrorMessage = "Autoscaling error occured %s"
 )

@@ -158,6 +158,33 @@ rules:
 - apiGroups:
   - telemetry.openstack.org
   resources:
+  - autoscalings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - autoscalings/finalizers
+  verbs:
+  - delete
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - autoscalings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
   - ceilometercentrals
   verbs:
   - create

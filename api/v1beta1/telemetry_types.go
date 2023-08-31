@@ -35,6 +35,10 @@ type PasswordsSelector struct {
 type TelemetrySpec struct {
 	// +kubebuilder:validation:Required
 	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment
+	Autoscaling AutoscalingSpec `json:"autoscaling"`
+
+	// +kubebuilder:validation:Required
+	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment
 	CeilometerCentral CeilometerCentralSpec `json:"ceilometerCentral"`
 
 	// +kubebuilder:validation:Required

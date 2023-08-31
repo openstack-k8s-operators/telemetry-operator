@@ -38,6 +38,7 @@ import (
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
+	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 
 	telemetryv1beta1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
@@ -56,6 +57,7 @@ func init() {
 	utilruntime.Must(rabbitmqv1.AddToScheme(scheme))
 	utilruntime.Must(ansibleeev1.AddToScheme(scheme))
 	utilruntime.Must(telemetryv1beta1.AddToScheme(scheme))
+	utilruntime.Must(obov1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -148,6 +150,16 @@ func main() {
 		Log:     ctrl.Log.WithName("controllers").WithName("InfraCompute"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create InfraCompute controller")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.AutoscalingReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+		Log:     ctrl.Log.WithName("controllers").WithName("Autoscaling"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create Autoscaling controller")
 		os.Exit(1)
 	}
 

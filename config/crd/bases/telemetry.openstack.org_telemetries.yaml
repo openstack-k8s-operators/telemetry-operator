@@ -35,6 +35,13 @@ spec:
           spec:
             description: TelemetrySpec defines the desired state of Telemetry
             properties:
+              autoscaling:
+                description: CeilometerCentral - Spec definition for the CeilometerCentral
+                  service of this Telemetry deployment
+                properties:
+                  deployPrometheus:
+                    type: boolean
+                type: object
               ceilometerCentral:
                 description: CeilometerCentral - Spec definition for the CeilometerCentral
                   service of this Telemetry deployment
@@ -208,6 +215,7 @@ spec:
                 - nodeExporterImage
                 type: object
             required:
+            - autoscaling
             - ceilometerCentral
             - ceilometerCompute
             - infraCompute
