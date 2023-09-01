@@ -28,7 +28,13 @@ type AutoscalingSpec struct {
 
 // AutoscalingStatus defines the observed state of Autoscaling
 type AutoscalingStatus struct {
-	AllGood bool `json:"allGood,omitempty"`
+	// ReadyCount of autoscaling instances
+	ReadyCount int32 `json:"readyCount,omitempty"`
+
+	// Map of hashes to track e.g. job status
+	Hash map[string]string `json:"hash,omitempty"`
+
+	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
 }
 
@@ -62,3 +68,19 @@ func (instance Autoscaling) IsReady() bool {
 func init() {
 	SchemeBuilder.Register(&Autoscaling{}, &AutoscalingList{})
 }
+
+// RbacConditionsSet - set the conditions for the rbac object
+func (instance Autoscaling) RbacConditionsSet(c *condition.Condition) {
+	instance.Status.Conditions.Set(c)
+}
+
+// RbacNamespace - return the namespace
+func (instance Autoscaling) RbacNamespace() string {
+	return instance.Namespace
+}
+
+// RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
+func (instance Autoscaling) RbacResourceName() string {
+	return "telemetry-" + instance.Name
+}
+

@@ -9,4 +9,4 @@ metadata:
     app.kubernetes.io/created-by: telemetry-operator
   name: autoscaling-sample
 spec:
-  deployPrometheus: true
+  deployPrometheus: false
