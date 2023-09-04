@@ -7,10 +7,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Prometheus defines a monitoringstack with prometheus for autoscaling
 func Prometheus(
 	instance *telemetryv1.Autoscaling,
 	labels map[string]string,
-) (*obov1.MonitoringStack, error) {
+) *obov1.MonitoringStack {
 	prometheus := &obov1.MonitoringStack{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name + "-prometheus",
@@ -31,5 +32,5 @@ func Prometheus(
 			},
 		},
 	}
-	return prometheus, nil
+	return prometheus
 }

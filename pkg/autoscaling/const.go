@@ -1,8 +1,12 @@
 package autoscaling
 
 const (
-	ServiceName         = "autoscaling"
+	// ServiceName -
+	ServiceName = "autoscaling"
+
+	// PrometheusRetention -
 	PrometheusRetention = "5h"
 )
 
+// PrometheusReplicas -
 var PrometheusReplicas int32 = 1

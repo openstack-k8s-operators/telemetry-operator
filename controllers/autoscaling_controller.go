@@ -53,6 +53,8 @@ type AutoscalingReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/finalizers,verbs=update
+
+// Reconcile reconciles an Autoscaling
 func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues(autoscaling.ServiceName, req.NamespacedName)
 
@@ -159,8 +161,8 @@ func (r *AutoscalingReconciler) reconcileDisabled(
 	serviceLabels := map[string]string{
 		common.AppSelector: autoscaling.ServiceName,
 	}
-	prom, err := autoscaling.Prometheus(instance, serviceLabels)
-	err = r.Client.Delete(ctx, prom)
+	prom := autoscaling.Prometheus(instance, serviceLabels)
+	err := r.Client.Delete(ctx, prom)
 	if err != nil {
 		if !k8s_errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -321,10 +323,7 @@ func (r *AutoscalingReconciler) reconcilePrometheus(ctx context.Context,
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
-	prom, err := autoscaling.Prometheus(instance, serviceLabels)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	prom := autoscaling.Prometheus(instance, serviceLabels)
 
 	var promHost string
 	var promPort int32
@@ -361,11 +360,12 @@ func (r *AutoscalingReconciler) reconcilePrometheus(ctx context.Context,
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			promHost = fmt.Sprintf("%s.%s.svc", serviceName, instance.Namespace)
-			promPort = service.GetServicesPortDetails(promSvc, "web").Port
+			// TODO: Remove the nolint after adding aodh and using the variables
+			promHost = fmt.Sprintf("%s.%s.svc", serviceName, instance.Namespace) //nolint:all
+			promPort = service.GetServicesPortDetails(promSvc, "web").Port //nolint:all
 		}
 	} else {
-		err = r.Client.Delete(ctx, prom)
+		err := r.Client.Delete(ctx, prom)
 		if err != nil {
 			if !k8s_errors.IsNotFound(err) {
 				return ctrl.Result{}, nil
@@ -382,8 +382,6 @@ func (r *AutoscalingReconciler) reconcilePrometheus(ctx context.Context,
 			instance.Status.Conditions.MarkTrue("PrometheusReady", "Prometheus is ready")
 		}
 	}
-	fmt.Println(promHost)
-	fmt.Println(promPort)
 
 	// TODO: Pass the promHost and promPort variables to aodh
 
