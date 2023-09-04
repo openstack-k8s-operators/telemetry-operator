@@ -31,7 +31,7 @@ const (
 	InfraComputeReadyCondition condition.Type = "InfraComputeReady"
 
 	// AutoscalingReadyCondition Status=True condition which indicates if the Autoscaling is configured and operational
-	AutoscalingReadyCondition condition.Type = "AutoscalingComputeReady"
+	AutoscalingReadyCondition condition.Type = "AutoscalingReady"
 )
 
 // Telemetry Reasons used by API objects.

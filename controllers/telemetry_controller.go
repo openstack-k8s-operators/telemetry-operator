@@ -131,6 +131,7 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		cl := condition.CreateList(
 			condition.UnknownCondition(telemetryv1.CeilometerCentralReadyCondition, condition.InitReason, telemetryv1.CeilometerCentralReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.CeilometerComputeReadyCondition, condition.InitReason, telemetryv1.CeilometerComputeReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.AutoscalingReadyCondition, condition.InitReason, telemetryv1.AutoscalingReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -233,7 +234,7 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	if op != controllerutil.OperationResultNone {
 		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
 	}
-	// Mirror ceilometercompute's condition status
+	// Mirror autoscaling's condition status
 	as := autoscaling.Status.Conditions.Mirror(telemetryv1.AutoscalingReadyCondition)
 	if as != nil {
 		instance.Status.Conditions.Set(as)

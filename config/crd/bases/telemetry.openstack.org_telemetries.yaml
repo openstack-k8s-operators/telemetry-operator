@@ -36,11 +36,11 @@ spec:
             description: TelemetrySpec defines the desired state of Telemetry
             properties:
               autoscaling:
-                description: CeilometerCentral - Spec definition for the CeilometerCentral
-                  service of this Telemetry deployment
+                description: Autoscaling - Spec definition for the Autoscaling service
+                  of this Telemetry deployment
                 properties:
                   enabled:
-                    default: true
+                    default: false
                     description: Allows enabling and disabling the autoscaling feature
                     type: boolean
                   prometheus:
@@ -244,6 +244,10 @@ spec:
           status:
             description: TelemetryStatus defines the observed state of Telemetry
             properties:
+              autoscalingReadyCount:
+                description: ReadyCount of Autoscaling instance
+                format: int32
+                type: integer
               ceilometerCentralReadyCount:
                 description: ReadyCount of CeilometerCentral instance
                 format: int32
