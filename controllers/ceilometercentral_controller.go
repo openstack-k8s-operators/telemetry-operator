@@ -355,19 +355,10 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
 	//
-	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
-	fmt.Printf("hashChanged: %v\n", hashChanged)
+	inputHash, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	/*if err != nil {
-		return ctrl.Result{}, err
-	} else if hashChanged {
-		// Hash changed and instance status should be updated (which will be done by main defer func),
-		// so we need to return and reconcile again
-		return ctrl.Result{}, nil
-	}
-	fmt.Printf("MarkTrue\n")*/
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
@@ -512,24 +503,24 @@ func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
 // if any of the input resources change, like configs, passwords, ...
 //
-// returns the hash, whether the hash changed (as a bool) and any error
+// returns the hash and any error
 func (r *CeilometerCentralReconciler) createHashOfInputHashes(
 	ctx context.Context,
 	instance *telemetryv1.CeilometerCentral,
 	envVars map[string]env.Setter,
-) (string, bool, error) {
+) (string, error) {
 	var hashMap map[string]string
 	changed := false
 	mergedMapVars := env.MergeEnvs([]corev1.EnvVar{}, envVars)
 	hash, err := util.ObjectHash(mergedMapVars)
 	if err != nil {
-		return hash, changed, err
+		return hash, err
 	}
 	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
 		instance.Status.Hash = hashMap
 		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
 	}
-	return hash, changed, nil
+	return hash, nil
 }
 
 func (r *CeilometerCentralReconciler) transportURLCreateOrUpdate(instance *telemetryv1.CeilometerCentral) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
