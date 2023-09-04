@@ -11,10 +11,9 @@ func Prometheus(
 	instance *telemetryv1.Autoscaling,
 	labels map[string]string,
 ) (*obov1.MonitoringStack, error) {
-	var replicas int32 = 1
 	prometheus := &obov1.MonitoringStack{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ServiceName,
+			Name:      instance.Name + "-prometheus",
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
@@ -23,9 +22,9 @@ func Prometheus(
 				Disabled: true,
 			},
 			PrometheusConfig: &obov1.PrometheusConfig{
-				Replicas: &replicas,
+				Replicas: &PrometheusReplicas,
 			},
-			Retention: monv1.Duration("5h"),
+			Retention: monv1.Duration(PrometheusRetention),
 			LogLevel:  "debug",
 			ResourceSelector: &metav1.LabelSelector{
 				MatchLabels: labels,

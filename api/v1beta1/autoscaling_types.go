@@ -42,7 +42,7 @@ type AutoscalingSpec struct {
 	Prometheus Prometheus `json:"prometheus,omitempty"`
 
 	// Allows enabling and disabling the autoscaling feature
-	// +kubebuilder:default=true
+	// +kubebuilder:default=false
 	Enabled bool `json:"enabled,omitempty"`
 }
 
@@ -79,7 +79,7 @@ type AutoscalingList struct {
 	Items           []Autoscaling `json:"items"`
 }
 
-// IsReady - returns true if CeilometerCentral is reconciled successfully
+// IsReady - returns true if Autescaling is reconciled successfully
 func (instance Autoscaling) IsReady() bool {
 	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }

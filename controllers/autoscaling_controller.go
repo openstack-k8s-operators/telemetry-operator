@@ -50,19 +50,9 @@ type AutoscalingReconciler struct {
 	Scheme  *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/finalizers,verbs=update
-
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Autoscaling object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/finalizers,verbs=update
 func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues(autoscaling.ServiceName, req.NamespacedName)
 
@@ -124,9 +114,13 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// initialize conditions used later as Status=Unknown
 		cl := condition.CreateList(
 			// service account, role, rolebinding conditions
-			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
+			condition.UnknownCondition(condition.ServiceAccountReadyCondition,
+				condition.InitReason,
+				condition.ServiceAccountReadyInitMessage),
 			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
-			condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
+			condition.UnknownCondition(condition.RoleBindingReadyCondition,
+				condition.InitReason,
+				condition.RoleBindingReadyInitMessage),
 			condition.UnknownCondition("PrometheusReady", condition.InitReason, "PrometheusNotStarted"),
 			// right now we have no dedicated KeystoneServiceReadyInitMessage
 			//condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
@@ -147,11 +141,45 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return r.reconcileDelete(ctx, instance, helper)
 	}
 
+	// Handle service disabled
+	if !instance.Spec.Enabled {
+		return r.reconcileDisabled(ctx, instance, helper)
+	}
+
 	// Handle non-deleted clusters
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
-func (r *AutoscalingReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.Autoscaling, helper *helper.Helper) (ctrl.Result, error) {
+func (r *AutoscalingReconciler) reconcileDisabled(
+	ctx context.Context,
+	instance *telemetryv1.Autoscaling,
+	helper *helper.Helper,
+) (ctrl.Result, error) {
+	r.Log.Info("Reconciling Service disabled")
+	serviceLabels := map[string]string{
+		common.AppSelector: autoscaling.ServiceName,
+	}
+	prom, err := autoscaling.Prometheus(instance, serviceLabels)
+	err = r.Client.Delete(ctx, prom)
+	if err != nil {
+		if !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+	}
+
+	// Set the condition to true, since the service is disabled
+	for _, c := range instance.Status.Conditions {
+		instance.Status.Conditions.MarkTrue(c.Type, "Autoscaling disabled")
+	}
+	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' disable successfully", autoscaling.ServiceName))
+	return ctrl.Result{}, nil
+}
+
+func (r *AutoscalingReconciler) reconcileDelete(
+	ctx context.Context,
+	instance *telemetryv1.Autoscaling,
+	helper *helper.Helper,
+) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
 
 	// Remove the finalizer from our KeystoneService CR
@@ -237,7 +265,11 @@ func (r *AutoscalingReconciler) reconcileInit(
 
 }
 
-func (r *AutoscalingReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.Autoscaling, helper *helper.Helper) (ctrl.Result, error) {
+func (r *AutoscalingReconciler) reconcileNormal(
+	ctx context.Context,
+	instance *telemetryv1.Autoscaling,
+	helper *helper.Helper,
+) (ctrl.Result, error) {
 	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", autoscaling.ServiceName))
 
 	// Service account, role, binding
@@ -311,10 +343,16 @@ func (r *AutoscalingReconciler) reconcilePrometheus(ctx context.Context,
 		promReady := true
 		for _, c := range prom.Status.Conditions {
 			if c.Status != "True" {
-				instance.Status.Conditions.MarkFalse("PrometheusReady", condition.Reason(c.Reason), condition.SeverityError, c.Message)
+				instance.Status.Conditions.MarkFalse("PrometheusReady",
+					condition.Reason(c.Reason),
+					condition.SeverityError,
+					c.Message)
 				promReady = false
 				break
 			}
+		}
+		if len(prom.Status.Conditions) == 0 {
+			promReady = false
 		}
 		if promReady {
 			instance.Status.Conditions.MarkTrue("PrometheusReady", "Prometheus is ready")
@@ -327,15 +365,25 @@ func (r *AutoscalingReconciler) reconcilePrometheus(ctx context.Context,
 			promPort = service.GetServicesPortDetails(promSvc, "web").Port
 		}
 	} else {
-		r.Client.Delete(ctx, prom)
+		err = r.Client.Delete(ctx, prom)
+		if err != nil {
+			if !k8s_errors.IsNotFound(err) {
+				return ctrl.Result{}, nil
+			}
+		}
 		promHost = instance.Spec.Prometheus.Host
 		promPort = instance.Spec.Prometheus.Port
 		if promHost == "" || promPort == 0 {
-			instance.Status.Conditions.MarkFalse("PrometheusReady", condition.ErrorReason, condition.SeverityError, "deployPrometheus is false and either port or host isn't set")
+			instance.Status.Conditions.MarkFalse("PrometheusReady",
+				condition.ErrorReason,
+				condition.SeverityError,
+				"deployPrometheus is false and either port or host isn't set")
 		} else {
 			instance.Status.Conditions.MarkTrue("PrometheusReady", "Prometheus is ready")
 		}
 	}
+	fmt.Println(promHost)
+	fmt.Println(promPort)
 
 	// TODO: Pass the promHost and promPort variables to aodh
 

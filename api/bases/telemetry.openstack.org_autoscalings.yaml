@@ -36,7 +36,7 @@ spec:
             description: AutoscalingSpec defines the desired state of Autoscaling
             properties:
               enabled:
-                default: true
+                default: false
                 description: Allows enabling and disabling the autoscaling feature
                 type: boolean
               prometheus:
