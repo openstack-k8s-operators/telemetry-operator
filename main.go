@@ -39,7 +39,6 @@ import (
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
 
-	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	telemetryv1beta1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
 	//+kubebuilder:scaffold:imports
@@ -53,7 +52,6 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(telemetryv1.AddToScheme(scheme))
 	utilruntime.Must(keystonev1.AddToScheme(scheme))
 	utilruntime.Must(rabbitmqv1.AddToScheme(scheme))
 	utilruntime.Must(ansibleeev1.AddToScheme(scheme))
@@ -154,27 +152,27 @@ func main() {
 	}
 
 	// Acquire environmental defaults and initialize defaults with them
-	telemetryv1.SetupDefaultsTelemetry()
-	telemetryv1.SetupDefaultsCeilometerCentral()
-	telemetryv1.SetupDefaultsCeilometerCompute()
-	telemetryv1.SetupDefaultsInfraCompute()
+	telemetryv1beta1.SetupDefaultsTelemetry()
+	telemetryv1beta1.SetupDefaultsCeilometerCentral()
+	telemetryv1beta1.SetupDefaultsCeilometerCompute()
+	telemetryv1beta1.SetupDefaultsInfraCompute()
 
 	// Setup webhooks if requested
 	checker := healthz.Ping
 	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) != "false" {
-		if err = (&telemetryv1.Telemetry{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&telemetryv1beta1.Telemetry{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Telemetry")
 			os.Exit(1)
 		}
-		if err = (&telemetryv1.CeilometerCentral{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&telemetryv1beta1.CeilometerCentral{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "CeilometerCentral")
 			os.Exit(1)
 		}
-		if err = (&telemetryv1.CeilometerCompute{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&telemetryv1beta1.CeilometerCompute{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "CeilometerCompute")
 			os.Exit(1)
 		}
-		if err = (&telemetryv1.InfraCompute{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&telemetryv1beta1.InfraCompute{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "InfraCompute")
 			os.Exit(1)
 		}
