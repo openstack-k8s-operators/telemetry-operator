@@ -119,7 +119,7 @@ func (instance InfraCompute) RbacResourceName() string {
 func SetupDefaultsInfraCompute() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	infracomputeDefaults := InfraComputeDefaults{
-		NodeExporterContainerImageURL: util.GetEnvVar("TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),
+		NodeExporterContainerImageURL: util.GetEnvVar("RELATED_IMAGE_TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),
 	}
 
 	SetupInfraComputeDefaults(infracomputeDefaults)
