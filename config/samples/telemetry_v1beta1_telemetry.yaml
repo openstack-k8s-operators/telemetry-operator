@@ -20,7 +20,7 @@ spec:
     dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
     dataplaneInventoryConfigMap: dataplanerole-edpm-compute
   autoscaling:
-    enabled: true
+    enabled: false
     prometheus:
       deployPrometheus: true
 
