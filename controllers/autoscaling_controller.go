@@ -31,6 +31,7 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
+	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -274,13 +275,30 @@ func (r *AutoscalingReconciler) reconcileNormal(ctx context.Context, instance *t
 		return ctrlResult, nil
 	}
 
+	promResult, err := r.reconcilePrometheus(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return promResult, err
+	}
+
+	r.Log.Info("Reconciled Service successfully")
+	return ctrl.Result{}, nil
+}
+
+func (r *AutoscalingReconciler) reconcilePrometheus(ctx context.Context,
+	instance *telemetryv1.Autoscaling,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) (ctrl.Result, error) {
 	prom, err := autoscaling.Prometheus(instance, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if instance.Spec.DeployPrometheus {
-		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, prom, func() error {
+	var promHost string
+	var promPort int32
+
+	if instance.Spec.Prometheus.DeployPrometheus {
+		op, err := controllerutil.CreateOrUpdate(ctx, r.Client, prom, func() error {
 			err := controllerutil.SetControllerReference(instance, prom, r.Scheme)
 			return err
 		})
@@ -300,13 +318,27 @@ func (r *AutoscalingReconciler) reconcileNormal(ctx context.Context, instance *t
 		}
 		if promReady {
 			instance.Status.Conditions.MarkTrue("PrometheusReady", "Prometheus is ready")
+			serviceName := prom.Name + "-prometheus"
+			promSvc, err := service.GetServiceWithName(ctx, helper, serviceName, instance.Namespace)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			promHost = fmt.Sprintf("%s.%s.svc", serviceName, instance.Namespace)
+			promPort = service.GetServicesPortDetails(promSvc, "web").Port
 		}
 	} else {
-		r.Client.Delete(context.TODO(), prom)
-		instance.Status.Conditions.Remove("PrometheusReady")
+		r.Client.Delete(ctx, prom)
+		promHost = instance.Spec.Prometheus.Host
+		promPort = instance.Spec.Prometheus.Port
+		if promHost == "" || promPort == 0 {
+			instance.Status.Conditions.MarkFalse("PrometheusReady", condition.ErrorReason, condition.SeverityError, "deployPrometheus is false and either port or host isn't set")
+		} else {
+			instance.Status.Conditions.MarkTrue("PrometheusReady", "Prometheus is ready")
+		}
 	}
 
-	r.Log.Info("Reconciled Service successfully")
+	// TODO: Pass the promHost and promPort variables to aodh
+
 	return ctrl.Result{}, nil
 }
 

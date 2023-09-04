@@ -21,9 +21,29 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
+// Prometheus defines which prometheus to use for Autoscaling
+type Prometheus struct {
+	// Enables the deployment of autoscaling prometheus
+	// +kubebuilder:default=true
+	DeployPrometheus bool `json:"deployPrometheus,omitempty"`
+
+	// Host of user deployed prometheus if deployPrometheus is set to false
+	Host string `json:"host,omitempty"`
+
+	// Port of user deployed prometheus if deployPrometheus is set to false
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port,omitempty"`
+}
+
 // AutoscalingSpec defines the desired state of Autoscaling
 type AutoscalingSpec struct {
-	DeployPrometheus bool `json:"deployPrometheus,omitempty"`
+	// Specification of which prometheus to use for autoscaling
+	Prometheus Prometheus `json:"prometheus,omitempty"`
+
+	// Allows enabling and disabling the autoscaling feature
+	// +kubebuilder:default=true
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // AutoscalingStatus defines the observed state of Autoscaling
@@ -83,4 +103,3 @@ func (instance Autoscaling) RbacNamespace() string {
 func (instance Autoscaling) RbacResourceName() string {
 	return "telemetry-" + instance.Name
 }
-

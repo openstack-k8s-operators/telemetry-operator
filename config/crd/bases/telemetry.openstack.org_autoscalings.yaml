@@ -35,8 +35,29 @@ spec:
           spec:
             description: AutoscalingSpec defines the desired state of Autoscaling
             properties:
-              deployPrometheus:
+              enabled:
+                default: true
+                description: Allows enabling and disabling the autoscaling feature
                 type: boolean
+              prometheus:
+                description: Specification of which prometheus to use for autoscaling
+                properties:
+                  deployPrometheus:
+                    default: true
+                    description: Enables the deployment of autoscaling prometheus
+                    type: boolean
+                  host:
+                    description: Host of user deployed prometheus if deployPrometheus
+                      is set to false
+                    type: string
+                  port:
+                    description: Port of user deployed prometheus if deployPrometheus
+                      is set to false
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                type: object
             type: object
           status:
             description: AutoscalingStatus defines the observed state of Autoscaling
