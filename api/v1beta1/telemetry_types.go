@@ -99,9 +99,9 @@ func SetupDefaultsTelemetry() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	telemetryDefaults := TelemetryDefaults{
 		CentralContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
-		CentralInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT", CeilometerCentralInitContainerImage),
+		CentralInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
 		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
-		ComputeInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeInitContainerImage),
+		ComputeInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
 		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
 		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
 		NodeExporterContainerImageURL: util.GetEnvVar("RELATED_IMAGE_TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),

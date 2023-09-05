@@ -26,8 +26,6 @@ import (
 const (
 	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
 	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
-	// CeilometerComputeInitContainerImage - default fall-back image for Ceilometer Compute Init
-	CeilometerComputeInitContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
 	CeilometerIpmiContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
 )
@@ -153,7 +151,7 @@ func SetupDefaultsCeilometerCompute() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	ceilometercomputeDefaults := CeilometerComputeDefaults{
 		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
-		ComputeInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeInitContainerImage),
+		ComputeInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
 		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
 	}
 
