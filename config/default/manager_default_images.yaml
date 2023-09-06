@@ -13,11 +13,7 @@ spec:
         env:
         - name: RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
-        - name: RELATED_IMAGE_CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT
-          value: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
         - name: RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT
-          value: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
-        - name: RELATED_IMAGE_CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
         - name: RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
