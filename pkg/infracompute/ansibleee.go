@@ -31,7 +31,7 @@ func AnsibleEE(
 
 	ansibleeeSpec := ansibleeev1.NewOpenStackAnsibleEE(ServiceName)
 
-	ansibleeeSpec.Playbook = "osp.edpm.deploy_edpm_telemetry_infra"
+	ansibleeeSpec.Playbook = "osp.edpm.telemetry"
 
 	ansibleeeSpec.Env = []corev1.EnvVar{
 		{Name: "ANSIBLE_FORCE_COLOR", Value: "True"},
