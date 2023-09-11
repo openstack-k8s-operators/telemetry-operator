@@ -1,0 +1,17 @@
+{
+    "command": "/usr/bin/aodh-evaluator --logfile /dev/stdout",
+    "config_files": [
+      {
+        "source": "/var/lib/openstack/config/aodh.conf",
+        "dest": "/etc/aodh/aodh.conf",
+        "owner": "aodh",
+        "perm": "0600"
+      },
+      {
+        "source": "/var/lib/openstack/config/prometheus.yaml",
+        "dest": "/etc/openstack/prometheus.yaml",
+        "owner": "aodh",
+        "perm": "0600"
+      }
+    ]
+  }

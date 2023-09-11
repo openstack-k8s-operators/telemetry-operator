@@ -35,6 +35,18 @@ rules:
   - update
   - watch
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - ""
   resources:
   - configmaps
@@ -93,6 +105,18 @@ rules:
 - apiGroups:
   - keystone.openstack.org
   resources:
+  - keystoneendpoints
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - keystone.openstack.org
+  resources:
   - keystoneservices
   verbs:
   - create
@@ -103,12 +127,36 @@ rules:
   - update
   - watch
 - apiGroups:
+  - mariadb.openstack.org
+  resources:
+  - mariadbdatabases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - memcached.openstack.org
+  resources:
+  - memcacheds
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - monitoring.rhobs
   resources:
   - monitoringstacks
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - rabbitmq.openstack.org
@@ -140,6 +188,18 @@ rules:
   - create
   - get
   - list
+  - update
+  - watch
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
   - update
   - watch
 - apiGroups:

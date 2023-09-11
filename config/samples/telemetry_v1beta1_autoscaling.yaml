@@ -7,8 +7,18 @@ metadata:
     app.kubernetes.io/part-of: telemetry-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: telemetry-operator
-  name: autoscaling-sample
+  name: autoscaling
 spec:
   enabled: true
   prometheus:
-    deployPrometheus: true
+    deployPrometheus: false
+  aodh:
+    secret: osp-secret
+    apiImage: "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
+    evaluatorImage: "quay.io/podified-antelope-centos9/openstack-aodh-evaluator:current-podified"
+    notifierImage: "quay.io/podified-antelope-centos9/openstack-aodh-notifier:current-podified"
+    listenerImage: "quay.io/podified-antelope-centos9/openstack-aodh-listener:current-podified"
+    passwordSelectors:
+    databaseUser: aodh
+    databaseInstance: openstack
+    memcachedInstance: memcached
