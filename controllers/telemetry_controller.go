@@ -50,6 +50,9 @@ type TelemetryReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=telemetries,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=telemetries/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=telemetries/finalizers,verbs=update
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/finalizers,verbs=update;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/finalizers,verbs=update;delete
@@ -128,6 +131,7 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		cl := condition.CreateList(
 			condition.UnknownCondition(telemetryv1.CeilometerCentralReadyCondition, condition.InitReason, telemetryv1.CeilometerCentralReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.CeilometerComputeReadyCondition, condition.InitReason, telemetryv1.CeilometerComputeReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.AutoscalingReadyCondition, condition.InitReason, telemetryv1.AutoscalingReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -216,6 +220,27 @@ func (r *TelemetryReconciler) reconcileInit(
 func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 
+	// deploy autoscaling
+	autoscaling, op, err := r.autoscalingCreateOrUpdate(instance)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.AutoscalingReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.AutoscalingReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
+	}
+	// Mirror autoscaling's condition status
+	as := autoscaling.Status.Conditions.Mirror(telemetryv1.AutoscalingReadyCondition)
+	if as != nil {
+		instance.Status.Conditions.Set(as)
+	}
+	// end deploy autoscaling
+
 	// deploy ceilometercentral
 	ceilometercentral, op, err := r.ceilometerCentralCreateOrUpdate(instance)
 	if err != nil {
@@ -295,6 +320,28 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	return ctrl.Result{}, nil
 }
 
+func (r *TelemetryReconciler) autoscalingCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.Autoscaling, controllerutil.OperationResult, error) {
+	autoscaling := &telemetryv1.Autoscaling{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-autoscaling", instance.Name),
+			Namespace: instance.Namespace,
+		},
+	}
+
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, autoscaling, func() error {
+		autoscaling.Spec = instance.Spec.Autoscaling
+
+		err := controllerutil.SetControllerReference(instance, autoscaling, r.Scheme)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return autoscaling, op, err
+}
+
 func (r *TelemetryReconciler) ceilometerCentralCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.CeilometerCentral, controllerutil.OperationResult, error) {
 	ccentral := &telemetryv1.CeilometerCentral{
 		ObjectMeta: metav1.ObjectMeta{
@@ -369,5 +416,6 @@ func (r *TelemetryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&telemetryv1.CeilometerCentral{}).
 		Owns(&telemetryv1.CeilometerCompute{}).
 		Owns(&telemetryv1.InfraCompute{}).
+		Owns(&telemetryv1.Autoscaling{}).
 		Complete(r)
 }

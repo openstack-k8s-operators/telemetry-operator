@@ -34,6 +34,10 @@ type PasswordsSelector struct {
 // TelemetrySpec defines the desired state of Telemetry
 type TelemetrySpec struct {
 	// +kubebuilder:validation:Required
+	// Autoscaling - Spec definition for the Autoscaling service of this Telemetry deployment
+	Autoscaling AutoscalingSpec `json:"autoscaling"`
+
+	// +kubebuilder:validation:Required
 	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment
 	CeilometerCentral CeilometerCentralSpec `json:"ceilometerCentral"`
 
@@ -62,6 +66,9 @@ type TelemetryStatus struct {
 
 	// ReadyCount of InfraCompute instance
 	InfraComputeReadyCount int32 `json:"infraComputeReadyCount,omitempty"`
+
+	// ReadyCount of Autoscaling instance
+	AutoscalingReadyCount int32 `json:"autoscalingReadyCount,omitempty"`
 }
 
 //+kubebuilder:object:root=true

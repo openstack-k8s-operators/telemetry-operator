@@ -35,6 +35,34 @@ spec:
           spec:
             description: TelemetrySpec defines the desired state of Telemetry
             properties:
+              autoscaling:
+                description: Autoscaling - Spec definition for the Autoscaling service
+                  of this Telemetry deployment
+                properties:
+                  enabled:
+                    default: false
+                    description: Allows enabling and disabling the autoscaling feature
+                    type: boolean
+                  prometheus:
+                    description: Specification of which prometheus to use for autoscaling
+                    properties:
+                      deployPrometheus:
+                        default: true
+                        description: Enables the deployment of autoscaling prometheus
+                        type: boolean
+                      host:
+                        description: Host of user deployed prometheus if deployPrometheus
+                          is set to false
+                        type: string
+                      port:
+                        description: Port of user deployed prometheus if deployPrometheus
+                          is set to false
+                        format: int32
+                        maximum: 65535
+                        minimum: 1
+                        type: integer
+                    type: object
+                type: object
               ceilometerCentral:
                 description: CeilometerCentral - Spec definition for the CeilometerCentral
                   service of this Telemetry deployment
@@ -208,6 +236,7 @@ spec:
                 - nodeExporterImage
                 type: object
             required:
+            - autoscaling
             - ceilometerCentral
             - ceilometerCompute
             - infraCompute
@@ -215,6 +244,10 @@ spec:
           status:
             description: TelemetryStatus defines the observed state of Telemetry
             properties:
+              autoscalingReadyCount:
+                description: ReadyCount of Autoscaling instance
+                format: int32
+                type: integer
               ceilometerCentralReadyCount:
                 description: ReadyCount of CeilometerCentral instance
                 format: int32
