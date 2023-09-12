@@ -123,6 +123,14 @@ rules:
   - update
   - watch
 - apiGroups:
+  - monitoring.rhobs
+  resources:
+  - monitoringstacks
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - rabbitmq.openstack.org
   resources:
   - transporturls
