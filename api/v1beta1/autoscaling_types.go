@@ -17,14 +17,14 @@ limitations under the License.
 package v1beta1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Prometheus defines which prometheus to use for Autoscaling
 type Prometheus struct {
 	// Enables the deployment of autoscaling prometheus
-	// +kubebuilder:default=true
+	// +kubebuilder:default=false
 	DeployPrometheus bool `json:"deployPrometheus,omitempty"`
 
 	// Host of user deployed prometheus if deployPrometheus is set to false
@@ -83,7 +83,6 @@ type AutoscalingList struct {
 func (instance Autoscaling) IsReady() bool {
 	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
-
 
 func init() {
 	SchemeBuilder.Register(&Autoscaling{}, &AutoscalingList{})
