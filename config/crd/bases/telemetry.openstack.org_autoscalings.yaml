@@ -43,7 +43,7 @@ spec:
                 description: Specification of which prometheus to use for autoscaling
                 properties:
                   deployPrometheus:
-                    default: true
+                    default: false
                     description: Enables the deployment of autoscaling prometheus
                     type: boolean
                   host:
