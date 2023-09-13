@@ -21,14 +21,8 @@ import (
 
 // Telemetry Condition Types used by API objects.
 const (
-	// CeilometerCentralReadyCondition Status=True condition which indicates if the CeilometerCentral is configured and operational
-	CeilometerCentralReadyCondition condition.Type = "CeilometerCentralReady"
-
-	// CeilometerComputeReadyCondition Status=True condition which indicates if the CeilometerCompute is configured and operational
-	CeilometerComputeReadyCondition condition.Type = "CeilometerComputeReady"
-
-	// InfraComputeReadyCondition Status=True condition which indicates if the CeilometerCompute is configured and operational
-	InfraComputeReadyCondition condition.Type = "InfraComputeReady"
+	// CeilometerReadyCondition Status=True condition which indicates if the Ceilometer is configured and operational
+	CeilometerReadyCondition condition.Type = "CeilometerReady"
 
 	// AutoscalingReadyCondition Status=True condition which indicates if the Autoscaling is configured and operational
 	AutoscalingReadyCondition condition.Type = "AutoscalingReady"
@@ -40,31 +34,13 @@ const ()
 // Common Messages used by API objects.
 const (
 	//
-	// CeilometerCentralReady condition messages
+	// CeilometerReady condition messages
 	//
-	// CeilometerCentralReadyInitMessage
-	CeilometerCentralReadyInitMessage = "CeilometerCentral not started"
+	// CeilometerReadyInitMessage
+	CeilometerReadyInitMessage = "Ceilometer not started"
 
-	// CeilometerCentralReadyErrorMessage
-	CeilometerCentralReadyErrorMessage = "CeilometerCentral error occured %s"
-
-	//
-	// CeilometerComputeReady condition messages
-	//
-	// CeilometerComputeReadyInitMessage
-	CeilometerComputeReadyInitMessage = "CeilometerCompute not started"
-
-	// CeilometerComputeReadyErrorMessage
-	CeilometerComputeReadyErrorMessage = "CeilometerCompute error occured %s"
-
-	//
-	// InfraComputeReady condition messages
-	//
-	// InfraComputeReadyInitMessage
-	InfraComputeReadyInitMessage = "InfraCompute not started"
-
-	// InfraComputeReadyErrorMessage
-	InfraComputeReadyErrorMessage = "InfraCompute error occured %s"
+	// CeilometerReadyErrorMessage
+	CeilometerReadyErrorMessage = "Ceilometer error occured %s"
 
 	//
 	// AutoscalingReady condition messages

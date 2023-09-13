@@ -30,9 +30,7 @@ import (
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	"github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
-	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	"k8s.io/client-go/kubernetes"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
@@ -53,18 +51,9 @@ type TelemetryReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/finalizers,verbs=update;delete
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/finalizers,verbs=update;delete
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/finalizers,verbs=update
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes/finalizers,verbs=update
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=infracomputes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/finalizers,verbs=update;delete
 // +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile reconciles a Telemetry
@@ -129,8 +118,7 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		instance.Status.Conditions = condition.Conditions{}
 		// initialize conditions used later as Status=Unknown
 		cl := condition.CreateList(
-			condition.UnknownCondition(telemetryv1.CeilometerCentralReadyCondition, condition.InitReason, telemetryv1.CeilometerCentralReadyInitMessage),
-			condition.UnknownCondition(telemetryv1.CeilometerComputeReadyCondition, condition.InitReason, telemetryv1.CeilometerComputeReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.CeilometerReadyCondition, condition.InitReason, telemetryv1.CeilometerReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.AutoscalingReadyCondition, condition.InitReason, telemetryv1.AutoscalingReadyInitMessage),
 		)
 
@@ -167,36 +155,6 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 func (r *TelemetryReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete", instance.Name))
-
-	// remove playbookCM
-	playbookCMName := fmt.Sprintf("%s-compute-playbooks", telemetry.ServiceName)
-	playbookCM, _, err := configmap.GetConfigMapAndHashWithName(ctx, helper, playbookCMName, instance.Namespace)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-
-	if err == nil {
-		if err = helper.GetClient().Delete(ctx, playbookCM); err != nil && !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-		util.LogForObject(helper, "Removed our playbook configmap", instance)
-	}
-	// end remove playbookCM
-
-	// remove extravarsCM
-	extravarsCMName := fmt.Sprintf("%s-compute-extravars", telemetry.ServiceName)
-	extravarsCM, _, err := configmap.GetConfigMapAndHashWithName(ctx, helper, extravarsCMName, instance.Namespace)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-
-	if err == nil {
-		if err = helper.GetClient().Delete(ctx, extravarsCM); err != nil && !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-		util.LogForObject(helper, "Removed our extravars configmap", instance)
-	}
-	// end remove extravarsCM
 
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
@@ -241,14 +199,14 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	}
 	// end deploy autoscaling
 
-	// deploy ceilometercentral
-	ceilometercentral, op, err := r.ceilometerCentralCreateOrUpdate(instance)
+	// deploy ceilometer
+	ceilometer, op, err := r.ceilometerCreateOrUpdate(instance)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.CeilometerCentralReadyCondition,
+			telemetryv1.CeilometerReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
-			telemetryv1.CeilometerCentralReadyErrorMessage,
+			telemetryv1.CeilometerReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, err
 	}
@@ -256,65 +214,15 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
 	}
 
-	// Mirror ceilometercompute's status ReadyCount to this parent CR
-	instance.Status.CeilometerCentralReadyCount = ceilometercentral.Status.ReadyCount
+	// Mirror ceilometer's status ReadyCount to this parent CR
+	instance.Status.CeilometerReadyCount = ceilometer.Status.ReadyCount
 
-	// Mirror ceilometercompute's condition status
-	ccentral := ceilometercentral.Status.Conditions.Mirror(telemetryv1.CeilometerCentralReadyCondition)
+	// Mirror ceilometer's condition status
+	ccentral := ceilometer.Status.Conditions.Mirror(telemetryv1.CeilometerReadyCondition)
 	if ccentral != nil {
 		instance.Status.Conditions.Set(ccentral)
 	}
-	// end deploy ceilometercentral
-
-	// deploy ceilometercompute
-	ceilometercompute, op, err := r.ceilometerComputeCreateOrUpdate(instance)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.CeilometerComputeReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			telemetryv1.CeilometerComputeReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
-	if op != controllerutil.OperationResultNone {
-		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
-	}
-
-	// Mirror ceilometercompute's status ReadyCount to this parent CR
-	instance.Status.CeilometerComputeReadyCount = ceilometercompute.Status.ReadyCount
-
-	// Mirror ceilometercompute's condition status
-	ccompute := ceilometercompute.Status.Conditions.Mirror(telemetryv1.CeilometerComputeReadyCondition)
-	if ccompute != nil {
-		instance.Status.Conditions.Set(ccompute)
-	}
-	// end deploy ceilometercompute
-
-	// deploy infracompute
-	infracompute, op, err := r.infraComputeCreateOrUpdate(instance)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.InfraComputeReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			telemetryv1.InfraComputeReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
-	if op != controllerutil.OperationResultNone {
-		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
-	}
-
-	// Mirror infracompute's status ReadyCount to this parent CR
-	instance.Status.InfraComputeReadyCount = infracompute.Status.ReadyCount
-
-	// Mirror ceilometercompute's condition status
-	icompute := infracompute.Status.Conditions.Mirror(telemetryv1.InfraComputeReadyCondition)
-	if icompute != nil {
-		instance.Status.Conditions.Set(icompute)
-	}
-	// end deploy infracompute
+	// end deploy ceilometer
 
 	r.Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
@@ -342,8 +250,8 @@ func (r *TelemetryReconciler) autoscalingCreateOrUpdate(instance *telemetryv1.Te
 	return autoscaling, op, err
 }
 
-func (r *TelemetryReconciler) ceilometerCentralCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.CeilometerCentral, controllerutil.OperationResult, error) {
-	ccentral := &telemetryv1.CeilometerCentral{
+func (r *TelemetryReconciler) ceilometerCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.Ceilometer, controllerutil.OperationResult, error) {
+	ccentral := &telemetryv1.Ceilometer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-ceilometer-central", instance.Name),
 			Namespace: instance.Namespace,
@@ -351,7 +259,7 @@ func (r *TelemetryReconciler) ceilometerCentralCreateOrUpdate(instance *telemetr
 	}
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ccentral, func() error {
-		ccentral.Spec = instance.Spec.CeilometerCentral
+		ccentral.Spec = instance.Spec.Ceilometer
 
 		err := controllerutil.SetControllerReference(instance, ccentral, r.Scheme)
 		if err != nil {
@@ -364,58 +272,11 @@ func (r *TelemetryReconciler) ceilometerCentralCreateOrUpdate(instance *telemetr
 	return ccentral, op, err
 }
 
-func (r *TelemetryReconciler) ceilometerComputeCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.CeilometerCompute, controllerutil.OperationResult, error) {
-	ccompute := &telemetryv1.CeilometerCompute{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-ceilometer-compute", instance.Name),
-			Namespace: instance.Namespace,
-		},
-	}
-
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ccompute, func() error {
-		ccompute.Spec = instance.Spec.CeilometerCompute
-
-		err := controllerutil.SetControllerReference(instance, ccompute, r.Scheme)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	r.Log.Info("Returning created ccompute")
-	return ccompute, op, err
-}
-
-func (r *TelemetryReconciler) infraComputeCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.InfraCompute, controllerutil.OperationResult, error) {
-	icompute := &telemetryv1.InfraCompute{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-infra-compute", instance.Name),
-			Namespace: instance.Namespace,
-		},
-	}
-
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, icompute, func() error {
-		icompute.Spec = instance.Spec.InfraCompute
-
-		err := controllerutil.SetControllerReference(instance, icompute, r.Scheme)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return icompute, op, err
-}
-
 // SetupWithManager sets up the controller with the Manager.
 func (r *TelemetryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Telemetry{}).
-		Owns(&telemetryv1.CeilometerCentral{}).
-		Owns(&telemetryv1.CeilometerCompute{}).
-		Owns(&telemetryv1.InfraCompute{}).
+		Owns(&telemetryv1.Ceilometer{}).
 		Owns(&telemetryv1.Autoscaling{}).
 		Complete(r)
 }

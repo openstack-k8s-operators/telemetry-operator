@@ -21,14 +21,12 @@ import (
 	"fmt"
 	"time"
 
-	logr "github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,9 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
+	deployment "github.com/openstack-k8s-operators/lib-common/modules/common/deployment"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
@@ -50,34 +50,42 @@ import (
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
-	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
-	ceilometercompute "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometercompute"
-	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
+	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 )
 
-// CeilometerComputeReconciler reconciles a Ceilometer object
-type CeilometerComputeReconciler struct {
+// CeilometerReconciler reconciles a Ceilometer object
+type CeilometerReconciler struct {
 	client.Client
 	Kclient kubernetes.Interface
 	Log     logr.Logger
 	Scheme  *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercomputes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
+// +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=ansibleee.openstack.org,resources=openstackansibleees,verbs=get;list;watch;create;update;patch;delete;
+// +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch;
+// service account, role, rolebinding
+// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update
+// service account permissions that are needed to grant permission to the above
+// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
 
-// Reconcile reconciles a CeilometerCompute
-func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
-	_ = r.Log.WithValues("ceilometer-compute", req.NamespacedName)
+// Reconcile reconciles a Ceilometer
+func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
+	_ = r.Log.WithValues(ceilometer.ServiceName, req.NamespacedName)
 
-	// Fetch the CeilometerCompute instance
-	instance := &telemetryv1.CeilometerCompute{}
+	// Fetch the Ceilometer instance
+	instance := &telemetryv1.Ceilometer{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -136,11 +144,13 @@ func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		cl := condition.CreateList(
 			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-			condition.UnknownCondition(condition.AnsibleEECondition, condition.InitReason, condition.AnsibleEEReadyInitMessage),
+			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
 			// service account, role, rolebinding conditions
 			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
 			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
 			condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
+			// right now we have no dedicated KeystoneServiceReadyInitMessage
+			condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -162,43 +172,88 @@ func (r *CeilometerComputeReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
-func (r *CeilometerComputeReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.CeilometerCompute, helper *helper.Helper) (ctrl.Result, error) {
+func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
+
+	// Remove the finalizer from our KeystoneService CR
+	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, ceilometer.ServiceName, instance.Namespace)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+
+	if err == nil {
+		if controllerutil.RemoveFinalizer(keystoneService, helper.GetFinalizer()) {
+			err = r.Update(ctx, keystoneService)
+			if err != nil && !k8s_errors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
+			util.LogForObject(helper, "Removed finalizer from our KeystoneService", instance)
+		}
+	}
 
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
-
-	// Delete the openstack-ansibleee when the ceilometercompute is deleted
-	ansibleee := &ansibleeev1.OpenStackAnsibleEE{}
-	err := r.Get(ctx, types.NamespacedName{Name: ceilometercompute.ServiceName, Namespace: instance.Namespace}, ansibleee)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	if err == nil {
-		err = helper.GetClient().Delete(ctx, ansibleee)
-		if err != nil && !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Delete the extravars cm when the ceilometercompute is deleted
-	extravars := &corev1.ConfigMap{}
-	err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-ceilometer-extravars", telemetry.ServiceName), Namespace: instance.Namespace}, extravars)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	if err == nil {
-		err = helper.GetClient().Delete(ctx, extravars)
-		if err != nil && !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-	}
+	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", ceilometer.ServiceName))
 
 	return ctrl.Result{}, nil
 }
 
-func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.CeilometerCompute, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
+func (r *CeilometerReconciler) reconcileInit(
+	ctx context.Context,
+	instance *telemetryv1.Ceilometer,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) (ctrl.Result, error) {
+	r.Log.Info("Reconciling Service init")
+
+	//
+	// create Keystone service and users
+	//
+	_, _, err := secret.GetSecret(ctx, helper, instance.Spec.Secret, instance.Namespace)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
+		}
+		return ctrl.Result{}, err
+	}
+
+	ksSvcSpec := keystonev1.KeystoneServiceSpec{
+		ServiceType:        ceilometer.ServiceType,
+		ServiceName:        ceilometer.ServiceName,
+		ServiceDescription: "Ceilometer Service",
+		Enabled:            true,
+		ServiceUser:        instance.Spec.ServiceUser,
+		Secret:             instance.Spec.Secret,
+		PasswordSelector:   instance.Spec.PasswordSelectors.Service,
+	}
+
+	ksSvc := keystonev1.NewKeystoneService(ksSvcSpec, instance.Namespace, serviceLabels, 10)
+	ctrlResult, err := ksSvc.CreateOrPatch(ctx, helper)
+	if err != nil {
+		return ctrlResult, err
+	}
+
+	// mirror the Status, Reason, Severity and Message of the latest keystoneservice condition
+	// into a local condition with the type condition.KeystoneServiceReadyCondition
+	c := ksSvc.GetConditions().Mirror(condition.KeystoneServiceReadyCondition)
+	if c != nil {
+		instance.Status.Conditions.Set(c)
+	}
+
+	if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	if instance.Status.Hash == nil {
+		instance.Status.Hash = map[string]string{}
+	}
+
+	r.Log.Info("Reconciled Service init successfully")
+	return ctrl.Result{}, nil
+}
+
+func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
+	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", ceilometer.ServiceName))
 
 	// Service account, role, binding
 	rbacRules := []rbacv1.PolicyRule{
@@ -279,19 +334,6 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
-	// Create the extravars configmap
-	err = r.ensureExtravars(ctx, helper, instance)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.ServiceConfigReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
-	// end create extravars configmap
-
 	//
 	// create Configmap required for ceilometer input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
@@ -309,13 +351,92 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 		return ctrl.Result{}, err
 	}
 
+	//
+	// create Configmap required for ceilometer-compute input
+	// - %-scripts configmap holding scripts to e.g. bootstrap the service
+	// - %-config configmap holding minimal ceilometer-compute config required to get the service up, user can add additional files to be added to the service
+	// - parameters which has passwords gets added from the OpenStack secret via the init container
+	//
+	err = r.generateComputeServiceConfigMaps(ctx, helper, instance, &configMapVars)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	//
+	// create hash over all the different input resources to identify if any those changed
+	// and a restart/recreate is required.
+	//
+	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if err != nil {
+		return ctrl.Result{}, err
+	} else if hashChanged {
+		// Hash changed and instance status should be updated (which will be done by main defer func),
+		// so we need to return and reconcile again
+		return ctrl.Result{}, nil
+	}
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
-		common.AppSelector: ceilometercompute.ServiceName,
+		common.AppSelector: ceilometer.ServiceName,
 	}
 
-	_, err = r.createAnsibleExecution(ctx, instance, serviceLabels)
+	// Handle service init
+	ctrlResult, err = r.reconcileInit(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	// Define a new Deployment object
+	deplDef, err := ceilometer.Deployment(instance, inputHash, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	depl := deployment.NewDeployment(
+		deplDef,
+		time.Duration(5)*time.Second,
+	)
+
+	ctrlResult, err = depl.CreateOrPatch(ctx, helper)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DeploymentReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.DeploymentReadyErrorMessage,
+			err.Error()))
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DeploymentReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.DeploymentReadyRunningMessage))
+		return ctrlResult, nil
+	}
+
+	err = controllerutil.SetControllerReference(instance, deplDef, r.Scheme)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	instance.Status.ReadyCount = depl.GetDeployment().Status.ReadyReplicas
+	if instance.Status.ReadyCount > 0 {
+		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+	}
+	instance.Status.Networks = instance.Spec.NetworkAttachmentDefinitions
+
+	_, _, err = ceilometer.Service(instance, helper, ceilometer.CeilometerPrometheusPort, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -324,51 +445,8 @@ func (r *CeilometerComputeReconciler) reconcileNormal(ctx context.Context, insta
 	return ctrl.Result{}, nil
 }
 
-func (r *CeilometerComputeReconciler) createAnsibleExecution(ctx context.Context, instance *telemetryv1.CeilometerCompute,
-	labels map[string]string) (ctrl.Result, error) {
-	// Define a new AnsibleEE
-	ansibleEE, err := ceilometercompute.AnsibleEE(instance, labels)
-	if err != nil {
-		fmt.Println("Error defining new ansibleEE")
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.AnsibleEECondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.AnsibleEEReadyErrorMessage,
-			err.Error(),
-		))
-		return ctrl.Result{}, err
-	}
-
-	err = r.Client.Get(ctx, types.NamespacedName{Namespace: ansibleEE.Namespace, Name: ansibleEE.Name}, ansibleEE)
-	if err != nil {
-		if k8s_errors.IsNotFound(err) {
-			err = r.Create(ctx, ansibleEE)
-			if err != nil {
-				fmt.Println("Error creating ansibleEE")
-				instance.Status.Conditions.Set(condition.FalseCondition(
-					condition.AnsibleEECondition,
-					condition.ErrorReason,
-					condition.SeverityWarning,
-					condition.AnsibleEEReadyErrorMessage,
-					err.Error(),
-				))
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{}, nil
-		}
-		// Error reading the object - requeue the request.
-		return ctrl.Result{}, err
-	}
-
-	instance.Status.Conditions.MarkTrue(condition.AnsibleEECondition, condition.AnsibleEEReadyMessage)
-
-	fmt.Println("Returning...")
-	return ctrl.Result{}, nil
-}
-
 // getSecret - get the specified secret, and add its hash to envVars
-func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
+func (r *CeilometerReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.Ceilometer, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
 	secret, hash, err := secret.GetSecret(ctx, h, secretName, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -377,7 +455,7 @@ func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.H
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Secret %s not found", secretName)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("secret %s not found", secretName)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
@@ -395,14 +473,14 @@ func (r *CeilometerComputeReconciler) getSecret(ctx context.Context, h *helper.H
 	return ctrl.Result{}, nil
 }
 
-func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
+func (r *CeilometerReconciler) generateServiceConfigMaps(
 	ctx context.Context,
 	h *helper.Helper,
-	instance *telemetryv1.CeilometerCompute,
+	instance *telemetryv1.Ceilometer,
 	envVars *map[string]env.Setter,
 ) error {
 
-	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometercompute.ServiceName), map[string]string{})
+	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
 		customData[key] = data
@@ -419,15 +497,13 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	}
 
 	templateParameters := map[string]interface{}{
-		"KeystoneInternalURL":      keystoneInternalURL,
-		"ceilometer_compute_image": instance.Spec.ComputeImage,
-		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
+		"KeystoneInternalURL": keystoneInternalURL,
 	}
 
 	cms := []util.Template{
 		// ScriptsConfigMap
 		{
-			Name:               fmt.Sprintf("%s-scripts", ceilometercompute.ServiceName),
+			Name:               fmt.Sprintf("%s-scripts", ceilometer.ServiceName),
 			Namespace:          instance.Namespace,
 			Type:               util.TemplateTypeScripts,
 			InstanceType:       instance.Kind,
@@ -436,7 +512,7 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 		},
 		// ConfigMap
 		{
-			Name:          fmt.Sprintf("%s-config-data", ceilometercompute.ServiceName),
+			Name:          fmt.Sprintf("%s-config-data", ceilometer.ServiceName),
 			Namespace:     instance.Namespace,
 			Type:          util.TemplateTypeConfig,
 			InstanceType:  instance.Kind,
@@ -448,10 +524,87 @@ func (r *CeilometerComputeReconciler) generateServiceConfigMaps(
 	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 }
 
-func (r *CeilometerComputeReconciler) transportURLCreateOrUpdate(instance *telemetryv1.CeilometerCompute) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
+func (r *CeilometerReconciler) generateComputeServiceConfigMaps(
+	ctx context.Context,
+	h *helper.Helper,
+	instance *telemetryv1.Ceilometer,
+	envVars *map[string]env.Setter,
+) error {
+
+	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
+	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
+	for key, data := range instance.Spec.DefaultConfigOverwrite {
+		customData[key] = data
+	}
+
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
+	if err != nil {
+		return err
+	}
+
+	keystoneInternalURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
+	if err != nil {
+		return err
+	}
+
+	templateParameters := map[string]interface{}{
+		"KeystoneInternalURL":           keystoneInternalURL,
+		"ceilometer_compute_image":      instance.Spec.ComputeImage,
+		"ceilometer_ipmi_image":         instance.Spec.IpmiImage,
+		"telemetry_node_exporter_image": instance.Spec.NodeExporterImage,
+	}
+
+	cms := []util.Template{
+		// ScriptsConfigMap
+		{
+			Name:               fmt.Sprintf("%s-scripts", ceilometer.ComputeServiceName),
+			Namespace:          instance.Namespace,
+			Type:               util.TemplateTypeScripts,
+			InstanceType:       instance.Kind,
+			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
+			Labels:             cmLabels,
+		},
+		// ConfigMap
+		{
+			Name:          fmt.Sprintf("%s-config-data", ceilometer.ComputeServiceName),
+			Namespace:     instance.Namespace,
+			Type:          util.TemplateTypeConfig,
+			InstanceType:  instance.Kind,
+			CustomData:    customData,
+			ConfigOptions: templateParameters,
+			Labels:        cmLabels,
+		},
+	}
+	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
+}
+
+// createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
+// if any of the input resources change, like configs, passwords, ...
+//
+// returns the hash, whether the hash changed (as a bool) and any error
+func (r *CeilometerReconciler) createHashOfInputHashes(
+	ctx context.Context,
+	instance *telemetryv1.Ceilometer,
+	envVars map[string]env.Setter,
+) (string, bool, error) {
+	var hashMap map[string]string
+	changed := false
+	mergedMapVars := env.MergeEnvs([]corev1.EnvVar{}, envVars)
+	hash, err := util.ObjectHash(mergedMapVars)
+	if err != nil {
+		return hash, changed, err
+	}
+	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
+		instance.Status.Hash = hashMap
+		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
+	}
+	return hash, changed, nil
+}
+
+func (r *CeilometerReconciler) transportURLCreateOrUpdate(instance *telemetryv1.Ceilometer) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-transport", instance.Name),
+			Name:      fmt.Sprintf("%s-transport", ceilometer.ServiceName),
 			Namespace: instance.Namespace,
 		},
 	}
@@ -463,63 +616,43 @@ func (r *CeilometerComputeReconciler) transportURLCreateOrUpdate(instance *telem
 	return transportURL, op, err
 }
 
-func (r *CeilometerComputeReconciler) ensureExtravars(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCompute) error {
-	configMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-ceilometer-extravars", telemetry.ServiceName),
-			Namespace: instance.Namespace,
-		},
-		Data: map[string]string{},
-	}
-
-	_, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), configMap, func() error {
-		configMap.Data["extravars"] = "deploy_target_host: all"
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error create/updating configmap: %w", err)
-	}
-
-	return nil
-}
-
 // SetupWithManager sets up the controller with the Manager.
-func (r *CeilometerComputeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	// transportURLSecretFn - Watch for changes made to the secret associated with the RabbitMQ
-	// TransportURL created and used by CeilometerCompute CRs.  Watch functions return a list of namespace-scoped
+	// TransportURL created and used by Ceilometer CRs.  Watch functions return a list of namespace-scoped
 	// CRs that then get fed  to the reconciler.  Hence, in this case, we need to know the name of the
-	// CeilometerCompute CR associated with the secret we are examining in the function.  We could parse the name
+	// Ceilometer CR associated with the secret we are examining in the function.  We could parse the name
 	// out of the "%s-transport" secret label, which would be faster than getting the list of
-	// the CeilometerCompute CRs and trying to match on each one.  The downside there, however, is that technically
+	// the Ceilometer CRs and trying to match on each one.  The downside there, however, is that technically
 	// someone could randomly label a secret "something-transport" where "something" actually
-	// matches the name of an existing CeilometerCompute CR.  In that case changes to that secret would trigger
-	// reconciliation for a CeilometerCompute CR that does not need it.
+	// matches the name of an existing Ceilometer CR.  In that case changes to that secret would trigger
+	// reconciliation for a Ceilometer CR that does not need it.
 	//
-	// TODO: We also need a watch func to monitor for changes to the secret referenced by CeilometerCompute.Spec.Secret
+	// TODO: We also need a watch func to monitor for changes to the secret referenced by Ceilometer.Spec.Secret
 	transportURLSecretFn := func(o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
-		// get all CeilometerCompute CRs
-		ceilometerComputes := &telemetryv1.CeilometerComputeList{}
+		// get all Ceilometer CRs
+		ceilometers := &telemetryv1.CeilometerList{}
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), ceilometerComputes, listOpts...); err != nil {
-			r.Log.Error(err, "Unable to retrieve CeilometerCompute CRs %v")
+		if err := r.Client.List(context.Background(), ceilometers, listOpts...); err != nil {
+			r.Log.Error(err, "Unable to retrieve Ceilometer CRs %v")
 			return nil
 		}
 
 		for _, ownerRef := range o.GetOwnerReferences() {
 			if ownerRef.Kind == "TransportURL" {
-				for _, cr := range ceilometerComputes.Items {
+				for _, cr := range ceilometers.Items {
 					if ownerRef.Name == fmt.Sprintf("%s-transport", cr.Name) {
 						// return namespace and Name of CR
 						name := client.ObjectKey{
 							Namespace: o.GetNamespace(),
 							Name:      cr.Name,
 						}
-						r.Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to CeilometerCompute CR %s", o.GetName(), cr.Name))
+						r.Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to Ceilometer CR %s", o.GetName(), cr.Name))
 						result = append(result, reconcile.Request{NamespacedName: name})
 					}
 				}
@@ -532,12 +665,16 @@ func (r *CeilometerComputeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&telemetryv1.CeilometerCompute{}).
-		Owns(&ansibleeev1.OpenStackAnsibleEE{}).
+		For(&telemetryv1.Ceilometer{}).
+		Owns(&keystonev1.KeystoneService{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Service{}).
+		Owns(&rabbitmqv1.TransportURL{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		// Watch for TransportURL Secrets which belong to any TransportURLs created by Heat CRs
+		// Watch for TransportURL Secrets which belong to any TransportURLs created by Ceilometer CRs
 		Watches(&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
 		Complete(r)

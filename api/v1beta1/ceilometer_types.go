@@ -26,14 +26,21 @@ import (
 const (
 	// CeilometerCentralContainerImage - default fall-back image for Ceilometer Central
 	CeilometerCentralContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
-	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notifcation
+	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notification
 	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
 	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
 	CeilometerSgCoreContainerImage = "quay.io/infrawatch/sg-core:latest"
+	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
+	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
+	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
+	CeilometerIpmiContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
+	// NodeExporterContainerImage - default fall-back image for node_exporter
+	// NodeExporterContainerImage = "registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.13"
+	NodeExporterContainerImage = "quay.io/prometheus/node-exporter:v1.5.0"
 )
 
-// CeilometerCentralSpec defines the desired state of CeilometerCentral
-type CeilometerCentralSpec struct {
+// CeilometerSpec defines the desired state of Ceilometer
+type CeilometerSpec struct {
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Telemetry
 	// +kubebuilder:default=rabbitmq
@@ -76,12 +83,18 @@ type CeilometerCentralSpec struct {
 	SgCoreImage string `json:"sgCoreImage"`
 
 	// +kubebuilder:validation:Required
-	InitImage string `json:"initImage"`
+	ComputeImage string `json:"computeImage"`
+
+	// +kubebuilder:validation:Required
+	IpmiImage string `json:"ipmiImage"`
+
+	// +kubebuilder:validation:Required
+	NodeExporterImage string `json:"nodeExporterImage"`
 }
 
-// CeilometerCentralStatus defines the observed state of CeilometerCentral
-type CeilometerCentralStatus struct {
-	// ReadyCount of ceilometercentral instances
+// CeilometerStatus defines the observed state of Ceilometer
+type CeilometerStatus struct {
+	// ReadyCount of ceilometer instances
 	ReadyCount int32 `json:"readyCount,omitempty"`
 
 	// Map of hashes to track e.g. job status
@@ -100,57 +113,58 @@ type CeilometerCentralStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// CeilometerCentral is the Schema for the ceilometercentrals API
-type CeilometerCentral struct {
+// Ceilometer is the Schema for the ceilometers API
+type Ceilometer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CeilometerCentralSpec   `json:"spec,omitempty"`
-	Status CeilometerCentralStatus `json:"status,omitempty"`
+	Spec   CeilometerSpec   `json:"spec,omitempty"`
+	Status CeilometerStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// CeilometerCentralList contains a list of CeilometerCentral
-type CeilometerCentralList struct {
+// CeilometerList contains a list of Ceilometer
+type CeilometerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []CeilometerCentral `json:"items"`
+	Items           []Ceilometer `json:"items"`
 }
 
-// IsReady - returns true if CeilometerCentral is reconciled successfully
-func (instance CeilometerCentral) IsReady() bool {
+// IsReady - returns true if Ceilometer is reconciled successfully
+func (instance Ceilometer) IsReady() bool {
 	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {
-	SchemeBuilder.Register(&CeilometerCentral{}, &CeilometerCentralList{})
+	SchemeBuilder.Register(&Ceilometer{}, &CeilometerList{})
 }
 
 // RbacConditionsSet - set the conditions for the rbac object
-func (instance CeilometerCentral) RbacConditionsSet(c *condition.Condition) {
+func (instance Ceilometer) RbacConditionsSet(c *condition.Condition) {
 	instance.Status.Conditions.Set(c)
 }
 
 // RbacNamespace - return the namespace
-func (instance CeilometerCentral) RbacNamespace() string {
+func (instance Ceilometer) RbacNamespace() string {
 	return instance.Namespace
 }
 
 // RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
-func (instance CeilometerCentral) RbacResourceName() string {
+func (instance Ceilometer) RbacResourceName() string {
 	return "telemetry-" + instance.Name
 }
 
-// SetupDefaultsCeilometerCentral - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
-func SetupDefaultsCeilometerCentral() {
+// SetupDefaultsCeilometer - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaultsCeilometer() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
-	ceilometercentralDefaults := CeilometerCentralDefaults{
+	ceilometerDefaults := CeilometerDefaults{
 		CentralContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
-		CentralInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
 		SgCoreContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
 		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
+		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
+		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
 	}
 
-	SetupCeilometerCentralDefaults(ceilometercentralDefaults)
+	SetupCeilometerDefaults(ceilometerDefaults)
 }

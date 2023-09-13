@@ -123,33 +123,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.CeilometerCentralReconciler{
+	if err = (&controllers.CeilometerReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Kclient: kclient,
-		Log:     ctrl.Log.WithName("controllers").WithName("CeilometerCentral"),
+		Log:     ctrl.Log.WithName("controllers").WithName("Ceilometer"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create CeilometerCentral controller")
-		os.Exit(1)
-	}
-
-	if err = (&controllers.CeilometerComputeReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Kclient: kclient,
-		Log:     ctrl.Log.WithName("controllers").WithName("CeilometerCompute"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create CeilometerCompute controller")
-		os.Exit(1)
-	}
-
-	if err = (&controllers.InfraComputeReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Kclient: kclient,
-		Log:     ctrl.Log.WithName("controllers").WithName("InfraCompute"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create InfraCompute controller")
+		setupLog.Error(err, "unable to create Ceilometer controller")
 		os.Exit(1)
 	}
 
@@ -165,9 +145,7 @@ func main() {
 
 	// Acquire environmental defaults and initialize defaults with them
 	telemetryv1beta1.SetupDefaultsTelemetry()
-	telemetryv1beta1.SetupDefaultsCeilometerCentral()
-	telemetryv1beta1.SetupDefaultsCeilometerCompute()
-	telemetryv1beta1.SetupDefaultsInfraCompute()
+	telemetryv1beta1.SetupDefaultsCeilometer()
 
 	// Setup webhooks if requested
 	checker := healthz.Ping
@@ -176,16 +154,8 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Telemetry")
 			os.Exit(1)
 		}
-		if err = (&telemetryv1beta1.CeilometerCentral{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "CeilometerCentral")
-			os.Exit(1)
-		}
-		if err = (&telemetryv1beta1.CeilometerCompute{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "CeilometerCompute")
-			os.Exit(1)
-		}
-		if err = (&telemetryv1beta1.InfraCompute{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "InfraCompute")
+		if err = (&telemetryv1beta1.Ceilometer{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Ceilometer")
 			os.Exit(1)
 		}
 		checker = mgr.GetWebhookServer().StartedChecker()

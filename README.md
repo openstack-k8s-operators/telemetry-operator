@@ -31,7 +31,7 @@ make openstack
 make openstack_deploy
 ```
 
-4.- Remove CeilometerCentral deployment
+4.- Remove Ceilometer deployment
 ```
 oc patch openstackcontrolplane openstack --type='json' -p='[{"op": "replace", "path": "/spec/ceilometer/enabled", "value":false}]'
 ```

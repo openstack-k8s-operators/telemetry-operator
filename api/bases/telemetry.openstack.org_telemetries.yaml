@@ -63,11 +63,13 @@ spec:
                         type: integer
                     type: object
                 type: object
-              ceilometerCentral:
-                description: CeilometerCentral - Spec definition for the CeilometerCentral
-                  service of this Telemetry deployment
+              ceilometer:
+                description: Ceilometer - Spec definition for the Ceilometer service
+                  of this Telemetry deployment
                 properties:
                   centralImage:
+                    type: string
+                  computeImage:
                     type: string
                   customServiceConfig:
                     default: '# add your customization here'
@@ -85,7 +87,7 @@ spec:
                       also be used to add additional files. Those get added to the
                       service config dir in /etc/<service> . TODO: -> implement'
                     type: object
-                  initImage:
+                  ipmiImage:
                     type: string
                   networkAttachmentDefinitions:
                     description: NetworkAttachmentDefinitions list of network attachment
@@ -93,6 +95,8 @@ spec:
                     items:
                       type: string
                     type: array
+                  nodeExporterImage:
+                    type: string
                   notificationImage:
                     type: string
                   passwordSelector:
@@ -125,121 +129,16 @@ spec:
                     type: string
                 required:
                 - centralImage
-                - initImage
+                - computeImage
+                - ipmiImage
+                - nodeExporterImage
                 - notificationImage
                 - secret
                 - sgCoreImage
                 type: object
-              ceilometerCompute:
-                description: CeilometerCompute - Spec definition for the CeilometerCompute
-                  service of this Telemetry deployment
-                properties:
-                  computeImage:
-                    description: ComputeImage is the image used for the ceilometer-agent-compute
-                      container
-                    type: string
-                  customServiceConfig:
-                    default: '# add your customization here'
-                    description: CustomServiceConfig - customize the service config
-                      using this parameter to change service defaults, or overwrite
-                      rendered information using raw OpenStack config format. The
-                      content gets added to to /etc/<service>/<service>.conf.d directory
-                      as custom.conf file.
-                    type: string
-                  dataplaneInventoryConfigMap:
-                    description: DataplaneInventoryConfigMap
-                    type: string
-                  dataplaneSSHSecret:
-                    description: DataplaneSSHSecret
-                    type: string
-                  defaultConfigOverwrite:
-                    additionalProperties:
-                      type: string
-                    description: 'DefaultConfigOverwrite - interface to overwrite
-                      default config files like e.g. logging.conf or policy.json.
-                      But can also be used to add additional files. Those get added
-                      to the service config dir in /etc/<service> . TODO: -> implement'
-                    type: object
-                  initImage:
-                    description: InitImage is the image used for the init container
-                    type: string
-                  ipmiImage:
-                    description: IpmiImage is the image used for the ceilometer-agent-ipmi
-                      container
-                    type: string
-                  passwordSelector:
-                    default:
-                      service: CeilometerPassword
-                    description: PasswordSelectors - Selectors to identify the service
-                      from the Secret
-                    properties:
-                      service:
-                        default: CeilometerPassword
-                        description: Service - Selector to get the ceilometer service
-                          password from the Secret
-                        type: string
-                    type: object
-                  playbook:
-                    default: deploy_ceilometer.yml
-                    description: Playbook executed
-                    type: string
-                  rabbitMqClusterName:
-                    default: rabbitmq
-                    description: RabbitMQ instance name Needed to request a transportURL
-                      that is created and used in Telemetry
-                    type: string
-                  secret:
-                    description: Secret containing OpenStack password information
-                      for ceilometer
-                    type: string
-                  serviceUser:
-                    default: ceilometer
-                    description: ServiceUser - optional username used for this service
-                      to register in keystone
-                    type: string
-                required:
-                - computeImage
-                - dataplaneInventoryConfigMap
-                - dataplaneSSHSecret
-                - initImage
-                - ipmiImage
-                - secret
-                type: object
-              infraCompute:
-                description: InfraCompute - Spec definition for the InfraCompute service
-                  of this Telemetry deployment
-                properties:
-                  dataplaneInventoryConfigMap:
-                    description: DataplaneInventoryConfigMap
-                    type: string
-                  dataplaneSSHSecret:
-                    description: DataplaneSSHSecret
-                    type: string
-                  description:
-                    default: An infra compute agent
-                    type: string
-                  extravarsConfigMap:
-                    default: telemetry-infracompute-extravars
-                    description: The extravars ConfigMap to pass to ansible execution
-                    type: string
-                  nodeExporterImage:
-                    description: NodeExporterImage is the image used for the node_exporter
-                      container
-                    type: string
-                  playbook:
-                    default: deploy_infra.yml
-                    description: Playbook executed
-                    type: string
-                required:
-                - dataplaneInventoryConfigMap
-                - dataplaneSSHSecret
-                - nodeExporterImage
-                type: object
             required:
             - autoscaling
-            - ceilometerCentral
-            - ceilometerCompute
-            - infraCompute
+            - ceilometer
             type: object
           status:
             description: TelemetryStatus defines the observed state of Telemetry
@@ -248,12 +147,8 @@ spec:
                 description: ReadyCount of Autoscaling instance
                 format: int32
                 type: integer
-              ceilometerCentralReadyCount:
-                description: ReadyCount of CeilometerCentral instance
-                format: int32
-                type: integer
-              ceilometerComputeReadyCount:
-                description: ReadyCount of CeilometerCompute instance
+              ceilometerReadyCount:
+                description: ReadyCount of Ceilometer instance
                 format: int32
                 type: integer
               conditions:
@@ -304,10 +199,6 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
-              infraComputeReadyCount:
-                description: ReadyCount of InfraCompute instance
-                format: int32
-                type: integer
             type: object
         type: object
     served: true

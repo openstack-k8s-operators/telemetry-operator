@@ -29,9 +29,7 @@ import (
 // TelemetryDefaults -
 type TelemetryDefaults struct {
 	CentralContainerImageURL      string
-	CentralInitContainerImageURL  string
 	ComputeContainerImageURL      string
-	ComputeInitContainerImageURL  string
 	NotificationContainerImageURL string
 	SgCoreContainerImageURL       string
 	NodeExporterContainerImageURL string
@@ -69,29 +67,23 @@ func (r *Telemetry) Default() {
 
 // Default - set defaults for this Telemetry spec
 func (spec *TelemetrySpec) Default() {
-	if spec.CeilometerCentral.CentralImage == "" {
-		spec.CeilometerCentral.CentralImage = telemetryDefaults.CentralContainerImageURL
+	if spec.Ceilometer.CentralImage == "" {
+		spec.Ceilometer.CentralImage = telemetryDefaults.CentralContainerImageURL
 	}
-	if spec.CeilometerCentral.InitImage == "" {
-		spec.CeilometerCentral.InitImage = telemetryDefaults.CentralInitContainerImageURL
+	if spec.Ceilometer.ComputeImage == "" {
+		spec.Ceilometer.ComputeImage = telemetryDefaults.ComputeContainerImageURL
 	}
-	if spec.CeilometerCompute.ComputeImage == "" {
-		spec.CeilometerCompute.ComputeImage = telemetryDefaults.ComputeContainerImageURL
+	if spec.Ceilometer.IpmiImage == "" {
+		spec.Ceilometer.IpmiImage = telemetryDefaults.IpmiContainerImageURL
 	}
-	if spec.CeilometerCompute.IpmiImage == "" {
-		spec.CeilometerCompute.IpmiImage = telemetryDefaults.IpmiContainerImageURL
+	if spec.Ceilometer.NotificationImage == "" {
+		spec.Ceilometer.NotificationImage = telemetryDefaults.NotificationContainerImageURL
 	}
-	if spec.CeilometerCompute.InitImage == "" {
-		spec.CeilometerCompute.InitImage = telemetryDefaults.ComputeInitContainerImageURL
+	if spec.Ceilometer.SgCoreImage == "" {
+		spec.Ceilometer.SgCoreImage = telemetryDefaults.SgCoreContainerImageURL
 	}
-	if spec.CeilometerCentral.NotificationImage == "" {
-		spec.CeilometerCentral.NotificationImage = telemetryDefaults.NotificationContainerImageURL
-	}
-	if spec.CeilometerCentral.SgCoreImage == "" {
-		spec.CeilometerCentral.SgCoreImage = telemetryDefaults.SgCoreContainerImageURL
-	}
-	if spec.InfraCompute.NodeExporterImage == "" {
-		spec.InfraCompute.NodeExporterImage = telemetryDefaults.NodeExporterContainerImageURL
+	if spec.Ceilometer.NodeExporterImage == "" {
+		spec.Ceilometer.NodeExporterImage = telemetryDefaults.NodeExporterContainerImageURL
 	}
 }
 
