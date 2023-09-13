@@ -21,7 +21,9 @@ import (
 	"fmt"
 
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,6 +55,8 @@ type AutoscalingReconciler struct {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings/finalizers,verbs=update
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list
+// +kubebuilder:rbac:groups=monitoring.rhobs,resources=monitoringstacks,verbs=get;list;watch
 
 // Reconcile reconciles an Autoscaling
 func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -390,6 +394,21 @@ func (r *AutoscalingReconciler) reconcilePrometheus(ctx context.Context,
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AutoscalingReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "apiextensions.k8s.io",
+		Kind:    "CustomResourceDefinition",
+		Version: "v1",
+	})
+	err := r.Client.Get(context.Background(), client.ObjectKey{
+		Name: "monitoringstacks.monitoring.rhobs",
+	}, u)
+	if err != nil {
+		return ctrl.NewControllerManagedBy(mgr).
+			For(&telemetryv1.Autoscaling{}).
+			Complete(r)
+	}
+	// There is OBO installed and we can own MonitoringStack
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Autoscaling{}).
 		Owns(&obov1.MonitoringStack{}).
