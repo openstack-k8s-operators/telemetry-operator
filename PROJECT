@@ -27,33 +27,7 @@ resources:
   controller: true
   domain: openstack.org
   group: telemetry
-  kind: CeilometerCentral
-  path: github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1
-  version: v1beta1
-  webhooks:
-    defaulting: true
-    validation: true
-    webhookVersion: v1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: openstack.org
-  group: telemetry
-  kind: CeilometerCompute
-  path: github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1
-  version: v1beta1
-  webhooks:
-    defaulting: true
-    validation: true
-    webhookVersion: v1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: openstack.org
-  group: telemetry
-  kind: InfraCompute
+  kind: Ceilometer
   path: github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1
   version: v1beta1
   webhooks:

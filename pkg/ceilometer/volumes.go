@@ -13,14 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometercompute
+package ceilometer
 
 import (
 	corev1 "k8s.io/api/core/v1"
-
-	storage "github.com/openstack-k8s-operators/lib-common/modules/storage"
-	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
-	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 )
 
 var (
@@ -58,6 +54,19 @@ func getVolumes(name string) []corev1.Volume {
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
 			},
+		}, {
+			Name: "sg-core-conf-yaml",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					Items: []corev1.KeyToPath{{
+						Key:  "sg-core.conf.yaml",
+						Path: "sg-core.conf.yaml",
+					}},
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: name + "-config-data",
+					},
+				},
+			},
 		},
 	}
 }
@@ -84,7 +93,7 @@ func getInitVolumeMounts() []corev1.VolumeMount {
 }
 
 // getVolumeMounts - general VolumeMounts
-func getVolumeMounts() []corev1.VolumeMount {
+func getVolumeMounts(serviceName string) []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
 			Name:      "scripts",
@@ -96,67 +105,22 @@ func getVolumeMounts() []corev1.VolumeMount {
 			MountPath: "/var/lib/config-data/merged",
 			ReadOnly:  false,
 		},
+		{
+			Name:      "config-data-merged",
+			MountPath: "/var/lib/kolla/config_files/config.json",
+			SubPath:   serviceName + "-config.json",
+			ReadOnly:  true,
+		},
 	}
 }
 
-func getExtraMounts(name string, instance *telemetryv1.CeilometerCompute) []storage.VolMounts {
-	volumes := []corev1.Volume{
+// getSgCoreVolumeMounts - VolumeMounts for SGCore container
+func getSgCoreVolumeMounts() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
 		{
-			Name: "sshkey",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: instance.Spec.DataplaneSSHSecret,
-					Items: []corev1.KeyToPath{
-						{
-							Key:  "ssh-privatekey",
-							Path: "ssh_key",
-						},
-					},
-				},
-			},
-		}, {
-			Name: "inventory",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					DefaultMode: &Config0640AccessMode,
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: instance.Spec.DataplaneInventoryConfigMap,
-					},
-				},
-			},
-		}, {
-			Name: "extravars",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: telemetry.ServiceName + "-ceilometer-extravars",
-					},
-				},
-			},
-		},
-	}
-
-	mounts := []corev1.VolumeMount{
-		{
-			Name:      "sshkey",
-			MountPath: "/runner/env/ssh_key",
-			SubPath:   "ssh_key",
-		}, {
-			Name:      "inventory",
-			MountPath: "/runner/inventory/hosts",
-			SubPath:   "inventory",
-		},
-		{
-			Name:      "extravars",
-			MountPath: "/runner/env/extravars",
-			SubPath:   "extravars",
-		},
-	}
-
-	return []storage.VolMounts{
-		{
-			Volumes: append(getVolumes(name), volumes...),
-			Mounts:  append(getVolumeMounts(), mounts...),
+			Name:      "sg-core-conf-yaml",
+			MountPath: "/etc/sg-core.conf.yaml",
+			SubPath:   "sg-core.conf.yaml",
 		},
 	}
 }

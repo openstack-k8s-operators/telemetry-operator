@@ -38,16 +38,8 @@ type TelemetrySpec struct {
 	Autoscaling AutoscalingSpec `json:"autoscaling"`
 
 	// +kubebuilder:validation:Required
-	// CeilometerCentral - Spec definition for the CeilometerCentral service of this Telemetry deployment
-	CeilometerCentral CeilometerCentralSpec `json:"ceilometerCentral"`
-
-	// +kubebuilder:validation:Required
-	// CeilometerCompute - Spec definition for the CeilometerCompute service of this Telemetry deployment
-	CeilometerCompute CeilometerComputeSpec `json:"ceilometerCompute"`
-
-	// +kubebuilder:validation:Required
-	// InfraCompute - Spec definition for the InfraCompute service of this Telemetry deployment
-	InfraCompute InfraComputeSpec `json:"infraCompute"`
+	// Ceilometer - Spec definition for the Ceilometer service of this Telemetry deployment
+	Ceilometer CeilometerSpec `json:"ceilometer"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry
@@ -58,14 +50,8 @@ type TelemetryStatus struct {
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
 
-	// ReadyCount of CeilometerCentral instance
-	CeilometerCentralReadyCount int32 `json:"ceilometerCentralReadyCount,omitempty"`
-
-	// ReadyCount of CeilometerCompute instance
-	CeilometerComputeReadyCount int32 `json:"ceilometerComputeReadyCount,omitempty"`
-
-	// ReadyCount of InfraCompute instance
-	InfraComputeReadyCount int32 `json:"infraComputeReadyCount,omitempty"`
+	// ReadyCount of Ceilometer instance
+	CeilometerReadyCount int32 `json:"ceilometerReadyCount,omitempty"`
 
 	// ReadyCount of Autoscaling instance
 	AutoscalingReadyCount int32 `json:"autoscalingReadyCount,omitempty"`
@@ -106,9 +92,7 @@ func SetupDefaultsTelemetry() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	telemetryDefaults := TelemetryDefaults{
 		CentralContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
-		CentralInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_INIT_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
 		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
-		ComputeInitContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_INIT_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
 		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
 		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
 		NodeExporterContainerImageURL: util.GetEnvVar("RELATED_IMAGE_TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),

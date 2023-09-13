@@ -10,7 +10,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometercentral
+package ceilometer
 
 import (
 	"context"
@@ -27,7 +27,7 @@ import (
 
 // Service creates services in Kubernetes for the appropiate port in the passed node
 func Service(
-	instance *telemetryv1.CeilometerCentral,
+	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
 	port int,
 	labels map[string]string,
