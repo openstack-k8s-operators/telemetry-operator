@@ -13,6 +13,11 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: Autoscaling is the Schema for the autoscalings API
+      displayName: Autoscaling
+      kind: Autoscaling
+      name: autoscalings.telemetry.openstack.org
+      version: v1beta1
     - description: Ceilometer is the Schema for the ceilometers API
       displayName: Ceilometer
       kind: Ceilometer
