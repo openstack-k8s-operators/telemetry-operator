@@ -574,7 +574,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfigMaps(
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
 // if any of the input resources change, like configs, passwords, ...
 //
-// returns the hash, whether the hash changed (as a bool) and any error
+// returns the hash and any error
 func (r *CeilometerReconciler) createHashOfInputHashes(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
