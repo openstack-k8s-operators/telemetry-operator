@@ -60,11 +60,9 @@ make manifests generate
 OPERATOR_TEMPLATES=$PWD/templates make run
 ```
 
-8.- Deploy any telemetry object you want. It is not needed to run all three, just use the one you want to test.
+8.- Deploy Ceilometer:
 ```
-oc apply -f config/samples/telemetry_v1beta1_ceilometercentral.yaml
-oc apply -f config/samples/telemetry_v1beta1_ceilometercompute.yaml
-oc apply -f config/samples/telemetry_v1beta1_infracompute.yaml
+oc apply -f config/samples/telemetry_v1beta1_ceilometer.yaml
 ```
 
 ## Testing edpm-ansible changes

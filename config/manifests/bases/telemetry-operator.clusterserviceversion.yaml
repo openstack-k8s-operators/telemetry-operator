@@ -13,7 +13,7 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: Ceilometer is the Schema for the ceilometercentrals API
+    - description: Ceilometer is the Schema for the ceilometers API
       displayName: Ceilometer
       kind: Ceilometer
       name: ceilometers.telemetry.openstack.org

@@ -1,12 +1,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: ceilometercentrals.telemetry.openstack.org
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: ceilometercomputes.telemetry.openstack.org
+  name: ceilometers.telemetry.openstack.org
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -244,7 +239,7 @@ rules:
 - apiGroups:
   - telemetry.openstack.org
   resources:
-  - ceilometercentrals
+  - ceilometers
   verbs:
   - create
   - delete
@@ -256,13 +251,13 @@ rules:
 - apiGroups:
   - telemetry.openstack.org
   resources:
-  - ceilometercentrals/finalizers
+  - ceilometers/finalizers
   verbs:
   - update
 - apiGroups:
   - telemetry.openstack.org
   resources:
-  - ceilometercentrals/status
+  - ceilometers/status
   verbs:
   - get
   - patch

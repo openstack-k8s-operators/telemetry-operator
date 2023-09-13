@@ -3,9 +3,6 @@
 # It should be run by config/default
 resources:
 - bases/telemetry.openstack.org_telemetries.yaml
-- bases/telemetry.openstack.org_ceilometercentrals.yaml
-- bases/telemetry.openstack.org_ceilometercomputes.yaml
-- bases/telemetry.openstack.org_infracomputes.yaml
 - bases/telemetry.openstack.org_autoscalings.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
@@ -13,18 +10,14 @@ patchesStrategicMerge:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
 #- patches/webhook_in_telemetries.yaml
-#- patches/webhook_in_ceilometercentrals.yaml
-#- patches/webhook_in_ceilometercomputes.yaml
-#- patches/webhook_in_infracomputes.yaml
+#- patches/webhook_in_ceilometers.yaml
 #- patches/webhook_in_autoscalings.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
 # patches here are for enabling the CA injection for each CRD
 #- patches/cainjection_in_telemetries.yaml
-#- patches/cainjection_in_ceilometercentrals.yaml
-#- patches/cainjection_in_ceilometercomputes.yaml
-#- patches/cainjection_in_infracomputes.yaml
+#- patches/cainjection_in_ceilometers.yaml
 #- patches/cainjection_in_autoscalings.yaml
 #+kubebuilder:scaffold:crdkustomizecainjectionpatch
 
