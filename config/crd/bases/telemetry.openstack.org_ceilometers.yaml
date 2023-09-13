@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: ceilometercomputes.telemetry.openstack.org
+  name: ceilometers.telemetry.openstack.org
 spec:
   group: telemetry.openstack.org
   names:
-    kind: CeilometerCompute
-    listKind: CeilometerComputeList
-    plural: ceilometercomputes
-    singular: ceilometercompute
+    kind: Ceilometer
+    listKind: CeilometerList
+    plural: ceilometers
+    singular: ceilometer
   scope: Namespaced
   versions:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: CeilometerCompute is the Schema for the ceilometercomputes API
+        description: Ceilometer is the Schema for the ceilometers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,11 +33,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: CeilometerComputeSpec defines the desired state of CeilometerCompute
+            description: CeilometerSpec defines the desired state of Ceilometer
             properties:
+              centralImage:
+                type: string
               computeImage:
-                description: ComputeImage is the image used for the ceilometer-agent-compute
-                  container
                 type: string
               customServiceConfig:
                 default: '# add your customization here'
@@ -47,26 +47,25 @@ spec:
                   added to to /etc/<service>/<service>.conf.d directory as custom.conf
                   file.
                 type: string
-              dataplaneInventoryConfigMap:
-                description: DataplaneInventoryConfigMap
-                type: string
-              dataplaneSSHSecret:
-                description: DataplaneSSHSecret
-                type: string
               defaultConfigOverwrite:
                 additionalProperties:
                   type: string
-                description: 'DefaultConfigOverwrite - interface to overwrite default
-                  config files like e.g. logging.conf or policy.json. But can also
-                  be used to add additional files. Those get added to the service
-                  config dir in /etc/<service> . TODO: -> implement'
+                description: 'ConfigOverwrite - interface to overwrite default config
+                  files like e.g. logging.conf or policy.json. But can also be used
+                  to add additional files. Those get added to the service config dir
+                  in /etc/<service> . TODO: -> implement'
                 type: object
-              initImage:
-                description: InitImage is the image used for the init container
-                type: string
               ipmiImage:
-                description: IpmiImage is the image used for the ceilometer-agent-ipmi
-                  container
+                type: string
+              networkAttachmentDefinitions:
+                description: NetworkAttachmentDefinitions list of network attachment
+                  definitions the service pod gets attached to
+                items:
+                  type: string
+                type: array
+              nodeExporterImage:
+                type: string
+              notificationImage:
                 type: string
               passwordSelector:
                 default:
@@ -80,10 +79,6 @@ spec:
                       password from the Secret
                     type: string
                 type: object
-              playbook:
-                default: deploy_ceilometer.yml
-                description: Playbook executed
-                type: string
               rabbitMqClusterName:
                 default: rabbitmq
                 description: RabbitMQ instance name Needed to request a transportURL
@@ -98,16 +93,19 @@ spec:
                 description: ServiceUser - optional username used for this service
                   to register in keystone
                 type: string
+              sgCoreImage:
+                type: string
             required:
+            - centralImage
             - computeImage
-            - dataplaneInventoryConfigMap
-            - dataplaneSSHSecret
-            - initImage
             - ipmiImage
+            - nodeExporterImage
+            - notificationImage
             - secret
+            - sgCoreImage
             type: object
           status:
-            description: CeilometerComputeStatus defines the observed state of CeilometerCompute
+            description: CeilometerStatus defines the observed state of Ceilometer
             properties:
               conditions:
                 description: Conditions
@@ -157,8 +155,14 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
+              networks:
+                description: Networks in addtion to the cluster network, the service
+                  is attached to
+                items:
+                  type: string
+                type: array
               readyCount:
-                description: ReadyCount of ceilometercompute instances
+                description: ReadyCount of ceilometer instances
                 format: int32
                 type: integer
               transportURLSecret:

@@ -4,21 +4,14 @@ metadata:
   name: telemetry
   namespace: openstack
 spec:
-  ceilometerCentral:
+  ceilometer:
     initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
     centralImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
     notificationImage: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
     sgCoreImage: quay.io/infrawatch/sg-core:latest
-  ceilometerCompute:
-    initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
     computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
     ipmiImage: quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified
-    dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
-    dataplaneInventoryConfigMap: dataplanerole-edpm-compute
-  infraCompute:
     nodeExporterImage: quay.io/prometheus/node-exporter:v1.5.0
-    dataplaneSSHSecret: dataplane-ansible-ssh-private-key-secret
-    dataplaneInventoryConfigMap: dataplanerole-edpm-compute
   autoscaling:
     enabled: false
     prometheus:

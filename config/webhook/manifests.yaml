@@ -11,9 +11,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-telemetry-openstack-org-v1beta1-ceilometercentral
+      path: /mutate-telemetry-openstack-org-v1beta1-ceilometer
   failurePolicy: Fail
-  name: mceilometercentral.kb.io
+  name: mceilometer.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -23,47 +23,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - ceilometercentrals
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-telemetry-openstack-org-v1beta1-ceilometercompute
-  failurePolicy: Fail
-  name: mceilometercompute.kb.io
-  rules:
-  - apiGroups:
-    - telemetry.openstack.org
-    apiVersions:
-    - v1beta1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - ceilometercomputes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-telemetry-openstack-org-v1beta1-infracompute
-  failurePolicy: Fail
-  name: minfracompute.kb.io
-  rules:
-  - apiGroups:
-    - telemetry.openstack.org
-    apiVersions:
-    - v1beta1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - infracomputes
+    - ceilometers
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -98,9 +58,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-telemetry-openstack-org-v1beta1-ceilometercentral
+      path: /validate-telemetry-openstack-org-v1beta1-ceilometer
   failurePolicy: Fail
-  name: vceilometercentral.kb.io
+  name: vceilometer.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -110,47 +70,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - ceilometercentrals
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-telemetry-openstack-org-v1beta1-ceilometercompute
-  failurePolicy: Fail
-  name: vceilometercompute.kb.io
-  rules:
-  - apiGroups:
-    - telemetry.openstack.org
-    apiVersions:
-    - v1beta1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - ceilometercomputes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-telemetry-openstack-org-v1beta1-infracompute
-  failurePolicy: Fail
-  name: vinfracompute.kb.io
-  rules:
-  - apiGroups:
-    - telemetry.openstack.org
-    apiVersions:
-    - v1beta1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - infracomputes
+    - ceilometers
   sideEffects: None
 - admissionReviewVersions:
   - v1

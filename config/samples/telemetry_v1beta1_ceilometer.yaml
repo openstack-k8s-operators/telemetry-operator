@@ -1,11 +1,13 @@
 apiVersion: telemetry.openstack.org/v1beta1
-kind: CeilometerCentral
+kind: Ceilometer
 metadata:
-  name: ceilometercentral
+  name: ceilometer
   namespace: openstack
 spec:
   secret: osp-secret
-  initImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
   centralImage: quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified
   notificationImage: quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified
   sgCoreImage: quay.io/infrawatch/sg-core:latest
+  computeImage: quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified
+  ipmiImage: quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified
+  nodeExporterImage: quay.io/prometheus/node-exporter:v1.5.0

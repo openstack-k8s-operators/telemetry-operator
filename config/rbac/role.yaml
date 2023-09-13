@@ -8,18 +8,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - serviceaccounts
   verbs:
   - create
@@ -28,17 +16,12 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ansibleee.openstack.org
+  - apiextensions.k8s.io
   resources:
-  - openstackansibleees
+  - customresourcedefinitions
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
-  - watch
 - apiGroups:
   - apiextensions.k8s.io
   resources:
@@ -200,7 +183,7 @@ rules:
 - apiGroups:
   - telemetry.openstack.org
   resources:
-  - ceilometercentrals
+  - ceilometers
   verbs:
   - create
   - delete
@@ -212,66 +195,14 @@ rules:
 - apiGroups:
   - telemetry.openstack.org
   resources:
-  - ceilometercentrals/finalizers
+  - ceilometers/finalizers
   verbs:
   - delete
   - update
 - apiGroups:
   - telemetry.openstack.org
   resources:
-  - ceilometercentrals/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - telemetry.openstack.org
-  resources:
-  - ceilometercomputes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - telemetry.openstack.org
-  resources:
-  - ceilometercomputes/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - telemetry.openstack.org
-  resources:
-  - ceilometercomputes/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - telemetry.openstack.org
-  resources:
-  - infracomputes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - telemetry.openstack.org
-  resources:
-  - infracomputes/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - telemetry.openstack.org
-  resources:
-  - infracomputes/status
+  - ceilometers/status
   verbs:
   - get
   - patch

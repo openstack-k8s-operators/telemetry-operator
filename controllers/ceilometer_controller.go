@@ -51,20 +51,20 @@ import (
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
-	ceilometercentral "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometercentral"
+	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 )
 
-// CeilometerCentralReconciler reconciles a Ceilometer object
-type CeilometerCentralReconciler struct {
+// CeilometerReconciler reconciles a Ceilometer object
+type CeilometerReconciler struct {
 	client.Client
 	Kclient kubernetes.Interface
 	Log     logr.Logger
 	Scheme  *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometercentrals/finalizers,verbs=update
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
@@ -80,12 +80,12 @@ type CeilometerCentralReconciler struct {
 // service account permissions that are needed to grant permission to the above
 // +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
 
-// Reconcile reconciles a CeilometerCentral
-func (r *CeilometerCentralReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
-	_ = r.Log.WithValues(ceilometercentral.ServiceName, req.NamespacedName)
+// Reconcile reconciles a Ceilometer
+func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
+	_ = r.Log.WithValues(ceilometer.ServiceName, req.NamespacedName)
 
 	// Fetch the Ceilometer instance
-	instance := &telemetryv1.CeilometerCentral{}
+	instance := &telemetryv1.Ceilometer{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -172,11 +172,11 @@ func (r *CeilometerCentralReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
-func (r *CeilometerCentralReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.CeilometerCentral, helper *helper.Helper) (ctrl.Result, error) {
+func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
 
 	// Remove the finalizer from our KeystoneService CR
-	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, ceilometercentral.ServiceName, instance.Namespace)
+	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, ceilometer.ServiceName, instance.Namespace)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -193,14 +193,14 @@ func (r *CeilometerCentralReconciler) reconcileDelete(ctx context.Context, insta
 
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
-	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", ceilometercentral.ServiceName))
+	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", ceilometer.ServiceName))
 
 	return ctrl.Result{}, nil
 }
 
-func (r *CeilometerCentralReconciler) reconcileInit(
+func (r *CeilometerReconciler) reconcileInit(
 	ctx context.Context,
-	instance *telemetryv1.CeilometerCentral,
+	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
@@ -218,9 +218,9 @@ func (r *CeilometerCentralReconciler) reconcileInit(
 	}
 
 	ksSvcSpec := keystonev1.KeystoneServiceSpec{
-		ServiceType:        ceilometercentral.ServiceType,
-		ServiceName:        ceilometercentral.ServiceName,
-		ServiceDescription: "Ceilometer Central Service",
+		ServiceType:        ceilometer.ServiceType,
+		ServiceName:        ceilometer.ServiceName,
+		ServiceDescription: "Ceilometer Service",
 		Enabled:            true,
 		ServiceUser:        instance.Spec.ServiceUser,
 		Secret:             instance.Spec.Secret,
@@ -252,8 +252,8 @@ func (r *CeilometerCentralReconciler) reconcileInit(
 	return ctrl.Result{}, nil
 }
 
-func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.CeilometerCentral, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", ceilometercentral.ServiceName))
+func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
+	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", ceilometer.ServiceName))
 
 	// Service account, role, binding
 	rbacRules := []rbacv1.PolicyRule{
@@ -352,6 +352,23 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	}
 
 	//
+	// create Configmap required for ceilometer-compute input
+	// - %-scripts configmap holding scripts to e.g. bootstrap the service
+	// - %-config configmap holding minimal ceilometer-compute config required to get the service up, user can add additional files to be added to the service
+	// - parameters which has passwords gets added from the OpenStack secret via the init container
+	//
+	err = r.generateComputeServiceConfigMaps(ctx, helper, instance, &configMapVars)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	//
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
 	//
@@ -362,7 +379,7 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
-		common.AppSelector: ceilometercentral.ServiceName,
+		common.AppSelector: ceilometer.ServiceName,
 	}
 
 	// Handle service init
@@ -374,7 +391,7 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	}
 
 	// Define a new Deployment object
-	deplDef, err := ceilometercentral.Deployment(instance, inputHash, serviceLabels)
+	deplDef, err := ceilometer.Deployment(instance, inputHash, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -412,7 +429,7 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 	}
 	instance.Status.Networks = instance.Spec.NetworkAttachmentDefinitions
 
-	_, _, err = ceilometercentral.Service(instance, helper, ceilometercentral.CeilometerPrometheusPort, serviceLabels)
+	_, _, err = ceilometer.Service(instance, helper, ceilometer.CeilometerPrometheusPort, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -422,7 +439,7 @@ func (r *CeilometerCentralReconciler) reconcileNormal(ctx context.Context, insta
 }
 
 // getSecret - get the specified secret, and add its hash to envVars
-func (r *CeilometerCentralReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.CeilometerCentral, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
+func (r *CeilometerReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.Ceilometer, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
 	secret, hash, err := secret.GetSecret(ctx, h, secretName, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -449,14 +466,14 @@ func (r *CeilometerCentralReconciler) getSecret(ctx context.Context, h *helper.H
 	return ctrl.Result{}, nil
 }
 
-func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
+func (r *CeilometerReconciler) generateServiceConfigMaps(
 	ctx context.Context,
 	h *helper.Helper,
-	instance *telemetryv1.CeilometerCentral,
+	instance *telemetryv1.Ceilometer,
 	envVars *map[string]env.Setter,
 ) error {
 
-	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometercentral.ServiceName), map[string]string{})
+	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
 		customData[key] = data
@@ -479,7 +496,7 @@ func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
 	cms := []util.Template{
 		// ScriptsConfigMap
 		{
-			Name:               fmt.Sprintf("%s-scripts", ceilometercentral.ServiceName),
+			Name:               fmt.Sprintf("%s-scripts", ceilometer.ServiceName),
 			Namespace:          instance.Namespace,
 			Type:               util.TemplateTypeScripts,
 			InstanceType:       instance.Kind,
@@ -488,7 +505,61 @@ func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
 		},
 		// ConfigMap
 		{
-			Name:          fmt.Sprintf("%s-config-data", ceilometercentral.ServiceName),
+			Name:          fmt.Sprintf("%s-config-data", ceilometer.ServiceName),
+			Namespace:     instance.Namespace,
+			Type:          util.TemplateTypeConfig,
+			InstanceType:  instance.Kind,
+			CustomData:    customData,
+			ConfigOptions: templateParameters,
+			Labels:        cmLabels,
+		},
+	}
+	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
+}
+
+func (r *CeilometerReconciler) generateComputeServiceConfigMaps(
+	ctx context.Context,
+	h *helper.Helper,
+	instance *telemetryv1.Ceilometer,
+	envVars *map[string]env.Setter,
+) error {
+
+	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
+	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
+	for key, data := range instance.Spec.DefaultConfigOverwrite {
+		customData[key] = data
+	}
+
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
+	if err != nil {
+		return err
+	}
+
+	keystoneInternalURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
+	if err != nil {
+		return err
+	}
+
+	templateParameters := map[string]interface{}{
+		"KeystoneInternalURL":           keystoneInternalURL,
+		"ceilometer_compute_image":      instance.Spec.ComputeImage,
+		"ceilometer_ipmi_image":         instance.Spec.IpmiImage,
+		"telemetry_node_exporter_image": instance.Spec.NodeExporterImage,
+	}
+
+	cms := []util.Template{
+		// ScriptsConfigMap
+		{
+			Name:               fmt.Sprintf("%s-scripts", ceilometer.ComputeServiceName),
+			Namespace:          instance.Namespace,
+			Type:               util.TemplateTypeScripts,
+			InstanceType:       instance.Kind,
+			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
+			Labels:             cmLabels,
+		},
+		// ConfigMap
+		{
+			Name:          fmt.Sprintf("%s-config-data", ceilometer.ComputeServiceName),
 			Namespace:     instance.Namespace,
 			Type:          util.TemplateTypeConfig,
 			InstanceType:  instance.Kind,
@@ -504,9 +575,9 @@ func (r *CeilometerCentralReconciler) generateServiceConfigMaps(
 // if any of the input resources change, like configs, passwords, ...
 //
 // returns the hash and any error
-func (r *CeilometerCentralReconciler) createHashOfInputHashes(
+func (r *CeilometerReconciler) createHashOfInputHashes(
 	ctx context.Context,
-	instance *telemetryv1.CeilometerCentral,
+	instance *telemetryv1.Ceilometer,
 	envVars map[string]env.Setter,
 ) (string, error) {
 	var hashMap map[string]string
@@ -523,10 +594,10 @@ func (r *CeilometerCentralReconciler) createHashOfInputHashes(
 	return hash, nil
 }
 
-func (r *CeilometerCentralReconciler) transportURLCreateOrUpdate(instance *telemetryv1.CeilometerCentral) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
+func (r *CeilometerReconciler) transportURLCreateOrUpdate(instance *telemetryv1.Ceilometer) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-transport", ceilometercentral.ServiceName),
+			Name:      fmt.Sprintf("%s-transport", ceilometer.ServiceName),
 			Namespace: instance.Namespace,
 		},
 	}
@@ -539,42 +610,42 @@ func (r *CeilometerCentralReconciler) transportURLCreateOrUpdate(instance *telem
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CeilometerCentralReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	// transportURLSecretFn - Watch for changes made to the secret associated with the RabbitMQ
-	// TransportURL created and used by CeilometerCentral CRs.  Watch functions return a list of namespace-scoped
+	// TransportURL created and used by Ceilometer CRs.  Watch functions return a list of namespace-scoped
 	// CRs that then get fed  to the reconciler.  Hence, in this case, we need to know the name of the
-	// CeilometerCentral CR associated with the secret we are examining in the function.  We could parse the name
+	// Ceilometer CR associated with the secret we are examining in the function.  We could parse the name
 	// out of the "%s-transport" secret label, which would be faster than getting the list of
-	// the CeilometerCentral CRs and trying to match on each one.  The downside there, however, is that technically
+	// the Ceilometer CRs and trying to match on each one.  The downside there, however, is that technically
 	// someone could randomly label a secret "something-transport" where "something" actually
-	// matches the name of an existing CeilometerCentral CR.  In that case changes to that secret would trigger
-	// reconciliation for a CeilometerCentral CR that does not need it.
+	// matches the name of an existing Ceilometer CR.  In that case changes to that secret would trigger
+	// reconciliation for a Ceilometer CR that does not need it.
 	//
-	// TODO: We also need a watch func to monitor for changes to the secret referenced by CeilometerCentral.Spec.Secret
+	// TODO: We also need a watch func to monitor for changes to the secret referenced by Ceilometer.Spec.Secret
 	transportURLSecretFn := func(o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
-		// get all CeilometerCentral CRs
-		ceilometerCentrals := &telemetryv1.CeilometerCentralList{}
+		// get all Ceilometer CRs
+		ceilometers := &telemetryv1.CeilometerList{}
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), ceilometerCentrals, listOpts...); err != nil {
-			r.Log.Error(err, "Unable to retrieve CeilometerCentral CRs %v")
+		if err := r.Client.List(context.Background(), ceilometers, listOpts...); err != nil {
+			r.Log.Error(err, "Unable to retrieve Ceilometer CRs %v")
 			return nil
 		}
 
 		for _, ownerRef := range o.GetOwnerReferences() {
 			if ownerRef.Kind == "TransportURL" {
-				for _, cr := range ceilometerCentrals.Items {
+				for _, cr := range ceilometers.Items {
 					if ownerRef.Name == fmt.Sprintf("%s-transport", cr.Name) {
 						// return namespace and Name of CR
 						name := client.ObjectKey{
 							Namespace: o.GetNamespace(),
 							Name:      cr.Name,
 						}
-						r.Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to CeilometerCentral CR %s", o.GetName(), cr.Name))
+						r.Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to Ceilometer CR %s", o.GetName(), cr.Name))
 						result = append(result, reconcile.Request{NamespacedName: name})
 					}
 				}
@@ -587,7 +658,7 @@ func (r *CeilometerCentralReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&telemetryv1.CeilometerCentral{}).
+		For(&telemetryv1.Ceilometer{}).
 		Owns(&keystonev1.KeystoneService{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
@@ -596,7 +667,7 @@ func (r *CeilometerCentralReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		// Watch for TransportURL Secrets which belong to any TransportURLs created by CeilometerCentral CRs
+		// Watch for TransportURL Secrets which belong to any TransportURLs created by Ceilometer CRs
 		Watches(&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
 		Complete(r)

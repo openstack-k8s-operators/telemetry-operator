@@ -13,20 +13,10 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: CeilometerCentral is the Schema for the ceilometercentrals API
-      displayName: Ceilometer Central
-      kind: CeilometerCentral
-      name: ceilometercentrals.telemetry.openstack.org
-      version: v1beta1
-    - description: CeilometerCompute is the Schema for the ceilometercomputes API
-      displayName: Ceilometer Compute
-      kind: CeilometerCompute
-      name: ceilometercomputes.telemetry.openstack.org
-      version: v1beta1
-    - description: InfraCompute is the Schema for the infracomputes API
-      displayName: Infra Compute
-      kind: InfraCompute
-      name: infracomputes.telemetry.openstack.org
+    - description: Ceilometer is the Schema for the ceilometercentrals API
+      displayName: Ceilometer
+      kind: Ceilometer
+      name: ceilometers.telemetry.openstack.org
       version: v1beta1
     - description: Telemetry is the Schema for the telemetry API
       displayName: Telemetry

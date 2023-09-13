@@ -366,7 +366,7 @@ func (r *AutoscalingReconciler) reconcilePrometheus(ctx context.Context,
 			}
 			// TODO: Remove the nolint after adding aodh and using the variables
 			promHost = fmt.Sprintf("%s.%s.svc", serviceName, instance.Namespace) //nolint:all
-			promPort = service.GetServicesPortDetails(promSvc, "web").Port //nolint:all
+			promPort = service.GetServicesPortDetails(promSvc, "web").Port       //nolint:all
 		}
 	} else {
 		err := r.Client.Delete(ctx, prom)

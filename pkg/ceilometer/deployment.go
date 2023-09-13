@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometercentral
+package ceilometer
 
 import (
 	"fmt"
@@ -37,7 +37,7 @@ const (
 
 // Deployment func
 func Deployment(
-	instance *telemetryv1.CeilometerCentral,
+	instance *telemetryv1.Ceilometer,
 	configHash string,
 	labels map[string]string,
 ) (*appsv1.Deployment, error) {
@@ -161,7 +161,7 @@ func Deployment(
 	deployment.Spec.Template.Annotations = util.MergeStringMaps(deployment.Spec.Template.Annotations, nwAnnotation)
 
 	initContainerDetails := APIDetails{
-		ContainerImage:     instance.Spec.InitImage,
+		ContainerImage:     instance.Spec.CentralImage,
 		TransportURLSecret: instance.Status.TransportURLSecret,
 		OSPSecret:          instance.Spec.Secret,
 		ServiceSelector:    instance.Spec.PasswordSelectors.Service,

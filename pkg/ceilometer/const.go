@@ -13,11 +13,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ceilometercompute
+package ceilometer
 
 const (
 	// ServiceName -
-	ServiceName = "ceilometer-compute"
+	ServiceName = "ceilometer"
+	// ComputeServiceName -
+	ComputeServiceName = "ceilometer-compute"
 	// ServiceType -
-	ServiceType = "telemetry"
+	ServiceType = "Ceilometer"
+
+	// CeilometerPrometheusPort -
+	CeilometerPrometheusPort int = 3000
+
+	// KollaConfigCentral -
+	KollaConfigCentral = "/var/lib/config-data/merged/config-central.json"
+
+	// KollaConfigNotification -
+	KollaConfigNotification = "/var/lib/config-data/merged/config-notification.json"
 )
