@@ -4,6 +4,7 @@
 resources:
 - bases/telemetry.openstack.org_telemetries.yaml
 - bases/telemetry.openstack.org_autoscalings.yaml
+- bases/telemetry.openstack.org_ceilometers.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
