@@ -38,7 +38,6 @@ import (
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	deployment "github.com/openstack-k8s-operators/lib-common/modules/common/deployment"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
@@ -68,7 +67,7 @@ type CeilometerReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
@@ -340,7 +339,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	// - %-config configmap holding minimal ceilometer config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
-	err = r.generateServiceConfigMaps(ctx, helper, instance, &configMapVars)
+	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -357,7 +356,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	// - %-config configmap holding minimal ceilometer-compute config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
-	err = r.generateComputeServiceConfigMaps(ctx, helper, instance, &configMapVars)
+	err = r.generateComputeServiceConfig(ctx, helper, instance, &configMapVars)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -372,10 +371,23 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
 	//
-	inputHash, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
+	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
 	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
 		return ctrl.Result{}, err
+	} else if hashChanged {
+		// Hash changed and instance status should be updated (which will be done by main defer func),
+		// so we need to return and reconcile again
+		return ctrl.Result{}, nil
 	}
+
+	instance.Status.Hash[common.InputHashName] = inputHash
+
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
@@ -466,7 +478,7 @@ func (r *CeilometerReconciler) getSecret(ctx context.Context, h *helper.Helper, 
 	return ctrl.Result{}, nil
 }
 
-func (r *CeilometerReconciler) generateServiceConfigMaps(
+func (r *CeilometerReconciler) generateServiceConfig(
 	ctx context.Context,
 	h *helper.Helper,
 	instance *telemetryv1.Ceilometer,
@@ -489,8 +501,13 @@ func (r *CeilometerReconciler) generateServiceConfigMaps(
 		return err
 	}
 
+	transportURLSecret, _, _ := secret.GetSecret(ctx, h, instance.Status.TransportURLSecret, instance.Namespace)
+	ceilometerPasswordSecret, _, _ := secret.GetSecret(ctx, h, instance.Spec.Secret, instance.Namespace)
+
 	templateParameters := map[string]interface{}{
 		"KeystoneInternalURL": keystoneInternalURL,
+		"TransportURL":        string(transportURLSecret.Data["transport_url"]),
+		"CeilometerPassword":  string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
 	}
 
 	cms := []util.Template{
@@ -514,10 +531,10 @@ func (r *CeilometerReconciler) generateServiceConfigMaps(
 			Labels:        cmLabels,
 		},
 	}
-	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
+	return secret.EnsureSecrets(ctx, h, instance, cms, envVars)
 }
 
-func (r *CeilometerReconciler) generateComputeServiceConfigMaps(
+func (r *CeilometerReconciler) generateComputeServiceConfig(
 	ctx context.Context,
 	h *helper.Helper,
 	instance *telemetryv1.Ceilometer,
@@ -540,8 +557,13 @@ func (r *CeilometerReconciler) generateComputeServiceConfigMaps(
 		return err
 	}
 
+	transportURLSecret, _, _ := secret.GetSecret(ctx, h, instance.Status.TransportURLSecret, instance.Namespace)
+	ceilometerPasswordSecret, _, _ := secret.GetSecret(ctx, h, instance.Spec.Secret, instance.Namespace)
+
 	templateParameters := map[string]interface{}{
 		"KeystoneInternalURL":           keystoneInternalURL,
+		"TransportURL":                  string(transportURLSecret.Data["transport_url"]),
+		"CeilometerPassword":            string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
 		"ceilometer_compute_image":      instance.Spec.ComputeImage,
 		"ceilometer_ipmi_image":         instance.Spec.IpmiImage,
 		"telemetry_node_exporter_image": instance.Spec.NodeExporterImage,
@@ -568,30 +590,30 @@ func (r *CeilometerReconciler) generateComputeServiceConfigMaps(
 			Labels:        cmLabels,
 		},
 	}
-	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
+	return secret.EnsureSecrets(ctx, h, instance, cms, envVars)
 }
 
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
 // if any of the input resources change, like configs, passwords, ...
 //
-// returns the hash and any error
+// returns the hash, whether the hash changed (as a bool) and any error
 func (r *CeilometerReconciler) createHashOfInputHashes(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
 	envVars map[string]env.Setter,
-) (string, error) {
+) (string, bool, error) {
 	var hashMap map[string]string
 	changed := false
 	mergedMapVars := env.MergeEnvs([]corev1.EnvVar{}, envVars)
 	hash, err := util.ObjectHash(mergedMapVars)
 	if err != nil {
-		return hash, err
+		return hash, changed, err
 	}
 	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
 		instance.Status.Hash = hashMap
 		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
 	}
-	return hash, nil
+	return hash, changed, nil
 }
 
 func (r *CeilometerReconciler) transportURLCreateOrUpdate(instance *telemetryv1.Ceilometer) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
