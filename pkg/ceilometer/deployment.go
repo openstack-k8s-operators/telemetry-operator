@@ -160,13 +160,5 @@ func Deployment(
 	}
 	deployment.Spec.Template.Annotations = util.MergeStringMaps(deployment.Spec.Template.Annotations, nwAnnotation)
 
-	initContainerDetails := APIDetails{
-		ContainerImage:     instance.Spec.CentralImage,
-		TransportURLSecret: instance.Status.TransportURLSecret,
-		OSPSecret:          instance.Spec.Secret,
-		ServiceSelector:    instance.Spec.PasswordSelectors.Service,
-	}
-	deployment.Spec.Template.Spec.InitContainers = initContainer(initContainerDetails)
-
 	return deployment, nil
 }

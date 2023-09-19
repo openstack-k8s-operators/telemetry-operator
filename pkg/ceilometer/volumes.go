@@ -19,75 +19,47 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var (
-	// ScriptsVolumeDefaultMode is the default permissions mode for Scripts volume
-	ScriptsVolumeDefaultMode int32 = 0755
-	// Config0640AccessMode is the 640 permissions mode
-	Config0640AccessMode int32 = 0640
+const (
+	scriptVolume = "ceilometer-scripts"
+	configVolume = "ceilometer-config-data"
+	logVolume    = "logs"
 )
 
-// getVolumes - service volumes
+var (
+	configMode int32 = 0640
+	scriptMode int32 = 0740
+)
+
 func getVolumes(name string) []corev1.Volume {
 	return []corev1.Volume{
 		{
 			Name: "scripts",
 			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					DefaultMode: &ScriptsVolumeDefaultMode,
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: name + "-scripts",
-					},
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &scriptMode,
+					SecretName:  scriptVolume,
 				},
 			},
 		}, {
 			Name: "config-data",
 			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					DefaultMode: &Config0640AccessMode,
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: name + "-config-data",
-					},
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &configMode,
+					SecretName:  configVolume,
 				},
-			},
-		}, {
-			Name: "config-data-merged",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
 			},
 		}, {
 			Name: "sg-core-conf-yaml",
 			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &configMode,
 					Items: []corev1.KeyToPath{{
 						Key:  "sg-core.conf.yaml",
 						Path: "sg-core.conf.yaml",
 					}},
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: name + "-config-data",
-					},
+					SecretName: configVolume,
 				},
 			},
-		},
-	}
-}
-
-// getInitVolumeMounts - general init task VolumeMounts
-func getInitVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
-		{
-			Name:      "scripts",
-			MountPath: "/usr/local/bin/container-scripts",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data",
-			MountPath: "/var/lib/config-data/default",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data-merged",
-			MountPath: "/var/lib/config-data/merged",
-			ReadOnly:  false,
 		},
 	}
 }
@@ -97,16 +69,16 @@ func getVolumeMounts(serviceName string) []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
 			Name:      "scripts",
-			MountPath: "/usr/local/bin/container-scripts",
+			MountPath: "/var/lib/openstack/bin",
 			ReadOnly:  true,
 		},
 		{
-			Name:      "config-data-merged",
-			MountPath: "/var/lib/config-data/merged",
-			ReadOnly:  false,
+			Name:      "config-data",
+			MountPath: "/var/lib/openstack/config",
+			ReadOnly:  true,
 		},
 		{
-			Name:      "config-data-merged",
+			Name:      "config-data",
 			MountPath: "/var/lib/kolla/config_files/config.json",
 			SubPath:   serviceName + "-config.json",
 			ReadOnly:  true,
