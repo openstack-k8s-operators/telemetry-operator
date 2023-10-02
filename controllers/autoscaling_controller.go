@@ -50,6 +50,7 @@ import (
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
+	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
@@ -85,6 +86,7 @@ type AutoscalingReconciler struct {
 // +kubebuilder:rbac:groups=mariadb.openstack.org,resources=mariadbdatabases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.rhobs,resources=monitoringstacks,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=memcached.openstack.org,resources=memcacheds,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=heat.openstack.org,resources=heats,verbs=get;list;watch;
 // service account, role, rolebinding
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update
@@ -189,9 +191,6 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// Register overall status immediately to have an early feedback e.g. in the cli
 		return ctrl.Result{}, nil
 	}
-
-	// TODO: Remove this afet Heat integration is added
-	instance.Status.Conditions.MarkTrue("HeatReady", "Functionality not implemented yet")
 
 	if instance.Status.Hash == nil {
 		instance.Status.Hash = map[string]string{}
@@ -403,6 +402,40 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// run check memcached - end
 
 	//
+	// Check for required heat used for autoscaling
+	//
+	heat, err := r.getAutoscalingHeat(ctx, helper, instance)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				"HeatReady",
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				"Heat instance not found"))
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("heat %s not found", instance.Spec.HeatInstance)
+		}
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			"HeatReady",
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	if !heat.IsReady() {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			"HeatReady",
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			"Heat isn't ready yet"))
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("heat %s is not ready", heat.Name)
+	}
+	// Mark the Heat Service as Ready if we get to this point with no errors
+	instance.Status.Conditions.MarkTrue(
+		"HeatReady", "Ready")
+	// run check heat - end
+
+	//
 	// check for required TransportURL secret holding transport URL string
 	//
 	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Status.TransportURLSecret, &configMapVars)
@@ -585,6 +618,25 @@ func (r *AutoscalingReconciler) getAutoscalingMemcached(
 		return nil, err
 	}
 	return memcached, err
+}
+
+func (r *AutoscalingReconciler) getAutoscalingHeat(
+	ctx context.Context,
+	h *helper.Helper,
+	instance *telemetryv1.Autoscaling,
+) (*heatv1.Heat, error) {
+	heat := &heatv1.Heat{}
+	err := h.GetClient().Get(
+		ctx,
+		types.NamespacedName{
+			Name:      instance.Spec.HeatInstance,
+			Namespace: instance.Namespace,
+		},
+		heat)
+	if err != nil {
+		return nil, err
+	}
+	return heat, err
 }
 
 // getSecret - get the specified secret, and add its hash to envVars

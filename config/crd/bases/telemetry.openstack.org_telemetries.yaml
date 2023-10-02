@@ -141,6 +141,10 @@ spec:
                     default: false
                     description: Allows enabling and disabling the autoscaling feature
                     type: boolean
+                  heatInstance:
+                    default: heat
+                    description: Heat instance name.
+                    type: string
                   prometheus:
                     description: Specification of which prometheus to use for autoscaling
                     properties:
@@ -160,6 +164,8 @@ spec:
                         minimum: 1
                         type: integer
                     type: object
+                required:
+                - heatInstance
                 type: object
               ceilometer:
                 description: Ceilometer - Spec definition for the Ceilometer service

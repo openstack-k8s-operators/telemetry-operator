@@ -129,6 +129,10 @@ type AutoscalingSpec struct {
 	// Aodh spec
 	Aodh Aodh `json:"aodh,omitempty"`
 
+	// Heat instance name.
+	// +kubebuilder:default=heat
+	HeatInstance string `json:"heatInstance"`
+
 	// Allows enabling and disabling the autoscaling feature
 	// +kubebuilder:default=false
 	Enabled bool `json:"enabled,omitempty"`

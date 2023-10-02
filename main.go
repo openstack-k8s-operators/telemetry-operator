@@ -35,10 +35,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
-
+	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	mariadbv1beta1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 	ansibleeev1 "github.com/openstack-k8s-operators/openstack-ansibleee-operator/api/v1alpha1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
@@ -64,6 +64,7 @@ func init() {
 	utilruntime.Must(mariadbv1beta1.AddToScheme(scheme))
 	utilruntime.Must(routev1.AddToScheme(scheme))
 	utilruntime.Must(memcachedv1.AddToScheme(scheme))
+	utilruntime.Must(heatv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
