@@ -5,4 +5,7 @@ sources:
       meters:
         - volume.size
         - image.size
-        - storage.*
+        # To retrieve storage metrics from Swift, there must be a role created in your region called ResellerAdmin
+        # Then, the Ceilometer user must be assigned the ResellerAdmin role and the following line can be
+        # uncommented.
+        # - storage.*
