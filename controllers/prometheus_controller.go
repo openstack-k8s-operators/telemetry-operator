@@ -54,7 +54,7 @@ func (r *AutoscalingReconciler) reconcileDisabledPrometheus(
 
 	// Set the condition to true, since the service is disabled
 	for _, c := range instance.Status.Conditions {
-		instance.Status.Conditions.MarkTrue(c.Type, "Autoscaling disabled")
+		instance.Status.Conditions.MarkTrue(c.Type, telemetryv1.AutoscalingReadyDisabledMessage)
 	}
 	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' disable successfully", autoscaling.ServiceName))
 	return ctrl.Result{}, nil
@@ -110,7 +110,7 @@ func (r *AutoscalingReconciler) reconcileNormalPrometheus(
 		promReady := true
 		for _, c := range prom.Status.Conditions {
 			if c.Status != "True" {
-				instance.Status.Conditions.MarkFalse("PrometheusReady",
+				instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
 					condition.Reason(c.Reason),
 					condition.SeverityError,
 					c.Message)
@@ -122,7 +122,7 @@ func (r *AutoscalingReconciler) reconcileNormalPrometheus(
 			promReady = false
 		}
 		if promReady {
-			instance.Status.Conditions.MarkTrue("PrometheusReady", "Prometheus is ready")
+			instance.Status.Conditions.MarkTrue(telemetryv1.PrometheusReadyCondition, condition.ReadyMessage)
 			serviceName := prom.Name + "-prometheus"
 			promSvc, err := service.GetServiceWithName(ctx, helper, serviceName, instance.Namespace)
 			if err != nil {
@@ -143,12 +143,12 @@ func (r *AutoscalingReconciler) reconcileNormalPrometheus(
 		promHost = instance.Spec.Prometheus.Host
 		promPort = instance.Spec.Prometheus.Port
 		if promHost == "" || promPort == 0 {
-			instance.Status.Conditions.MarkFalse("PrometheusReady",
+			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityError,
-				"deployPrometheus is false and either port or host isn't set")
+				telemetryv1.PrometheusReadyConfigurationMissingMessage)
 		} else {
-			instance.Status.Conditions.MarkTrue("PrometheusReady", "Prometheus is ready")
+			instance.Status.Conditions.MarkTrue(telemetryv1.PrometheusReadyCondition, condition.ReadyMessage)
 		}
 	}
 

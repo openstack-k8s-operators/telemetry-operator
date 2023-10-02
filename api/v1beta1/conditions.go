@@ -26,6 +26,12 @@ const (
 
 	// AutoscalingReadyCondition Status=True condition which indicates if the Autoscaling is configured and operational
 	AutoscalingReadyCondition condition.Type = "AutoscalingReady"
+
+	// HeatReadyCondition Status=True condition which indicates if the Heat is configured and operational
+	HeatReadyCondition condition.Type = "HeatReady"
+
+	// PrometheusReadyCondition Status=True condition which indicates if the Prometheus is configured and operational
+	PrometheusReadyCondition condition.Type = "PrometheusReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -50,4 +56,28 @@ const (
 
 	// AutoscalingReadyErrorMessage
 	AutoscalingReadyErrorMessage = "Autoscaling error occured %s"
+
+	// AutoscalingReadyErrorMessage
+	AutoscalingReadyDisabledMessage = "Autoscaling disabled"
+
+	// HeatReadyInitMessage
+	HeatReadyInitMessage = "Heat not started"
+
+	// HeatReadyErrorMessage
+	HeatReadyErrorMessage = "Heat error occured %s"
+
+	// HeatReadyNotFoundMessage
+	HeatReadyNotFoundMessage = "Heat has not been found"
+
+	// HeatReadyUnreadyMessage
+	HeatReadyUnreadyMessage = "Heat isn't ready yet"
+
+	// PrometheusReadyInitMessage
+	PrometheusReadyInitMessage = "Prometheus not started"
+
+	// PrometheusReadyErrorMessage
+	PrometheusReadyErrorMessage = "Prometheus error occured %s"
+
+	// PrometheusReadyConfigurationMissingMessage
+	PrometheusReadyConfigurationMissingMessage = "deployPrometheus is false and either port or host isn't set"
 )

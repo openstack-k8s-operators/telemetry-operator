@@ -127,7 +127,7 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	defer func() {
 		if !instance.Spec.Enabled {
 			instance.Status.Conditions.MarkTrue(
-				condition.ReadyCondition, "Autoscaling disabled",
+				condition.ReadyCondition, telemetryv1.AutoscalingReadyDisabledMessage,
 			)
 		} else {
 			// update the Ready condition based on the sub conditions
@@ -171,8 +171,8 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				condition.RoleBindingReadyInitMessage),
 
 			// Prometheus, Aodh, Heat conditions
-			condition.UnknownCondition("PrometheusReady", condition.InitReason, "PrometheusNotStarted"),
-			condition.UnknownCondition("HeatReady", condition.InitReason, "HeatNotStarted"),
+			condition.UnknownCondition(telemetryv1.PrometheusReadyCondition, condition.InitReason, telemetryv1.PrometheusReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.HeatReadyCondition, condition.InitReason, telemetryv1.HeatReadyInitMessage),
 			condition.UnknownCondition(condition.MemcachedReadyCondition, condition.InitReason, condition.MemcachedReadyInitMessage),
 
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
@@ -230,7 +230,7 @@ func (r *AutoscalingReconciler) reconcileDisabled(
 	}
 	// Set the condition to true, since the service is disabled
 	for _, c := range instance.Status.Conditions {
-		instance.Status.Conditions.MarkTrue(c.Type, "Autoscaling disabled")
+		instance.Status.Conditions.MarkTrue(c.Type, telemetryv1.AutoscalingReadyDisabledMessage)
 	}
 	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' disable successfully", autoscaling.ServiceName))
 	return ctrl.Result{}, nil
@@ -408,31 +408,32 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.Set(condition.FalseCondition(
-				"HeatReady",
+				telemetryv1.HeatReadyCondition,
 				condition.RequestedReason,
 				condition.SeverityInfo,
-				"Heat instance not found"))
+				telemetryv1.HeatReadyNotFoundMessage))
 			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("heat %s not found", instance.Spec.HeatInstance)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			"HeatReady",
+			telemetryv1.HeatReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
+			telemetryv1.HeatReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, err
 	}
 
 	if !heat.IsReady() {
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			"HeatReady",
+			telemetryv1.HeatReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
-			"Heat isn't ready yet"))
+			telemetryv1.HeatReadyUnreadyMessage))
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("heat %s is not ready", heat.Name)
 	}
 	// Mark the Heat Service as Ready if we get to this point with no errors
 	instance.Status.Conditions.MarkTrue(
-		"HeatReady", "Ready")
+		telemetryv1.HeatReadyCondition, condition.ReadyMessage)
 	// run check heat - end
 
 	//
