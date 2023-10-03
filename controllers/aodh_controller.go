@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -404,25 +405,119 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 	}
 	instance.Status.Networks = instance.Spec.Aodh.NetworkAttachmentDefinitions
 
-	ports := map[endpoint.Endpoint]endpoint.Data{}
-	ports[endpoint.EndpointInternal] = endpoint.Data{
+	//
+	// create service/s
+	//
+
+	aodhEndpoints := map[service.Endpoint]endpoint.Data{}
+	aodhEndpoints[service.EndpointInternal] = endpoint.Data{
 		Port: autoscaling.AodhAPIPort,
 	}
-	ports[endpoint.EndpointPublic] = endpoint.Data{
+	aodhEndpoints[service.EndpointPublic] = endpoint.Data{
 		Port: autoscaling.AodhAPIPort,
 	}
 
-	apiEndpoints, ctrlResult, err := endpoint.ExposeEndpoints(
-		ctx,
-		helper,
-		autoscaling.ServiceName,
-		serviceLabels,
-		ports,
-		time.Duration(5)*time.Second,
-	)
-	if err != nil {
-		return ctrlResult, err
+	apiEndpoints := make(map[string]string)
+
+	for endpointType, data := range aodhEndpoints {
+		endpointTypeStr := string(endpointType)
+		endpointName := autoscaling.ServiceName + "-" + endpointTypeStr
+		svcOverride := instance.Spec.Aodh.Override.Service
+		if svcOverride == nil {
+			svcOverride = &service.RoutedOverrideSpec{}
+		}
+		if svcOverride.EmbeddedLabelsAnnotations == nil {
+			svcOverride.EmbeddedLabelsAnnotations = &service.EmbeddedLabelsAnnotations{}
+		}
+
+		exportLabels := util.MergeStringMaps(
+			serviceLabels,
+			map[string]string{
+				service.AnnotationEndpointKey: endpointTypeStr,
+			},
+		)
+
+		// Create the service
+		svc, err := service.NewService(
+			service.GenericService(&service.GenericServiceDetails{
+				Name:      endpointName,
+				Namespace: instance.Namespace,
+				Labels:    exportLabels,
+				Selector:  serviceLabels,
+				Port: service.GenericServicePort{
+					Name:     endpointName,
+					Port:     data.Port,
+					Protocol: corev1.ProtocolTCP,
+				},
+			}),
+			5,
+			&svcOverride.OverrideSpec,
+		)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ExposeServiceReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.ExposeServiceReadyErrorMessage,
+				err.Error()))
+
+			return ctrl.Result{}, err
+		}
+
+		svc.AddAnnotation(map[string]string{
+			service.AnnotationEndpointKey: endpointTypeStr,
+		})
+
+		// add Annotation to whether creating an ingress is required or not
+		if endpointType == service.EndpointPublic && svc.GetServiceType() == corev1.ServiceTypeClusterIP {
+			svc.AddAnnotation(map[string]string{
+				service.AnnotationIngressCreateKey: "true",
+			})
+		} else {
+			svc.AddAnnotation(map[string]string{
+				service.AnnotationIngressCreateKey: "false",
+			})
+			if svc.GetServiceType() == corev1.ServiceTypeLoadBalancer {
+				svc.AddAnnotation(map[string]string{
+					service.AnnotationHostnameKey: svc.GetServiceHostname(), // add annotation to register service name in dnsmasq
+				})
+			}
+		}
+
+		ctrlResult, err := svc.CreateOrPatch(ctx, helper)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ExposeServiceReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.ExposeServiceReadyErrorMessage,
+				err.Error()))
+
+			return ctrlResult, err
+		} else if (ctrlResult != ctrl.Result{}) {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ExposeServiceReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				condition.ExposeServiceReadyRunningMessage))
+			return ctrlResult, nil
+		}
+		// create service - end
+
+		// TODO: TLS, pass in https as protocol, create TLS cert
+		apiEndpoints[string(endpointType)], err = svc.GetAPIEndpoint(
+			svcOverride.EndpointURL, data.Protocol, data.Path)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
+	instance.Status.Conditions.MarkTrue(condition.ExposeServiceReadyCondition, condition.ExposeServiceReadyMessage)
+
+	if instance.Status.APIEndpoints == nil {
+		instance.Status.APIEndpoints = map[string]string{}
+	}
+
+	instance.Status.APIEndpoints = apiEndpoints
 
 	//
 	// create keystone endpoints
@@ -430,7 +525,7 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 
 	ksEndpointSpec := keystonev1.KeystoneEndpointSpec{
 		ServiceName: autoscaling.ServiceName,
-		Endpoints:   apiEndpoints,
+		Endpoints:   instance.Status.APIEndpoints,
 	}
 
 	ksEndptObj := keystonev1.NewKeystoneEndpoint(autoscaling.ServiceName, instance.Namespace, ksEndpointSpec, serviceLabels, time.Duration(10)*time.Second)
