@@ -73,6 +73,16 @@ spec:
                 description: PasswordSelectors - Selectors to identify the service
                   from the Secret
                 properties:
+                  aodhService:
+                    default: AodhPassword
+                    description: AodhService - Selector to get the aodh service password
+                      from the Secret
+                    type: string
+                  database:
+                    default: AodhDatabasePassword
+                    description: Database - Selector to get the aodh database user
+                      password from the Secret
+                    type: string
                   service:
                     default: CeilometerPassword
                     description: Service - Selector to get the ceilometer service

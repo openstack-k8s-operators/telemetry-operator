@@ -23,12 +23,24 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 )
 
+// TODO: We might want to split this to aodh and ceilometer and move it to appropriate files
+
 // PasswordsSelector to identify the Service password from the Secret
 type PasswordsSelector struct {
 	// Service - Selector to get the ceilometer service password from the Secret
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=CeilometerPassword
 	Service string `json:"service"`
+
+	// AodhService - Selector to get the aodh service password from the Secret
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=AodhPassword
+	AodhService string `json:"aodhService"`
+
+	// Database - Selector to get the aodh database user password from the Secret
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=AodhDatabasePassword
+	Database string `json:"database"`
 }
 
 // TelemetrySpec defines the desired state of Telemetry
@@ -91,12 +103,20 @@ func init() {
 func SetupDefaultsTelemetry() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	telemetryDefaults := TelemetryDefaults{
-		CentralContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
-		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
-		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
-		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
-		NodeExporterContainerImageURL: util.GetEnvVar("RELATED_IMAGE_TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),
-		SgCoreContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
+		CentralContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
+		ComputeContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
+		IpmiContainerImageURL:          util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
+		NotificationContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
+		NodeExporterContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_TELEMETRY_NODE_EXPORTER_IMAGE_URL_DEFAULT", NodeExporterContainerImage),
+		SgCoreContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
+
+		// Autoscaling
+		AodhAPIContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
+		AodhEvaluatorContainerImageURL: util.GetEnvVar("RELATED_IMAGE_AODH_EVALUATOR_IMAGE_URL_DEFAULT", AodhEvaluatorContainerImage),
+		AodhNotifierContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_NOTIFIER_IMAGE_URL_DEFAULT", AodhNotifierContainerImage),
+		AodhListenerContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_LISTENER_IMAGE_URL_DEFAULT", AodhListenerContainerImage),
+		AodhInitContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
+
 	}
 
 	SetupTelemetryDefaults(telemetryDefaults)

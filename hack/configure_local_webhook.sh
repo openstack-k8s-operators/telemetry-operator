@@ -32,6 +32,62 @@ cat >> ${TMPDIR}/patch_webhook_configurations.yaml <<EOF_CAT
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
+  name: vautoscaling.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-autoscaling
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: vautoscaling.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - autoscalings
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mautoscaling.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/mutate-telemetry-openstack-org-v1beta1-autoscaling
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: mautoscaling.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - autoscalings
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
   name: vceilometer.kb.io
 webhooks:
 - admissionReviewVersions:

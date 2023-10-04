@@ -28,12 +28,17 @@ import (
 
 // TelemetryDefaults -
 type TelemetryDefaults struct {
-	CentralContainerImageURL      string
-	ComputeContainerImageURL      string
-	NotificationContainerImageURL string
-	SgCoreContainerImageURL       string
-	NodeExporterContainerImageURL string
-	IpmiContainerImageURL         string
+	CentralContainerImageURL       string
+	ComputeContainerImageURL       string
+	NotificationContainerImageURL  string
+	SgCoreContainerImageURL        string
+	NodeExporterContainerImageURL  string
+	IpmiContainerImageURL          string
+	AodhAPIContainerImageURL       string
+	AodhEvaluatorContainerImageURL string
+	AodhNotifierContainerImageURL  string
+	AodhListenerContainerImageURL  string
+	AodhInitContainerImageURL      string
 }
 
 var telemetryDefaults TelemetryDefaults
@@ -85,6 +90,19 @@ func (spec *TelemetrySpec) Default() {
 	if spec.Ceilometer.NodeExporterImage == "" {
 		spec.Ceilometer.NodeExporterImage = telemetryDefaults.NodeExporterContainerImageURL
 	}
+	if spec.Autoscaling.Aodh.APIImage == "" {
+		spec.Autoscaling.Aodh.APIImage = telemetryDefaults.AodhAPIContainerImageURL
+	}
+	if spec.Autoscaling.Aodh.EvaluatorImage == "" {
+		spec.Autoscaling.Aodh.EvaluatorImage = telemetryDefaults.AodhEvaluatorContainerImageURL
+	}
+	if spec.Autoscaling.Aodh.NotifierImage == "" {
+		spec.Autoscaling.Aodh.NotifierImage = telemetryDefaults.AodhNotifierContainerImageURL
+	}
+	if spec.Autoscaling.Aodh.ListenerImage == "" {
+		spec.Autoscaling.Aodh.ListenerImage = telemetryDefaults.AodhListenerContainerImageURL
+	}
+
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
