@@ -1,6 +1,6 @@
 ---
 #pluginDir: /tmp/plugins
-logLevel: debug
+logLevel: info
 handleErrors: True
 
 transports:
