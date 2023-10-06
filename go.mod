@@ -13,8 +13,7 @@ require (
 	github.com/openstack-k8s-operators/infra-operator/apis v0.1.1-0.20230905074428-c6aefc16dd01
 	github.com/openstack-k8s-operators/keystone-operator/api v0.1.1-0.20230830083045-d73d07cca617
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.1.1-0.20230927082538-4f614f333d17
-	github.com/openstack-k8s-operators/lib-common/modules/database v0.1.0
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.1.0
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.3.0
 	github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.1.1-0.20230904091032-d53c9286b6a4
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.1.1-0.20230904141420-35a75e39495a
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.64.1-rhobs3
