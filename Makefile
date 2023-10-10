@@ -325,3 +325,19 @@ run-with-webhook: export HEALTH_PORT?=8081
 run-with-webhook: manifests generate fmt vet ## Run a controller from your host.
 	/bin/bash hack/configure_local_webhook.sh
 	go run ./main.go -metrics-bind-address ":$(METRICS_PORT)" -health-probe-bind-address ":$(HEALTH_PORT)"
+
+.PHONY: kuttl-install
+kuttl-install:
+	./hack/install-krew.sh
+	export PATH="$${KREW_ROOT:-$$HOME/.krew}/bin:$$PATH" && kubectl krew install kuttl
+	echo "Place 'export PATH=$${KREW_ROOT:-$$HOME/.krew}/bin:$$PATH' to your ~/.bashrc"
+
+# TODO(mmagr): change this to default once there is default suite
+KUTTL_SUITE ?= autoscaling
+KUTTL_NAMESPACE ?= telemetry-kuttl-$(KUTTL_SUITE)
+KUTTL_SUITE_DIR ?= tests/kuttl/suites/$(KUTTL_SUITE)
+
+.PHONY: kuttl-test-prep
+kuttl-test-prep:
+	oc apply -k tests/kuttl/deps/ --timeout=120s
+	oc wait -n $(KUTTL_NAMESPACE) openstackcontrolplane openstack --for condition=Ready --timeout=300s
