@@ -36,7 +36,7 @@ import (
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
-	database "github.com/openstack-k8s-operators/lib-common/modules/database"
+	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 
 	routev1 "github.com/openshift/api/route/v1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
@@ -78,7 +78,7 @@ func (r *AutoscalingReconciler) reconcileDisabledAodh(
 	}
 
 	// Delete db
-	db, err := database.GetDatabaseByName(ctx, helper, autoscaling.ServiceName)
+	db, err := mariadbv1.GetDatabaseByName(ctx, helper, autoscaling.ServiceName)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -156,7 +156,7 @@ func (r *AutoscalingReconciler) reconcileDeleteAodh(
 	r.Log.Info("Reconciling Service Aodh delete")
 
 	// remove db finalizer first
-	db, err := database.GetDatabaseByName(ctx, helper, autoscaling.ServiceName)
+	db, err := mariadbv1.GetDatabaseByName(ctx, helper, autoscaling.ServiceName)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -250,7 +250,7 @@ func (r *AutoscalingReconciler) reconcileInitAodh(
 	//
 	// create service DB instance
 	//
-	db := database.NewDatabaseWithNamespace(
+	db := mariadbv1.NewDatabaseWithNamespace(
 		// instance.Name
 		// TODO: We might want to change the db name.
 		// The mariadb-operator is currently implemented
