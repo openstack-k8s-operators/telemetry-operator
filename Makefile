@@ -325,3 +325,45 @@ run-with-webhook: export HEALTH_PORT?=8081
 run-with-webhook: manifests generate fmt vet ## Run a controller from your host.
 	/bin/bash hack/configure_local_webhook.sh
 	go run ./main.go -metrics-bind-address ":$(METRICS_PORT)" -health-probe-bind-address ":$(HEALTH_PORT)"
+
+.PHONY: kuttl-install
+kuttl-install:
+	./hack/install-krew.sh
+	export PATH="$${KREW_ROOT:-$$HOME/.krew}/bin:$$PATH" && kubectl krew install kuttl
+	echo "Place 'export PATH=$${KREW_ROOT:-$$HOME/.krew}/bin:$$PATH' to your ~/.bashrc"
+
+# TODO(mmagr): change this to default once there is default suite
+KUTTL_SUITE ?= autoscaling
+KUTTL_NAMESPACE ?= telemetry-kuttl-$(KUTTL_SUITE)
+KUTTL_SUITE_DIR ?= tests/kuttl/suites/$(KUTTL_SUITE)
+
+.PHONY: kuttl-test-prep
+kuttl-test-prep:
+	oc apply -k $(KUTTL_SUITE_DIR)/deps/ --timeout=120s
+	oc wait -n $(KUTTL_NAMESPACE) openstackcontrolplane openstack --for condition=Ready --timeout=300s
+	oc apply -f $(KUTTL_SUITE_DIR)/deps/rhobs.yaml
+	$(until oc api-resources -n $(KUTTL_NAMESPACE) | grep -q rhobs; do sleep 2; done)
+
+.PHONY: kuttl-test-run
+kuttl-test-run:
+	oc kuttl test --v 1 --start-kind=false --config $(KUTTL_SUITE_DIR)/config.yaml
+
+.PHONY: kuttl-test
+kuttl-test: kuttl-test-prep kuttl-test-run
+
+.PHONY: kuttl-test-cleanup
+kuttl-test-cleanup:
+	# only cleanup if the $(KUTTL_NAMESPACE) exists
+	$(eval namespace_exists=$(shell oc get namespace $(KUTTL_NAMESPACE) --ignore-not-found -o name))
+	# We need to order the deletion. Simply deleting the namespace will
+	# result in errors in mariadb- and keystone-operator and then
+	# finalizer removal get stuck blocking the namespace deletion.
+	if [ "${namespace_exists}" != "" ]; then \
+		if [ "$(KUTTL_SUITE)" == "autoscaling" ]; then \
+			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s Autoscaling; \
+		fi; \
+		oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s OpenStackControlPlane; \
+		oc delete --wait=true namespace $(KUTTL_NAMESPACE); \
+	else \
+		echo "Namespce already cleaned up. Nothing to do"; \
+	fi

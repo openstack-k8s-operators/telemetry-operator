@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    prometheus: telemetry-kuttl-prometheus
+  name: prometheus-telemetry-kuttl-prometheus-0
+status:
+  containerStatuses:
+  - image: quay.io/rhobs/obo-prometheus-config-reloader:v0.68.0-rhobs1
+    name: config-reloader
+    ready: true
+    started: true
+  - image: quay.io/prometheus/prometheus:v2.47.0
+    name: prometheus
+    ready: true
+    started: true
+  - image: quay.io/thanos/thanos:v0.24.0
+    name: thanos-sidecar
+    ready: true
+    started: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telemetry-kuttl-prometheus-prometheus
+  namespace: telemetry-kuttl-autoscaling
+  ownerReferences:
+    - kind: MonitoringStack
+      name: telemetry-kuttl-prometheus
+spec:
+  ports:
+  - name: web
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: aodh
+    endpoint: internal
+  name: aodh-internal
+  namespace: telemetry-kuttl-autoscaling
+  ownerReferences:
+  - kind: Autoscaling
+    name: telemetry-kuttl
+spec:
+  ports:
+  - name: aodh-internal
+    port: 8042
+    protocol: TCP
+    targetPort: 8042
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: aodh
+    endpoint: public
+  name: aodh-public
+  namespace: telemetry-kuttl-autoscaling
+  ownerReferences:
+  - kind: Autoscaling
+    name: telemetry-kuttl
+spec:
+  ports:
+  - name: aodh-public
+    port: 8042
+    protocol: TCP
+    targetPort: 8042
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: aodh
+  name: aodh
+  namespace: telemetry-kuttl-autoscaling
+  ownerReferences:
+  - kind: Autoscaling
+    name: telemetry-kuttl
+spec:
+  template:
+    spec:
+      containers:
+      - image: quay.io/mmagr/openstack-aodh-api:current-podified
+        name: aodh-api
+      - image: quay.io/mmagr/openstack-aodh-evaluator:current-podified
+        name: aodh-evaluator
+      - image: quay.io/mmagr/openstack-aodh-notifier:current-podified
+        name: aodh-notifier
+      - image: quay.io/mmagr/openstack-aodh-listener:current-podified
+        name: aodh-listener
+      volumes:
+      - name: scripts
+        secret:
+          secretName: aodh-scripts
+      - name: config-data
+        secret:
+          secretName: aodh-config-data
