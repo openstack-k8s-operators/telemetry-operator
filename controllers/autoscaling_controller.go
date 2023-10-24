@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -64,8 +65,12 @@ import (
 type AutoscalingReconciler struct {
 	client.Client
 	Kclient kubernetes.Interface
-	Log     logr.Logger
 	Scheme  *runtime.Scheme
+}
+
+// GetLogger returns a logger object with a prefix of "conroller.name" and aditional controller context fields
+func (r *AutoscalingReconciler) GetLogger(ctx context.Context) logr.Logger {
+	return log.FromContext(ctx).WithName("Controllers").WithName("Autoscaling")
 }
 
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=autoscalings,verbs=get;list;watch;create;update;patch;delete
@@ -96,7 +101,7 @@ type AutoscalingReconciler struct {
 
 // Reconcile reconciles an Autoscaling
 func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues(autoscaling.ServiceName, req.NamespacedName)
+	Log := r.GetLogger(ctx)
 
 	// Fetch the Autoscaling instance
 	instance := &telemetryv1.Autoscaling{}
@@ -117,7 +122,7 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		r.Client,
 		r.Kclient,
 		r.Scheme,
-		r.Log,
+		Log,
 	)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -215,7 +220,8 @@ func (r *AutoscalingReconciler) reconcileDisabled(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service disabled")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service disabled")
 	ctrlResult, err := r.reconcileDisabledPrometheus(ctx, instance, helper)
 	if err != nil {
 		return ctrlResult, err
@@ -232,7 +238,7 @@ func (r *AutoscalingReconciler) reconcileDisabled(
 	for _, c := range instance.Status.Conditions {
 		instance.Status.Conditions.MarkTrue(c.Type, telemetryv1.AutoscalingReadyDisabledMessage)
 	}
-	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' disable successfully", autoscaling.ServiceName))
+	Log.Info(fmt.Sprintf("Reconciled Service '%s' disable successfully", autoscaling.ServiceName))
 	return ctrl.Result{}, nil
 }
 
@@ -241,7 +247,8 @@ func (r *AutoscalingReconciler) reconcileDelete(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service delete")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service delete")
 
 	ctrlResult, err := r.reconcileDeletePrometheus(ctx, instance, helper)
 	if err != nil {
@@ -257,7 +264,7 @@ func (r *AutoscalingReconciler) reconcileDelete(
 	}
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
-	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", autoscaling.ServiceName))
+	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", autoscaling.ServiceName))
 
 	return ctrl.Result{}, nil
 }
@@ -268,7 +275,8 @@ func (r *AutoscalingReconciler) reconcileInit(
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service init")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service init")
 	ctrlResult, err := r.reconcileInitPrometheus(ctx, instance, helper, serviceLabels)
 	if err != nil {
 		return ctrlResult, err
@@ -281,7 +289,7 @@ func (r *AutoscalingReconciler) reconcileInit(
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
-	r.Log.Info("Reconciled Service init successfully")
+	Log.Info("Reconciled Service init successfully")
 	return ctrl.Result{}, nil
 
 }
@@ -291,7 +299,8 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 ) (ctrl.Result, error) {
-	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", autoscaling.ServiceName))
+	Log := r.GetLogger(ctx)
+	Log.Info(fmt.Sprintf("Reconciling Service '%s'", autoscaling.ServiceName))
 
 	// Service account, role, binding
 	rbacRules := []rbacv1.PolicyRule{
@@ -326,7 +335,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	transportURL, op, err := r.transportURLCreateOrUpdate(instance)
 
 	if err != nil {
-		r.Log.Info("Error getting transportURL. Setting error condition on status and returning")
+		Log.Info("Error getting transportURL. Setting error condition on status and returning")
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.RabbitMqTransportURLReadyCondition,
 			condition.ErrorReason,
@@ -337,13 +346,13 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	}
 
 	if op != controllerutil.OperationResultNone {
-		r.Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
+		Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
 	}
 
 	instance.Status.TransportURLSecret = transportURL.Status.SecretName
 
 	if instance.Status.TransportURLSecret == "" {
-		r.Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
+		Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.RabbitMqTransportURLReadyCondition,
 			condition.RequestedReason,
@@ -500,7 +509,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	if err != nil {
 		return ctrlResult, err
 	}
-	r.Log.Info("Reconciled Service successfully")
+	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
 
@@ -513,6 +522,7 @@ func (r *AutoscalingReconciler) createHashOfInputHashes(
 	instance *telemetryv1.Autoscaling,
 	envVars map[string]env.Setter,
 ) (string, bool, error) {
+	Log := r.GetLogger(ctx)
 	var hashMap map[string]string
 	changed := false
 	mergedMapVars := env.MergeEnvs([]corev1.EnvVar{}, envVars)
@@ -522,7 +532,7 @@ func (r *AutoscalingReconciler) createHashOfInputHashes(
 	}
 	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
 		instance.Status.Hash = hashMap
-		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
+		Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
 	}
 	return hash, changed, nil
 }
@@ -684,7 +694,7 @@ func (r *AutoscalingReconciler) transportURLCreateOrUpdate(instance *telemetryv1
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *AutoscalingReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	// transportURLSecretFn - Watch for changes made to the secret associated with the RabbitMQ
 	// TransportURL created and used by Autoscaling CRs.  Watch functions return a list of namespace-scoped
 	// CRs that then get fed  to the reconciler.  Hence, in this case, we need to know the name of the
@@ -696,6 +706,7 @@ func (r *AutoscalingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// reconciliation for a Autoscaling CR that does not need it.
 	//
 	// TODO: We also need a watch func to monitor for changes to the secret referenced by Autoscaling.Spec.Secret
+	Log := r.GetLogger(ctx)
 	transportURLSecretFn := func(o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
@@ -705,7 +716,7 @@ func (r *AutoscalingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			client.InNamespace(o.GetNamespace()),
 		}
 		if err := r.Client.List(context.Background(), autoscalings, listOpts...); err != nil {
-			r.Log.Error(err, "Unable to retrieve Autoscaling CRs %v")
+			Log.Error(err, "Unable to retrieve Autoscaling CRs %v")
 			return nil
 		}
 
@@ -718,7 +729,7 @@ func (r *AutoscalingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 							Namespace: o.GetNamespace(),
 							Name:      cr.Name,
 						}
-						r.Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to Autoscaling CR %s", o.GetName(), cr.Name))
+						Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to Autoscaling CR %s", o.GetName(), cr.Name))
 						result = append(result, reconcile.Request{NamespacedName: name})
 					}
 				}
@@ -748,7 +759,7 @@ func (r *AutoscalingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			client.InNamespace(o.GetNamespace()),
 		}
 		if err := r.Client.List(context.Background(), autoscalings, listOpts...); err != nil {
-			r.Log.Error(err, "Unable to retrieve Autoscaling CRs %w")
+			Log.Error(err, "Unable to retrieve Autoscaling CRs %w")
 			return nil
 		}
 
@@ -758,7 +769,7 @@ func (r *AutoscalingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					Namespace: o.GetNamespace(),
 					Name:      cr.Name,
 				}
-				r.Log.Info(fmt.Sprintf("Memcached %s is used by Autoscaling CR %s", o.GetName(), cr.Name))
+				Log.Info(fmt.Sprintf("Memcached %s is used by Autoscaling CR %s", o.GetName(), cr.Name))
 				result = append(result, reconcile.Request{NamespacedName: name})
 			}
 		}

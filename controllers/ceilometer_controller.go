@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -57,8 +58,12 @@ import (
 type CeilometerReconciler struct {
 	client.Client
 	Kclient kubernetes.Interface
-	Log     logr.Logger
 	Scheme  *runtime.Scheme
+}
+
+// GetLogger returns a logger object with a prefix of "conroller.name" and aditional controller context fields
+func (r *CeilometerReconciler) GetLogger(ctx context.Context) logr.Logger {
+	return log.FromContext(ctx).WithName("Controllers").WithName("Ceilometer")
 }
 
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers,verbs=get;list;watch;create;update;patch;delete
@@ -81,7 +86,7 @@ type CeilometerReconciler struct {
 
 // Reconcile reconciles a Ceilometer
 func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
-	_ = r.Log.WithValues(ceilometer.ServiceName, req.NamespacedName)
+	Log := r.GetLogger(ctx)
 
 	// Fetch the Ceilometer instance
 	instance := &telemetryv1.Ceilometer{}
@@ -102,7 +107,7 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.Client,
 		r.Kclient,
 		r.Scheme,
-		r.Log,
+		Log,
 	)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -172,7 +177,8 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service delete")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service delete")
 
 	// Remove the finalizer from our KeystoneService CR
 	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, ceilometer.ServiceName, instance.Namespace)
@@ -192,7 +198,7 @@ func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *te
 
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
-	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", ceilometer.ServiceName))
+	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", ceilometer.ServiceName))
 
 	return ctrl.Result{}, nil
 }
@@ -203,7 +209,8 @@ func (r *CeilometerReconciler) reconcileInit(
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service init")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service init")
 
 	//
 	// create Keystone service and users
@@ -247,12 +254,13 @@ func (r *CeilometerReconciler) reconcileInit(
 		instance.Status.Hash = map[string]string{}
 	}
 
-	r.Log.Info("Reconciled Service init successfully")
+	Log.Info("Reconciled Service init successfully")
 	return ctrl.Result{}, nil
 }
 
 func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info(fmt.Sprintf("Reconciling Service '%s'", ceilometer.ServiceName))
+	Log := r.GetLogger(ctx)
+	Log.Info(fmt.Sprintf("Reconciling Service '%s'", ceilometer.ServiceName))
 
 	// Service account, role, binding
 	rbacRules := []rbacv1.PolicyRule{
@@ -281,7 +289,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	transportURL, op, err := r.transportURLCreateOrUpdate(instance)
 
 	if err != nil {
-		r.Log.Info("Error getting transportURL. Setting error condition on status and returning")
+		Log.Info("Error getting transportURL. Setting error condition on status and returning")
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.RabbitMqTransportURLReadyCondition,
 			condition.ErrorReason,
@@ -292,13 +300,13 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	}
 
 	if op != controllerutil.OperationResultNone {
-		r.Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
+		Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
 	}
 
 	instance.Status.TransportURLSecret = transportURL.Status.SecretName
 
 	if instance.Status.TransportURLSecret == "" {
-		r.Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
+		Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.RabbitMqTransportURLReadyCondition,
 			condition.RequestedReason,
@@ -446,7 +454,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		return ctrl.Result{}, err
 	}
 
-	r.Log.Info("Reconciled Service successfully")
+	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
 
@@ -602,6 +610,7 @@ func (r *CeilometerReconciler) createHashOfInputHashes(
 	instance *telemetryv1.Ceilometer,
 	envVars map[string]env.Setter,
 ) (string, bool, error) {
+	Log := r.GetLogger(ctx)
 	var hashMap map[string]string
 	changed := false
 	mergedMapVars := env.MergeEnvs([]corev1.EnvVar{}, envVars)
@@ -611,7 +620,7 @@ func (r *CeilometerReconciler) createHashOfInputHashes(
 	}
 	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
 		instance.Status.Hash = hashMap
-		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
+		Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
 	}
 	return hash, changed, nil
 }
@@ -632,7 +641,7 @@ func (r *CeilometerReconciler) transportURLCreateOrUpdate(instance *telemetryv1.
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 
 	// transportURLSecretFn - Watch for changes made to the secret associated with the RabbitMQ
 	// TransportURL created and used by Ceilometer CRs.  Watch functions return a list of namespace-scoped
@@ -645,6 +654,7 @@ func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// reconciliation for a Ceilometer CR that does not need it.
 	//
 	// TODO: We also need a watch func to monitor for changes to the secret referenced by Ceilometer.Spec.Secret
+	Log := r.GetLogger(ctx)
 	transportURLSecretFn := func(o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
@@ -654,7 +664,7 @@ func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			client.InNamespace(o.GetNamespace()),
 		}
 		if err := r.Client.List(context.Background(), ceilometers, listOpts...); err != nil {
-			r.Log.Error(err, "Unable to retrieve Ceilometer CRs %v")
+			Log.Error(err, "Unable to retrieve Ceilometer CRs %v")
 			return nil
 		}
 
@@ -667,7 +677,7 @@ func (r *CeilometerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 							Namespace: o.GetNamespace(),
 							Name:      cr.Name,
 						}
-						r.Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to Ceilometer CR %s", o.GetName(), cr.Name))
+						Log.Info(fmt.Sprintf("TransportURL Secret %s belongs to TransportURL belonging to Ceilometer CR %s", o.GetName(), cr.Name))
 						result = append(result, reconcile.Request{NamespacedName: name})
 					}
 				}
