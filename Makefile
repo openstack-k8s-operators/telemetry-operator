@@ -341,10 +341,9 @@ KUTTL_SUITE_DIR ?= tests/kuttl/suites/$(KUTTL_SUITE)
 kuttl-test-prep:
 	oc apply -k $(KUTTL_SUITE_DIR)/deps/ --timeout=120s
 	oc wait -n $(KUTTL_NAMESPACE) openstackcontrolplane openstack --for condition=Ready --timeout=300s
-	oc apply -f $(KUTTL_SUITE_DIR)/deps/rhobs.yaml
-	$(until oc api-resources -n $(KUTTL_NAMESPACE) | grep -q rhobs; do sleep 2; done)
 
 .PHONY: kuttl-test-run
+kuttl-test-run: export NAMESPACE = $(KUTTL_NAMESPACE)
 kuttl-test-run:
 	oc kuttl test --v 1 --start-kind=false --config $(KUTTL_SUITE_DIR)/config.yaml
 
