@@ -39,7 +39,8 @@ func (r *AutoscalingReconciler) reconcileDisabledPrometheus(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service Prometheus disabled")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service Prometheus disabled")
 	serviceLabels := map[string]string{
 		common.AppSelector: autoscaling.ServiceName,
 	}
@@ -56,7 +57,7 @@ func (r *AutoscalingReconciler) reconcileDisabledPrometheus(
 	for _, c := range instance.Status.Conditions {
 		instance.Status.Conditions.MarkTrue(c.Type, telemetryv1.AutoscalingReadyDisabledMessage)
 	}
-	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' disable successfully", autoscaling.ServiceName))
+	Log.Info(fmt.Sprintf("Reconciled Service '%s' disable successfully", autoscaling.ServiceName))
 	return ctrl.Result{}, nil
 }
 
@@ -65,9 +66,10 @@ func (r *AutoscalingReconciler) reconcileDeletePrometheus(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service Prometheus delete")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service Prometheus delete")
 	// TODO: finalizer prometheus
-	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", autoscaling.ServiceName))
+	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", autoscaling.ServiceName))
 
 	return ctrl.Result{}, nil
 }
@@ -87,11 +89,12 @@ func (r *AutoscalingReconciler) reconcileNormalPrometheus(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 ) (ctrl.Result, error) {
+	Log := r.GetLogger(ctx)
 	serviceLabels := map[string]string{
 		common.AppSelector: autoscaling.ServiceName,
 	}
 	prom := autoscaling.Prometheus(instance, serviceLabels)
-	r.Log.Info(fmt.Sprintf("Reconciling Service Aodh '%s'", prom.Name))
+	Log.Info(fmt.Sprintf("Reconciling Service Aodh '%s'", prom.Name))
 
 	var promHost string
 	var promPort int32
@@ -105,7 +108,7 @@ func (r *AutoscalingReconciler) reconcileNormalPrometheus(
 			return ctrl.Result{}, err
 		}
 		if op != controllerutil.OperationResultNone {
-			r.Log.Info(fmt.Sprintf("Prometheus %s successfully reconciled - operation: %s", prom.Name, string(op)))
+			Log.Info(fmt.Sprintf("Prometheus %s successfully reconciled - operation: %s", prom.Name, string(op)))
 		}
 		promReady := true
 		for _, c := range prom.Status.Conditions {
@@ -155,6 +158,6 @@ func (r *AutoscalingReconciler) reconcileNormalPrometheus(
 	instance.Status.PrometheusHost = promHost
 	instance.Status.PrometheusPort = promPort
 
-	r.Log.Info(fmt.Sprintf("Reconciled Service Aodh '%s' successfully", prom.Name))
+	Log.Info(fmt.Sprintf("Reconciled Service Aodh '%s' successfully", prom.Name))
 	return ctrl.Result{}, nil
 }

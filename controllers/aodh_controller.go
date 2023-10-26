@@ -49,7 +49,8 @@ func (r *AutoscalingReconciler) reconcileDisabledAodh(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service Aodh disabled")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service Aodh disabled")
 	serviceLabels := map[string]string{
 		common.AppSelector: autoscaling.ServiceName,
 	}
@@ -144,7 +145,7 @@ func (r *AutoscalingReconciler) reconcileDisabledAodh(
 		return ctrl.Result{}, err
 	}
 	instance.Status.Conditions = condition.Conditions{}
-	r.Log.Info(fmt.Sprintf("Reconciled Service Aodh '%s' disable successfully", autoscaling.ServiceName))
+	Log.Info(fmt.Sprintf("Reconciled Service Aodh '%s' disable successfully", autoscaling.ServiceName))
 	return ctrl.Result{}, nil
 }
 
@@ -153,7 +154,8 @@ func (r *AutoscalingReconciler) reconcileDeleteAodh(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service Aodh delete")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service Aodh delete")
 
 	// remove db finalizer first
 	db, err := mariadbv1.GetDatabaseByName(ctx, helper, autoscaling.ServiceName)
@@ -197,7 +199,7 @@ func (r *AutoscalingReconciler) reconcileDeleteAodh(
 			util.LogForObject(helper, "Removed finalizer from our KeystoneEndpoint", instance)
 		}
 	}
-	r.Log.Info(fmt.Sprintf("Reconciled Service Aodh '%s' delete successfully", autoscaling.ServiceName))
+	Log.Info(fmt.Sprintf("Reconciled Service Aodh '%s' delete successfully", autoscaling.ServiceName))
 
 	return ctrl.Result{}, nil
 }
@@ -208,7 +210,8 @@ func (r *AutoscalingReconciler) reconcileInitAodh(
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service Aodh init")
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service Aodh init")
 	_, _, err := secret.GetSecret(ctx, helper, instance.Spec.Aodh.Secret, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -347,12 +350,12 @@ func (r *AutoscalingReconciler) reconcileInitAodh(
 	}
 	if dbSyncjob.HasChanged() {
 		instance.Status.Hash[telemetryv1.DbSyncHash] = dbSyncjob.GetHash()
-		r.Log.Info(fmt.Sprintf("Service '%s' - Job %s hash added - %s", instance.Name, jobDef.Name, instance.Status.Hash[telemetryv1.DbSyncHash]))
+		Log.Info(fmt.Sprintf("Service '%s' - Job %s hash added - %s", instance.Name, jobDef.Name, instance.Status.Hash[telemetryv1.DbSyncHash]))
 	}
 	instance.Status.Conditions.MarkTrue(condition.DBSyncReadyCondition, condition.DBSyncReadyMessage)
 
 	// run Aodh db sync - end
-	r.Log.Info("Reconciled Service Aodh init successfully")
+	Log.Info("Reconciled Service Aodh init successfully")
 	return ctrl.Result{}, nil
 }
 
@@ -362,7 +365,8 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 	helper *helper.Helper,
 	inputHash string,
 ) (ctrl.Result, error) {
-	r.Log.Info(fmt.Sprintf("Reconciling Service Aodh '%s'", autoscaling.ServiceName))
+	Log := r.GetLogger(ctx)
+	Log.Info(fmt.Sprintf("Reconciling Service Aodh '%s'", autoscaling.ServiceName))
 	serviceLabels := map[string]string{
 		common.AppSelector: autoscaling.ServiceName,
 	}
@@ -543,6 +547,6 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		return ctrlResult, nil
 	}
 
-	r.Log.Info("Reconciled Service Aodh successfully")
+	Log.Info("Reconciled Service Aodh successfully")
 	return ctrl.Result{}, nil
 }
