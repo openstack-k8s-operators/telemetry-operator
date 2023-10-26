@@ -13,13 +13,13 @@
         "/var/lib/openstack/config/ceilometer/ceilometer-agent-compute.json:/var/lib/kolla/config_files/config.json:z",
         "/var/log/containers/ceilometer:/var/log/containers/ceilometer:z",
         "/run/libvirt:/run/libvirt:shared,z",
-        "/etc/hosts:/etc/hosts:z",
-        "/etc/pki/tls/certs/ca-bundle.trust.crt:/etc/pki/tls/certs/ca-bundle.trust.crt:z",
-        "/etc/localtime:/etc/localtime:z",
-        "/etc/pki/ca-trust/extracted:/etc/pki/ca-trust/extracted:z",
-        "/etc/pki/ca-trust/source/anchors:/etc/pki/ca-trust/source/anchors:z",
-        "/dev/log:/dev/log:z",
-        "/etc/pki/tls/cert.pem:/etc/pki/tls/cert.pem:z",
-        "/etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt:z"
+        "/etc/hosts:/etc/hosts:ro",
+        "/etc/pki/tls/certs/ca-bundle.trust.crt:/etc/pki/tls/certs/ca-bundle.trust.crt:ro",
+        "/etc/localtime:/etc/localtime:ro",
+        "/etc/pki/ca-trust/extracted:/etc/pki/ca-trust/extracted:ro",
+        "/etc/pki/ca-trust/source/anchors:/etc/pki/ca-trust/source/anchors:ro",
+        "/dev/log:/dev/log",
+        "/etc/pki/tls/cert.pem:/etc/pki/tls/cert.pem:ro",
+        "/etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt:ro"
     ]
 }
