@@ -19,5 +19,7 @@ reportName: kuttl-test-telemetry
 namespace: telemetry-kuttl-tests
 timeout: 180
 parallel: 1
+testDirs:
+  - tests/kuttl/suites/autoscaling/
 suppress:
   - events                     # Remove spammy event logs
