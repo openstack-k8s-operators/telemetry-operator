@@ -23,7 +23,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: telemetry-kuttl-prometheus-prometheus
-  namespace: telemetry-kuttl-autoscaling
   ownerReferences:
     - kind: MonitoringStack
       name: telemetry-kuttl-prometheus
@@ -41,7 +40,6 @@ metadata:
     service: aodh
     endpoint: internal
   name: aodh-internal
-  namespace: telemetry-kuttl-autoscaling
   ownerReferences:
   - kind: Autoscaling
     name: telemetry-kuttl
@@ -59,7 +57,6 @@ metadata:
     service: aodh
     endpoint: public
   name: aodh-public
-  namespace: telemetry-kuttl-autoscaling
   ownerReferences:
   - kind: Autoscaling
     name: telemetry-kuttl
@@ -76,7 +73,6 @@ metadata:
   labels:
     service: aodh
   name: aodh
-  namespace: telemetry-kuttl-autoscaling
   ownerReferences:
   - kind: Autoscaling
     name: telemetry-kuttl
