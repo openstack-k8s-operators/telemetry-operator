@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: ceilometer
+  name: ceilometer
+  ownerReferences:
+  - kind: Ceilometer
+    name: telemetry-kuttl
+spec:
+  ports:
+  - port: 3000
+    protocol: TCP
+    targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: ceilometer
+  name: ceilometer
+  ownerReferences:
+  - kind: Ceilometer
+    name: telemetry-kuttl
+spec:
+  template:
+    spec:
+      containers:
+      - name: ceilometer-central-agent
+      - name: ceilometer-notification-agent
+      - name: sg-core
+      volumes:
+      - name: scripts
+        secret:
+          defaultMode: 480
+          secretName: ceilometer-scripts
+      - name: config-data
+        secret:
+          defaultMode: 416
+          secretName: ceilometer-config-data
+      - name: sg-core-conf-yaml
+        secret:
+          defaultMode: 416
+          items:
+          - key: sg-core.conf.yaml
+            path: sg-core.conf.yaml
+          secretName: ceilometer-config-data
