@@ -21,7 +21,7 @@ const (
 	// ComputeServiceName -
 	ComputeServiceName = "ceilometer-compute"
 	// ServiceType -
-	ServiceType = "Ceilometer"
+	ServiceType = "telemetry"
 
 	// CeilometerPrometheusPort -
 	CeilometerPrometheusPort int = 3000

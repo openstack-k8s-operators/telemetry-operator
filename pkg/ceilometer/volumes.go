@@ -23,11 +23,13 @@ const (
 	scriptVolume = "ceilometer-scripts"
 	configVolume = "ceilometer-config-data"
 	logVolume    = "logs"
+	cacertVolume = "combined-ca-bundle"
 )
 
 var (
 	configMode int32 = 0640
 	scriptMode int32 = 0740
+	cacertMode int32 = 0444
 )
 
 func getVolumes(name string) []corev1.Volume {
@@ -60,6 +62,14 @@ func getVolumes(name string) []corev1.Volume {
 					SecretName: configVolume,
 				},
 			},
+		}, {
+			Name: "ca-certs",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &cacertMode,
+					SecretName:  cacertVolume,
+				},
+			},
 		},
 	}
 }
@@ -81,6 +91,11 @@ func getVolumeMounts(serviceName string) []corev1.VolumeMount {
 			Name:      "config-data",
 			MountPath: "/var/lib/kolla/config_files/config.json",
 			SubPath:   serviceName + "-config.json",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "ca-certs",
+			MountPath: "/etc/pki/ca-trust/extracted/pem",
 			ReadOnly:  true,
 		},
 	}
