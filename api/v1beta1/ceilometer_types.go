@@ -29,7 +29,7 @@ const (
 	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notification
 	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
 	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
-	CeilometerSgCoreContainerImage = "quay.io/infrawatch/sg-core:v5.1.1-nextgen"
+	CeilometerSgCoreContainerImage = "quay.io/infrawatch/sg-core:v5.2.0-nextgen"
 	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
 	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
