@@ -332,7 +332,6 @@ kuttl-install:
 	export PATH="$${KREW_ROOT:-$$HOME/.krew}/bin:$$PATH" && kubectl krew install kuttl
 	echo "Place 'export PATH=$${KREW_ROOT:-$$HOME/.krew}/bin:$$PATH' to your ~/.bashrc"
 
-# TODO(mmagr): change this to default once there is default suite
 KUTTL_SUITE ?= default
 KUTTL_NAMESPACE ?= telemetry-kuttl-$(KUTTL_SUITE)
 KUTTL_SUITE_DIR ?= tests/kuttl/suites/$(KUTTL_SUITE)
