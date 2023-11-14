@@ -332,8 +332,7 @@ kuttl-install:
 	export PATH="$${KREW_ROOT:-$$HOME/.krew}/bin:$$PATH" && kubectl krew install kuttl
 	echo "Place 'export PATH=$${KREW_ROOT:-$$HOME/.krew}/bin:$$PATH' to your ~/.bashrc"
 
-# TODO(mmagr): change this to default once there is default suite
-KUTTL_SUITE ?= autoscaling
+KUTTL_SUITE ?= default
 KUTTL_NAMESPACE ?= telemetry-kuttl-$(KUTTL_SUITE)
 KUTTL_SUITE_DIR ?= tests/kuttl/suites/$(KUTTL_SUITE)
 
@@ -360,6 +359,12 @@ kuttl-test-cleanup:
 	if [ "${namespace_exists}" != "" ]; then \
 		if [ "$(KUTTL_SUITE)" == "autoscaling" ]; then \
 			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s Autoscaling; \
+		fi; \
+		if [ "$(KUTTL_SUITE)" == "ceilometer" ]; then \
+			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s Ceilometer; \
+		fi; \
+		if [ "$(KUTTL_SUITE)" == "default" ]; then \
+			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s Telemetry; \
 		fi; \
 		oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s OpenStackControlPlane; \
 		oc delete --wait=true namespace $(KUTTL_NAMESPACE); \

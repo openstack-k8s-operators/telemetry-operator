@@ -1,0 +1,35 @@
+apiVersion: core.openstack.org/v1beta1
+kind: OpenStackControlPlane
+metadata:
+  name: openstack
+spec:
+  storageClass: "crc-csi-hostpath-provisioner"
+  keystone:
+    template:
+      databaseInstance: openstack
+      secret: osp-secret
+  ironic:
+    enabled: false
+    template:
+      ironicConductors: []
+  manila:
+    enabled: false
+    template:
+      manilaShares: {}
+  horizon:
+    enabled: false
+  nova:
+    enabled: false
+  placement:
+    template:
+      databaseInstance: openstack
+      secret: osp-secret
+  heat:
+    enabled: true
+    template:
+      databaseInstance: openstack
+      heatAPI:
+        replicas: 1
+      heatEngine:
+        replicas: 1
+      secret: osp-secret
