@@ -57,9 +57,6 @@ const (
 	// AutoscalingReadyErrorMessage
 	AutoscalingReadyErrorMessage = "Autoscaling error occured %s"
 
-	// AutoscalingReadyErrorMessage
-	AutoscalingReadyDisabledMessage = "Autoscaling disabled"
-
 	// HeatReadyInitMessage
 	HeatReadyInitMessage = "Heat not started"
 

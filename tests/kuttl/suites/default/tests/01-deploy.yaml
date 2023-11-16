@@ -4,7 +4,6 @@ metadata:
   name: telemetry
 spec:
   autoscaling:
-    enabled: true
     prometheus:
       deployPrometheus: true
     aodh:

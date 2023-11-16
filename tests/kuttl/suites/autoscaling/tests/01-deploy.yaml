@@ -3,7 +3,6 @@ kind: Autoscaling
 metadata:
   name: telemetry-kuttl
 spec:
-  enabled: true
   prometheus:
     deployPrometheus: true
   aodh:
