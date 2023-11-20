@@ -45,13 +45,46 @@ type PasswordsSelector struct {
 
 // TelemetrySpec defines the desired state of Telemetry
 type TelemetrySpec struct {
-	// +kubebuilder:validation:Required
-	// Autoscaling - Spec definition for the Autoscaling service of this Telemetry deployment
-	Autoscaling AutoscalingSpec `json:"autoscaling"`
+	// +kubebuilder:validation:Optional
+	// Autoscaling - Parameters related to the autoscaling service
+	Autoscaling AutoscalingSection `json:"autoscaling,omitempty"`
 
-	// +kubebuilder:validation:Required
-	// Ceilometer - Spec definition for the Ceilometer service of this Telemetry deployment
-	Ceilometer CeilometerSpec `json:"ceilometer"`
+	// +kubebuilder:validation:Optional
+	// Ceilometer - Parameters related to the ceilometer service
+	Ceilometer CeilometerSection `json:"ceilometer,omitempty"`
+
+	// Secret containing OpenStack password information for telemetry services
+        // +kubebuilder:validation:Required
+        Secret string `json:"secret"`
+
+}
+
+// CeilometerSection defines the desired state of the ceilometer service
+type CeilometerSection struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// Enabled - Whether OpenStack Ceilometer service should be deployed and managed
+	Enabled bool `json:"enabled"`
+
+	// +kubebuilder:validation:Optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec
+	// Template - Overrides to use when creating the OpenStack Ceilometer service
+	Template CeilometerSpec `json:"template,omitempty"`
+}
+
+// AutoscalingSection defines the desired state of the autoscaling service
+type AutoscalingSection struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// Enabled - Whether OpenStack autoscaling service should be deployed and managed
+	Enabled bool `json:"enabled"`
+
+	// +kubebuilder:validation:Optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec
+	// Template - Overrides to use when creating the OpenStack autoscaling service
+	Template AutoscalingSpec `json:"template,omitempty"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry

@@ -4,18 +4,22 @@ metadata:
   name: telemetry
 spec:
   autoscaling:
-    prometheus:
-      deployPrometheus: true
-    aodh:
-      secret: osp-secret
-      apiImage: "quay.io/mmagr/openstack-aodh-api:current-podified"
-      evaluatorImage: "quay.io/mmagr/openstack-aodh-evaluator:current-podified"
-      notifierImage: "quay.io/mmagr/openstack-aodh-notifier:current-podified"
-      listenerImage: "quay.io/mmagr/openstack-aodh-listener:current-podified"
-      passwordSelectors:
-      databaseUser: aodh
-      databaseInstance: openstack
-      memcachedInstance: memcached
-    heatInstance: heat
+    enabled: true
+    template:
+      prometheus:
+        deployPrometheus: true
+      aodh:
+        secret: osp-secret
+        apiImage: "quay.io/mmagr/openstack-aodh-api:current-podified"
+        evaluatorImage: "quay.io/mmagr/openstack-aodh-evaluator:current-podified"
+        notifierImage: "quay.io/mmagr/openstack-aodh-notifier:current-podified"
+        listenerImage: "quay.io/mmagr/openstack-aodh-listener:current-podified"
+        passwordSelectors:
+        databaseUser: aodh
+        databaseInstance: openstack
+        memcachedInstance: memcached
+      heatInstance: heat
   ceilometer:
-    secret: osp-secret
+    enabled: true
+    template:
+      secret: osp-secret

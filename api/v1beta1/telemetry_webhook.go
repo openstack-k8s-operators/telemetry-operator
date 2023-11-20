@@ -72,35 +72,35 @@ func (r *Telemetry) Default() {
 
 // Default - set defaults for this Telemetry spec
 func (spec *TelemetrySpec) Default() {
-	if spec.Ceilometer.CentralImage == "" {
-		spec.Ceilometer.CentralImage = telemetryDefaults.CentralContainerImageURL
+	if spec.Ceilometer.Template.CentralImage == "" {
+		spec.Ceilometer.Template.CentralImage = telemetryDefaults.CentralContainerImageURL
 	}
-	if spec.Ceilometer.ComputeImage == "" {
-		spec.Ceilometer.ComputeImage = telemetryDefaults.ComputeContainerImageURL
+	if spec.Ceilometer.Template.ComputeImage == "" {
+		spec.Ceilometer.Template.ComputeImage = telemetryDefaults.ComputeContainerImageURL
 	}
-	if spec.Ceilometer.IpmiImage == "" {
-		spec.Ceilometer.IpmiImage = telemetryDefaults.IpmiContainerImageURL
+	if spec.Ceilometer.Template.IpmiImage == "" {
+		spec.Ceilometer.Template.IpmiImage = telemetryDefaults.IpmiContainerImageURL
 	}
-	if spec.Ceilometer.NotificationImage == "" {
-		spec.Ceilometer.NotificationImage = telemetryDefaults.NotificationContainerImageURL
+	if spec.Ceilometer.Template.NotificationImage == "" {
+		spec.Ceilometer.Template.NotificationImage = telemetryDefaults.NotificationContainerImageURL
 	}
-	if spec.Ceilometer.SgCoreImage == "" {
-		spec.Ceilometer.SgCoreImage = telemetryDefaults.SgCoreContainerImageURL
+	if spec.Ceilometer.Template.SgCoreImage == "" {
+		spec.Ceilometer.Template.SgCoreImage = telemetryDefaults.SgCoreContainerImageURL
 	}
-	if spec.Ceilometer.NodeExporterImage == "" {
-		spec.Ceilometer.NodeExporterImage = telemetryDefaults.NodeExporterContainerImageURL
+	if spec.Ceilometer.Template.NodeExporterImage == "" {
+		spec.Ceilometer.Template.NodeExporterImage = telemetryDefaults.NodeExporterContainerImageURL
 	}
-	if spec.Autoscaling.Aodh.APIImage == "" {
-		spec.Autoscaling.Aodh.APIImage = telemetryDefaults.AodhAPIContainerImageURL
+	if spec.Autoscaling.Template.Aodh.APIImage == "" {
+		spec.Autoscaling.Template.Aodh.APIImage = telemetryDefaults.AodhAPIContainerImageURL
 	}
-	if spec.Autoscaling.Aodh.EvaluatorImage == "" {
-		spec.Autoscaling.Aodh.EvaluatorImage = telemetryDefaults.AodhEvaluatorContainerImageURL
+	if spec.Autoscaling.Template.Aodh.EvaluatorImage == "" {
+		spec.Autoscaling.Template.Aodh.EvaluatorImage = telemetryDefaults.AodhEvaluatorContainerImageURL
 	}
-	if spec.Autoscaling.Aodh.NotifierImage == "" {
-		spec.Autoscaling.Aodh.NotifierImage = telemetryDefaults.AodhNotifierContainerImageURL
+	if spec.Autoscaling.Template.Aodh.NotifierImage == "" {
+		spec.Autoscaling.Template.Aodh.NotifierImage = telemetryDefaults.AodhNotifierContainerImageURL
 	}
-	if spec.Autoscaling.Aodh.ListenerImage == "" {
-		spec.Autoscaling.Aodh.ListenerImage = telemetryDefaults.AodhListenerContainerImageURL
+	if spec.Autoscaling.Template.Aodh.ListenerImage == "" {
+		spec.Autoscaling.Template.Aodh.ListenerImage = telemetryDefaults.AodhListenerContainerImageURL
 	}
 
 }
