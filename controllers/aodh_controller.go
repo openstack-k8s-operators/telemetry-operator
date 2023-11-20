@@ -23,7 +23,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -38,116 +37,10 @@ import (
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 
-	routev1 "github.com/openshift/api/route/v1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	autoscaling "github.com/openstack-k8s-operators/telemetry-operator/pkg/autoscaling"
 )
-
-func (r *AutoscalingReconciler) reconcileDisabledAodh(
-	ctx context.Context,
-	instance *telemetryv1.Autoscaling,
-	helper *helper.Helper,
-) (ctrl.Result, error) {
-	Log := r.GetLogger(ctx)
-	Log.Info("Reconciling Service Aodh disabled")
-	serviceLabels := map[string]string{
-		common.AppSelector: autoscaling.ServiceName,
-	}
-
-	// run the Delete to remove all finalizers
-	ctrlResult, err := r.reconcileDeleteAodh(ctx, instance, helper)
-	if (ctrlResult != ctrl.Result{}) {
-		return ctrlResult, nil
-	}
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// We are disabling autoscaling, not deleting it. We need to
-	// manually delete all autoscaling resources,
-	// that were created before
-
-	// Delete deployment
-	depl, err := autoscaling.AodhDeployment(instance, "", serviceLabels)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	err = r.Client.Delete(ctx, depl)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-
-	// Delete db
-	db, err := mariadbv1.GetDatabaseByName(ctx, helper, autoscaling.ServiceName)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	if !k8s_errors.IsNotFound(err) {
-		mariadbdatabase := db.GetDatabase()
-		err = r.Client.Delete(ctx, mariadbdatabase)
-		if err != nil && !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Delete keystone service
-	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, autoscaling.ServiceName, instance.Namespace)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	if !k8s_errors.IsNotFound(err) {
-		err = r.Client.Delete(ctx, keystoneService)
-		if err != nil && !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Delete keystone endpoint
-	keystoneEndpoint, err := keystonev1.GetKeystoneEndpointWithName(ctx, helper, autoscaling.ServiceName, instance.Namespace)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	if !k8s_errors.IsNotFound(err) {
-		err = r.Client.Delete(ctx, keystoneEndpoint)
-		if err != nil && !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-	}
-
-	// Delete services
-	svcs, err := service.GetServicesListWithLabel(ctx, helper, instance.Namespace, serviceLabels)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	if !k8s_errors.IsNotFound(err) {
-		for _, svc := range svcs.Items {
-			// NOTE: Using r.Client.Delete() to delete a service ends with:
-			// "k8s.io/api/core/v1".Service does not implement
-			// client.Object (DeepCopyObject method has pointer receiver)
-			serviceClient := helper.GetKClient().CoreV1().Services(instance.Namespace)
-			err = serviceClient.Delete(ctx, svc.ObjectMeta.Name, metav1.DeleteOptions{})
-			if err != nil && !k8s_errors.IsNotFound(err) {
-				return ctrl.Result{}, err
-			}
-		}
-	}
-
-	// Delete public route
-	route := &routev1.Route{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: instance.Namespace,
-			Name:      autoscaling.ServiceName + "-public",
-		},
-	}
-	err = r.Client.Delete(ctx, route)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	instance.Status.Conditions = condition.Conditions{}
-	Log.Info(fmt.Sprintf("Reconciled Service Aodh '%s' disable successfully", autoscaling.ServiceName))
-	return ctrl.Result{}, nil
-}
 
 func (r *AutoscalingReconciler) reconcileDeleteAodh(
 	ctx context.Context,

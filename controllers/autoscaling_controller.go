@@ -83,7 +83,6 @@ func (r *AutoscalingReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;create;update;patch;delete;watch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list
-// +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;create;update;patch;delete;watch
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch;
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneendpoints,verbs=get;list;watch;create;update;patch;delete;
@@ -130,23 +129,17 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Always patch the instance status when exiting this function so we can persist any changes.
 	defer func() {
-		if !instance.Spec.Enabled {
+		// update the Ready condition based on the sub conditions
+		if instance.Status.Conditions.AllSubConditionIsTrue() {
 			instance.Status.Conditions.MarkTrue(
-				condition.ReadyCondition, telemetryv1.AutoscalingReadyDisabledMessage,
-			)
+				condition.ReadyCondition, condition.ReadyMessage)
 		} else {
-			// update the Ready condition based on the sub conditions
-			if instance.Status.Conditions.AllSubConditionIsTrue() {
-				instance.Status.Conditions.MarkTrue(
-					condition.ReadyCondition, condition.ReadyMessage)
-			} else {
-				// something is not ready so reset the Ready condition
-				instance.Status.Conditions.MarkUnknown(
-					condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage)
-				// and recalculate it based on the state of the rest of the conditions
-				instance.Status.Conditions.Set(
-					instance.Status.Conditions.Mirror(condition.ReadyCondition))
-			}
+			// something is not ready so reset the Ready condition
+			instance.Status.Conditions.MarkUnknown(
+				condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage)
+			// and recalculate it based on the state of the rest of the conditions
+			instance.Status.Conditions.Set(
+				instance.Status.Conditions.Mirror(condition.ReadyCondition))
 		}
 		err := helper.PatchInstance(ctx, instance)
 		if err != nil {
@@ -206,40 +199,8 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return r.reconcileDelete(ctx, instance, helper)
 	}
 
-	// Handle service disabled
-	if !instance.Spec.Enabled {
-		return r.reconcileDisabled(ctx, instance, helper)
-	}
-
 	// Handle non-deleted clusters
 	return r.reconcileNormal(ctx, instance, helper)
-}
-
-func (r *AutoscalingReconciler) reconcileDisabled(
-	ctx context.Context,
-	instance *telemetryv1.Autoscaling,
-	helper *helper.Helper,
-) (ctrl.Result, error) {
-	Log := r.GetLogger(ctx)
-	Log.Info("Reconciling Service disabled")
-	ctrlResult, err := r.reconcileDisabledPrometheus(ctx, instance, helper)
-	if err != nil {
-		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
-		return ctrlResult, nil
-	}
-	ctrlResult, err = r.reconcileDisabledAodh(ctx, instance, helper)
-	if err != nil {
-		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
-		return ctrlResult, nil
-	}
-	// Set the condition to true, since the service is disabled
-	for _, c := range instance.Status.Conditions {
-		instance.Status.Conditions.MarkTrue(c.Type, telemetryv1.AutoscalingReadyDisabledMessage)
-	}
-	Log.Info(fmt.Sprintf("Reconciled Service '%s' disable successfully", autoscaling.ServiceName))
-	return ctrl.Result{}, nil
 }
 
 func (r *AutoscalingReconciler) reconcileDelete(

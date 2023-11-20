@@ -303,10 +303,6 @@ spec:
                 - notifierImage
                 - secret
                 type: object
-              enabled:
-                default: false
-                description: Allows enabling and disabling the autoscaling feature
-                type: boolean
               heatInstance:
                 default: heat
                 description: Heat instance name.

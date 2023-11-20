@@ -11,7 +11,6 @@ require (
 	github.com/go-logr/logr v1.3.0
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.29.0
-	github.com/openshift/api v3.9.0+incompatible
 	github.com/openstack-k8s-operators/heat-operator/api v0.1.0
 	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20231103182030-0aaa65ca38c7
 	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20231103151903-a1a0e540408d
@@ -56,6 +55,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.3.1-0.20231102083359-58e12a1299b2 // indirect
 	github.com/openstack-k8s-operators/lib-common/modules/storage v0.3.1-0.20231102083359-58e12a1299b2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
