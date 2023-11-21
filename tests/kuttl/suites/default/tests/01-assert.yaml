@@ -6,7 +6,7 @@ metadata:
   name: ceilometer
   ownerReferences:
   - kind: Ceilometer
-    name: telemetry-ceilometer-central
+    name: ceilometer
 spec:
   ports:
   - port: 3000
@@ -21,7 +21,7 @@ metadata:
   name: ceilometer
   ownerReferences:
   - kind: Ceilometer
-    name: telemetry-ceilometer-central
+    name: ceilometer
 spec:
   template:
     spec:
@@ -50,8 +50,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    prometheus: telemetry-autoscaling-prometheus
-  name: prometheus-telemetry-autoscaling-prometheus-0
+    prometheus: autoscaling-prometheus
+  name: prometheus-autoscaling-prometheus-0
 status:
   containerStatuses:
   - name: config-reloader
@@ -67,10 +67,10 @@ status:
 apiVersion: v1
 kind: Service
 metadata:
-  name: telemetry-autoscaling-prometheus-prometheus
+  name: autoscaling-prometheus-prometheus
   ownerReferences:
     - kind: MonitoringStack
-      name: telemetry-autoscaling-prometheus
+      name: autoscaling-prometheus
 spec:
   ports:
   - name: web
@@ -87,7 +87,7 @@ metadata:
   name: aodh-internal
   ownerReferences:
   - kind: Autoscaling
-    name: telemetry-autoscaling
+    name: autoscaling
 spec:
   ports:
   - name: aodh-internal
@@ -104,7 +104,7 @@ metadata:
   name: aodh-public
   ownerReferences:
   - kind: Autoscaling
-    name: telemetry-autoscaling
+    name: autoscaling
 spec:
   ports:
   - name: aodh-public
@@ -120,7 +120,7 @@ metadata:
   name: aodh
   ownerReferences:
   - kind: Autoscaling
-    name: telemetry-autoscaling
+    name: autoscaling
 spec:
   template:
     spec:
