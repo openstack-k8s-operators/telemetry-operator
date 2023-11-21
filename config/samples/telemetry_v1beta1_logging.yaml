@@ -1,0 +1,16 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Logging
+metadata:
+  labels:
+    app.kubernetes.io/name: logging
+    app.kubernetes.io/instance: logging-sample
+    app.kubernetes.io/part-of: telemetry-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: telemetry-operator
+  name: logging
+spec:
+  network: internalapi
+  ipaddr: 172.17.0.80
+  port: 10514
+  cloNamespace: openshift-logging
+  nodeSetName: openstack-edpm-ipam

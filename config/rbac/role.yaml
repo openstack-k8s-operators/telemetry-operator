@@ -95,6 +95,18 @@ rules:
   - update
   - watch
 - apiGroups:
+  - dataplane.openstack.org
+  resources:
+  - openstackdataplanenodesets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - heat.openstack.org
   resources:
   - heats
@@ -256,6 +268,32 @@ rules:
   - telemetry.openstack.org
   resources:
   - ceilometers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - loggings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - loggings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - loggings/status
   verbs:
   - get
   - patch

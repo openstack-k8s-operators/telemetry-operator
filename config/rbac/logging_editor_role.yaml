@@ -1,0 +1,31 @@
+# permissions for end users to edit loggings.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: logging-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: telemetry-operator
+    app.kubernetes.io/part-of: telemetry-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: logging-editor-role
+rules:
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - loggings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - loggings/status
+  verbs:
+  - get
