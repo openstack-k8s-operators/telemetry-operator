@@ -4,6 +4,7 @@ metadata:
   name: telemetry
 spec:
   autoscaling:
+    enabled: true
     prometheus:
       deployPrometheus: true
     aodh:
@@ -18,4 +19,5 @@ spec:
       memcachedInstance: memcached
     heatInstance: heat
   ceilometer:
+    enabled: true
     secret: osp-secret

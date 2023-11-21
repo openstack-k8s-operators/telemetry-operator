@@ -35,6 +35,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 )
 
@@ -186,29 +187,79 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 
-	// deploy autoscaling
-	autoscaling, op, err := r.autoscalingCreateOrUpdate(instance)
+	ctrlResult, err := reconcileAutoscaling(ctx, instance, helper)
 	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.AutoscalingReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			telemetryv1.AutoscalingReadyErrorMessage,
-			err.Error()))
+		return ctrl.Result{}, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	ctrlResult, err = reconcileCeilometer(ctx, instance, helper)
+	if err != nil {
+		return ctrl.Result{}, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	Log.Info("Reconciled Service successfully")
+	return ctrl.Result{}, nil
+}
+
+// ensureDeleted - Delete the object which in turn will clean the sub resources
+func ensureDeleted(ctx context.Context, helper *helper.Helper, obj client.Object) (ctrl.Result, error) {
+	key := client.ObjectKeyFromObject(obj)
+	if err := helper.GetClient().Get(ctx, key, obj); err != nil {
+		if k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, err
 	}
-	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
+	// Delete the object
+	if obj.GetDeletionTimestamp().IsZero() {
+		if err := helper.GetClient().Delete(ctx, obj); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
-	// Mirror autoscaling's condition status
-	as := autoscaling.Status.Conditions.Mirror(telemetryv1.AutoscalingReadyCondition)
-	if as != nil {
-		instance.Status.Conditions.Set(as)
-	}
-	// end deploy autoscaling
+	return ctrl.Result{}, nil
 
-	// deploy ceilometer
-	ceilometer, op, err := r.ceilometerCreateOrUpdate(instance)
+}
+
+// reconcileCeilometer ...
+func reconcileCeilometer(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
+	const (
+		ceilometerNamespaceLabel = "Ceilometer.Namespace"
+		ceilometerNameLabel      = "Ceilometer.Name"
+	)
+	ceilometerInstance := &telemetryv1.Ceilometer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ceilometer.ServiceName,
+			Namespace: instance.Namespace,
+		},
+	}
+
+	if !instance.Spec.Ceilometer.Enabled {
+		if res, err := ensureDeleted(ctx, helper, ceilometerInstance); err != nil {
+			return res, err
+		}
+		instance.Status.Conditions.Remove(telemetryv1.CeilometerReadyCondition)
+		return ctrl.Result{}, nil
+	}
+
+	helper.GetLogger().Info("Reconciling Ceilometer", ceilometerNamespaceLabel, instance.Namespace, ceilometerNameLabel, ceilometer.ServiceName)
+	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), ceilometerInstance, func() error {
+		instance.Spec.Ceilometer.CeilometerSpec.DeepCopyInto(&ceilometerInstance.Spec)
+
+		if ceilometerInstance.Spec.Secret == "" {
+			ceilometerInstance.Spec.Secret = instance.Spec.Secret
+		}
+
+		err := controllerutil.SetControllerReference(helper.GetBeforeObject(), ceilometerInstance, helper.GetScheme())
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.CeilometerReadyCondition,
@@ -219,65 +270,83 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 		return ctrl.Result{}, err
 	}
 	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
+		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", ceilometer.ServiceName, ceilometerInstance.Name, op))
 	}
 
-	// Mirror ceilometer's status ReadyCount to this parent CR
-	instance.Status.CeilometerReadyCount = ceilometer.Status.ReadyCount
-
-	// Mirror ceilometer's condition status
-	ccentral := ceilometer.Status.Conditions.Mirror(telemetryv1.CeilometerReadyCondition)
-	if ccentral != nil {
-		instance.Status.Conditions.Set(ccentral)
+	if ceilometerInstance.IsReady() {
+		instance.Status.Conditions.MarkTrue(telemetryv1.CeilometerReadyCondition, telemetryv1.CeilometerReadyMessage)
+	} else {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CeilometerReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.CeilometerReadyRunningMessage))
 	}
-	// end deploy ceilometer
 
-	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
 
-func (r *TelemetryReconciler) autoscalingCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.Autoscaling, controllerutil.OperationResult, error) {
-	autoscaling := &telemetryv1.Autoscaling{
+// reconcileAutoscaling ...
+func reconcileAutoscaling(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
+	const (
+		autoscalingNamespaceLabel = "Autoscaling.Namespace"
+		autoscalingNameLabel      = "Autoscaling.Name"
+		autoscalingName           = "autoscaling"
+	)
+	autoscalingInstance := &telemetryv1.Autoscaling{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-autoscaling", instance.Name),
+			Name:      autoscalingName,
 			Namespace: instance.Namespace,
 		},
 	}
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, autoscaling, func() error {
-		autoscaling.Spec = instance.Spec.Autoscaling
-
-		err := controllerutil.SetControllerReference(instance, autoscaling, r.Scheme)
-		if err != nil {
-			return err
+	if !instance.Spec.Autoscaling.Enabled {
+		if res, err := ensureDeleted(ctx, helper, autoscalingInstance); err != nil {
+			return res, err
 		}
-
-		return nil
-	})
-
-	return autoscaling, op, err
-}
-
-func (r *TelemetryReconciler) ceilometerCreateOrUpdate(instance *telemetryv1.Telemetry) (*telemetryv1.Ceilometer, controllerutil.OperationResult, error) {
-	ccentral := &telemetryv1.Ceilometer{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-ceilometer-central", instance.Name),
-			Namespace: instance.Namespace,
-		},
+		instance.Status.Conditions.Remove(telemetryv1.AutoscalingReadyCondition)
+		return ctrl.Result{}, nil
 	}
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ccentral, func() error {
-		ccentral.Spec = instance.Spec.Ceilometer
+	helper.GetLogger().Info("Reconciling Autoscaling", autoscalingNamespaceLabel, instance.Namespace, autoscalingNameLabel, autoscalingName)
+	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), autoscalingInstance, func() error {
+		instance.Spec.Autoscaling.AutoscalingSpec.DeepCopyInto(&autoscalingInstance.Spec)
 
-		err := controllerutil.SetControllerReference(instance, ccentral, r.Scheme)
+		if autoscalingInstance.Spec.Aodh.Secret == "" {
+			autoscalingInstance.Spec.Aodh.Secret = instance.Spec.Secret
+		}
+
+		err := controllerutil.SetControllerReference(helper.GetBeforeObject(), autoscalingInstance, helper.GetScheme())
 		if err != nil {
 			return err
 		}
-
 		return nil
 	})
 
-	return ccentral, op, err
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.AutoscalingReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.AutoscalingReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", autoscalingName, autoscalingInstance.Name, op))
+	}
+
+	if autoscalingInstance.IsReady() {
+		instance.Status.Conditions.MarkTrue(telemetryv1.AutoscalingReadyCondition, telemetryv1.AutoscalingReadyMessage)
+	} else {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.AutoscalingReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.AutoscalingReadyRunningMessage))
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

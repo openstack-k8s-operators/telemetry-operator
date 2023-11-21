@@ -2,8 +2,17 @@ apiVersion: telemetry.openstack.org/v1beta1
 kind: Telemetry
 metadata:
   name: telemetry
-  namespace: openstack
 spec:
   autoscaling:
+    enabled: false
     prometheus:
-      deployPrometheus: false
+      deployPrometheus: true
+    aodh:
+      passwordSelectors:
+      databaseUser: aodh
+      databaseInstance: openstack
+      memcachedInstance: memcached
+    heatInstance: heat
+  ceilometer:
+    enabled: true
+  secret: osp-secret

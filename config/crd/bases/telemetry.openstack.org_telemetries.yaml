@@ -36,8 +36,7 @@ spec:
             description: TelemetrySpec defines the desired state of Telemetry
             properties:
               autoscaling:
-                description: Autoscaling - Spec definition for the Autoscaling service
-                  of this Telemetry deployment
+                description: Autoscaling - Parameters related to the autoscaling service
                 properties:
                   aodh:
                     description: Aodh spec
@@ -318,6 +317,11 @@ spec:
                     - notifierImage
                     - secret
                     type: object
+                  enabled:
+                    default: false
+                    description: Enabled - Whether OpenStack autoscaling service should
+                      be deployed and managed
+                    type: boolean
                   heatInstance:
                     default: heat
                     description: Heat instance name.
@@ -345,8 +349,7 @@ spec:
                 - heatInstance
                 type: object
               ceilometer:
-                description: Ceilometer - Spec definition for the Ceilometer service
-                  of this Telemetry deployment
+                description: Ceilometer - Parameters related to the ceilometer service
                 properties:
                   centralImage:
                     type: string
@@ -368,6 +371,11 @@ spec:
                       also be used to add additional files. Those get added to the
                       service config dir in /etc/<service> . TODO: -> implement'
                     type: object
+                  enabled:
+                    default: true
+                    description: Enabled - Whether OpenStack Ceilometer service should
+                      be deployed and managed
+                    type: boolean
                   ipmiImage:
                     type: string
                   networkAttachmentDefinitions:
@@ -427,9 +435,12 @@ spec:
                 - secret
                 - sgCoreImage
                 type: object
+              secret:
+                description: Secret containing OpenStack password information for
+                  telemetry services
+                type: string
             required:
-            - autoscaling
-            - ceilometer
+            - secret
             type: object
           status:
             description: TelemetryStatus defines the observed state of Telemetry
