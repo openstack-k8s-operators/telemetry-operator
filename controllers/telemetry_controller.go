@@ -247,7 +247,7 @@ func reconcileCeilometer(ctx context.Context, instance *telemetryv1.Telemetry, h
 
 	helper.GetLogger().Info("Reconciling Ceilometer", ceilometerNamespaceLabel, instance.Namespace, ceilometerNameLabel, ceilometer.ServiceName)
 	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), ceilometerInstance, func() error {
-		instance.Spec.Ceilometer.Template.DeepCopyInto(&ceilometerInstance.Spec)
+		instance.Spec.Ceilometer.CeilometerSpec.DeepCopyInto(&ceilometerInstance.Spec)
 
 		if ceilometerInstance.Spec.Secret == "" {
 			ceilometerInstance.Spec.Secret = instance.Spec.Secret
@@ -310,7 +310,7 @@ func reconcileAutoscaling(ctx context.Context, instance *telemetryv1.Telemetry, 
 
 	helper.GetLogger().Info("Reconciling Autoscaling", autoscalingNamespaceLabel, instance.Namespace, autoscalingNameLabel, autoscalingName)
 	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), autoscalingInstance, func() error {
-		instance.Spec.Autoscaling.Template.DeepCopyInto(&autoscalingInstance.Spec)
+		instance.Spec.Autoscaling.AutoscalingSpec.DeepCopyInto(&autoscalingInstance.Spec)
 
 		if autoscalingInstance.Spec.Aodh.Secret == "" {
 			autoscalingInstance.Spec.Aodh.Secret = instance.Spec.Secret

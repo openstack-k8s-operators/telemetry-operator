@@ -70,7 +70,7 @@ type CeilometerSection struct {
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
 	// Template - Overrides to use when creating the OpenStack Ceilometer service
-	Template CeilometerSpec `json:"template,omitempty"`
+	CeilometerSpec `json:",inline"`
 }
 
 // AutoscalingSection defines the desired state of the autoscaling service
@@ -84,7 +84,7 @@ type AutoscalingSection struct {
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
 	// Template - Overrides to use when creating the OpenStack autoscaling service
-	Template AutoscalingSpec `json:"template,omitempty"`
+	AutoscalingSpec `json:",inline"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry

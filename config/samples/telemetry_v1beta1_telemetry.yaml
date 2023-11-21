@@ -5,18 +5,14 @@ metadata:
 spec:
   autoscaling:
     enabled: false
-    template:
-      prometheus:
-        deployPrometheus: true
-      aodh:
-        secret: osp-secret
-        passwordSelectors:
-        databaseUser: aodh
-        databaseInstance: openstack
-        memcachedInstance: memcached
-      heatInstance: heat
+    prometheus:
+      deployPrometheus: true
+    aodh:
+      passwordSelectors:
+      databaseUser: aodh
+      databaseInstance: openstack
+      memcachedInstance: memcached
+    heatInstance: heat
   ceilometer:
     enabled: true
-    template:
-      secret: osp-secret
   secret: osp-secret
