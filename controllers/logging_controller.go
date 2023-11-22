@@ -40,6 +40,7 @@ import (
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
+	dataplanev1 "github.com/openstack-k8s-operators/dataplane-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	logging "github.com/openstack-k8s-operators/telemetry-operator/pkg/logging"
@@ -136,13 +137,10 @@ func (r *LoggingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		cl := condition.CreateList(
 			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
 			// service account, role, rolebinding conditions
 			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
 			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
 			condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
-			// right now we have no dedicated KeystoneServiceReadyInitMessage
-			condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -224,7 +222,7 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
 	//
-	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
+	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, secretVars)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -243,12 +241,12 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
-	_, _, err = logging.PatchNodeSet(instance, "logging", helper)
+	_, _, err = logging.PatchDataPlaneNodeSet(instance, "logging", helper)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	_, _, err = logging.Deployment(instance, helper)
+	_, _, err = logging.DataPlaneDeployment(instance, helper)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -261,6 +259,11 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	// Operators cannot own objects in different namespaces
+	/*err := controllerutil.SetControllerReference(instance, service, r.Scheme)
+	if err != nil {
+		return err
+	}*/
 
 	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
@@ -328,5 +331,6 @@ func (r *LoggingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Logging{}).
 		Owns(&corev1.Secret{}).
+		Owns(&dataplanev1.OpenStackDataPlaneDeployment{}).
 		Complete(r)
 }

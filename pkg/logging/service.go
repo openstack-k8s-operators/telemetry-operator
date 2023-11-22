@@ -57,12 +57,6 @@ func Service(
 		}
 		service.Spec.Type = "LoadBalancer"
 
-		// Operators cannot own objects in different namespaces
-		/*err := controllerutil.SetControllerReference(instance, service, helper.GetScheme())
-		if err != nil {
-			return err
-		}*/
-
 		return nil
 	})
 

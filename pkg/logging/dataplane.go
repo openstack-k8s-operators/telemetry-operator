@@ -13,8 +13,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// PatchNodeSet patches the appropiate OpenStackDataPlaneNodeSet to add an OpenStackDataPlaneService
-func PatchNodeSet(instance *telemetryv1.Logging,
+// PatchDataPlaneNodeSet patches the appropiate OpenStackDataPlaneNodeSet to add an OpenStackDataPlaneService
+func PatchDataPlaneNodeSet(instance *telemetryv1.Logging,
 	dataplaneServiceName string,
 	helper *helper.Helper,
 ) (*dataplanev1.OpenStackDataPlaneNodeSet, controllerutil.OperationResult, error) {
@@ -49,8 +49,8 @@ func PatchNodeSet(instance *telemetryv1.Logging,
 	return nil, controllerutil.OperationResultNone, nil
 }
 
-// Deployment creates an OpenStackDataPlaneDeployment CR to trigger ansible execution
-func Deployment(instance *telemetryv1.Logging,
+// DataPlaneDeployment creates an OpenStackDataPlaneDeployment CR to trigger ansible execution
+func DataPlaneDeployment(instance *telemetryv1.Logging,
 	helper *helper.Helper) (*dataplanev1.OpenStackDataPlaneDeployment, controllerutil.OperationResult, error) {
 
 	logger := helper.GetLogger()
@@ -63,11 +63,17 @@ func Deployment(instance *telemetryv1.Logging,
 	}
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), helper.GetClient(), dataplaneDeployment, func() error {
 		dataplaneDeployment.Spec.NodeSets = []string{instance.Spec.NodeSetName}
+
+		err := controllerutil.SetControllerReference(instance, dataplaneDeployment, helper.GetScheme())
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
 		logger.Error(err, "error creating openstackdataplanedeployment")
 		return nil, controllerutil.OperationResultNone, err
 	}
+
 	return dataplaneDeployment, op, nil
 }
