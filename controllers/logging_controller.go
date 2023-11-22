@@ -202,14 +202,14 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
-	// ConfigMap
-	configMapVars := make(map[string]env.Setter)
+	// Secret
+	secretVars := make(map[string]env.Setter)
 
 	//
-	// create Configmap required for logging-compute input
-	// - %-config configmap holding minimal logging config required to get the service up, user can add additional files to be added to the service
+	// create Secret required for logging-compute input
+	// - %-config secret holding minimal logging config required to get the service up, user can add additional files to be added to the service
 	//
-	err = r.generateComputeServiceConfig(ctx, helper, instance, &configMapVars)
+	err = r.generateComputeServiceConfig(ctx, helper, instance, &secretVars)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
