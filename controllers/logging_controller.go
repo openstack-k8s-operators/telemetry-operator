@@ -40,7 +40,6 @@ import (
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
-	dataplanev1 "github.com/openstack-k8s-operators/dataplane-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	logging "github.com/openstack-k8s-operators/telemetry-operator/pkg/logging"
@@ -63,7 +62,6 @@ func (r *LoggingReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=telemetry.openstack.org,resources=loggings/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
-//+kubebuilder:rbac:groups=dataplane.openstack.org,resources=openstackdataplanenodesets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -241,16 +239,6 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
-	_, _, err = logging.PatchDataPlaneNodeSet(instance, "logging", helper)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	_, _, err = logging.DataPlaneDeployment(instance, helper)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	serviceLabels := map[string]string{
 		common.AppSelector: logging.ServiceName,
 	}
@@ -276,7 +264,7 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 	envVars *map[string]env.Setter,
 ) error {
 
-	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
+	secretLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
 
 	templateParameters := map[string]interface{}{
 		"RsyslogAddress":         instance.Spec.IPAddr,
@@ -288,7 +276,7 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 		"RsyslogPersistInterval": instance.Spec.RsyslogPersistInterval,
 	}
 
-	cms := []util.Template{
+	secrets := []util.Template{
 		// Secret
 		{
 			Name:          fmt.Sprintf("%s-config-data", logging.ComputeServiceName),
@@ -296,10 +284,10 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 			Type:          util.TemplateTypeConfig,
 			InstanceType:  "logging",
 			ConfigOptions: templateParameters,
-			Labels:        cmLabels,
+			Labels:        secretLabels,
 		},
 	}
-	return secret.EnsureSecrets(ctx, h, instance, cms, envVars)
+	return secret.EnsureSecrets(ctx, h, instance, secrets, envVars)
 }
 
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
@@ -331,6 +319,5 @@ func (r *LoggingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Logging{}).
 		Owns(&corev1.Secret{}).
-		Owns(&dataplanev1.OpenStackDataPlaneDeployment{}).
 		Complete(r)
 }

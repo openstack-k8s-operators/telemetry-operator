@@ -13,4 +13,3 @@ spec:
   ipaddr: 172.17.0.80
   port: 10514
   cloNamespace: openshift-logging
-  nodeSetName: openstack-edpm-ipam

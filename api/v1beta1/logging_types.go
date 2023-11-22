@@ -34,10 +34,6 @@ type LoggingSpec struct {
 	// +kubebuilder:validation:Required
 	IPAddr string `json:"ipaddr"`
 
-	// NodeSetName specifies the OpenStackDataPlaneNodeSet name for the edpm nodes we want logging enabled
-	// +kubebuilder:validation:Required
-	NodeSetName string `json:"nodeSetName"`
-
 	// Port is the port where the service will listen on
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=10514
@@ -48,7 +44,7 @@ type LoggingSpec struct {
 	// +kubebuilder:default=10514
 	TargetPort int `json:"targetPort"`
 
-	// The protocol of the connection the Service will listen on: tcp or upd
+	// The protocol of the connection the Service will listen on: tcp or udp
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum=TCP;UDP
 	// +kubebuilder:default:=TCP
@@ -78,7 +74,6 @@ type LoggingSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=10
 	RsyslogPersistInterval int32 `json:"rsyslogPersistInterval"`
-
 }
 
 // LoggingStatus defines the observed state of Logging

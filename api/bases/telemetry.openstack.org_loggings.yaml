@@ -47,10 +47,6 @@ spec:
                 description: The openstack network that will be used to connect computes
                   nodes
                 type: string
-              nodeSetName:
-                description: NodeSetName specifies the OpenStackDataPlaneNodeSet name
-                  for the edpm nodes we want logging enabled
-                type: string
               port:
                 default: 10514
                 description: Port is the port where the service will listen on
@@ -59,7 +55,7 @@ spec:
               protocol:
                 default: TCP
                 description: 'The protocol of the connection the Service will listen
-                  on: tcp or upd'
+                  on: tcp or udp'
                 enum:
                 - TCP
                 - UDP
@@ -96,7 +92,6 @@ spec:
             required:
             - ipaddr
             - network
-            - nodeSetName
             - rsyslogQueueType
             type: object
           status:
