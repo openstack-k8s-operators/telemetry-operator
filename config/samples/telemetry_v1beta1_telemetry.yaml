@@ -12,7 +12,8 @@ spec:
       databaseUser: aodh
       databaseInstance: openstack
       memcachedInstance: memcached
+      secret: osp-secret
     heatInstance: heat
   ceilometer:
     enabled: true
-  secret: osp-secret
+    secret: osp-secret

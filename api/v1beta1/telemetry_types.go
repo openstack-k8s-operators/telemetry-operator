@@ -52,11 +52,6 @@ type TelemetrySpec struct {
 	// +kubebuilder:validation:Optional
 	// Ceilometer - Parameters related to the ceilometer service
 	Ceilometer CeilometerSection `json:"ceilometer,omitempty"`
-
-	// Secret containing OpenStack password information for telemetry services
-        // +kubebuilder:validation:Required
-        Secret string `json:"secret"`
-
 }
 
 // CeilometerSection defines the desired state of the ceilometer service
