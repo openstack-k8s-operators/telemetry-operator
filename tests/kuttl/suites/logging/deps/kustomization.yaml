@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: telemetry-kuttl-logging
+
+resources:
+- namespace.yaml
+- OpenStackControlPlane.yaml
+
+patches:
+- patch: |-
+    apiVersion: core.openstack.org/v1beta1
+    kind: OpenStackControlPlane
+    metadata:
+      name: openstack
+    spec:
+      secret: osp-secret
+- path: infra.yaml
+- path: telemetry.yaml

@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    endpoint: internal
+    metallb.universe.tf/address-pool: internalapi
+    metallb.universe.tf/allow-shared-ip: internalapi
+    metallb.universe.tf/loadBalancerIPs: 172.17.0.80
+  name: openstack-logging
+spec:
+  ports:
+  - port: 10514
+    protocol: TCP
+    targetPort: 10514
+  selector:
+    app.kubernetes.io/instance: collector
+    component: collector
+    provider: openshift
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    ceilometer-compute.openstack.org/name: telemetry-kuttl-logging
+  name: logging-compute-config-data
+  ownerReferences:
+  - apiVersion: telemetry.openstack.org/v1beta1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Logging
+    name: telemetry-kuttl-logging
