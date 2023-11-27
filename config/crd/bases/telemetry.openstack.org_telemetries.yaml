@@ -435,12 +435,6 @@ spec:
                 - secret
                 - sgCoreImage
                 type: object
-              secret:
-                description: Secret containing OpenStack password information for
-                  telemetry services
-                type: string
-            required:
-            - secret
             type: object
           status:
             description: TelemetryStatus defines the observed state of Telemetry
