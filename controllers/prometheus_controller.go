@@ -34,33 +34,6 @@ import (
 	autoscaling "github.com/openstack-k8s-operators/telemetry-operator/pkg/autoscaling"
 )
 
-func (r *AutoscalingReconciler) reconcileDisabledPrometheus(
-	ctx context.Context,
-	instance *telemetryv1.Autoscaling,
-	helper *helper.Helper,
-) (ctrl.Result, error) {
-	Log := r.GetLogger(ctx)
-	Log.Info("Reconciling Service Prometheus disabled")
-	serviceLabels := map[string]string{
-		common.AppSelector: autoscaling.ServiceName,
-	}
-
-	prom := autoscaling.Prometheus(instance, serviceLabels)
-	err := r.Client.Delete(ctx, prom)
-	if err != nil {
-		if !k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
-	}
-
-	// Set the condition to true, since the service is disabled
-	for _, c := range instance.Status.Conditions {
-		instance.Status.Conditions.MarkTrue(c.Type, telemetryv1.AutoscalingReadyDisabledMessage)
-	}
-	Log.Info(fmt.Sprintf("Reconciled Service '%s' disable successfully", autoscaling.ServiceName))
-	return ctrl.Result{}, nil
-}
-
 func (r *AutoscalingReconciler) reconcileDeletePrometheus(
 	ctx context.Context,
 	instance *telemetryv1.Autoscaling,

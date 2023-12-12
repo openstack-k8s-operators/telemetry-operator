@@ -6,16 +6,13 @@ metadata:
   name: prometheus-telemetry-kuttl-prometheus-0
 status:
   containerStatuses:
-  - image: quay.io/rhobs/obo-prometheus-config-reloader:v0.68.0-rhobs1
-    name: config-reloader
+  - name: config-reloader
     ready: true
     started: true
-  - image: quay.io/prometheus/prometheus:v2.47.0
-    name: prometheus
+  - name: prometheus
     ready: true
     started: true
-  - image: quay.io/thanos/thanos:v0.24.0
-    name: thanos-sidecar
+  - name: thanos-sidecar
     ready: true
     started: true
 ---
@@ -80,14 +77,10 @@ spec:
   template:
     spec:
       containers:
-      - image: quay.io/mmagr/openstack-aodh-api:current-podified
-        name: aodh-api
-      - image: quay.io/mmagr/openstack-aodh-evaluator:current-podified
-        name: aodh-evaluator
-      - image: quay.io/mmagr/openstack-aodh-notifier:current-podified
-        name: aodh-notifier
-      - image: quay.io/mmagr/openstack-aodh-listener:current-podified
-        name: aodh-listener
+      - name: aodh-api
+      - name: aodh-evaluator
+      - name: aodh-notifier
+      - name: aodh-listener
       volumes:
       - name: scripts
         secret:

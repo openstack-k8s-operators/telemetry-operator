@@ -199,18 +199,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - route.openshift.io
-  resources:
-  - routes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - security.openshift.io
   resourceNames:
   - anyuid
@@ -268,6 +256,32 @@ rules:
   - telemetry.openstack.org
   resources:
   - ceilometers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - loggings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - loggings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - loggings/status
   verbs:
   - get
   - patch

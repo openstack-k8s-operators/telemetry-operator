@@ -21,5 +21,8 @@ timeout: 300
 parallel: 1
 testDirs:
   - tests/kuttl/suites/autoscaling/
+  - tests/kuttl/suites/ceilometer/
+  - tests/kuttl/suites/logging/
+  - tests/kuttl/suites/default/
 suppress:
   - events                     # Remove spammy event logs

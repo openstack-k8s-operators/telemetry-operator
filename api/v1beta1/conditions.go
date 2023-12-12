@@ -45,8 +45,14 @@ const (
 	// CeilometerReadyInitMessage
 	CeilometerReadyInitMessage = "Ceilometer not started"
 
+	// CeilometerReadyMessage
+	CeilometerReadyMessage = "Ceilometer completed"
+
 	// CeilometerReadyErrorMessage
 	CeilometerReadyErrorMessage = "Ceilometer error occured %s"
+
+	// CeilometerReadyRunningMessage
+	CeilometerReadyRunningMessage = "Ceilometer in progress"
 
 	//
 	// AutoscalingReady condition messages
@@ -54,11 +60,14 @@ const (
 	// AutoscalingReadyInitMessage
 	AutoscalingReadyInitMessage = "Autoscaling not started"
 
+	// AutoscalingReadyMessage
+	AutoscalingReadyMessage = "Autoscaling completed"
+
 	// AutoscalingReadyErrorMessage
 	AutoscalingReadyErrorMessage = "Autoscaling error occured %s"
 
-	// AutoscalingReadyErrorMessage
-	AutoscalingReadyDisabledMessage = "Autoscaling disabled"
+	// AutoscalingReadyRunningMessage
+	AutoscalingReadyRunningMessage = "Autoscaling in progress"
 
 	// HeatReadyInitMessage
 	HeatReadyInitMessage = "Heat not started"

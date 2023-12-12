@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: ceilometer
+  name: ceilometer
+  ownerReferences:
+  - kind: Ceilometer
+    name: ceilometer
+spec:
+  ports:
+  - port: 3000
+    protocol: TCP
+    targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: ceilometer
+  name: ceilometer
+  ownerReferences:
+  - kind: Ceilometer
+    name: ceilometer
+spec:
+  template:
+    spec:
+      containers:
+      - name: ceilometer-central-agent
+      - name: ceilometer-notification-agent
+      - name: sg-core
+      volumes:
+      - name: scripts
+        secret:
+          defaultMode: 480
+          secretName: ceilometer-scripts
+      - name: config-data
+        secret:
+          defaultMode: 416
+          secretName: ceilometer-config-data
+      - name: sg-core-conf-yaml
+        secret:
+          defaultMode: 416
+          items:
+          - key: sg-core.conf.yaml
+            path: sg-core.conf.yaml
+          secretName: ceilometer-config-data
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    prometheus: autoscaling-prometheus
+  name: prometheus-autoscaling-prometheus-0
+status:
+  containerStatuses:
+  - name: config-reloader
+    ready: true
+    started: true
+  - name: prometheus
+    ready: true
+    started: true
+  - name: thanos-sidecar
+    ready: true
+    started: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: autoscaling-prometheus-prometheus
+  ownerReferences:
+    - kind: MonitoringStack
+      name: autoscaling-prometheus
+spec:
+  ports:
+  - name: web
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: aodh
+    endpoint: internal
+  name: aodh-internal
+  ownerReferences:
+  - kind: Autoscaling
+    name: autoscaling
+spec:
+  ports:
+  - name: aodh-internal
+    port: 8042
+    protocol: TCP
+    targetPort: 8042
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: aodh
+    endpoint: public
+  name: aodh-public
+  ownerReferences:
+  - kind: Autoscaling
+    name: autoscaling
+spec:
+  ports:
+  - name: aodh-public
+    port: 8042
+    protocol: TCP
+    targetPort: 8042
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: aodh
+  name: aodh
+  ownerReferences:
+  - kind: Autoscaling
+    name: autoscaling
+spec:
+  template:
+    spec:
+      containers:
+      - name: aodh-api
+      - name: aodh-evaluator
+      - name: aodh-notifier
+      - name: aodh-listener
+      volumes:
+      - name: scripts
+        secret:
+          secretName: aodh-scripts
+      - name: config-data
+        secret:
+          secretName: aodh-config-data

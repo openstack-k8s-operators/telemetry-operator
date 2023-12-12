@@ -28,7 +28,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	routev1 "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -37,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	dataplanev1 "github.com/openstack-k8s-operators/dataplane-operator/api/v1beta1"
 	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
@@ -64,9 +64,9 @@ func init() {
 	utilruntime.Must(telemetryv1beta1.AddToScheme(scheme))
 	utilruntime.Must(obov1.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1beta1.AddToScheme(scheme))
-	utilruntime.Must(routev1.AddToScheme(scheme))
 	utilruntime.Must(memcachedv1.AddToScheme(scheme))
 	utilruntime.Must(heatv1.AddToScheme(scheme))
+	utilruntime.Must(dataplanev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -155,6 +155,15 @@ func main() {
 		Kclient: kclient,
 	}).SetupWithManager(context.Background(), mgr); err != nil {
 		setupLog.Error(err, "unable to create Autoscaling controller")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.LoggingReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+	}).SetupWithManager(context.Background(), mgr); err != nil {
+		setupLog.Error(err, "unable to create Logging controller")
 		os.Exit(1)
 	}
 

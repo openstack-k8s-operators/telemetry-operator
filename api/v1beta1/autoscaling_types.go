@@ -142,10 +142,6 @@ type AutoscalingSpec struct {
 	// Heat instance name.
 	// +kubebuilder:default=heat
 	HeatInstance string `json:"heatInstance"`
-
-	// Allows enabling and disabling the autoscaling feature
-	// +kubebuilder:default=false
-	Enabled bool `json:"enabled,omitempty"`
 }
 
 // AutoscalingStatus defines the observed state of Autoscaling
