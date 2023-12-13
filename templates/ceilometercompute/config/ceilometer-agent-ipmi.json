@@ -1,5 +1,5 @@
 {
-    "command": "/usr/bin/ceilometer-polling --polling-namespaces ipmi --logfile /var/log/containers/ceilometer/ipmi.log",
+    "command": "/usr/bin/ceilometer-polling --polling-namespaces ipmi --logfile /dev/stdout",
     "config_files": [
       {
         "source": "/var/lib/openstack/config/ceilometer.conf",
