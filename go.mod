@@ -13,11 +13,11 @@ require (
 	github.com/onsi/gomega v1.30.0
 	github.com/openstack-k8s-operators/dataplane-operator/api v0.3.0
 	github.com/openstack-k8s-operators/heat-operator/api v0.1.0
-	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20231206173636-5eb2ad7769a7
+	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20231211112757-94d545047df2
 	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20231208104910-f8433c1c9399
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20231209173030-f7a552f208e7
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.3.0
-	github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.3.1-0.20231211210035-2baddf92e67d
+	github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.3.1-0.20231212165916-a0ea58b83c3a
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.1.1-0.20230904141420-35a75e39495a
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.64.1-rhobs3
 	github.com/rhobs/observability-operator v0.0.20
