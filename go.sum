@@ -809,8 +809,8 @@ github.com/openstack-k8s-operators/lib-common/modules/storage v0.3.1-0.202312091
 github.com/openstack-k8s-operators/lib-common/modules/storage v0.3.1-0.20231209173030-f7a552f208e7/go.mod h1:cZDEOHUMdjWrYlxxF7a4iE30GYEVSGwJYc76FJk/znY=
 github.com/openstack-k8s-operators/mariadb-operator/api v0.3.0 h1:FB0xB6whYM6W4XIncYo2mPiOJWkFsIOWtCT+UOtvOaQ=
 github.com/openstack-k8s-operators/mariadb-operator/api v0.3.0/go.mod h1:xhiz5wFdKWwVM7BF/VYon4TT3NuUPXp/Pyn2hWcp0CE=
-github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.3.1-0.20231207144333-d0935da0919e h1:xfi9BngmzRP/m4stmLmw/JqK4m9K/8qnuk6Yi3WATfE=
-github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.3.1-0.20231207144333-d0935da0919e/go.mod h1:iKohiOSLaRHa8/g7t+zpf975HA/AawzU/BpjuJEin+I=
+github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.3.1-0.20231211210035-2baddf92e67d h1:XYVaQOeR/Uxl6RdQH1Ejmmft6DatTwnswI2KA3qHZms=
+github.com/openstack-k8s-operators/openstack-ansibleee-operator/api v0.3.1-0.20231211210035-2baddf92e67d/go.mod h1:jNpVP30S+5ziU+Kgt2v1ZRqkayeZOwj0HyhNPtKsNoU=
 github.com/openstack-k8s-operators/openstack-baremetal-operator/api v0.3.1-0.20231128100725-67372c98ca78 h1:FqTe2p2b1qGd+RLVBImRHGAWkkSDaKhgTaBTJbKXlDc=
 github.com/openstack-k8s-operators/openstack-baremetal-operator/api v0.3.1-0.20231128100725-67372c98ca78/go.mod h1:JLCVgdpOAk/zcJPJ+od/d0qOb41vkKsi9kzfjSQ6BAU=
 github.com/phpdave11/gofpdf v1.4.2/go.mod h1:zpO6xFn9yxo3YLyMvW8HcKWVdbNqgIfOOp2dXMnm1mY=
