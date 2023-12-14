@@ -30,8 +30,17 @@ const (
 	// HeatReadyCondition Status=True condition which indicates if the Heat is configured and operational
 	HeatReadyCondition condition.Type = "HeatReady"
 
-	// PrometheusReadyCondition Status=True condition which indicates if the Prometheus is configured and operational
-	PrometheusReadyCondition condition.Type = "PrometheusReady"
+	// MonitoringStackReadyCondition Status=True condition which indicates if the MonitoringStack is configured and operational
+	MonitoringStackReadyCondition condition.Type = "MonitoringStackReady"
+
+	// ServiceMonitorReadyCondition Status=True condition which indicates if the Ceilometer ServiceMonitor is configured and operational
+	ServiceMonitorReadyCondition condition.Type = "CeilometerServiceMonitorReady"
+
+	// ScrapeConfigReadyCondition Status=True condition which indicates if the Node Exporter ScrapeConfig is configured and operational
+	ScrapeConfigReadyCondition condition.Type = "NodeExporterScrapeConfigReady"
+
+	// NodeSetReadyCondition Status=True condition which indicates if the NodeSet watch is operational
+	NodeSetReadyCondition condition.Type = "NodeSetWatchReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -69,6 +78,9 @@ const (
 	// AutoscalingReadyRunningMessage
 	AutoscalingReadyRunningMessage = "Autoscaling in progress"
 
+	//
+	// HeatReady condition messages
+	//
 	// HeatReadyInitMessage
 	HeatReadyInitMessage = "Heat not started"
 
@@ -81,12 +93,42 @@ const (
 	// HeatReadyUnreadyMessage
 	HeatReadyUnreadyMessage = "Heat isn't ready yet"
 
-	// PrometheusReadyInitMessage
-	PrometheusReadyInitMessage = "Prometheus not started"
+	//
+	// MonitoringStackReady condition messages
+	//
+	// MonitoringStackReadyInitMessage
+	MonitoringStackReadyInitMessage = "MonitoringStack not started"
 
-	// PrometheusReadyErrorMessage
-	PrometheusReadyErrorMessage = "Prometheus error occured %s"
+	// MonitoringStackUnableToOwnMessage
+	MonitoringStackUnableToOwnMessage = "Error occured when trying to own: %s"
 
-	// PrometheusReadyConfigurationMissingMessage
-	PrometheusReadyConfigurationMissingMessage = "deployPrometheus is false and either port or host isn't set"
+	// MonitoringStackReadyErrorMessage
+	MonitoringStackReadyErrorMessage = "MonitoringStack error occured %s"
+
+	//
+	// ServiceMonitorReady condition messages
+	//
+	// ServiceMonitorReadyInitMessage
+	ServiceMonitorReadyInitMessage = "ServiceMonitor not started"
+
+	// ServiceMonitorUnableToOwnMessage
+	ServiceMonitorUnableToOwnMessage = "Error occured when trying to own %s"
+
+	//
+	// ScrapeConfigReady condition messages
+	//
+	// ScrapeConfigReadyInitMessage
+	ScrapeConfigReadyInitMessage = "ScrapeConfig not started"
+
+	// ScrapeConfigUnableToOwnMessage
+	ScrapeConfigUnableToOwnMessage = "Error occured when trying to own %s"
+
+	//
+	// NodeSetReady condition messages
+	//
+	// NodeSetReadyInitMessage
+	NodeSetReadyInitMessage = "NodeSet not watched"
+
+	// NodeSetUnableToWatchMessage
+	NodeSetUnableToWatchMessage = "Error occured when trying to watch %s"
 )
