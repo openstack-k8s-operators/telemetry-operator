@@ -1,5 +1,5 @@
 {
-    "command": "/usr/bin/ceilometer-polling --polling-namespaces compute --logfile /var/log/containers/ceilometer/compute.log",
+    "command": "/usr/bin/ceilometer-polling --polling-namespaces compute --logfile /dev/stdout",
     "config_files": [
       {
         "source": "/var/lib/openstack/config/ceilometer.conf",
