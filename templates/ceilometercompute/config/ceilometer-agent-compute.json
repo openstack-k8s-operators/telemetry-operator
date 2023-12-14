@@ -13,12 +13,5 @@
         "owner": "ceilometer",
         "perm": "0600"
       }
-    ],
-    "permissions": [
-      {
-          "path": "/var/log/containers/ceilometer",
-          "owner": "ceilometer:ceilometer",
-          "recurse": true
-      }
-  ]
+    ]
   }
