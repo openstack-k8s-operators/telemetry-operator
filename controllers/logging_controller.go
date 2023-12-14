@@ -24,6 +24,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -267,13 +268,18 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 	secretLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
 
 	templateParameters := map[string]interface{}{
-		"RsyslogAddress":         instance.Spec.IPAddr,
-		"RsyslogPort":            instance.Spec.Port,
-		"RsyslogProtocol":        instance.Spec.Protocol,
-		"RsyslogRetries":         instance.Spec.RsyslogRetries,
-		"RsyslogQueueType":       instance.Spec.RsyslogQueueType,
-		"RsyslogQueueSize":       instance.Spec.RsyslogQueueSize,
-		"RsyslogPersistInterval": instance.Spec.RsyslogPersistInterval,
+		"RsyslogAddress":   instance.Spec.IPAddr,
+		"RsyslogPort":      instance.Spec.Port,
+		"RsyslogProtocol":  instance.Spec.Protocol,
+		"RsyslogRetries":   instance.Spec.RsyslogRetries,
+		"RsyslogQueueType": instance.Spec.RsyslogQueueType,
+		"RsyslogQueueSize": instance.Spec.RsyslogQueueSize,
+	}
+
+	customData := map[string]string{}
+	cacert := r.retrieveOpenshiftCA(ctx)
+	if cacert != nil {
+		customData["ca-openshift.crt"] = string(cacert)
 	}
 
 	secrets := []util.Template{
@@ -285,9 +291,24 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 			InstanceType:  "logging",
 			ConfigOptions: templateParameters,
 			Labels:        secretLabels,
+			CustomData:    customData,
 		},
 	}
 	return secret.EnsureSecrets(ctx, h, instance, secrets, envVars)
+}
+
+func (r *LoggingReconciler) retrieveOpenshiftCA(ctx context.Context) []byte {
+	namespacedName := types.NamespacedName{
+		Name:      "signing-key",
+		Namespace: "openshift-service-ca",
+	}
+	instance := &corev1.Secret{}
+	err := r.Client.Get(ctx, namespacedName, instance)
+	if err != nil {
+		// No Openshift CA secret in the cluster
+		return nil
+	}
+	return instance.Data["tls.crt"]
 }
 
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart

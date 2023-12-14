@@ -60,11 +60,6 @@ spec:
                 - TCP
                 - UDP
                 type: string
-              rsyslogPersistInterval:
-                default: 10
-                description: The number of seconds between sending log attempts
-                format: int32
-                type: integer
               rsyslogQueueSize:
                 default: 10000
                 description: The size of the local queue of logs
