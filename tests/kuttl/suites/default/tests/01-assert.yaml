@@ -45,38 +45,40 @@ spec:
           - key: sg-core.conf.yaml
             path: sg-core.conf.yaml
           secretName: ceilometer-config-data
----
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    prometheus: autoscaling-prometheus
-  name: prometheus-autoscaling-prometheus-0
-status:
-  containerStatuses:
-  - name: config-reloader
-    ready: true
-    started: true
-  - name: prometheus
-    ready: true
-    started: true
-  - name: thanos-sidecar
-    ready: true
-    started: true
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: autoscaling-prometheus-prometheus
-  ownerReferences:
-    - kind: MonitoringStack
-      name: autoscaling-prometheus
-spec:
-  ports:
-  - name: web
-    port: 9090
-    protocol: TCP
-    targetPort: 9090
+# NOTE: This will be adjusted and uncommented
+#       when metricstorage is added to telemetry
+#---
+#apiVersion: v1
+#kind: Pod
+#metadata:
+#  labels:
+#    prometheus: autoscaling-prometheus
+#  name: prometheus-autoscaling-prometheus-0
+#status:
+#  containerStatuses:
+#  - name: config-reloader
+#    ready: true
+#    started: true
+#  - name: prometheus
+#    ready: true
+#    started: true
+#  - name: thanos-sidecar
+#    ready: true
+#    started: true
+#---
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: autoscaling-prometheus-prometheus
+#  ownerReferences:
+#    - kind: MonitoringStack
+#      name: autoscaling-prometheus
+#spec:
+#  ports:
+#  - name: web
+#    port: 9090
+#    protocol: TCP
+#    targetPort: 9090
 ---
 apiVersion: v1
 kind: Service

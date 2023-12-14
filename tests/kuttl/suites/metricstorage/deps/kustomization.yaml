@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: telemetry-kuttl-metricstorage
+
+secretGenerator:
+- literals:
+  - AdminPassword=password
+  - DbRootPassword=password
+  - DatabasePassword=password
+  - KeystoneDatabasePassword=password
+  - PlacementPassword=password
+  - PlacementDatabasePassword=password
+  - GlancePassword=password
+  - GlanceDatabasePassword=password
+  - NeutronPassword=password
+  - NeutronDatabasePassword=password
+  - NovaPassword=password
+  - NovaAPIDatabasePassword=password
+  - NovaCell0DatabasePassword=password
+  - NovaCell1DatabasePassword=password
+  - AodhPassword=password
+  - AodhDatabasePassword=password
+  - CeilometerPassword=password
+  - CeilometerDatabasePassword=password
+  - HeatPassword=password
+  - HeatDatabasePassword=password
+  - HeatAuthEncryptionKey=66699966699966600666999666999666
+  - MetadataSecret=42
+  name: osp-secret
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: osp-secret
+
+resources:
+- namespace.yaml

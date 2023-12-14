@@ -3,8 +3,6 @@ kind: Autoscaling
 metadata:
   name: telemetry-kuttl
 spec:
-  prometheus:
-    deployPrometheus: true
   aodh:
     secret: osp-secret
     apiImage: "quay.io/mmagr/openstack-aodh-api:current-podified"
