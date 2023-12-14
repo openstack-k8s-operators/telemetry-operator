@@ -59,7 +59,7 @@ type Storage struct {
 	Persistent PersistentStorage `json:"persistent"`
 }
 
-// RedHatMetricsStorage defines the options for a Red Hat supported metric storage
+// RedHatMetricStorage defines the options for a Red Hat supported metric storage
 type RedHatMetricStorage struct {
 	// Type defines the type of the storage.
 	// Can only be "prometheus" at the moment

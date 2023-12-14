@@ -73,7 +73,7 @@ func getPVCSpec(instance *telemetryv1.MetricStorage) (*corev1.PersistentVolumeCl
 			pvc.StorageClassName = &persistentSpec.PvcStorageClass
 		}
 		var quantity resource.Quantity
-		var err error = nil
+		var err error
 		if persistentSpec.PvcStorageRequest == "" {
 			// NOTE: We can't rely on defaults in the CRD here, because we want
 			// to be able to omit the spec.storage.persistent field. In case
