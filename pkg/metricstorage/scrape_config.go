@@ -53,7 +53,7 @@ func ScrapeConfig(
 			},
 		},
 	})
-	// NOTE: SetUnstructuredContent will overvrite any data, including GVK, name, ...
+	// NOTE: SetUnstructuredContent will overwrite any data, including GVK, name, ...
 	//       Any other Set* function call must be done after SetUnstructuredContent
 	scrapeConfig.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "monitoring.rhobs",
