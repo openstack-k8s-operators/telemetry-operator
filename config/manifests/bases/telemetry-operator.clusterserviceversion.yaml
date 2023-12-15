@@ -24,10 +24,28 @@ spec:
       kind: Ceilometer
       name: ceilometers.telemetry.openstack.org
       version: v1beta1
+    - description: Logging is the Schema for the loggings API
+      displayName: Logging
+      kind: Logging
+      name: loggings.telemetry.openstack.org
+      version: v1beta1
     - description: Telemetry is the Schema for the telemetry API
       displayName: Telemetry
       kind: Telemetry
       name: telemetries.telemetry.openstack.org
+      specDescriptors:
+      - description: Enabled - Whether OpenStack autoscaling service should be deployed
+          and managed
+        displayName: Enabled
+        path: autoscaling.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Enabled - Whether OpenStack Ceilometer service should be deployed
+          and managed
+        displayName: Enabled
+        path: ceilometer.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       version: v1beta1
   description: Telemetry Operator
   displayName: Telemetry Operator
