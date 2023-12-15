@@ -95,6 +95,22 @@ rules:
   - update
   - watch
 - apiGroups:
+  - dataplane.openstack.org
+  resources:
+  - openstackdataplanenodesets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - dataplane.openstack.org
+  resources:
+  - openstackdataplaneservices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - heat.openstack.org
   resources:
   - heats
@@ -165,6 +181,38 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - monitoring.rhobs
+  resources:
+  - scrapeconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.rhobs
+  resources:
+  - servicemonitors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - network.openstack.org
+  resources:
+  - ipsets
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - rabbitmq.openstack.org
@@ -282,6 +330,32 @@ rules:
   - telemetry.openstack.org
   resources:
   - loggings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - metricstorages
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - metricstorages/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - metricstorages/status
   verbs:
   - get
   - patch

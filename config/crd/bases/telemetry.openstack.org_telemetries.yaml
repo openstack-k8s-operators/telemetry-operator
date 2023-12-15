@@ -326,25 +326,15 @@ spec:
                     default: heat
                     description: Heat instance name.
                     type: string
-                  prometheus:
-                    description: Specification of which prometheus to use for autoscaling
-                    properties:
-                      deployPrometheus:
-                        default: false
-                        description: Enables the deployment of autoscaling prometheus
-                        type: boolean
-                      host:
-                        description: Host of user deployed prometheus if deployPrometheus
-                          is set to false
-                        type: string
-                      port:
-                        description: Port of user deployed prometheus if deployPrometheus
-                          is set to false
-                        format: int32
-                        maximum: 65535
-                        minimum: 1
-                        type: integer
-                    type: object
+                  prometheusHost:
+                    description: Host of user deployed prometheus
+                    type: string
+                  prometheusPort:
+                    description: Port of user deployed prometheus
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
                 required:
                 - heatInstance
                 type: object

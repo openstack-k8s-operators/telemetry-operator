@@ -37,20 +37,6 @@ const (
 	DbSyncHash = "dbsync"
 )
 
-// Prometheus defines which prometheus to use for Autoscaling
-type Prometheus struct {
-	// Enables the deployment of autoscaling prometheus
-	// +kubebuilder:default=false
-	DeployPrometheus bool `json:"deployPrometheus,omitempty"`
-
-	// Host of user deployed prometheus if deployPrometheus is set to false
-	Host string `json:"host,omitempty"`
-
-	// Port of user deployed prometheus if deployPrometheus is set to false
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=65535
-	Port int32 `json:"port,omitempty"`
-}
 
 // Aodh defines the aodh component spec
 type Aodh struct {
@@ -133,8 +119,15 @@ type APIOverrideSpec struct {
 
 // AutoscalingSpec defines the desired state of Autoscaling
 type AutoscalingSpec struct {
-	// Specification of which prometheus to use for autoscaling
-	Prometheus Prometheus `json:"prometheus,omitempty"`
+	// Host of user deployed prometheus
+	// +kubebuilder:validation:Optional
+	PrometheusHost string `json:"prometheusHost,omitempty"`
+
+	// Port of user deployed prometheus
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:validation:Optional
+	PrometheusPort int32 `json:"prometheusPort,omitempty"`
 
 	// Aodh spec
 	Aodh Aodh `json:"aodh,omitempty"`
