@@ -72,7 +72,7 @@ require (
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb // indirect
 	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/oauth2 v0.10.0 // indirect
+	golang.org/x/oauth2 v0.13.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
@@ -94,7 +94,7 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace cloud.google.com/go => cloud.google.com/go v0.110.9
+replace cloud.google.com/go => cloud.google.com/go v0.111.0
 
 // mschuppert: map to latest commit from release-4.13 tag
 // must consistent within modules and service operators
