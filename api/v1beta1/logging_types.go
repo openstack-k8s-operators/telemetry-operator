@@ -69,11 +69,6 @@ type LoggingSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=10000
 	RsyslogQueueSize int32 `json:"rsyslogQueueSize"`
-
-	// The number of seconds between sending log attempts
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=10
-	RsyslogPersistInterval int32 `json:"rsyslogPersistInterval"`
 }
 
 // LoggingStatus defines the observed state of Logging
