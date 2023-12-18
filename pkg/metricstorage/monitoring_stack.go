@@ -17,6 +17,7 @@ limitations under the License.
 package metricstorage
 
 import (
+	"fmt"
 	"reflect"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
@@ -32,6 +33,9 @@ func MonitoringStack(
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,
 ) (*obov1.MonitoringStack, error) {
+	if instance.Spec.RedHatMetricStorage == nil {
+		return nil, fmt.Errorf("redHatMetricStorage is set to nil")
+	}
 	pvc, err := getPVCSpec(instance)
 	if err != nil {
 		return nil, err

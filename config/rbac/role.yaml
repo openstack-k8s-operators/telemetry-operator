@@ -351,6 +351,7 @@ rules:
   resources:
   - metricstorages/finalizers
   verbs:
+  - delete
   - update
 - apiGroups:
   - telemetry.openstack.org

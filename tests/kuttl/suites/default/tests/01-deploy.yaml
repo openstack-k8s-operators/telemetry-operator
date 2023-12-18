@@ -3,6 +3,10 @@ kind: Telemetry
 metadata:
   name: telemetry
 spec:
+  metricstorage:
+    enabled: true
+    redhatMetricStorage:
+      type: prometheus
   autoscaling:
     enabled: true
     aodh:

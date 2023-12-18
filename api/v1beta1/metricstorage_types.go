@@ -89,13 +89,15 @@ type MetricStorageSpec struct {
 	// RedHatMetricStorage allows to define a metric storage with
 	// options supported by Red Hat
 	// +kubebuilder:validation:Optional
-	RedHatMetricStorage RedHatMetricStorage `json:"redhatMetricStorage,omitempty"`
+	// +nullable
+	RedHatMetricStorage *RedHatMetricStorage `json:"redhatMetricStorage,omitempty"`
 
 	// CustomMonitoringStack allows to deploy a custom monitoring
 	// stack when the options in "RedHatMetricStorage" aren't
 	// enough
 	// +kubebuilder:validation:Optional
-	CustomMonitoringStack obov1.MonitoringStackSpec `json:"customMonitoringStack,omitempty"`
+	// +nullable
+	CustomMonitoringStack *obov1.MonitoringStackSpec `json:"customMonitoringStack,omitempty"`
 }
 
 // MetricStorageStatus defines the observed state of MetricStorage
@@ -126,4 +128,9 @@ type MetricStorageList struct {
 
 func init() {
 	SchemeBuilder.Register(&MetricStorage{}, &MetricStorageList{})
+}
+
+// IsReady - returns true if MetricStorage is reconciled successfully
+func (instance MetricStorage) IsReady() bool {
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }

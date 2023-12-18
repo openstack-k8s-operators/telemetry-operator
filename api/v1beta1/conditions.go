@@ -27,6 +27,9 @@ const (
 	// AutoscalingReadyCondition Status=True condition which indicates if the Autoscaling is configured and operational
 	AutoscalingReadyCondition condition.Type = "AutoscalingReady"
 
+	// MetricStorageReadyCondition Status=True condition which indicates if the MetricStorage is configured and operational
+	MetricStorageReadyCondition condition.Type = "MetricStorageReady"
+
 	// HeatReadyCondition Status=True condition which indicates if the Heat is configured and operational
 	HeatReadyCondition condition.Type = "HeatReady"
 
@@ -79,6 +82,21 @@ const (
 	AutoscalingReadyRunningMessage = "Autoscaling in progress"
 
 	//
+	// MetricStorageReady condition messages
+	//
+	// MetricStorageReadyInitMessage
+	MetricStorageReadyInitMessage = "MetricStorage not started"
+
+	// MetricStorageReadyMessage
+	MetricStorageReadyMessage = "MetricStorage completed"
+
+	// MetricStorageReadyErrorMessage
+	MetricStorageReadyErrorMessage = "MetricStorage error occured %s"
+
+	// MetricStorageReadyRunningMessage
+	MetricStorageReadyRunningMessage = "MetricStorage in progress"
+
+	//
 	// HeatReady condition messages
 	//
 	// HeatReadyInitMessage
@@ -104,6 +122,9 @@ const (
 
 	// MonitoringStackReadyErrorMessage
 	MonitoringStackReadyErrorMessage = "MonitoringStack error occured %s"
+
+	// MonitoringStackReadyMisconfiguredMessage
+	MonitoringStackReadyMisconfiguredMessage = "MonitoringStack isn't configured properly: %s"
 
 	//
 	// ServiceMonitorReady condition messages

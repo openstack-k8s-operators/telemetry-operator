@@ -36,7 +36,9 @@ import (
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
+	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
+	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 )
 
 // TelemetryReconciler reconciles a Telemetry object
@@ -60,6 +62,9 @@ func (r *TelemetryReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/finalizers,verbs=update;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=metricstorages,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=metricstorages/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=metricstorages/finalizers,verbs=update;delete
 // +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile reconciles a Telemetry
@@ -126,6 +131,7 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		cl := condition.CreateList(
 			condition.UnknownCondition(telemetryv1.CeilometerReadyCondition, condition.InitReason, telemetryv1.CeilometerReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.AutoscalingReadyCondition, condition.InitReason, telemetryv1.AutoscalingReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.MetricStorageReadyCondition, condition.InitReason, telemetryv1.MetricStorageReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -195,6 +201,13 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	}
 
 	ctrlResult, err = reconcileCeilometer(ctx, instance, helper)
+	if err != nil {
+		return ctrl.Result{}, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	ctrlResult, err = reconcileMetricStorage(ctx, instance, helper)
 	if err != nil {
 		return ctrl.Result{}, err
 	} else if (ctrlResult != ctrl.Result{}) {
@@ -341,11 +354,78 @@ func reconcileAutoscaling(ctx context.Context, instance *telemetryv1.Telemetry, 
 	return ctrl.Result{}, nil
 }
 
+// reconcileMetricStorage ...
+func reconcileMetricStorage(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
+	const (
+		metricStorageNamespaceLabel = "MetricStorage.Namespace"
+		metricStorageNameLabel      = "MetricStorage.Name"
+		metricStorageName           = metricstorage.DefaultServiceName
+	)
+	metricStorageInstance := &telemetryv1.MetricStorage{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metricstorage.DefaultServiceName,
+			Namespace: instance.Namespace,
+		},
+	}
+
+	if !instance.Spec.MetricStorage.Enabled {
+		if res, err := ensureDeleted(ctx, helper, metricStorageInstance); err != nil {
+			return res, err
+		}
+		instance.Status.Conditions.Remove(telemetryv1.MetricStorageReadyCondition)
+		return ctrl.Result{}, nil
+	}
+
+	helper.GetLogger().Info("Reconciling MetricStorage", metricStorageNamespaceLabel, instance.Namespace, metricStorageNameLabel, metricstorage.DefaultServiceName)
+	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), metricStorageInstance, func() error {
+		if instance.Spec.MetricStorage.MetricStorageSpec.CustomMonitoringStack != nil {
+			metricStorageInstance.Spec.CustomMonitoringStack = &obov1.MonitoringStackSpec{}
+			instance.Spec.MetricStorage.MetricStorageSpec.CustomMonitoringStack.DeepCopyInto(metricStorageInstance.Spec.CustomMonitoringStack)
+		}
+		if instance.Spec.MetricStorage.MetricStorageSpec.RedHatMetricStorage != nil {
+			metricStorageInstance.Spec.RedHatMetricStorage = &telemetryv1.RedHatMetricStorage{}
+			instance.Spec.MetricStorage.MetricStorageSpec.RedHatMetricStorage.DeepCopyInto(metricStorageInstance.Spec.RedHatMetricStorage)
+		}
+
+		err := controllerutil.SetControllerReference(helper.GetBeforeObject(), metricStorageInstance, helper.GetScheme())
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MetricStorageReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.MetricStorageReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", metricstorage.DefaultServiceName, metricStorageInstance.Name, op))
+	}
+
+	if metricStorageInstance.IsReady() {
+		instance.Status.Conditions.MarkTrue(telemetryv1.MetricStorageReadyCondition, telemetryv1.MetricStorageReadyMessage)
+	} else {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MetricStorageReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.MetricStorageReadyRunningMessage))
+	}
+
+	return ctrl.Result{}, nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *TelemetryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Telemetry{}).
 		Owns(&telemetryv1.Ceilometer{}).
 		Owns(&telemetryv1.Autoscaling{}).
+		Owns(&telemetryv1.MetricStorage{}).
 		Complete(r)
 }
