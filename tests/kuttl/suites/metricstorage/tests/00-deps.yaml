@@ -3,4 +3,7 @@ kind: TestStep
 commands:
   - script: |
       oc apply -f ../deps/rhobs.yaml
+      if ! [[ `oc get crd openstackdataplanenodesets.dataplane.openstack.org` ]]; then
+        oc apply -f ../deps/dataplane.openstack.org_openstackdataplanenodesets.yaml
+      fi
       until oc api-resources | grep -q rhobs; do sleep 1; done
