@@ -1,0 +1,33 @@
+apiVersion: core.openstack.org/v1beta1
+kind: OpenStackControlPlane
+metadata:
+  name: openstack
+spec:
+  storageClass: "crc-csi-hostpath-provisioner"
+  keystone:
+    template:
+      databaseInstance: openstack
+      secret: osp-secret
+  ironic:
+    enabled: false
+    template:
+      ironicConductors: []
+  rabbitmq:
+    enabled: false
+    templates:
+      rabbitmq:
+        replicas: 1
+      rabbitmq-cell1:
+        replicas: 1
+  galera:
+    enabled: true
+    templates:
+      openstack:
+        replicas: 1
+        storageRequest: 500M
+        secret: osp-secret
+    secret: osp-secret
+  memcached:
+    templates:
+      memcached:
+        replicas: 1

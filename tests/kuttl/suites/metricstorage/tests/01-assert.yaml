@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    prometheus: telemetry-kuttl-prometheus
+    prometheus: telemetry-kuttl
   name: prometheus-telemetry-kuttl-0
 status:
   containerStatuses:
@@ -37,13 +37,11 @@ metadata:
     service: metricStorage
   name: telemetry-kuttl
   ownerReferences:
-    kind: MetricStorage
+  - kind: MetricStorage
     name: telemetry-kuttl
 spec:
   endpoints:
-  - bearerTokenSecret:
-      key: ""
-    interval: 30s
+  - interval: 30s
     metricRelabelings:
     - action: labeldrop
       regex: pod
@@ -60,15 +58,16 @@ spec:
     matchLabels:
       service: ceilometer
 ---
-apiVersion: monitoring.rhobs/v1
+apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
   name: telemetry-kuttl
   ownerReferences:
-    kind: MetricStorage
+  - kind: MetricStorage
     name: telemetry-kuttl
 spec:
+  scrapeInterval: 30s
   staticConfigs:
-  - targets:
+  - targets: []
