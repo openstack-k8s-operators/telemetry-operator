@@ -118,7 +118,7 @@ metadata:
 spec:
   scrapeInterval: 30s
   staticConfigs:
-  - targets:
+  - targets: []
 ---
 apiVersion: v1
 kind: Service

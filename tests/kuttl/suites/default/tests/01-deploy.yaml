@@ -1,9 +1,9 @@
 apiVersion: telemetry.openstack.org/v1beta1
 kind: Telemetry
 metadata:
-  name: telemetry
+  name: telemetry-kuttl
 spec:
-  metricstorage:
+  metricStorage:
     enabled: true
     redhatMetricStorage:
       type: prometheus
