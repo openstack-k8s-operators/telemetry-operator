@@ -39,13 +39,13 @@ import (
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	deployment "github.com/openstack-k8s-operators/lib-common/modules/common/deployment"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
+	statefulset "github.com/openstack-k8s-operators/lib-common/modules/common/statefulset"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
@@ -71,7 +71,7 @@ func (r *CeilometerReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete;
@@ -410,17 +410,17 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		return ctrlResult, nil
 	}
 
-	// Define a new Deployment object
-	deplDef, err := ceilometer.Deployment(instance, inputHash, serviceLabels)
+	// Define a new StatefulSet object
+	sfsetDef, err := ceilometer.StatefulSet(instance, inputHash, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	depl := deployment.NewDeployment(
-		deplDef,
+	sfset := statefulset.NewStatefulSet(
+		sfsetDef,
 		time.Duration(5)*time.Second,
 	)
 
-	ctrlResult, err = depl.CreateOrPatch(ctx, helper)
+	ctrlResult, err = sfset.CreateOrPatch(ctx, helper)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
@@ -438,12 +438,12 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		return ctrlResult, nil
 	}
 
-	err = controllerutil.SetControllerReference(instance, deplDef, r.Scheme)
+	err = controllerutil.SetControllerReference(instance, sfsetDef, r.Scheme)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	instance.Status.ReadyCount = depl.GetDeployment().Status.ReadyReplicas
+	instance.Status.ReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
 	if instance.Status.ReadyCount > 0 {
 		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
 	}
@@ -692,7 +692,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Ceilometer{}).
 		Owns(&keystonev1.KeystoneService{}).
-		Owns(&appsv1.Deployment{}).
+		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
 		Owns(&rabbitmqv1.TransportURL{}).
