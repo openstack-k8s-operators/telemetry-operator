@@ -24,5 +24,6 @@ testDirs:
   - tests/kuttl/suites/ceilometer/
   - tests/kuttl/suites/logging/
   - tests/kuttl/suites/default/
+  - tests/kuttl/suites/metricstorage/
 suppress:
   - events                     # Remove spammy event logs

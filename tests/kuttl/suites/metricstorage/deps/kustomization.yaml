@@ -34,3 +34,4 @@ generatorOptions:
 
 resources:
 - namespace.yaml
+- OpenStackControlPlane.yaml
