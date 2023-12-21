@@ -28,12 +28,12 @@ import (
 
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	deployment "github.com/openstack-k8s-operators/lib-common/modules/common/deployment"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	job "github.com/openstack-k8s-operators/lib-common/modules/common/job"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
+	statefulset "github.com/openstack-k8s-operators/lib-common/modules/common/statefulset"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 
@@ -264,16 +264,16 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		common.AppSelector: autoscaling.ServiceName,
 	}
 
-	deplDef, err := autoscaling.AodhDeployment(instance, inputHash, serviceLabels)
+	sfsetDef, err := autoscaling.AodhStatefulSet(instance, inputHash, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	depl := deployment.NewDeployment(
-		deplDef,
+	sfset := statefulset.NewStatefulSet(
+		sfsetDef,
 		time.Duration(5)*time.Second,
 	)
 
-	ctrlResult, err := depl.CreateOrPatch(ctx, helper)
+	ctrlResult, err := sfset.CreateOrPatch(ctx, helper)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
@@ -291,12 +291,12 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		return ctrlResult, nil
 	}
 
-	err = controllerutil.SetControllerReference(instance, deplDef, r.Scheme)
+	err = controllerutil.SetControllerReference(instance, sfsetDef, r.Scheme)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	instance.Status.ReadyCount = depl.GetDeployment().Status.ReadyReplicas
+	instance.Status.ReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
 	if instance.Status.ReadyCount > 0 {
 		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
 	}

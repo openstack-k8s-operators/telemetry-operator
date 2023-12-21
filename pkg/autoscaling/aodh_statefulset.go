@@ -36,12 +36,12 @@ const (
 	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
 )
 
-// AodhDeployment func
-func AodhDeployment(
+// AodhStatefulSet func
+func AodhStatefulSet(
 	instance *telemetryv1.Autoscaling,
 	configHash string,
 	labels map[string]string,
-) (*appsv1.Deployment, error) {
+) (*appsv1.StatefulSet, error) {
 	runAsUser := int64(0)
 
 	livenessProbe := &corev1.Probe{
@@ -152,13 +152,13 @@ func AodhDeployment(
 		},
 	}
 
-	deployment := &appsv1.Deployment{
+	statefulset := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ServiceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
-		Spec: appsv1.DeploymentSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
@@ -167,7 +167,7 @@ func AodhDeployment(
 		},
 	}
 
-	deployment.Spec.Template.Spec.Volumes = getVolumes(ServiceName)
+	statefulset.Spec.Template.Spec.Volumes = getVolumes(ServiceName)
 
 	// networks to attach to
 	nwAnnotation, err := annotations.GetNADAnnotation(instance.Namespace, instance.Spec.Aodh.NetworkAttachmentDefinitions)
@@ -175,7 +175,7 @@ func AodhDeployment(
 		return nil, fmt.Errorf("failed create network annotation from %s: %w",
 			instance.Spec.Aodh.NetworkAttachmentDefinitions, err)
 	}
-	deployment.Spec.Template.Annotations = util.MergeStringMaps(deployment.Spec.Template.Annotations, nwAnnotation)
+	statefulset.Spec.Template.Annotations = util.MergeStringMaps(statefulset.Spec.Template.Annotations, nwAnnotation)
 
-	return deployment, nil
+	return statefulset, nil
 }

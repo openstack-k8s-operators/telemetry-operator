@@ -194,8 +194,59 @@ spec:
     protocol: TCP
     targetPort: 8042
 ---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    service: aodh
+  name: aodh-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: aodh
+spec:
+  containers:
+  - args:
+    - -c
+    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    command:
+    - /bin/bash
+    name: aodh-api
+  - args:
+    - -c
+    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    command:
+    - /bin/bash
+    name: aodh-evaluator
+  - args:
+    - -c
+    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    command:
+    - /bin/bash
+    name: aodh-notifier
+  - args:
+    - -c
+    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    command:
+    - /bin/bash
+    name: aodh-listener
+  hostname: aodh-0
+status:
+  containerStatuses:
+  - name: aodh-api
+    ready: true
+    started: true
+  - name: aodh-evaluator
+    ready: true
+    started: true
+  - name: aodh-listener
+    ready: true
+    started: true
+  - name: aodh-notifier
+    ready: true
+    started: true
+---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
     service: aodh
@@ -204,17 +255,39 @@ metadata:
   - kind: Autoscaling
     name: autoscaling
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: aodh
   template:
     spec:
       containers:
-      - name: aodh-api
-      - name: aodh-evaluator
-      - name: aodh-notifier
-      - name: aodh-listener
-      volumes:
-      - name: scripts
-        secret:
-          secretName: aodh-scripts
-      - name: config-data
-        secret:
-          secretName: aodh-config-data
+      - args:
+        - -c
+        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        command:
+        - /bin/bash
+        name: aodh-api
+      - args:
+        - -c
+        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        command:
+        - /bin/bash
+        name: aodh-evaluator
+      - args:
+        - -c
+        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        command:
+        - /bin/bash
+        name: aodh-notifier
+      - args:
+        - -c
+        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        command:
+        - /bin/bash
+        name: aodh-listener
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
