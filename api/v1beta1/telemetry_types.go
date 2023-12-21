@@ -113,9 +113,6 @@ type TelemetryStatus struct {
 
 	// ReadyCount of Autoscaling instance
 	AutoscalingReadyCount int32 `json:"autoscalingReadyCount,omitempty"`
-
-	// ReadyCount of MetricStorage instance
-	MetricStorageReadyCount int32 `json:"metricstorageReadyCount,omitempty"`
 }
 
 //+kubebuilder:object:root=true

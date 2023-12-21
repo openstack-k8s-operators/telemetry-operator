@@ -1606,10 +1606,6 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
-              metricstorageReadyCount:
-                description: ReadyCount of MetricStorage instance
-                format: int32
-                type: integer
             type: object
         type: object
     served: true
