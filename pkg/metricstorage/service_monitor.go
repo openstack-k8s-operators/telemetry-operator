@@ -29,7 +29,7 @@ func ServiceMonitor(
 	selector map[string]string,
 ) *monv1.ServiceMonitor {
 	var scrapeInterval string
-	if instance.Spec.RedHatMetricStorage.ScrapeInterval != "" {
+	if instance.Spec.RedHatMetricStorage != nil && instance.Spec.RedHatMetricStorage.ScrapeInterval != "" {
 		scrapeInterval = instance.Spec.RedHatMetricStorage.ScrapeInterval
 		// TODO: Uncomment the following else if once we update to OBOv0.0.21
 		//} else if instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval {

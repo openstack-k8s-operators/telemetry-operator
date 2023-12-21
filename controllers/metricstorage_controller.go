@@ -186,6 +186,15 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		common.AppSelector: "metricStorage",
 	}
 
+	if instance.Spec.CustomMonitoringStack == nil && instance.Spec.RedHatMetricStorage == nil {
+		Log.Info("Both fields: \"customMonitoringStack\", \"redhatMetricStorage\" aren't set. Setting at least one is required.")
+		instance.Status.Conditions.MarkFalse(telemetryv1.MonitoringStackReadyCondition,
+			condition.Reason("MonitoringStack isn't configured properly"),
+			condition.SeverityError,
+			telemetryv1.MonitoringStackReadyMisconfiguredMessage, "Either \"customMonitoringStack\" or \"redhatMetricStorage\" must be set, but both are nil.")
+		return ctrl.Result{}, nil
+	}
+
 	// Deploy monitoring stack
 	err := r.ensureWatches(ctx, "monitoringstacks.monitoring.rhobs", &obov1.MonitoringStack{}, &handler.EnqueueRequestForOwner{
 		OwnerType:    &telemetryv1.MetricStorage{},
@@ -208,7 +217,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		},
 	}
 	op, err := controllerutil.CreateOrPatch(ctx, r.Client, monitoringStack, func() error {
-		if reflect.DeepEqual(instance.Spec.CustomMonitoringStack, obov1.MonitoringStackSpec{}) {
+		if reflect.DeepEqual(instance.Spec.CustomMonitoringStack, &obov1.MonitoringStackSpec{}) || instance.Spec.CustomMonitoringStack == nil {
 			Log.Info(fmt.Sprintf("Using MetricStorage exposed options for MonitoringStack %s definition", monitoringStack.Name))
 			desiredMonitoringStack, err := metricstorage.MonitoringStack(instance, serviceLabels)
 			if err != nil {

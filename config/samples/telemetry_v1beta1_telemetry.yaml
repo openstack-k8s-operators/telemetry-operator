@@ -3,6 +3,18 @@ kind: Telemetry
 metadata:
   name: telemetry
 spec:
+  metricStorage:
+    enabled: false
+    redhatMetricStorage:
+      type: prometheus
+      alertingEnabled: true
+      scrapeInterval: 30s
+      replicas: 1
+      storage:
+        strategy: persistent
+        retention: 24h
+        persistent:
+          pvcStorageRequest: 20G
   autoscaling:
     enabled: false
     prometheus:
