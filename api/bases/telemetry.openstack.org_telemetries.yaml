@@ -430,7 +430,7 @@ spec:
                 properties:
                   customMonitoringStack:
                     description: CustomMonitoringStack allows to deploy a custom monitoring
-                      stack when the options in "RedHatMetricStorage" aren't enough
+                      stack when the options in "MonitoringStack" aren't enough
                     nullable: true
                     properties:
                       alertmanagerConfig:
@@ -1440,8 +1440,8 @@ spec:
                     description: Enabled - Whether a MetricStorage should be deployed
                       and managed
                     type: boolean
-                  redhatMetricStorage:
-                    description: RedHatMetricStorage allows to define a metric storage
+                  monitoringStack:
+                    description: MonitoringStack allows to define a metric storage
                       with options supported by Red Hat
                     nullable: true
                     properties:

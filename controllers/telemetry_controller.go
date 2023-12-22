@@ -382,9 +382,9 @@ func reconcileMetricStorage(ctx context.Context, instance *telemetryv1.Telemetry
 			metricStorageInstance.Spec.CustomMonitoringStack = &obov1.MonitoringStackSpec{}
 			instance.Spec.MetricStorage.MetricStorageSpec.CustomMonitoringStack.DeepCopyInto(metricStorageInstance.Spec.CustomMonitoringStack)
 		}
-		if instance.Spec.MetricStorage.MetricStorageSpec.RedHatMetricStorage != nil {
-			metricStorageInstance.Spec.RedHatMetricStorage = &telemetryv1.RedHatMetricStorage{}
-			instance.Spec.MetricStorage.MetricStorageSpec.RedHatMetricStorage.DeepCopyInto(metricStorageInstance.Spec.RedHatMetricStorage)
+		if instance.Spec.MetricStorage.MetricStorageSpec.MonitoringStack != nil {
+			metricStorageInstance.Spec.MonitoringStack = &telemetryv1.MonitoringStack{}
+			instance.Spec.MetricStorage.MetricStorageSpec.MonitoringStack.DeepCopyInto(metricStorageInstance.Spec.MonitoringStack)
 		}
 
 		err := controllerutil.SetControllerReference(helper.GetBeforeObject(), metricStorageInstance, helper.GetScheme())

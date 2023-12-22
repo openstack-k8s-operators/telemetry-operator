@@ -33,8 +33,8 @@ func MonitoringStack(
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,
 ) (*obov1.MonitoringStack, error) {
-	if instance.Spec.RedHatMetricStorage == nil {
-		return nil, fmt.Errorf("redHatMetricStorage is set to nil")
+	if instance.Spec.MonitoringStack == nil {
+		return nil, fmt.Errorf("monitoringStack is set to nil")
 	}
 	pvc, err := getPVCSpec(instance)
 	if err != nil {
@@ -48,16 +48,16 @@ func MonitoringStack(
 		},
 		Spec: obov1.MonitoringStackSpec{
 			AlertmanagerConfig: obov1.AlertmanagerConfig{
-				Disabled: !instance.Spec.RedHatMetricStorage.AlertingEnabled,
+				Disabled: !instance.Spec.MonitoringStack.AlertingEnabled,
 			},
 			PrometheusConfig: &obov1.PrometheusConfig{
 				Replicas: &PrometheusReplicas,
 				// NOTE: unsupported before OBOv0.0.21, but we can set the value
 				//       in the ServiceMonitor, so this isn't a big deal.
-				//ScrapeInterval: instance.Spec.RedHatMetricStorage.ScrapeInterval,
+				//ScrapeInterval: instance.Spec.MonitoringStack.ScrapeInterval,
 				PersistentVolumeClaim: pvc,
 			},
-			Retention: monv1.Duration(instance.Spec.RedHatMetricStorage.Storage.Retention),
+			Retention: monv1.Duration(instance.Spec.MonitoringStack.Storage.Retention),
 			ResourceSelector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -67,8 +67,8 @@ func MonitoringStack(
 }
 
 func getPVCSpec(instance *telemetryv1.MetricStorage) (*corev1.PersistentVolumeClaimSpec, error) {
-	if instance.Spec.RedHatMetricStorage.Storage.Strategy == "persistent" {
-		persistentSpec := &instance.Spec.RedHatMetricStorage.Storage.Persistent
+	if instance.Spec.MonitoringStack.Storage.Strategy == "persistent" {
+		persistentSpec := &instance.Spec.MonitoringStack.Storage.Persistent
 		pvc := corev1.PersistentVolumeClaimSpec{}
 		if !reflect.DeepEqual(persistentSpec.PvcStorageSelector, metav1.LabelSelector{}) {
 			pvc.Selector = &persistentSpec.PvcStorageSelector
