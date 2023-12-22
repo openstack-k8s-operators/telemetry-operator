@@ -107,12 +107,6 @@ type TelemetryStatus struct {
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
-
-	// ReadyCount of Ceilometer instance
-	CeilometerReadyCount int32 `json:"ceilometerReadyCount,omitempty"`
-
-	// ReadyCount of Autoscaling instance
-	AutoscalingReadyCount int32 `json:"autoscalingReadyCount,omitempty"`
 }
 
 //+kubebuilder:object:root=true

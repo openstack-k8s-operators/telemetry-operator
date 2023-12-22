@@ -1550,14 +1550,6 @@ spec:
           status:
             description: TelemetryStatus defines the observed state of Telemetry
             properties:
-              autoscalingReadyCount:
-                description: ReadyCount of Autoscaling instance
-                format: int32
-                type: integer
-              ceilometerReadyCount:
-                description: ReadyCount of Ceilometer instance
-                format: int32
-                type: integer
               conditions:
                 description: Conditions
                 items:
