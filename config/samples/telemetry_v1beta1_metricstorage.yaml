@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/created-by: telemetry-operator
   name: metricstorage-sample
 spec:
-  redhatMetricStorage:
+  monitoringStack:
     type: prometheus
     alertingEnabled: true
     scrapeInterval: 30s

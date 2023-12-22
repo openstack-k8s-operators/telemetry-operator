@@ -5,7 +5,7 @@ metadata:
 spec:
   metricStorage:
     enabled: false
-    redhatMetricStorage:
+    monitoringStack:
       type: prometheus
       alertingEnabled: true
       scrapeInterval: 30s

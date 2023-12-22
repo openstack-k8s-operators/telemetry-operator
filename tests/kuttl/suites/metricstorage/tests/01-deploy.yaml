@@ -3,7 +3,7 @@ kind: MetricStorage
 metadata:
   name: telemetry-kuttl
 spec:
-  redhatMetricStorage:
+  monitoringStack:
     type: prometheus
     alertingEnabled: true
     scrapeInterval: 30s

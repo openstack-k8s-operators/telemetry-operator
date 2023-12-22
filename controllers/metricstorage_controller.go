@@ -186,12 +186,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		common.AppSelector: "metricStorage",
 	}
 
-	if instance.Spec.CustomMonitoringStack == nil && instance.Spec.RedHatMetricStorage == nil {
-		Log.Info("Both fields: \"customMonitoringStack\", \"redhatMetricStorage\" aren't set. Setting at least one is required.")
+	if instance.Spec.CustomMonitoringStack == nil && instance.Spec.MonitoringStack == nil {
+		Log.Info("Both fields: \"customMonitoringStack\", \"monitoringStack\" aren't set. Setting at least one is required.")
 		instance.Status.Conditions.MarkFalse(telemetryv1.MonitoringStackReadyCondition,
 			condition.Reason("MonitoringStack isn't configured properly"),
 			condition.SeverityError,
-			telemetryv1.MonitoringStackReadyMisconfiguredMessage, "Either \"customMonitoringStack\" or \"redhatMetricStorage\" must be set, but both are nil.")
+			telemetryv1.MonitoringStackReadyMisconfiguredMessage, "Either \"customMonitoringStack\" or \"monitoringStack\" must be set, but both are nil.")
 		return ctrl.Result{}, nil
 	}
 

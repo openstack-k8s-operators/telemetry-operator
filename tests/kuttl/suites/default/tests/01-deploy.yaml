@@ -5,7 +5,7 @@ metadata:
 spec:
   metricStorage:
     enabled: true
-    redhatMetricStorage:
+    monitoringStack:
       type: prometheus
   autoscaling:
     enabled: true

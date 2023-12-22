@@ -59,8 +59,8 @@ type Storage struct {
 	Persistent PersistentStorage `json:"persistent"`
 }
 
-// RedHatMetricStorage defines the options for a Red Hat supported metric storage
-type RedHatMetricStorage struct {
+// MonitoringStack defines the options for a Red Hat supported metric storage
+type MonitoringStack struct {
 	// Type defines the type of the storage.
 	// Can only be "prometheus" at the moment
 	// +kubebuilder:validation:Optional
@@ -86,14 +86,14 @@ type RedHatMetricStorage struct {
 
 // MetricStorageSpec defines the desired state of MetricStorage
 type MetricStorageSpec struct {
-	// RedHatMetricStorage allows to define a metric storage with
+	// MonitoringStack allows to define a metric storage with
 	// options supported by Red Hat
 	// +kubebuilder:validation:Optional
 	// +nullable
-	RedHatMetricStorage *RedHatMetricStorage `json:"redhatMetricStorage,omitempty"`
+	MonitoringStack *MonitoringStack `json:"monitoringStack,omitempty"`
 
 	// CustomMonitoringStack allows to deploy a custom monitoring
-	// stack when the options in "RedHatMetricStorage" aren't
+	// stack when the options in "MonitoringStack" aren't
 	// enough
 	// +kubebuilder:validation:Optional
 	// +nullable
