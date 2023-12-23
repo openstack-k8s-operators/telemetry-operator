@@ -8,7 +8,7 @@ replace golang.org/x/net => golang.org/x/net v0.17.0 //allow-merging
 replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 
 require (
-	github.com/go-logr/logr v1.3.0
+	github.com/go-logr/logr v1.4.1
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
 	github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.20231218040325-7a45b84b5381
