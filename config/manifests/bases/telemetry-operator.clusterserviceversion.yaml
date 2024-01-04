@@ -29,6 +29,11 @@ spec:
       kind: Logging
       name: loggings.telemetry.openstack.org
       version: v1beta1
+    - description: MetricStorage is the Schema for the metricstorages API
+      displayName: Metric Storage
+      kind: MetricStorage
+      name: metricstorages.telemetry.openstack.org
+      version: v1beta1
     - description: Telemetry is the Schema for the telemetry API
       displayName: Telemetry
       kind: Telemetry
@@ -44,6 +49,11 @@ spec:
           and managed
         displayName: Enabled
         path: ceilometer.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Enabled - Whether a MetricStorage should be deployed and managed
+        displayName: Enabled
+        path: metricStorage.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       version: v1beta1
