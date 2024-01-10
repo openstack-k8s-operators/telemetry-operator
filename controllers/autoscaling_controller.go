@@ -408,7 +408,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		instance.Status.PrometheusHost = instance.Spec.PrometheusHost
 	}
 	if instance.Spec.PrometheusPort == 0 {
-		instance.Status.PrometheusPort = 9090
+		instance.Status.PrometheusPort = metricstorage.DefaultPrometheusPort
 	} else {
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
 	}

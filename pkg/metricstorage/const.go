@@ -22,6 +22,8 @@ const (
 	DefaultServiceName = "metric-storage"
 	// DefaultPvcStorageRequest -
 	DefaultPvcStorageRequest = "20G"
+	// DefaultPrometheusPort -
+	DefaultPrometheusPort = 9090
 	// DefaultNodeExporterPort -
 	DefaultNodeExporterPort = 9100
 	// DefaultScrapeInterval -
