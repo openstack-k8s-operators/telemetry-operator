@@ -10,7 +10,6 @@ metadata:
   name: metricstorage-sample
 spec:
   monitoringStack:
-    type: prometheus
     alertingEnabled: true
     scrapeInterval: 30s
     storage:

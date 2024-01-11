@@ -196,6 +196,62 @@ webhooks:
     scope: '*'
   sideEffects: None
   timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: vmetricstorage.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-metricstorage
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: vmetricstorage.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metricstorages
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mmetricstorage.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:9443/mutate-telemetry-openstack-org-v1beta1-metricstorage
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: mmetricstorage.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metricstorages
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
 EOF_CAT
 
 oc apply -n openstack -f ${TMPDIR}/patch_webhook_configurations.yaml

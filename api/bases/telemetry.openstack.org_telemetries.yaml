@@ -1537,13 +1537,6 @@ spec:
                             - persistent
                             type: string
                         type: object
-                      type:
-                        default: prometheus
-                        description: Type defines the type of the storage. Can only
-                          be "prometheus" at the moment
-                        enum:
-                        - prometheus
-                        type: string
                     type: object
                 type: object
             type: object
