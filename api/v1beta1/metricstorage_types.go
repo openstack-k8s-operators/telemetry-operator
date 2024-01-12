@@ -61,13 +61,6 @@ type Storage struct {
 
 // MonitoringStack defines the options for a Red Hat supported metric storage
 type MonitoringStack struct {
-	// Type defines the type of the storage.
-	// Can only be "prometheus" at the moment
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Enum=prometheus
-	// +kubebuilder:default=prometheus
-	Type string `json:"type"`
-
 	// AlertingEnabled allows to enable or disable alertmanager
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=true

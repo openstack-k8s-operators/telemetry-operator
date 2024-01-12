@@ -204,6 +204,10 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Autoscaling")
 			os.Exit(1)
 		}
+		if err = (&telemetryv1beta1.MetricStorage{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MetricStorage")
+			os.Exit(1)
+		}
 		checker = mgr.GetWebhookServer().StartedChecker()
 	}
 
