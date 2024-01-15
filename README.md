@@ -32,27 +32,32 @@ make openstack_deploy
 ```
 DATAPLANE_TOTAL_NODES=2 DATAPLANE_NTP_SERVER=clock.redhat.com make edpm_deploy
 ```
-To know when dataplane-operator finishes, you have to keep looking at "*-edpm" pods that keep appearing to run ansible on the compute nodes. They will appear one after the other. When those stop appearing, it is finished and we have a default openstack environment.
+To know when dataplane-operator finishes, you have to keep looking at "*-edpm" pods that keep appearing to run ansible on the compute nodes. They will appear one after the other. When those stop appearing, it is finished.
 
-You can also make your process wait until everything has run:
+You can also make your process wait until everything finishes:
 ```
 DATAPLANE_TOTAL_NODES=2 DATAPLANE_NTP_SERVER=clock.redhat.com make edpm_deploy_wait
 ```
 
+5.- Refresh Nova discover hosts
+```
+make edpm_nova_discover_hosts
+```
+
 Now, we proceed to run our own telemetry-operator instance:
 
-5.- Remove Ceilometer deployment
+6.- Remove Ceilometer deployment
 ```
 oc patch openstackcontrolplane openstack-galera-network-isolation --type='json' -p='[{"op": "replace", "path": "/spec/ceilometer/enabled", "value":false}]'
 ```
 
-6.- Remove telemetry-operator from the deployments
+7.- Remove telemetry-operator from the deployments
 ```
 oc project openstack-operators
 oc remove csv telemetry-operator.v0.0.1
 ```
 
-7.- Deploy custom telemetry-operator version
+8.- Deploy custom telemetry-operator version
 ```
 cd telemetry-operator
 
@@ -63,7 +68,7 @@ make manifests generate
 OPERATOR_TEMPLATES=$PWD/templates make run
 ```
 
-8.- Deploy Telemetry:
+9.- Deploy Telemetry:
 ```
 oc apply -f config/samples/telemetry_v1beta1_telemetry.yaml
 ```
