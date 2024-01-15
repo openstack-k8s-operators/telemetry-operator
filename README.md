@@ -68,6 +68,14 @@ OPERATOR_TEMPLATES=$PWD/templates make run
 oc apply -f config/samples/telemetry_v1beta1_telemetry.yaml
 ```
 
+## Connect to Dataplane nodes
+You can connect directly to the compute nodes using password 12345678:
+```
+ssh root@192.168.122.100
+
+ssh root@192.168.122.101
+```
+
 ## Testing edpm-ansible changes
 
 1.- Build your custom `openstack-ansibleee-runner` image using these [steps](https://github.com/openstack-k8s-operators/edpm-ansible/tree/main#build-and-push-the-openstack-ansibleee-runner-container-image) and push it to a registry
