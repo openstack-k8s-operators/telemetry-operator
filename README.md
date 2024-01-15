@@ -15,10 +15,7 @@ CPUS=12 MEMORY=25600 DISK=100 make crc
 ```
 make crc_attach_default_interface
 
-EDPM_COMPUTE_SUFFIX=0 make edpm_compute
-EDPM_COMPUTE_SUFFIX=1 make edpm_compute
-EDPM_COMPUTE_SUFFIX=0 make edpm_compute_repos
-EDPM_COMPUTE_SUFFIX=1 make edpm_compute_repos
+DATAPLANE_TOTAL_NODES=2 make edpm_compute
 ```
 
 3.- Deploy openstack-operator and openstack
@@ -31,23 +28,29 @@ make openstack
 make openstack_deploy
 ```
 
-4.- Remove Ceilometer deployment
+4.- Deploy dataplane operator
 ```
-oc patch openstackcontrolplane openstack --type='json' -p='[{"op": "replace", "path": "/spec/ceilometer/enabled", "value":false}]'
+DATAPLANE_TOTAL_NODES=2 DATAPLANE_NTP_SERVER=clock.redhat.com make edpm_deploy
 ```
+To know when dataplane-operator finishes, you have to keep looking at "*-edpm" pods that keep appearing to run ansible on the compute nodes. They will appear one after the other. When those stop appearing, it is finished and we have a default openstack environment.
 
-5.- Remove telemetry-operator from the deployments
+You can also make your process wait until everything has run:
 ```
-make telemetry_cleanup
+DATAPLANE_TOTAL_NODES=2 DATAPLANE_NTP_SERVER=clock.redhat.com make edpm_deploy_wait
 ```
-
-6.- Deploy dataplane operator
-```
-DATAPLANE_SINGLE_NODE=false DATAPLANE_CHRONY_NTP_SERVER=clock.redhat.com make edpm_deploy
-```
-To know when dataplane-operator finishes, you have to keep looking at "dataplane-deployment-*" pods that keep appearing to run ansible on the compute nodes. They will appear one after the other. When those stop appearing, it is finished and we have a default openstack environment.
 
 Now, we proceed to run our own telemetry-operator instance:
+
+5.- Remove Ceilometer deployment
+```
+oc patch openstackcontrolplane openstack-galera-network-isolation --type='json' -p='[{"op": "replace", "path": "/spec/ceilometer/enabled", "value":false}]'
+```
+
+6.- Remove telemetry-operator from the deployments
+```
+oc project openstack-operators
+oc remove csv telemetry-operator.v0.0.1
+```
 
 7.- Deploy custom telemetry-operator version
 ```
@@ -60,9 +63,9 @@ make manifests generate
 OPERATOR_TEMPLATES=$PWD/templates make run
 ```
 
-8.- Deploy Ceilometer:
+8.- Deploy Telemetry:
 ```
-oc apply -f config/samples/telemetry_v1beta1_ceilometer.yaml
+oc apply -f config/samples/telemetry_v1beta1_telemetry.yaml
 ```
 
 ## Testing edpm-ansible changes
@@ -85,8 +88,7 @@ cd install_yamls/devsetup
 make crc_cleanup
 
 # Destroy edpm VMS
-EDPM_COMPUTE_SUFFIX=0 make edpm_compute_cleanup
-EDPM_COMPUTE_SUFFIX=1 make edpm_compute_cleanup
+EDPM_TOTAL_NODES=2 make edpm_compute_cleanup
 ```
 
 ## Emergency rescue access to CRC VM
