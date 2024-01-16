@@ -325,6 +325,7 @@ rules:
   resources:
   - loggings/finalizers
   verbs:
+  - delete
   - update
 - apiGroups:
   - telemetry.openstack.org

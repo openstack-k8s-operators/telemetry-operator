@@ -37,8 +37,8 @@ spec:
             properties:
               cloNamespace:
                 default: openshift-logging
-                description: CLONamespace points to the namespace where the cluster-logging-operator
-                  is deployed
+                description: CLONamespace points to the namespace where the logging
+                  collector is deployed
                 type: string
               ipaddr:
                 description: IPAddr is the address where the service will listen on

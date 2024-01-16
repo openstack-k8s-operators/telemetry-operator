@@ -50,7 +50,7 @@ type LoggingSpec struct {
 	// +kubebuilder:default:=TCP
 	Protocol string `json:"protocol"`
 
-	// CLONamespace points to the namespace where the cluster-logging-operator is deployed
+	// CLONamespace points to the namespace where the logging collector is deployed
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=openshift-logging
 	CLONamespace string `json:"cloNamespace"`
@@ -99,6 +99,11 @@ type LoggingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Logging `json:"items"`
+}
+
+// IsReady - returns true if Logging is reconciled successfully
+func (instance Logging) IsReady() bool {
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {

@@ -56,6 +56,10 @@ type TelemetrySpec struct {
 	// +kubebuilder:validation:Optional
 	// MetricStorage - Parameters related to the metricStorage
 	MetricStorage MetricStorageSection `json:"metricStorage,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// Logging - Parameters related to the logging
+	Logging LoggingSection `json:"logging,omitempty"`
 }
 
 // CeilometerSection defines the desired state of the ceilometer service
@@ -98,6 +102,20 @@ type MetricStorageSection struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
 	// Template - Overrides to use when creating the MetricStorage
 	MetricStorageSpec `json:",inline"`
+}
+
+// LoggingSection defines the desired state of the logging service
+type LoggingSection struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// Enabled - Whether OpenStack Ceilometer service should be deployed and managed
+	Enabled bool `json:"enabled"`
+
+	// +kubebuilder:validation:Optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec
+	// Template - Overrides to use when creating the OpenStack Logging
+	LoggingSpec `json:",inline"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry
