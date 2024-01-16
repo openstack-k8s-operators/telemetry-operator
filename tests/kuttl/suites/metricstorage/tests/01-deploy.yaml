@@ -4,7 +4,6 @@ metadata:
   name: telemetry-kuttl
 spec:
   monitoringStack:
-    type: prometheus
     alertingEnabled: true
     scrapeInterval: 30s
     storage:
