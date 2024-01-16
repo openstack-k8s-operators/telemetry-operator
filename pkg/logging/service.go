@@ -40,7 +40,7 @@ func Service(
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), helper.GetClient(), service, func() error {
 		//service.Labels = labels
 		service.Spec.Ports = []corev1.ServicePort{{
-			Protocol:   corev1.Protocol(instance.Spec.Protocol),
+			Protocol:   corev1.Protocol("TCP"),
 			Port:       instance.Spec.Port,
 			TargetPort: intstr.FromInt(instance.Spec.TargetPort),
 		}}
