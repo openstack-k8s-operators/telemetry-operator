@@ -44,13 +44,7 @@ type LoggingSpec struct {
 	// +kubebuilder:default=10514
 	TargetPort int `json:"targetPort"`
 
-	// The protocol of the connection the Service will listen on: tcp or udp
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Enum=TCP;UDP
-	// +kubebuilder:default:=TCP
-	Protocol string `json:"protocol"`
-
-	// CLONamespace points to the namespace where the logging collector is deployed
+	// CLONamespace points to the namespace where the cluster-logging-operator is deployed
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=openshift-logging
 	CLONamespace string `json:"cloNamespace"`

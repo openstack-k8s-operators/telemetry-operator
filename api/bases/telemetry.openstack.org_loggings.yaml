@@ -37,8 +37,8 @@ spec:
             properties:
               cloNamespace:
                 default: openshift-logging
-                description: CLONamespace points to the namespace where the logging
-                  collector is deployed
+                description: CLONamespace points to the namespace where the cluster-logging-operator
+                  is deployed
                 type: string
               ipaddr:
                 description: IPAddr is the address where the service will listen on
@@ -52,14 +52,6 @@ spec:
                 description: Port is the port where the service will listen on
                 format: int32
                 type: integer
-              protocol:
-                default: TCP
-                description: 'The protocol of the connection the Service will listen
-                  on: tcp or udp'
-                enum:
-                - TCP
-                - UDP
-                type: string
               rsyslogQueueSize:
                 default: 10000
                 description: The size of the local queue of logs

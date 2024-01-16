@@ -9,8 +9,6 @@ metadata:
     app.kubernetes.io/created-by: telemetry-operator
   name: autoscaling
 spec:
-  prometheus:
-    deployPrometheus: false
   aodh:
     secret: osp-secret
     passwordSelectors:

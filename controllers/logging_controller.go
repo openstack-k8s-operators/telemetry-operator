@@ -270,7 +270,6 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 	templateParameters := map[string]interface{}{
 		"RsyslogAddress":   instance.Spec.IPAddr,
 		"RsyslogPort":      instance.Spec.Port,
-		"RsyslogProtocol":  instance.Spec.Protocol,
 		"RsyslogRetries":   instance.Spec.RsyslogRetries,
 		"RsyslogQueueType": instance.Spec.RsyslogQueueType,
 		"RsyslogQueueSize": instance.Spec.RsyslogQueueSize,
