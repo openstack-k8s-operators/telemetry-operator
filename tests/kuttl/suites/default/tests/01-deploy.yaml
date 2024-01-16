@@ -6,7 +6,6 @@ spec:
   metricStorage:
     enabled: true
     monitoringStack:
-      type: prometheus
   autoscaling:
     enabled: true
     aodh:
