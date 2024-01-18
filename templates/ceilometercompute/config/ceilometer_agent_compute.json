@@ -1,6 +1,6 @@
 {
     "image": "{{ .ceilometer_compute_image }}",
-    "user": "root",
+    "user": "ceilometer",
     "restart": "always",
     "command": "kolla_start",
     "net": "host",
@@ -11,7 +11,7 @@
     "volumes": [
         "/var/lib/openstack/config/ceilometer:/var/lib/openstack/config/:z",
         "/var/lib/openstack/config/ceilometer/ceilometer-agent-compute.json:/var/lib/kolla/config_files/config.json:z",
-        "/run/libvirt:/run/libvirt:shared,z",
+        "/run/libvirt:/run/libvirt:shared,ro",
         "/etc/hosts:/etc/hosts:ro",
         "/etc/pki/tls/certs/ca-bundle.trust.crt:/etc/pki/tls/certs/ca-bundle.trust.crt:ro",
         "/etc/localtime:/etc/localtime:ro",
