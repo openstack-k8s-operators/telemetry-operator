@@ -435,7 +435,7 @@ spec:
                     type: string
                   enabled:
                     default: true
-                    description: Enabled - Whether OpenStack Ceilometer service should
+                    description: Enabled - Whether OpenStack logging service should
                       be deployed and managed
                     type: boolean
                   ipaddr:
