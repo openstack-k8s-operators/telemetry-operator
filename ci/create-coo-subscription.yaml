@@ -1,0 +1,40 @@
+---
+- name: "Create the cluster-observability-operator subscription"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+    - name: Create the COO subscription
+      ansible.builtin.shell:
+        cmd: |
+          oc create -f - <<EOF
+          apiVersion: operators.coreos.com/v1alpha1
+          kind: Subscription
+          metadata:
+            name: cluster-observability-operator
+            namespace: openshift-operators
+          spec:
+            channel: development
+            installPlanApproval: Automatic
+            name: cluster-observability-operator
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+          EOF
+      register: output
+
+      # need to have a wait here, since the csv is not created immediately. There is a slight delay, during which time, the oc wait command would fail, since there's no resource to watch
+    - name: Wait for the required resource to be created
+      ansible.builtin.command:
+        cmd:
+          oc get csv --namespace=openshift-operators -l operators.coreos.com/cluster-observability-operator.openshift-operators
+      delay: 2
+      retries: 10
+      register: output
+      until: output.stdout_lines | length != 0
+
+    - name: Wait for the resources to be available
+      ansible.builtin.command:
+        cmd: |
+          oc wait --for jsonpath="{.status.phase}"=Succeeded csv --namespace=openshift-operators -l operators.coreos.com/cluster-observability-operator.openshift-operators
