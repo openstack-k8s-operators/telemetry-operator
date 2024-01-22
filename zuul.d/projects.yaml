@@ -42,13 +42,7 @@
     name: telemetry-operator-multinode-autoscaling-tempest
     parent: telemetry-operator-multinode-autoscaling
     vars:
-      # May need to add telemetry to this.
-      # * `cifmw_tempest_container`: (String) Name of the tempest container. Default to `openstack-tempest`
-      # https://github.com/openstack-k8s-operators/ci-framework/blob/a32669366a32b494b692d5dc73de044fd089a38a/roles/tempest/README.md?plain=1#L14
       cifmw_tempest_container: openstack-tempest-all
-      #* `cifmw_tempest_tempestconf_profile`: (Dictionary) List of settings to be overwritten in tempest.conf.
-      # https://github.com/openstack-k8s-operators/ci-framework/blob/a32669366a32b494b692d5dc73de044fd089a38a/roles/tempest/README.md?plain=1#L21C4-L21C37
-      # Assumption: the config vars passed here are from tempest, and I can follow the tempest configs from upstream/devstack-based deployments to populate this for telemetry
       cifmw_tempest_tempestconf_profile:
         overrides:
             compute-feature-enabled.vnc_console: true
@@ -58,22 +52,11 @@
             # instability.
             identity.v3_endpoint_type: public
             identity.v2_admin_endpoint_type: public
+            service_available.ceilometer: true
      # NOTE(efoley): First step is to get ANY tempest jobs running to confirm a working config
       cifmw_tempest_tests_allowed: # need to see ciframwework roles that use these vars, to see how to enable telemetry
-        - neutron_tempest_plugin.api
-        - neutron_tempest_plugin.scenario
-        # To check metadata with and without config drive
-        - tempest.scenario.test_server_basic_ops.TestServerBasicOps.test_server_basic_ops
-      cifmw_tempest_tests_skipped:
-        # https://issues.redhat.com/browse/OSPRH-3099
-        - test_list_pagination_page_reverse_with_href_links
-        - test_list_pagination_with_href_links
-        # https://review.opendev.org/892839
-        - neutron_tempest_plugin.scenario.test_mtu.NetworkWritableMtuTest
-        # missing https://review.opendev.org/882818 in antelope
-        - test_qos_dscp_create_and_update
-        # Limit job runtime
-        - NetworkSecGroupTest
+        - telemetry_tempest_plugin.scenario
+      cifmw_tempest_tests_skipped: []
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
