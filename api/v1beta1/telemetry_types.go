@@ -109,7 +109,7 @@ type LoggingSection struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=true
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	// Enabled - Whether OpenStack Ceilometer service should be deployed and managed
+	// Enabled - Whether OpenStack logging service should be deployed and managed
 	Enabled bool `json:"enabled"`
 
 	// +kubebuilder:validation:Optional
