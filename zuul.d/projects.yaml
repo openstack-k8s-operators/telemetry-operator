@@ -6,13 +6,7 @@
     parent: podified-multinode-edpm-deployment-crc
     dependencies: ["openstack-k8s-operators-content-provider"]
     vars:
-      # May need to add telemetry to this.
-      # * `cifmw_tempest_container`: (String) Name of the tempest container. Default to `openstack-tempest`
-      # https://github.com/openstack-k8s-operators/ci-framework/blob/a32669366a32b494b692d5dc73de044fd089a38a/roles/tempest/README.md?plain=1#L14
       cifmw_tempest_container: openstack-tempest-all
-      #* `cifmw_tempest_tempestconf_profile`: (Dictionary) List of settings to be overwritten in tempest.conf.
-      # https://github.com/openstack-k8s-operators/ci-framework/blob/a32669366a32b494b692d5dc73de044fd089a38a/roles/tempest/README.md?plain=1#L21C4-L21C37
-      # Assumption: the config vars passed here are from tempest, and I can follow the tempest configs from upstream/devstack-based deployments to populate this for telemetry
       cifmw_tempest_tempestconf_profile:
         overrides:
             compute-feature-enabled.vnc_console: true
@@ -25,7 +19,7 @@
             service_available.ceilometer: true
      # NOTE(efoley): First step is to get ANY tempest jobs running to confirm a working config
       cifmw_tempest_tests_allowed: # need to see ciframwework roles that use these vars, to see how to enable telemetry
-        - telemetry_tempest_plugin.scenario.telemetry_integration_prometheus_gabbits
+        - telemetry_tempest_plugin.scenario
       cifmw_tempest_tests_skipped: []
 
 - project:
@@ -36,4 +30,29 @@
       jobs:
         - openstack-k8s-operators-content-provider
           # The dependency on the content provider is baked into the job definition.
+          # Later, it might be prudent to run the podified-multinode-edpm-deployment-crc job as a provider, and say it provides a "deployed-openstack", so the tempest job can use it as a dependency and not redeploy everything.
         - telemetry-operator-tempest-multinode
+          # extends from podified-multinode-edpm-deployment-crc?
+          # extends cifmw-base-multinode-tempest
+# Here's a sample build for podified-multi-node-edpm-deployment-crc: https://review.rdoproject.org/zuul/build/729e2d8aa3ae4208af587c18c1d3c5e8
+#
+# Check the logs:
+#
+# What are the steps here? there is a run playbook, right?
+# Is this job a provider job?
+# Where is this job defined?
+# If this is a provider job, then I can add a job that depends on this and run tempest.
+#
+# base-minimal
+# base-extracted-crc
+# cifmw-podified-multinode-edpm-base-crc: https://github.com/openstack-k8s-operators/ci-framework/blob/main/zuul.d/base.yaml#L105
+# podified-multi-node-edpm-deployment-crc
+#
+#
+# content provider:
+# base-minimal
+# base-ci-framework
+# cifmw-base-minimal
+# openstack-k8s-operators-content-provider: openstack-k8s-operators/ci-framework (main): zuul.d/base.yaml
+#
+#
