@@ -156,7 +156,6 @@ metadata:
   - kind: MetricStorage
     name: metric-storage
 spec:
-  scrapeInterval: 30s
   staticConfigs:
   - targets: []
 ---
