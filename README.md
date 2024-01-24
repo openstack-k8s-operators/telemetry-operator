@@ -15,7 +15,7 @@ CPUS=12 MEMORY=25600 DISK=100 make crc
 ```
 make crc_attach_default_interface
 
-DATAPLANE_TOTAL_NODES=2 make edpm_compute
+EDPM_TOTAL_NODES=2 make edpm_compute
 ```
 
 3.- Deploy openstack-operator and openstack
