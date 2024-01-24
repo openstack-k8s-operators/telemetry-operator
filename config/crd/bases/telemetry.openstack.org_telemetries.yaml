@@ -459,11 +459,6 @@ spec:
                   rsyslogQueueType:
                     default: linkedList
                     description: The type of the local queue of logs
-                    enum:
-                    - fixedArray
-                    - linkedList
-                    - direct
-                    - disk
                     type: string
                   rsyslogRetries:
                     default: 100

@@ -55,7 +55,6 @@ type LoggingSpec struct {
 	RsyslogRetries int32 `json:"rsyslogRetries"`
 
 	// The type of the local queue of logs
-	// +kubebuilder:validation:Enum=fixedArray;linkedList;direct;disk
 	// +kubebuilder:default=linkedList
 	RsyslogQueueType string `json:"rsyslogQueueType"`
 
