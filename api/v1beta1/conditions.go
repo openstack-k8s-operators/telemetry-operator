@@ -44,6 +44,9 @@ const (
 
 	// NodeSetReadyCondition Status=True condition which indicates if the NodeSet watch is operational
 	NodeSetReadyCondition condition.Type = "NodeSetWatchReady"
+
+	// LoggingReadyCondition Status=True condition which indicates if the Logging is configured and operational
+	LoggingReadyCondition condition.Type = "LoggingReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -152,4 +155,19 @@ const (
 
 	// NodeSetUnableToWatchMessage
 	NodeSetUnableToWatchMessage = "Error occured when trying to watch %s"
+
+	//
+	// LoggingReady condition messages
+	//
+	// LoggingReadyInitMessage
+	LoggingReadyInitMessage = "Logging not started"
+
+	// LoggingReadyMessage
+	LoggingReadyMessage = "Logging completed"
+
+	// LoggingReadyErrorMessage
+	LoggingReadyErrorMessage = "Logging error occured %s"
+
+	// LoggingReadyRunningMessage
+	LoggingReadyRunningMessage = "Logging in progress"
 )

@@ -55,7 +55,6 @@ type LoggingSpec struct {
 	RsyslogRetries int32 `json:"rsyslogRetries"`
 
 	// The type of the local queue of logs
-	// +kubebuilder:validation:Enum=fixedArray;linkedList;direct;disk
 	// +kubebuilder:default=linkedList
 	RsyslogQueueType string `json:"rsyslogQueueType"`
 
@@ -93,6 +92,11 @@ type LoggingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Logging `json:"items"`
+}
+
+// IsReady - returns true if Logging is reconciled successfully
+func (instance Logging) IsReady() bool {
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {

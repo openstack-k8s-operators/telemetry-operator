@@ -25,3 +25,9 @@ spec:
   ceilometer:
     enabled: true
     secret: osp-secret
+  logging:
+    enabled: false
+    network: internalapi
+    ipaddr: 172.17.0.80
+    port: 10514
+    cloNamespace: openshift-logging
