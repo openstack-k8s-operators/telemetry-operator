@@ -36,7 +36,7 @@ To know when dataplane-operator finishes, you have to keep looking at "*-edpm" p
 
 You can also make your process wait until everything finishes:
 ```
-DATAPLANE_TOTAL_NODES=2 DATAPLANE_NTP_SERVER=clock.redhat.com make edpm_deploy_wait
+DATAPLANE_TOTAL_NODES=2 DATAPLANE_NTP_SERVER=clock.redhat.com make edpm_wait_deploy
 ```
 
 5.- Refresh Nova discover hosts
