@@ -46,9 +46,9 @@ make edpm_nova_discover_hosts
 
 Now, we proceed to run our own telemetry-operator instance:
 
-6.- Remove Ceilometer deployment
+6.- Remove Telemetry deployment
 ```
-oc patch openstackcontrolplane openstack-galera-network-isolation --type='json' -p='[{"op": "replace", "path": "/spec/ceilometer/enabled", "value":false}]'
+oc patch openstackcontrolplane openstack-galera-network-isolation --type='json' -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value":false}]'
 ```
 
 7.- Remove telemetry-operator from the deployments
