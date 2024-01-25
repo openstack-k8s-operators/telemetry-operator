@@ -12,6 +12,13 @@
         "dest": "/etc/ceilometer/pipeline.yaml",
         "owner": "ceilometer",
         "perm": "0600"
+      },
+      {
+        "source": "/var/lib/openstack/config/custom.conf",
+        "dest": "/etc/ceilometer/ceilometer.conf.d/01-ceilometer-custom.conf",
+        "owner": "ceilometer",
+        "perm": "0600",
+        "optional": true
       }
     ]
   }

@@ -6,6 +6,13 @@
                         "dest": "/etc/aodh/aodh.conf",
                         "owner": "aodh",
                         "perm": "0600"
+                },
+                {
+                        "source": "/var/lib/openstack/config/custom.conf",
+                        "dest": "/etc/aodh/aodh.conf.d/01-aodh-custom.conf",
+                        "owner": "aodh",
+                        "perm": "0600",
+                        "optional": true
                 }
         ]
 }
