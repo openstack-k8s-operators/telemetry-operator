@@ -54,7 +54,7 @@ oc patch openstackcontrolplane openstack-galera-network-isolation --type='json' 
 7.- Remove telemetry-operator from the deployments
 ```
 oc project openstack-operators
-oc remove csv telemetry-operator.v0.0.1
+oc delete csv telemetry-operator.v0.0.1
 ```
 
 8.- Deploy custom telemetry-operator version
