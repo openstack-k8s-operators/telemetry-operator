@@ -267,6 +267,10 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 
 	secretLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
 
+	if instance.Spec.RsyslogQueueType == "" {
+		instance.Spec.RsyslogQueueType = "linkedList"
+	}
+
 	templateParameters := map[string]interface{}{
 		"RsyslogAddress":   instance.Spec.IPAddr,
 		"RsyslogPort":      instance.Spec.Port,

@@ -425,6 +425,57 @@ spec:
                 - secret
                 - sgCoreImage
                 type: object
+              logging:
+                description: Logging - Parameters related to the logging
+                properties:
+                  cloNamespace:
+                    default: openshift-logging
+                    description: CLONamespace points to the namespace where the cluster-logging-operator
+                      is deployed
+                    type: string
+                  enabled:
+                    default: true
+                    description: Enabled - Whether OpenStack logging service should
+                      be deployed and managed
+                    type: boolean
+                  ipaddr:
+                    description: IPAddr is the address where the service will listen
+                      on
+                    type: string
+                  network:
+                    description: The openstack network that will be used to connect
+                      computes nodes
+                    type: string
+                  port:
+                    default: 10514
+                    description: Port is the port where the service will listen on
+                    format: int32
+                    type: integer
+                  rsyslogQueueSize:
+                    default: 10000
+                    description: The size of the local queue of logs
+                    format: int32
+                    type: integer
+                  rsyslogQueueType:
+                    default: linkedList
+                    description: The type of the local queue of logs
+                    type: string
+                  rsyslogRetries:
+                    default: 100
+                    description: The number of retries rsyslog will attempt before
+                      abandoning
+                    format: int32
+                    type: integer
+                  targetPort:
+                    default: 10514
+                    description: TargetPort is the port where the logging syslog receiver
+                      is listening
+                    type: integer
+                required:
+                - ipaddr
+                - network
+                - rsyslogQueueType
+                type: object
               metricStorage:
                 description: MetricStorage - Parameters related to the metricStorage
                 properties:
