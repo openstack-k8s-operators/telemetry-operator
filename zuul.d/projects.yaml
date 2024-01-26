@@ -8,6 +8,7 @@
     vars:
       cifmw_tempest_container: openstack-tempest-all
       cifmw_tempest_tempestconf_profile:
+        debug: true
         overrides:
             compute-feature-enabled.vnc_console: true
             validation.run_validation: true
