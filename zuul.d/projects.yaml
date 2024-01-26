@@ -18,7 +18,7 @@
             identity.v3_endpoint_type: public
             identity.v2_admin_endpoint_type: public
             service_available.ceilometer: true
-            service_available.sg-core: true
+            service_available.sg_core: true
      # NOTE(efoley): First step is to get ANY tempest jobs running to confirm a working config
       cifmw_tempest_tests_allowed: # need to see ciframwework roles that use these vars, to see how to enable telemetry
         - telemetry_tempest_plugin.scenario
