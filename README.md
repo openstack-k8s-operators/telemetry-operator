@@ -65,7 +65,7 @@ oc delete -f config/crd/bases/
 oc apply -f config/crd/bases/
 
 make manifests generate
-OPERATOR_TEMPLATES=$PWD/templates make run
+OPERATOR_TEMPLATES=$PWD/templates make run-with-webhook
 ```
 
 9.- Deploy Telemetry:
