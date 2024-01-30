@@ -6,8 +6,14 @@
     parent: podified-multinode-edpm-deployment-crc
     dependencies: ["openstack-k8s-operators-content-provider"]
     vars:
-      cifmw_tempest_container: openstack-tempest-all
-      cifmw_tempest_tempestconf_profile:
+      test_fw: test_operator
+      cifmw_test_operator_tempest_container: openstack-tempest-all
+      cifmw_test_operator_tempest_image_tag: 'current-podified'
+      cifmw_test_operator_tempest_external_plugin:
+        - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
+          changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
+          changeRefspec: "master"
+      cifmw_tempest_tempestconf_config:
         debug: true
         overrides:
             compute-feature-enabled.vnc_console: true
@@ -20,11 +26,10 @@
             service_available.ceilometer: true
             service_available.sg_core: true
             telemetry.sg_core_service_url: "ceilometer.openstack.svc.cluster.local:3000"
-     # NOTE(efoley): First step is to get ANY tempest jobs running to confirm a working config
-      cifmw_tempest_tests_allowed: # need to see ciframwework roles that use these vars, to see how to enable telemetry
+      cifmw_tempest_include_list: # need to see ciframwework roles that use these vars, to see how to enable telemetry
         - telemetry_tempest_plugin.scenario
         - telemetry_tempest_plugin.aodh
-      cifmw_tempest_tests_skipped: []
+      cifmw_tempest_exclude_list: []
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
