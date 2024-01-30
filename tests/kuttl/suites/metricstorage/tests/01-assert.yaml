@@ -68,6 +68,5 @@ metadata:
   - kind: MetricStorage
     name: telemetry-kuttl
 spec:
-  scrapeInterval: 30s
   staticConfigs:
   - targets: []
