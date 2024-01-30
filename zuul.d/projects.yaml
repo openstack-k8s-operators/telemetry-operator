@@ -13,19 +13,21 @@
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
           changeRefspec: "master"
+      # This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
+      # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
       cifmw_tempest_tempestconf_config:
         debug: true
-        overrides:
-            compute-feature-enabled.vnc_console: true
-            validation.run_validation: true
+        overrides: |
+            compute-feature-enabled.vnc_console true
+            validation.run_validation true
             # NOTE(gibi): This is a WA to force the publicURL as otherwise
             # tempest gets configured with adminURL and that causes test
             # instability.
-            identity.v3_endpoint_type: public
-            identity.v2_admin_endpoint_type: public
-            service_available.ceilometer: true
-            service_available.sg_core: true
-            telemetry.sg_core_service_url: "ceilometer.openstack.svc.cluster.local:3000"
+            identity.v3_endpoint_type public
+            identity.v2_admin_endpoint_type public
+            service_available.ceilometer true
+            service_available.sg_core true
+            telemetry.sg_core_service_url "ceilometer.openstack.svc.cluster.local:3000"
       cifmw_tempest_include_list: # need to see ciframwework roles that use these vars, to see how to enable telemetry
         - telemetry_tempest_plugin.scenario
         - telemetry_tempest_plugin.aodh
