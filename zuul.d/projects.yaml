@@ -17,12 +17,12 @@
       # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
       cifmw_tempest_tempestconf_config:
         debug: true
+        # NOTE(gibi): This is a WA to force the publicURL as otherwise
+        # tempest gets configured with adminURL and that causes test
+        # instability.
         overrides: |
             compute-feature-enabled.vnc_console true
             validation.run_validation true
-            # NOTE(gibi): This is a WA to force the publicURL as otherwise
-            # tempest gets configured with adminURL and that causes test
-            # instability.
             identity.v3_endpoint_type public
             identity.v2_admin_endpoint_type public
             service_available.ceilometer true
