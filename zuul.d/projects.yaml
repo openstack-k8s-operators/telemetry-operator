@@ -28,10 +28,10 @@
             service_available.ceilometer true
             service_available.sg_core true
             telemetry.sg_core_service_url "ceilometer.openstack.svc.cluster.local:3000"
-      cifmw_tempest_include_list: # need to see ciframwework roles that use these vars, to see how to enable telemetry
-        - telemetry_tempest_plugin.scenario
-        - telemetry_tempest_plugin.aodh
-      cifmw_tempest_exclude_list: []
+      cifmw_test_operator_tempest_include_list: |
+        telemetry_tempest_plugin.scenario
+        telemetry_tempest_plugin.aodh
+      cifmw_test_operator_tempest_exclude_list: ''
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
