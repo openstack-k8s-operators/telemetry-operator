@@ -43,6 +43,8 @@
     parent: telemetry-operator-multinode-autoscaling
     vars:
       test_fw: test_operator
+      # Using master for now because the sg_core telemetry tests are not compatible with antelope
+      cifmw_test_operator_tempest_namespace: podified-master-centos9
       cifmw_test_operator_tempest_container: openstack-tempest-all
       cifmw_test_operator_tempest_image_tag: 'current-podified'
       cifmw_test_operator_tempest_external_plugin:
