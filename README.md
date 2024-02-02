@@ -58,6 +58,9 @@ oc delete csv telemetry-operator.v0.0.1
 ```
 
 8.- Deploy custom telemetry-operator version
+
+NOTE: If you intend to deploy a custom telemetry object *with pre-populated image URLs*, you can use `make run` instead of `make run-with-webhook`, because the webhooks will not be required.
+
 ```
 cd telemetry-operator
 
@@ -68,8 +71,18 @@ make manifests generate
 OPERATOR_TEMPLATES=$PWD/templates make run-with-webhook
 ```
 
-9.- Deploy Telemetry:
+
+9.- Deploy Telemetry
+
+There are two options, either let openstack-operator manage a telemetry object, or disable openstack-operator and manage it yourself.
+
+9a.- To continue running openstack-operator and use a telemetry object under its control, re-enable telemetry in the oscp:
 ```
+oc patch openstackcontrolplane openstack-galera-network-isolation --type='json' -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value":true}]'
+```
+9b - To disable openstack-operator and use a custom telemetry object
+```
+oc scale deploy/openstack-operator-controller-manager --replicas=0 -n openstack-operators
 oc apply -f config/samples/telemetry_v1beta1_telemetry.yaml
 ```
 
