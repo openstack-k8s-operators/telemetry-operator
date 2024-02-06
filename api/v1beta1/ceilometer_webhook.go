@@ -21,6 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // CeilometerDefaults -
@@ -92,25 +93,25 @@ func (spec *CeilometerSpec) Default() {
 var _ webhook.Validator = &Ceilometer{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Ceilometer) ValidateCreate() error {
+func (r *Ceilometer) ValidateCreate() (admission.Warnings, error) {
 	ceilometerlog.Info("validate create", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object creation.
-	return nil
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Ceilometer) ValidateUpdate(old runtime.Object) error {
+func (r *Ceilometer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	ceilometerlog.Info("validate update", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object update.
-	return nil
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Ceilometer) ValidateDelete() error {
+func (r *Ceilometer) ValidateDelete() (admission.Warnings, error) {
 	ceilometerlog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil
+	return nil, nil
 }
