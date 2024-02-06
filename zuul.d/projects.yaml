@@ -7,14 +7,27 @@
     dependencies: ["openstack-k8s-operators-content-provider"]
     vars:
       test_fw: test_operator
-      # Using master for now because the sg_core telemetry tests are not compatible with antelope
+      # workaround(gabbi_version)
+      # Using master for now because the sg_core telemetry tests are not compatible with antelope due to an incompatible version of gabbi
+      # The workaround in the telemetry-tempest-plugin patch needs to be incorporated into TCIB
       cifmw_test_operator_tempest_namespace: podified-master-centos9
       cifmw_test_operator_tempest_container: openstack-tempest-all
       cifmw_test_operator_tempest_image_tag: 'current-podified'
+      # TODO: Remove the externalPlugin before merging since we want the tests running from the antelope container.
+      # This requires a release of telemetry-tempest-plugin that gets included in packages installed int he openstack-tempest-all containers built by TCIB.
+      # Once that is being built, the external_plugin won't be needed
+      # TODO: merge the change that allows external_plugin to be passed to the CR: https://github.com/openstack-k8s-operators/ci-framework/pull/1065
       cifmw_test_operator_tempest_external_plugin:
+        # workaround(telemetry_tempest_plugin_release)
+        # NOTE: Until the telemetry-tempest-plugin repo is tagged and the new version is used in the tempest image, we need to manually install it as an external plugin to use the autoscaling tests.
+        # Once this job runs all the autoscaling tests and passes using telemetry-tempest-plugin/master, the release can be tagged since it works against OSP18 deployments.
         # - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
         #   changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
         #   changeRefspec: "master"
+        # workaround(gabbi_version)
+        # NOTE: This review is being used because tempest/antelope container has an incompatible version of gabbi, and it was easier to verify this fix in this patch rather than in TCIB.
+        # TODO: Update the version of gabbi used in TCIB instead of in telemetry-tempest-plugin.
+        # Once that update is made, this patch is not needed, and the podified-antelope-centos9 namespace can be used again to select the antelope version of the tempest image.
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
           changeRefspec: "refs/changes/32/907432/1"
@@ -26,10 +39,8 @@
         # tempest gets configured with adminURL and that causes test
         # instability.
         overrides: |
-            compute-feature-enabled.vnc_console true
             validation.run_validation true
             identity.v3_endpoint_type public
-            identity.v2_admin_endpoint_type public
             service_available.ceilometer true
             service_available.sg_core true
             telemetry.sg_core_service_url "ceilometer.openstack.svc.cluster.local:3000"
@@ -45,30 +56,5 @@
     github-check:
       jobs:
         - openstack-k8s-operators-content-provider
-          # The dependency on the content provider is baked into the job definition.
           # Later, it might be prudent to run the podified-multinode-edpm-deployment-crc job as a provider, and say it provides a "deployed-openstack", so the tempest job can use it as a dependency and not redeploy everything.
         - telemetry-operator-tempest-multinode
-          # extends from podified-multinode-edpm-deployment-crc?
-          # extends cifmw-base-multinode-tempest
-# Here's a sample build for podified-multi-node-edpm-deployment-crc: https://review.rdoproject.org/zuul/build/729e2d8aa3ae4208af587c18c1d3c5e8
-#
-# Check the logs:
-#
-# What are the steps here? there is a run playbook, right?
-# Is this job a provider job?
-# Where is this job defined?
-# If this is a provider job, then I can add a job that depends on this and run tempest.
-#
-# base-minimal
-# base-extracted-crc
-# cifmw-podified-multinode-edpm-base-crc: https://github.com/openstack-k8s-operators/ci-framework/blob/main/zuul.d/base.yaml#L105
-# podified-multi-node-edpm-deployment-crc
-#
-#
-# content provider:
-# base-minimal
-# base-ci-framework
-# cifmw-base-minimal
-# openstack-k8s-operators-content-provider: openstack-k8s-operators/ci-framework (main): zuul.d/base.yaml
-#
-#
