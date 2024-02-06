@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
@@ -235,7 +234,6 @@ func (r *AutoscalingReconciler) reconcileInit(
 	}
 	Log.Info("Reconciled Service init successfully")
 	return ctrl.Result{}, nil
-
 }
 
 func (r *AutoscalingReconciler) reconcileNormal(
@@ -277,7 +275,6 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
 	//
 	transportURL, op, err := r.transportURLCreateOrUpdate(instance)
-
 	if err != nil {
 		Log.Info("Error getting transportURL. Setting error condition on status and returning")
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -496,7 +493,6 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	envVars *map[string]env.Setter,
 	mc *memcachedv1.Memcached,
 ) error {
-
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(autoscaling.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.Aodh.CustomServiceConfig}
 	for key, data := range instance.Spec.Aodh.DefaultConfigOverwrite {
@@ -659,7 +655,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	//
 	// TODO: We also need a watch func to monitor for changes to the secret referenced by Autoscaling.Spec.Secret
 	Log := r.GetLogger(ctx)
-	transportURLSecretFn := func(o client.Object) []reconcile.Request {
+	transportURLSecretFn := func(ctx context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all Autoscaling CRs
@@ -692,7 +688,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		}
 		return nil
 	}
-	memcachedFn := func(o client.Object) []reconcile.Request {
+	memcachedFn := func(ctx context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all autoscaling CRs
@@ -734,9 +730,9 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
 		// Watch for TransportURL Secrets which belong to any TransportURLs created by Autoscaling CRs
-		Watches(&source.Kind{Type: &corev1.Secret{}},
+		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
-		Watches(&source.Kind{Type: &memcachedv1.Memcached{}},
+		Watches(&memcachedv1.Memcached{},
 			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
 		Complete(r)
 }

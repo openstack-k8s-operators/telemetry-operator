@@ -168,9 +168,11 @@ func main() {
 	}
 
 	if err = (&controllers.MetricStorageReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Kclient: kclient,
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Kclient:    kclient,
+		RESTMapper: mgr.GetRESTMapper(),
+		Cache:      mgr.GetCache(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create MetricStorage controller")
 		os.Exit(1)
