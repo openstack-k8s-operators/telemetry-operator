@@ -43,11 +43,14 @@
             identity.v3_endpoint_type public
             service_available.ceilometer true
             service_available.sg_core true
+            service_available.aodh true
             telemetry.sg_core_service_url "ceilometer.openstack.svc.cluster.local:3000"
       cifmw_test_operator_tempest_include_list: |
         telemetry_tempest_plugin.scenario
         telemetry_tempest_plugin.aodh
       cifmw_test_operator_tempest_exclude_list: ''
+      cifmw_install_yamls_vars:
+        TELEMETRY: config/samples/telemetry_v1beta1_autoscaling.yaml
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
