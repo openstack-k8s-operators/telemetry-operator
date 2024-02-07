@@ -57,6 +57,8 @@
           - patch: |-
               apiVersion: core.openstack.org/v1beta1
               kind: OpenStackControlPlane
+              metadata:
+                name: unused
               spec:
                 telemetry:
                   enabled: true
@@ -65,6 +67,8 @@
                       enabled: true
                     autoscaling:
                       enabled: true
+            target:
+              kind: OpenStackControlPlane
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
