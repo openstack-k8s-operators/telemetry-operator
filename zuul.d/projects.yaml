@@ -60,11 +60,13 @@
               metadata:
                 name: unused
               spec:
+                heat:
+                  enabled: true
                 telemetry:
                   enabled: true
                   template:
                     metricStorage:
-                      enabled: true
+                      enabled: false
                     autoscaling:
                       enabled: true
             target:
