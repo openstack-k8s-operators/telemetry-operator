@@ -35,6 +35,16 @@ spec:
           spec:
             description: LoggingSpec defines the desired state of Logging
             properties:
+              annotations:
+                additionalProperties:
+                  type: string
+                default:
+                  metallb.universe.tf/address-pool: internalapi
+                  metallb.universe.tf/allow-shared-ip: internalapi
+                  metallb.universe.tf/loadBalancerIPs: 172.17.0.80
+                description: Annotations is a way to configure certain LoadBalancers,
+                  like MetalLB
+                type: object
               cloNamespace:
                 default: openshift-logging
                 description: CLONamespace points to the namespace where the cluster-logging-operator
@@ -42,10 +52,6 @@ spec:
                 type: string
               ipaddr:
                 description: IPAddr is the address where the service will listen on
-                type: string
-              network:
-                description: The openstack network that will be used to connect computes
-                  nodes
                 type: string
               port:
                 default: 10514
@@ -73,7 +79,6 @@ spec:
                 type: integer
             required:
             - ipaddr
-            - network
             - rsyslogQueueType
             type: object
           status:

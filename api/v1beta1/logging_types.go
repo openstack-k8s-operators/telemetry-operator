@@ -25,11 +25,6 @@ import (
 
 // LoggingSpec defines the desired state of Logging
 type LoggingSpec struct {
-
-	// The openstack network that will be used to connect computes nodes
-	// +kubebuilder:validation:Required
-	Network string `json:"network"`
-
 	// IPAddr is the address where the service will listen on
 	// +kubebuilder:validation:Required
 	IPAddr string `json:"ipaddr"`
@@ -48,6 +43,11 @@ type LoggingSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=openshift-logging
 	CLONamespace string `json:"cloNamespace"`
+
+	// Annotations is a way to configure certain LoadBalancers, like MetalLB
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={metallb.universe.tf/address-pool: internalapi, metallb.universe.tf/allow-shared-ip: internalapi, metallb.universe.tf/loadBalancerIPs: "172.17.0.80"}
+	Annotations map[string]string `json:"annotations"`
 
 	// The number of retries rsyslog will attempt before abandoning
 	// +kubebuilder:validation:Optional

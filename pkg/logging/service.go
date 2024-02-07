@@ -49,12 +49,7 @@ func Service(
 			"component":                  "collector",
 			"provider":                   "openshift",
 		}
-		service.Annotations = map[string]string{
-			"endpoint":                            "internal",
-			"metallb.universe.tf/address-pool":    instance.Spec.Network,
-			"metallb.universe.tf/allow-shared-ip": instance.Spec.Network,
-			"metallb.universe.tf/loadBalancerIPs": instance.Spec.IPAddr,
-		}
+		service.Annotations = instance.Spec.Annotations
 		service.Spec.Type = "LoadBalancer"
 
 		return nil

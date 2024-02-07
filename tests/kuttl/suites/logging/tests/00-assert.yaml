@@ -2,7 +2,6 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    endpoint: internal
     metallb.universe.tf/address-pool: internalapi
     metallb.universe.tf/allow-shared-ip: internalapi
     metallb.universe.tf/loadBalancerIPs: 172.17.0.80

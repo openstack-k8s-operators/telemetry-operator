@@ -9,7 +9,5 @@ metadata:
     app.kubernetes.io/created-by: telemetry-operator
   name: logging
 spec:
-  network: internalapi
-  ipaddr: 172.17.0.80
   port: 10514
   cloNamespace: openshift-logging
