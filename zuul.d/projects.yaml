@@ -49,8 +49,22 @@
         telemetry_tempest_plugin.scenario
         telemetry_tempest_plugin.aodh
       cifmw_test_operator_tempest_exclude_list: ''
-      cifmw_install_yamls_vars:
-        TELEMETRY: config/samples/telemetry_v1beta1_autoscaling.yaml
+      cifmw_edpm_prepare_kustomizations:
+        - apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          namespace: openstack
+          patches:
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: OpenStackControlPlane
+              spec:
+                telemetry:
+                  enabled: true
+                  template:
+                    metricStorage:
+                      enabled: true
+                    autoscaling:
+                      enabled: true
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
