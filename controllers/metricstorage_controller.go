@@ -507,11 +507,7 @@ func getAddressFromIPSet(
 ) (string, discoveryv1.AddressType) {
 	// we go search for an IPSet
 	ipset := &infranetworkv1.IPSet{}
-	telemetryService, err := getTelemetryDataPlaneService(instance, helper)
-	if err != nil {
-		telemetryService = nil
-	}
-	err = helper.GetClient().Get(context.Background(), *namespacedName, ipset)
+	err := helper.GetClient().Get(context.Background(), *namespacedName, ipset)
 	if err != nil {
 		// No IPsets found, lets try to get the HostName as last resource
 		if isValidDomain(item.HostName) {
@@ -522,13 +518,11 @@ func getAddressFromIPSet(
 		return "", ""
 	}
 	// check that the reservations list is not empty
-	if len(ipset.Status.Reservation) > 0 && telemetryService != nil {
-		// search for the network specified in the OpenStackDataPlaneService
+	if len(ipset.Status.Reservation) > 0 {
+		// search for the network specified in the Spec
 		for _, reservation := range ipset.Status.Reservation {
-			for _, kubeService := range telemetryService.Spec.Services {
-				if reservation.Network == kubeService.Network {
-					return reservation.Address, discoveryv1.AddressTypeIPv4
-				}
+			if reservation.Network == instance.Spec.MonitoringStack.DataplaneNetwork {
+				return reservation.Address, discoveryv1.AddressTypeIPv4
 			}
 		}
 	}
