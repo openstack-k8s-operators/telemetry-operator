@@ -46,7 +46,7 @@
       # workaround(gabbi_version)
       # Using master for now because the sg_core telemetry tests are not compatible with antelope due to an incompatible version of gabbi
       # The workaround in the telemetry-tempest-plugin patch needs to be incorporated into TCIB
-      cifmw_test_operator_tempest_namespace: podified-master-centos9
+      cifmw_test_operator_tempest_namespace: podified-antelope-centos9
       cifmw_test_operator_tempest_container: openstack-tempest-all
       cifmw_test_operator_tempest_image_tag: 'current-podified'
       # TODO: Remove the externalPlugin before merging since we want the tests running from the antelope container.
