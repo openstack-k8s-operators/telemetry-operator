@@ -1,0 +1,31 @@
+---
+# NOTE(efoley): The of the play will change, I have added a prefix to make it easier to find this in the logs
+- name: "ELF: Create the COO subscription"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+    - name: Create the COO subscription
+      ansible.builtin.command:
+        cmd: |
+          oc create -f - <<EOF
+          apiVersion: operators.coreos.com/v1alpha1
+          kind: Subscription
+          metadata:
+            name: cluster-observability-operator
+            namespace: openshift-operators
+          spec:
+            channel: development
+            installPlanApproval: Automatic
+            name: cluster-observability-operator
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+          EOF
+      register: output
+
+    - name: Wait for the resources to be available
+      ansible.builtin.command:
+        cmd: |
+          oc wait --for jsonpath="{.status.phase}"=Succeeded csv --namespace=openshift-operators -l operators.coreos.com/cluster-observability-operator.openshift-operators

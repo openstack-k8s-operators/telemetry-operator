@@ -49,6 +49,11 @@
         telemetry_tempest_plugin.scenario
         telemetry_tempest_plugin.aodh
       cifmw_test_operator_tempest_exclude_list: ''
+      # This is a cifmw hook, it points at a playbook to be run at the pre_deploy stage, before the operators have been created.
+      pre_deploy:
+        - name: Create COO subscription
+          source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/create-coo-subscription.yaml"
+          type: playbook
       cifmw_edpm_prepare_kustomizations:
         - apiVersion: kustomize.config.k8s.io/v1beta1
           kind: Kustomization
@@ -66,7 +71,7 @@
                   enabled: true
                   template:
                     metricStorage:
-                      enabled: false
+                      enabled: true
                     autoscaling:
                       enabled: true
             target:
