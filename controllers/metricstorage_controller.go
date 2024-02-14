@@ -469,18 +469,6 @@ func getNodeExporterTargets(
 	return addresses, nil
 }
 
-func getTelemetryDataPlaneService(instance *telemetryv1.MetricStorage, helper *helper.Helper) (*dataplanev1.OpenStackDataPlaneService, error) {
-	dataplaneService := &dataplanev1.OpenStackDataPlaneService{}
-	err := helper.GetClient().Get(
-		context.Background(),
-		types.NamespacedName{
-			Name:      "telemetry",
-			Namespace: instance.Namespace,
-		},
-		dataplaneService)
-	return dataplaneService, err
-}
-
 func getIPSetList(instance *telemetryv1.MetricStorage, helper *helper.Helper) (*infranetworkv1.IPSetList, error) {
 	ipSets := &infranetworkv1.IPSetList{}
 	listOpts := []client.ListOption{
