@@ -1,6 +1,7 @@
 {
     "image": "{{ .ceilometer_compute_image }}",
     "user": "ceilometer",
+    "privileged": true,
     "restart": "always",
     "command": "kolla_start",
     "net": "host",
