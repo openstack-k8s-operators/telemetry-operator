@@ -43,9 +43,6 @@
     parent: telemetry-operator-multinode-autoscaling
     vars:
       test_fw: test_operator
-      # workaround(gabbi_version)
-      # Using master for now because the sg_core telemetry tests are not compatible with antelope due to an incompatible version of gabbi
-      # The workaround in the telemetry-tempest-plugin patch needs to be incorporated into TCIB
       cifmw_test_operator_tempest_namespace: podified-antelope-centos9
       cifmw_test_operator_tempest_container: openstack-tempest-all
       cifmw_test_operator_tempest_image_tag: 'current-podified'
@@ -56,17 +53,9 @@
       cifmw_test_operator_tempest_external_plugin:
         # workaround(telemetry_tempest_plugin_release)
         # NOTE: Until the telemetry-tempest-plugin repo is tagged and the new version is used in the tempest image, we need to manually install it as an external plugin to use the autoscaling tests.
-        # Once this job runs all the autoscaling tests and passes using telemetry-tempest-plugin/master, the release can be tagged since it works against OSP18 deployments.
-        # - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
-        #   changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-        #   changeRefspec: "master"
-        # workaround(gabbi_version)
-        # NOTE: This review is being used because tempest/antelope container has an incompatible version of gabbi, and it was easier to verify this fix in this patch rather than in TCIB.
-        # TODO: Update the version of gabbi used in TCIB instead of in telemetry-tempest-plugin.
-        # Once that update is made, this patch is not needed, and the podified-antelope-centos9 namespace can be used again to select the antelope version of the tempest image.
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-          changeRefspec: "refs/changes/32/907432/1"
+          changeRefspec: "master"
       # This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
       # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
       cifmw_tempest_tempestconf_config:
