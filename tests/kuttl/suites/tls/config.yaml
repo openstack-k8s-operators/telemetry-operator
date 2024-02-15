@@ -1,0 +1,14 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestSuite
+reportFormat: JSON
+reportName: kuttl-tls-results
+namespace: telemetry-kuttl-tls
+# we could set this lower, but the initial image pull can take a while
+timeout: 300
+parallel: 1
+skipDelete: true
+testDirs:
+  - tests/kuttl/suites/tls/
+suppress:
+  - events
+artifactsDir: tests/kuttl/suites/tls/output
