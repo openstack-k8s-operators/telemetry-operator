@@ -6,6 +6,13 @@ spec:
   metricStorage:
     enabled: true
     monitoringStack:
+      alertingEnabled: true
+      scrapeInterval: 30s
+      storage:
+        strategy: persistent
+        retention: 24h
+        persistent:
+          pvcStorageRequest: 20G
   autoscaling:
     enabled: true
     aodh:
