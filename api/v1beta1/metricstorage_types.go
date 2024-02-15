@@ -17,10 +17,10 @@ limitations under the License.
 package v1beta1
 
 import (
+	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PersistentStorage defines storage options used for persistent storage
@@ -70,6 +70,10 @@ type MonitoringStack struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="30s"
 	ScrapeInterval string `json:"scrapeInterval"`
+
+	// DataplaneNetwork defines the network that will be used to scrape dataplane node_exporter endpoints
+	// +kubebuilder:default=ctlplane
+	DataplaneNetwork infranetworkv1.NetNameStr `json:"dataplaneNetwork"`
 
 	// Storage allows to define options for how to store metrics
 	// +kubebuilder:validation:Optional

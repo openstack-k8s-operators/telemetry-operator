@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
@@ -287,7 +286,6 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
 	//
 	transportURL, op, err := r.transportURLCreateOrUpdate(instance)
-
 	if err != nil {
 		Log.Info("Error getting transportURL. Setting error condition on status and returning")
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -492,7 +490,6 @@ func (r *CeilometerReconciler) generateServiceConfig(
 	instance *telemetryv1.Ceilometer,
 	envVars *map[string]env.Setter,
 ) error {
-
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
@@ -548,7 +545,6 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 	instance *telemetryv1.Ceilometer,
 	envVars *map[string]env.Setter,
 ) error {
-
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
@@ -642,7 +638,6 @@ func (r *CeilometerReconciler) transportURLCreateOrUpdate(instance *telemetryv1.
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
-
 	// transportURLSecretFn - Watch for changes made to the secret associated with the RabbitMQ
 	// TransportURL created and used by Ceilometer CRs.  Watch functions return a list of namespace-scoped
 	// CRs that then get fed  to the reconciler.  Hence, in this case, we need to know the name of the
@@ -655,7 +650,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	//
 	// TODO: We also need a watch func to monitor for changes to the secret referenced by Ceilometer.Spec.Secret
 	Log := r.GetLogger(ctx)
-	transportURLSecretFn := func(o client.Object) []reconcile.Request {
+	transportURLSecretFn := func(ctx context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all Ceilometer CRs
@@ -700,7 +695,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
 		// Watch for TransportURL Secrets which belong to any TransportURLs created by Ceilometer CRs
-		Watches(&source.Kind{Type: &corev1.Secret{}},
+		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
 		Complete(r)
 }

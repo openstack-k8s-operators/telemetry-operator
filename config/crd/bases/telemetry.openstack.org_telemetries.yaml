@@ -728,8 +728,8 @@ spec:
                                       of compute resources required. If Requests is
                                       omitted for a container, it defaults to Limits
                                       if that is explicitly specified, otherwise to
-                                      an implementation-defined value. More info:
-                                      https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                                      an implementation-defined value. Requests cannot
+                                      exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                                     type: object
                                 type: object
                               selector:
@@ -1480,7 +1480,7 @@ spec:
                               compute resources required. If Requests is omitted for
                               a container, it defaults to Limits if that is explicitly
                               specified, otherwise to an implementation-defined value.
-                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                              Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                             type: object
                         type: object
                       retention:
@@ -1505,6 +1505,12 @@ spec:
                         default: true
                         description: AlertingEnabled allows to enable or disable alertmanager
                         type: boolean
+                      dataplaneNetwork:
+                        default: ctlplane
+                        description: DataplaneNetwork defines the network that will
+                          be used to scrape dataplane node_exporter endpoints
+                        pattern: ^[a-zA-Z0-9][a-zA-Z0-9\-_]*[a-zA-Z0-9]$
+                        type: string
                       scrapeInterval:
                         default: 30s
                         description: ScrapeInterval sets the interval between scrapes
@@ -1593,6 +1599,8 @@ spec:
                             - persistent
                             type: string
                         type: object
+                    required:
+                    - dataplaneNetwork
                     type: object
                 type: object
             type: object

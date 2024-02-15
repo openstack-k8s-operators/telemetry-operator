@@ -21,6 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -89,25 +90,25 @@ func (ps *PersistentStorage) Default() {
 var _ webhook.Validator = &MetricStorage{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *MetricStorage) ValidateCreate() error {
+func (r *MetricStorage) ValidateCreate() (admission.Warnings, error) {
 	metricstoragelog.Info("validate create", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object creation.
-	return nil
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *MetricStorage) ValidateUpdate(old runtime.Object) error {
+func (r *MetricStorage) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	metricstoragelog.Info("validate update", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object update.
-	return nil
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *MetricStorage) ValidateDelete() error {
+func (r *MetricStorage) ValidateDelete() (admission.Warnings, error) {
 	metricstoragelog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil
+	return nil, nil
 }

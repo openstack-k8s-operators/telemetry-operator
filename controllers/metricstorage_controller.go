@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -39,6 +40,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
@@ -61,6 +64,8 @@ type MetricStorageReconciler struct {
 	Scheme     *runtime.Scheme
 	Controller controller.Controller
 	Watching   []string
+	RESTMapper meta.RESTMapper
+	Cache      cache.Cache
 }
 
 // GetLogger returns a logger object with a prefix of "conroller.name" and aditional controller context fields
@@ -182,6 +187,13 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 
+	var eventHandler handler.EventHandler = handler.EnqueueRequestForOwner(
+		r.Scheme,
+		r.RESTMapper,
+		&telemetryv1.MetricStorage{},
+		handler.OnlyControllerOwner(),
+	)
+
 	serviceLabels := map[string]string{
 		common.AppSelector: "metricStorage",
 	}
@@ -196,11 +208,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 
 	// Deploy monitoring stack
-	err := r.ensureWatches(ctx, "monitoringstacks.monitoring.rhobs", &obov1.MonitoringStack{}, &handler.EnqueueRequestForOwner{
-		OwnerType:    &telemetryv1.MetricStorage{},
-		IsController: true,
-	})
 
+	err := r.ensureWatches(ctx, "monitoringstacks.monitoring.rhobs", &obov1.MonitoringStack{}, eventHandler)
 	if err != nil {
 		instance.Status.Conditions.MarkFalse(telemetryv1.MonitoringStackReadyCondition,
 			condition.Reason("Can't own MonitoringStack resource"),
@@ -257,10 +266,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 
 	// Deploy ServiceMonitor for ceilometer monitoring
-	err = r.ensureWatches(ctx, "servicemonitors.monitoring.rhobs", &monv1.ServiceMonitor{}, &handler.EnqueueRequestForOwner{
-		OwnerType:    &telemetryv1.MetricStorage{},
-		IsController: true,
-	})
+	err = r.ensureWatches(ctx, "servicemonitors.monitoring.rhobs", &monv1.ServiceMonitor{}, eventHandler)
 
 	if err != nil {
 		instance.Status.Conditions.MarkFalse(telemetryv1.ServiceMonitorReadyCondition,
@@ -294,7 +300,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ServiceMonitorReadyCondition, condition.ReadyMessage)
 	// Deploy ScrapeConfig for NodeExporter monitoring
-	nodeSetWatchFn := func(o client.Object) []reconcile.Request {
+	nodeSetWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
 		// Reconcile all metricstorages when a nodeset changes
 		result := []reconcile.Request{}
 
@@ -340,10 +346,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	scrapeConfig.SetName(instance.Name)
 	scrapeConfig.SetNamespace(instance.Namespace)
 
-	err = r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", scrapeConfig, &handler.EnqueueRequestForOwner{
-		OwnerType:    &telemetryv1.MetricStorage{},
-		IsController: true,
-	})
+	err = r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", scrapeConfig, eventHandler)
 
 	if err != nil {
 		instance.Status.Conditions.MarkFalse(telemetryv1.ScrapeConfigReadyCondition,
@@ -399,13 +402,12 @@ func (r *MetricStorageReconciler) ensureWatches(
 	err := r.Client.Get(context.Background(), client.ObjectKey{
 		Name: name,
 	}, u)
-
 	if err != nil {
 		return err
 	}
 
 	Log.Info(fmt.Sprintf("Starting to watch %s", name))
-	err = r.Controller.Watch(&source.Kind{Type: kind},
+	err = r.Controller.Watch(source.Kind(r.Cache, kind),
 		handler,
 	)
 	if err == nil {
@@ -467,18 +469,6 @@ func getNodeExporterTargets(
 	return addresses, nil
 }
 
-func getTelemetryDataPlaneService(instance *telemetryv1.MetricStorage, helper *helper.Helper) (*dataplanev1.OpenStackDataPlaneService, error) {
-	dataplaneService := &dataplanev1.OpenStackDataPlaneService{}
-	err := helper.GetClient().Get(
-		context.Background(),
-		types.NamespacedName{
-			Name:      "telemetry",
-			Namespace: instance.Namespace,
-		},
-		dataplaneService)
-	return dataplaneService, err
-}
-
 func getIPSetList(instance *telemetryv1.MetricStorage, helper *helper.Helper) (*infranetworkv1.IPSetList, error) {
 	ipSets := &infranetworkv1.IPSetList{}
 	listOpts := []client.ListOption{
@@ -505,11 +495,7 @@ func getAddressFromIPSet(
 ) (string, discoveryv1.AddressType) {
 	// we go search for an IPSet
 	ipset := &infranetworkv1.IPSet{}
-	telemetryService, err := getTelemetryDataPlaneService(instance, helper)
-	if err != nil {
-		telemetryService = nil
-	}
-	err = helper.GetClient().Get(context.Background(), *namespacedName, ipset)
+	err := helper.GetClient().Get(context.Background(), *namespacedName, ipset)
 	if err != nil {
 		// No IPsets found, lets try to get the HostName as last resource
 		if isValidDomain(item.HostName) {
@@ -520,13 +506,11 @@ func getAddressFromIPSet(
 		return "", ""
 	}
 	// check that the reservations list is not empty
-	if len(ipset.Status.Reservation) > 0 && telemetryService != nil {
-		// search for the network specified in the OpenStackDataPlaneService
+	if len(ipset.Status.Reservation) > 0 {
+		// search for the network specified in the Spec
 		for _, reservation := range ipset.Status.Reservation {
-			for _, kubeService := range telemetryService.Spec.Services {
-				if reservation.Network == kubeService.Network {
-					return reservation.Address, discoveryv1.AddressTypeIPv4
-				}
+			if reservation.Network == instance.Spec.MonitoringStack.DataplaneNetwork {
+				return reservation.Address, discoveryv1.AddressTypeIPv4
 			}
 		}
 	}
