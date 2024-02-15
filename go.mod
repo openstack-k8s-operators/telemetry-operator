@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/onsi/ginkgo/v2 v2.14.0
 	github.com/onsi/gomega v1.30.0
-	github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.20240214165444-56156b3ceaa2
+	github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.20240215095409-e426bf2b7192
 	github.com/openstack-k8s-operators/heat-operator/api v0.3.1-0.20240214175024-b1c60ab46d1f
 	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240214153927-179defb96a33
 	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20240214165457-55af8e58473d
@@ -17,7 +17,7 @@ require (
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.64.1-rhobs3
 	github.com/rhobs/observability-operator v0.0.20
 	k8s.io/api v0.28.3
-	k8s.io/apimachinery v0.29.0
+	k8s.io/apimachinery v0.28.3
 	k8s.io/client-go v0.28.3
 	sigs.k8s.io/controller-runtime v0.16.4
 )
