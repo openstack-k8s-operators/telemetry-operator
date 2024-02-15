@@ -35,9 +35,8 @@
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
-    #templates:
-    #  - podified-multinode-edpm-pipeline
+    templates:
+      - podified-multinode-edpm-pipeline
     github-check:
       jobs:
-        - openstack-k8s-operators-content-provider
         - telemetry-operator-multinode-autoscaling
