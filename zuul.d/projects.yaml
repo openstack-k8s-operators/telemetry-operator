@@ -29,7 +29,7 @@
                   enabled: true
                   template:
                     metricStorage:
-                      enabled: true
+                      enabled: false
                     autoscaling:
                       enabled: true
             target:
