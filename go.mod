@@ -14,6 +14,7 @@ require (
 	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20240214165457-55af8e58473d
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240214144842-5dcac51e5b36
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.3.1-0.20240214153937-3b28b9d3d09b
+	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240216140901-d56c3aef3fb7
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.64.1-rhobs3
 	github.com/rhobs/observability-operator v0.0.20
 	k8s.io/api v0.28.3
@@ -21,8 +22,6 @@ require (
 	k8s.io/client-go v0.28.3
 	sigs.k8s.io/controller-runtime v0.16.4
 )
-
-require github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-00010101000000-000000000000
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
