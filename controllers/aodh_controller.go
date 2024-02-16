@@ -51,7 +51,7 @@ func (r *AutoscalingReconciler) reconcileDeleteAodh(
 	Log.Info("Reconciling Service Aodh delete")
 
 	// remove db finalizer first
-	db, err := mariadbv1.GetDatabaseByName(ctx, helper, autoscaling.ServiceName)
+	db, err := mariadbv1.GetDatabaseByName(ctx, helper, autoscaling.DatabaseName)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
