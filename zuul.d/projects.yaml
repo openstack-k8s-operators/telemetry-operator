@@ -6,6 +6,7 @@
     description: |
       Deploy OpenStack with Autoscaling features enabled
     vars:
+      cifmw_edpm_prepare_timeout: 60
       pre_deploy:
         - name: Create COO subscription
           source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/create-coo-subscription.yaml"
