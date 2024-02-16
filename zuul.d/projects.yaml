@@ -30,7 +30,9 @@
                   enabled: true
                   template:
                     metricStorage:
-                      enabled: false
+                      enabled: true
+                      monitoringStack:
+                        alertingEnabled: false
                     autoscaling:
                       enabled: true
             target:
