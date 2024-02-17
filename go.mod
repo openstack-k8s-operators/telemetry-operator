@@ -6,7 +6,7 @@ replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 
 require (
 	github.com/go-logr/logr v1.4.1
-	github.com/onsi/ginkgo/v2 v2.14.0
+	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.30.0
 	github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.20240215095409-e426bf2b7192
 	github.com/openstack-k8s-operators/heat-operator/api v0.3.1-0.20240214175024-b1c60ab46d1f
