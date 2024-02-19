@@ -51,7 +51,7 @@ func MonitoringStack(
 				Disabled: !instance.Spec.MonitoringStack.AlertingEnabled,
 			},
 			PrometheusConfig: &obov1.PrometheusConfig{
-				Replicas: &PrometheusReplicas,
+				Replicas: &telemetryv1.PrometheusReplicas,
 				// NOTE: unsupported before OBOv0.0.21, but we can set the value
 				//       in the ServiceMonitor, so this isn't a big deal.
 				//ScrapeInterval: instance.Spec.MonitoringStack.ScrapeInterval,
@@ -84,7 +84,7 @@ func getPVCSpec(instance *telemetryv1.MetricStorage) (*corev1.PersistentVolumeCl
 			// the persistent field is omited, we won't have anything in
 			// persistentSpec.PvcStorageRequest and we need to set the default
 			// value like this here.
-			quantity, err = resource.ParseQuantity(DefaultPvcStorageRequest)
+			quantity, err = resource.ParseQuantity(telemetryv1.DefaultPvcStorageRequest)
 		} else {
 			quantity, err = resource.ParseQuantity(persistentSpec.PvcStorageRequest)
 		}

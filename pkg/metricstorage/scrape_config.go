@@ -40,7 +40,7 @@ func ScrapeConfig(
 		//} else if instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval {
 		//	scrapeInterval = instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval
 	} else {
-		scrapeInterval = DefaultScrapeInterval
+		scrapeInterval = telemetryv1.DefaultScrapeInterval
 	}
 	scrapeConfig := &unstructured.Unstructured{}
 	scrapeConfig.SetUnstructuredContent(map[string]interface{}{

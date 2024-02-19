@@ -35,7 +35,7 @@ func ServiceMonitor(
 		//} else if instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval {
 		//	scrapeInterval = instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval
 	} else {
-		scrapeInterval = DefaultScrapeInterval
+		scrapeInterval = telemetryv1.DefaultScrapeInterval
 	}
 
 	serviceMonitor := &monv1.ServiceMonitor{

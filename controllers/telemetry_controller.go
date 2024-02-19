@@ -37,7 +37,6 @@ import (
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	logging "github.com/openstack-k8s-operators/telemetry-operator/pkg/logging"
-	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 )
@@ -371,11 +370,11 @@ func reconcileMetricStorage(ctx context.Context, instance *telemetryv1.Telemetry
 	const (
 		metricStorageNamespaceLabel = "MetricStorage.Namespace"
 		metricStorageNameLabel      = "MetricStorage.Name"
-		metricStorageName           = metricstorage.DefaultServiceName
+		metricStorageName           = telemetryv1.DefaultServiceName
 	)
 	metricStorageInstance := &telemetryv1.MetricStorage{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      metricstorage.DefaultServiceName,
+			Name:      telemetryv1.DefaultServiceName,
 			Namespace: instance.Namespace,
 		},
 	}
@@ -388,7 +387,7 @@ func reconcileMetricStorage(ctx context.Context, instance *telemetryv1.Telemetry
 		return ctrl.Result{}, nil
 	}
 
-	helper.GetLogger().Info("Reconciling MetricStorage", metricStorageNamespaceLabel, instance.Namespace, metricStorageNameLabel, metricstorage.DefaultServiceName)
+	helper.GetLogger().Info("Reconciling MetricStorage", metricStorageNamespaceLabel, instance.Namespace, metricStorageNameLabel, telemetryv1.DefaultServiceName)
 	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), metricStorageInstance, func() error {
 		if instance.Spec.MetricStorage.MetricStorageSpec.CustomMonitoringStack != nil {
 			metricStorageInstance.Spec.CustomMonitoringStack = &obov1.MonitoringStackSpec{}
@@ -416,7 +415,7 @@ func reconcileMetricStorage(ctx context.Context, instance *telemetryv1.Telemetry
 		return ctrl.Result{}, err
 	}
 	if op != controllerutil.OperationResultNone {
-		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", metricstorage.DefaultServiceName, metricStorageInstance.Name, op))
+		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", telemetryv1.DefaultServiceName, metricStorageInstance.Name, op))
 	}
 
 	if metricStorageInstance.IsReady() {

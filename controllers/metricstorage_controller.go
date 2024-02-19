@@ -216,7 +216,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			condition.SeverityError,
 			telemetryv1.MonitoringStackUnableToOwnMessage, err)
 		Log.Info("Can't own MonitoringStack resource")
-		return ctrl.Result{RequeueAfter: metricstorage.PauseBetweenWatchAttempts}, nil
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 
 	monitoringStack := &obov1.MonitoringStack{
@@ -274,7 +274,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			condition.SeverityError,
 			telemetryv1.ServiceMonitorUnableToOwnMessage, err)
 		Log.Info("Can't own ServiceMonitor resource")
-		return ctrl.Result{RequeueAfter: metricstorage.PauseBetweenWatchAttempts}, nil
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 	ceilometerMonitor := &monv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -332,7 +332,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			condition.SeverityError,
 			telemetryv1.NodeSetUnableToWatchMessage, err)
 		Log.Info("Can't watch OpenStackDataPlaneNodeSet resource")
-		return ctrl.Result{RequeueAfter: metricstorage.PauseBetweenWatchAttempts}, nil
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.NodeSetReadyCondition, condition.ReadyMessage)
 
@@ -354,7 +354,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			condition.SeverityError,
 			telemetryv1.ScrapeConfigUnableToOwnMessage, err)
 		Log.Info("Can't own ScrapeConfig resource")
-		return ctrl.Result{RequeueAfter: metricstorage.PauseBetweenWatchAttempts}, nil
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfig, func() error {
 		endpoints, err := getNodeExporterTargets(instance, helper)
@@ -463,7 +463,7 @@ func getNodeExporterTargets(
 				// we were unable to find an IP or HostName for a node, so we do not go further
 				return addresses, nil
 			}
-			addresses = append(addresses, fmt.Sprintf("%s:%d", address, metricstorage.DefaultNodeExporterPort))
+			addresses = append(addresses, fmt.Sprintf("%s:%d", address, telemetryv1.DefaultNodeExporterPort))
 		}
 	}
 	return addresses, nil
