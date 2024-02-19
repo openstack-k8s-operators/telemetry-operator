@@ -69,10 +69,10 @@ github.com/onsi/ginkgo/v2 v2.14.0 h1:vSmGj2Z5YPb9JwCWT6z6ihcUvDhuXLc3sJiqd3jMKAY
 github.com/onsi/ginkgo/v2 v2.14.0/go.mod h1:JkUdW7JkN0V6rFvsHcJ478egV3XH9NxpD27Hal/PhZw=
 github.com/onsi/gomega v1.30.0 h1:hvMK7xYz4D3HapigLTeGdId/NcfQx1VHMJc60ew99+8=
 github.com/onsi/gomega v1.30.0/go.mod h1:9sxs+SwGrKI0+PWe4Fxa9tFQQBG5xSsSbMXOI8PPpoQ=
-github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240214153927-179defb96a33 h1:h3ctaOK8DaCvSYWmfdshd9n6EOZyOqv9JH57vMEuNII=
-github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240214153927-179defb96a33/go.mod h1:oZ8/6cQ6NgMzQ+eU/2bccPHOPKZ6FPWEfrJizyBmTMk=
-github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240214144842-5dcac51e5b36 h1:ZSVQYuevQyYZ+bD/x3NLzZx/oVcrsT2tG5agqFzs8fQ=
-github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240214144842-5dcac51e5b36/go.mod h1:bQwzyQtWCR9F0+IvWZ30J9d1lB6tcX3CNJ0Ten1smDw=
+github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240218132212-ad757a2f5bab h1:zdI202C0TtXz5UPB+uTdxZtIaFseEDV0HtQ/MmX6hQU=
+github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240218132212-ad757a2f5bab/go.mod h1:FGKwlmAIgTsvvz2+uusWqNYFKHNAm4uzVyKao+emeu0=
+github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240216173409-86913e6d5885 h1:o7KZaxKt8Dr97ZJIBPW0P482gLyFEURKF89fizcJCBQ=
+github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240216173409-86913e6d5885/go.mod h1:bQwzyQtWCR9F0+IvWZ30J9d1lB6tcX3CNJ0Ten1smDw=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
@@ -193,8 +193,8 @@ k8s.io/kube-openapi v0.0.0-20240209001042-7a0d5b415232 h1:MMq4iF9pHuAz/9dLnHwBQK
 k8s.io/kube-openapi v0.0.0-20240209001042-7a0d5b415232/go.mod h1:Pa1PvrP7ACSkuX6I7KYomY6cmMA0Tx86waBhDUgoKPw=
 k8s.io/utils v0.0.0-20240102154912-e7106e64919e h1:eQ/4ljkx21sObifjzXwlPKpdGLrCfRziVtos3ofG/sQ=
 k8s.io/utils v0.0.0-20240102154912-e7106e64919e/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
-sigs.k8s.io/controller-runtime v0.16.4 h1:XMh7dF19MlyvMfQCHvH929YGg2WFrIuJ4N5sx3G7U+k=
-sigs.k8s.io/controller-runtime v0.16.4/go.mod h1:j7bialYoSn142nv9sCOJmQgDXQXxnroFU4VnX/brVJ0=
+sigs.k8s.io/controller-runtime v0.16.5 h1:yr1cEJbX08xsTW6XEIzT13KHHmIyX8Umvme2cULvFZw=
+sigs.k8s.io/controller-runtime v0.16.5/go.mod h1:j7bialYoSn142nv9sCOJmQgDXQXxnroFU4VnX/brVJ0=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd/go.mod h1:B8JuhiUyNFVKdsE8h686QcCxMaH6HrOAZj4vswFpcB0=
 sigs.k8s.io/structured-merge-diff/v4 v4.4.1 h1:150L+0vs/8DA78h1u02ooW1/fFq/Lwr+sGiqlzvrtq4=
