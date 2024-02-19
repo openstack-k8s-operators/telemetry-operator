@@ -55,7 +55,6 @@ import (
 	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	autoscaling "github.com/openstack-k8s-operators/telemetry-operator/pkg/autoscaling"
-	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 )
 
 // AutoscalingReconciler reconciles a Autoscaling object
@@ -403,12 +402,12 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// NOTE: Always do this before calling the generateServiceConfig to get the newest values in the ServiceConfig
 	//
 	if instance.Spec.PrometheusHost == "" {
-		instance.Status.PrometheusHost = fmt.Sprintf("%s-prometheus.%s.svc", metricstorage.DefaultServiceName, instance.Namespace)
+		instance.Status.PrometheusHost = fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace)
 	} else {
 		instance.Status.PrometheusHost = instance.Spec.PrometheusHost
 	}
 	if instance.Spec.PrometheusPort == 0 {
-		instance.Status.PrometheusPort = metricstorage.DefaultPrometheusPort
+		instance.Status.PrometheusPort = telemetryv1.DefaultPrometheusPort
 	} else {
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
 	}
