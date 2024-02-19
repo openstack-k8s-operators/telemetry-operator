@@ -55,7 +55,7 @@
         # NOTE: Until the telemetry-tempest-plugin repo is tagged and the new version is used in the tempest image, we need to manually install it as an external plugin to use the autoscaling tests.
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-          changeRefspec: "refs/changes/59/909459/1"
+          changeRefspec: "refs/changes/59/909459/3"
       # This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
       # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
       cifmw_tempest_tempestconf_config:
