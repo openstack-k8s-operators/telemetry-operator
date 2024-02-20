@@ -1,5 +1,47 @@
 ---
+- job:
+    name: telemetry-operator-multinode-autoscaling
+    parent: podified-multinode-edpm-deployment-crc
+    dependencies: ["openstack-k8s-operators-content-provider"]
+    description: |
+      Deploy OpenStack with Autoscaling features enabled
+    vars:
+      cifmw_edpm_prepare_timeout: 60
+      pre_deploy:
+        - name: Create COO subscription
+          source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/create-coo-subscription.yaml"
+          type: playbook
+      cifmw_install_yamls_vars:
+        BMO_SETUP: false
+      cifmw_edpm_prepare_kustomizations:
+        - apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          namespace: openstack
+          patches:
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: OpenStackControlPlane
+              metadata:
+                name: unused
+              spec:
+                heat:
+                  enabled: true
+                telemetry:
+                  enabled: true
+                  template:
+                    metricStorage:
+                      enabled: true
+                      monitoringStack:
+                        alertingEnabled: false
+                    autoscaling:
+                      enabled: true
+            target:
+              kind: OpenStackControlPlane
+
 - project:
     name: openstack-k8s-operators/telemetry-operator
     templates:
       - podified-multinode-edpm-pipeline
+    github-check:
+      jobs:
+        - telemetry-operator-multinode-autoscaling
