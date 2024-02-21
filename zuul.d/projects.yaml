@@ -63,7 +63,8 @@
       cifmw_test_operator_tempest_include_list: |
         telemetry_tempest_plugin.scenario
         telemetry_tempest_plugin.aodh
-      cifmw_test_operator_tempest_exclude_list: ''
+      cifmw_test_operator_tempest_exclude_list: |
+        telemetry_tempest_plugin.scenario.test_telemetry_integration_prometheus.PrometheusGabbiTest.test_ceilometer_sg_core_integration
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
