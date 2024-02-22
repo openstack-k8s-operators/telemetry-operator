@@ -6,65 +6,21 @@
     description: |
       Deploy OpenStack with Autoscaling features enabled
     vars:
-      cifmw_edpm_prepare_timeout: 60
-      pre_deploy:
-        - name: Create COO subscription
-          source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/create-coo-subscription.yaml"
-          type: playbook
-      cifmw_edpm_prepare_kustomizations:
-        - apiVersion: kustomize.config.k8s.io/v1beta1
-          kind: Kustomization
-          namespace: openstack
-          patches:
-          - patch: |-
-              apiVersion: core.openstack.org/v1beta1
-              kind: OpenStackControlPlane
-              metadata:
-                name: unused
-              spec:
-                heat:
-                  enabled: true
-                telemetry:
-                  enabled: true
-                  template:
-                    metricStorage:
-                      enabled: true
-                      monitoringStack:
-                        alertingEnabled: false
-                    autoscaling:
-                      enabled: true
-            target:
-              kind: OpenStackControlPlane
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
 
 - job:
     name: telemetry-operator-multinode-autoscaling-tempest
     parent: telemetry-operator-multinode-autoscaling
     vars:
-      cifmw_run_test_role: test_operator
-      cifmw_test_operator_tempest_namespace: podified-antelope-centos9
-      cifmw_test_operator_tempest_container: openstack-tempest-all
-      cifmw_test_operator_tempest_image_tag: 'current-podified'
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
       cifmw_test_operator_tempest_external_plugin:
         # workaround(telemetry_tempest_plugin_release)
         # NOTE: Until the telemetry-tempest-plugin repo is tagged and the new version is used in the tempest image, we need to manually install it as an external plugin to use the autoscaling tests.
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
           changeRefspec: "master"
-      # This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
-      # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
-      cifmw_tempest_tempestconf_config:
-        overrides: |
-            validation.run_validation true
-            identity.v3_endpoint_type public
-            service_available.ceilometer true
-            service_available.sg_core true
-            service_available.aodh true
-            telemetry.sg_core_service_url "ceilometer.openstack.svc.cluster.local:3000"
-      cifmw_test_operator_tempest_include_list: |
-        telemetry_tempest_plugin.scenario
-        telemetry_tempest_plugin.aodh
-      cifmw_test_operator_tempest_exclude_list: |
-        telemetry_tempest_plugin.scenario.test_telemetry_integration_prometheus.PrometheusGabbiTest.test_ceilometer_sg_core_integration
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
