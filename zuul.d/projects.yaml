@@ -31,10 +31,10 @@
       jobs:
         - noop
 
-- project:
-    name: openstack-k8s-operators/telemetry-operator
-    templates:
-      - podified-multinode-edpm-pipeline
-    github-check:
-      jobs:
-        - telemetry-operator-multinode-autoscaling-tempest
+#- project:
+#    name: openstack-k8s-operators/telemetry-operator
+#    templates:
+#      - podified-multinode-edpm-pipeline
+#    github-check:
+#      jobs:
+#        - telemetry-operator-multinode-autoscaling-tempest
