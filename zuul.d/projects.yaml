@@ -6,15 +6,18 @@
     description: |
       Deploy OpenStack with Autoscaling features enabled
     vars:
-      cifmw_extras: "{{ cifmw_extras | combine ( [ ( ['@', ansible_user_dir, zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir, '/ci/vars-autoscaling.yml' ] | join('/') ] ) }}"
-      #cifmw_extras:
-      #  - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
 
 - job:
     name: telemetry-operator-multinode-autoscaling-tempest
     parent: telemetry-operator-multinode-autoscaling
     vars:
-      cifmw_extras: "{{ cifmw_extras | combine ( [ ( ['@', ansible_user_dir, zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir, '/ci/vars-autoscaling-tempest.yml' ] | join('/') ] ) }}"
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
       cifmw_test_operator_tempest_external_plugin:
         # workaround(telemetry_tempest_plugin_release)
         # NOTE: Until the telemetry-tempest-plugin repo is tagged and the new version is used in the tempest image, we need to manually install it as an external plugin to use the autoscaling tests.
