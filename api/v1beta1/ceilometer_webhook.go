@@ -82,9 +82,6 @@ func (spec *CeilometerSpec) Default() {
 	if spec.IpmiImage == "" {
 		spec.IpmiImage = ceilometerDefaults.IpmiContainerImageURL
 	}
-	if spec.NodeExporterImage == "" {
-		spec.NodeExporterImage = ceilometerDefaults.NodeExporterContainerImageURL
-	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

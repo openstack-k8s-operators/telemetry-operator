@@ -33,7 +33,6 @@ type TelemetryDefaults struct {
 	ComputeContainerImageURL       string
 	NotificationContainerImageURL  string
 	SgCoreContainerImageURL        string
-	NodeExporterContainerImageURL  string
 	IpmiContainerImageURL          string
 	AodhAPIContainerImageURL       string
 	AodhEvaluatorContainerImageURL string
@@ -87,9 +86,6 @@ func (spec *TelemetrySpec) Default() {
 	}
 	if spec.Ceilometer.CeilometerSpec.SgCoreImage == "" {
 		spec.Ceilometer.CeilometerSpec.SgCoreImage = telemetryDefaults.SgCoreContainerImageURL
-	}
-	if spec.Ceilometer.CeilometerSpec.NodeExporterImage == "" {
-		spec.Ceilometer.CeilometerSpec.NodeExporterImage = telemetryDefaults.NodeExporterContainerImageURL
 	}
 	if spec.Autoscaling.AutoscalingSpec.Aodh.APIImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.APIImage = telemetryDefaults.AodhAPIContainerImageURL
