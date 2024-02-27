@@ -53,6 +53,7 @@ import (
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
+	"github.com/openstack-k8s-operators/telemetry-operator/pkg/dashboards"
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
@@ -333,6 +334,26 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("Console UI Datasource ConfigMap %s successfully changed - operation: %s", datasourceCM.Name, string(op)))
+	}
+
+	cloudDashboardCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "grafana-dashboard-openstack-cloud",
+			Namespace: "openshift-config-managed",
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, cloudDashboardCM, func() error {
+		desiredCloudDashboardCM := dashboards.OpenstackCloud()
+		cloudDashboardCM.ObjectMeta.Labels = desiredCloudDashboardCM.ObjectMeta.Labels
+		cloudDashboardCM.Data = desiredCloudDashboardCM.Data
+		return nil
+	})
+	if err != nil {
+		Log.Error(err, "Failed to update Dashboard ConfigMap %s - operation: %s", datasourceCM.Name, string(op))
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("Dashboard ConfigMap %s successfully changed - operation: %s", datasourceCM.Name, string(op)))
 	}
 
 	// Deploy ServiceMonitor for ceilometer monitoring
