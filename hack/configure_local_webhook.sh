@@ -7,8 +7,8 @@ CRC_IP=${CRC_IP:-$(/sbin/ip -o -4 addr list crc | awk '{print $4}' | cut -d/ -f1
 FIREWALL_ZONE=${FIREWALL_ZONE:-"libvirt"}
 
 #Open 9443
-sudo firewall-cmd --zone=${FIREWALL_ZONE} --add-port=9443/tcp
-sudo firewall-cmd --runtime-to-permanent
+#sudo firewall-cmd --zone=${FIREWALL_ZONE} --add-port=9443/tcp
+#sudo firewall-cmd --runtime-to-permanent
 
 # Generate the certs and the ca bundle
 if [ "$SKIP_CERT" = false ] ; then

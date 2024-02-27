@@ -148,6 +148,7 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			condition.UnknownCondition(telemetryv1.ServiceMonitorReadyCondition, condition.InitReason, telemetryv1.ServiceMonitorReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.ScrapeConfigReadyCondition, condition.InitReason, telemetryv1.ScrapeConfigReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.NodeSetReadyCondition, condition.InitReason, telemetryv1.NodeSetReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.PrometheusRuleReadyCondition, condition.InitReason, telemetryv1.PrometheusRuleReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -264,6 +265,40 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	if monitoringStackReady {
 		instance.Status.Conditions.MarkTrue(telemetryv1.MonitoringStackReadyCondition, condition.ReadyMessage)
 	}
+
+	// Deploy PrometheusRule for recording and alerts
+	err = r.ensureWatches(ctx, "prometheusrules.monitoring.rhobs", &monv1.PrometheusRule{}, eventHandler)
+	if err != nil {
+		instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusRuleReadyCondition,
+			condition.Reason("Can't own PrometheusRule resource"),
+			condition.SeverityError,
+			telemetryv1.PrometheusRuleUnableToOwnMessage, err)
+		Log.Info("Can't own PrometheusRule resource")
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	}
+	prometheusRule := &monv1.PrometheusRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instance.Name,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, prometheusRule, func() error {
+		ruleLabels := map[string]string{
+			common.AppSelector: telemetryv1.DefaultServiceName,
+		}
+		desiredPrometheusRule := metricstorage.PrometheusRule(instance, serviceLabels, ruleLabels)
+		desiredPrometheusRule.Spec.DeepCopyInto(&prometheusRule.Spec)
+		prometheusRule.ObjectMeta.Labels = desiredPrometheusRule.ObjectMeta.Labels
+		err = controllerutil.SetControllerReference(instance, prometheusRule, r.Scheme)
+		return err
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("Prometheus Rules %s successfully changed - operation: %s", prometheusRule.Name, string(op)))
+	}
+	instance.Status.Conditions.MarkTrue(telemetryv1.PrometheusRuleReadyCondition, condition.ReadyMessage)
 
 	// Deploy ServiceMonitor for ceilometer monitoring
 	err = r.ensureWatches(ctx, "servicemonitors.monitoring.rhobs", &monv1.ServiceMonitor{}, eventHandler)
