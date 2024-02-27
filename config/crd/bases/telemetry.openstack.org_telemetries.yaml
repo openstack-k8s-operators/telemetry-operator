@@ -374,8 +374,6 @@ spec:
                     items:
                       type: string
                     type: array
-                  nodeExporterImage:
-                    type: string
                   notificationImage:
                     type: string
                   passwordSelector:
@@ -420,7 +418,6 @@ spec:
                 - centralImage
                 - computeImage
                 - ipmiImage
-                - nodeExporterImage
                 - notificationImage
                 - secret
                 - sgCoreImage

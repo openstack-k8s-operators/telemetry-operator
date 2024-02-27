@@ -34,9 +34,6 @@ const (
 	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
 	CeilometerIpmiContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
-	// NodeExporterContainerImage - default fall-back image for node_exporter
-	// NodeExporterContainerImage = "registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.13"
-	NodeExporterContainerImage = "quay.io/prometheus/node-exporter:v1.5.0"
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
@@ -87,9 +84,6 @@ type CeilometerSpec struct {
 
 	// +kubebuilder:validation:Required
 	IpmiImage string `json:"ipmiImage"`
-
-	// +kubebuilder:validation:Required
-	NodeExporterImage string `json:"nodeExporterImage"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer
