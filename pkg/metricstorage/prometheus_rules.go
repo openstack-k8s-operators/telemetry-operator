@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// ServiceMonitor creates a ServiceMonitor CR
 func PrometheusRule(
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,

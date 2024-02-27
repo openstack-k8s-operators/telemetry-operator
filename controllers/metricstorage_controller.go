@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"regexp"
 
+	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -299,6 +300,40 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		Log.Info(fmt.Sprintf("Prometheus Rules %s successfully changed - operation: %s", prometheusRule.Name, string(op)))
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.PrometheusRuleReadyCondition, condition.ReadyMessage)
+
+	// Deploy Configmap for Console UI Datasource
+	// *CS Can I move this to a .Watches callback Fn cross-namespace? (cross-namespace owner references are disallowed)
+	datasourceCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "openstack-" + instance.Name + "-datasource",
+			Namespace: "console-dashboards",
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, datasourceCM, func() error {
+		datasourceCM.ObjectMeta.Labels = map[string]string{
+			"console.openshift.io/dashboard-datasource": "true",
+		}
+		datasourceCM.Data = map[string]string{
+			// *CS Should template this to prevent problems with the spaces vs. tabs
+			"dashboard-datasource.yaml": `
+                kind: "Datasource"
+                metadata:
+                    name: "openstack-prometheus-datasource"
+                spec:
+                    plugin:
+                        kind: "PrometheusDatasource"
+                        spec:
+                            direct_url: "http://prometheus-operated.openstack.svc.cluster.local:9090"`,
+		}
+		return nil
+	})
+	if err != nil {
+		Log.Error(err, "Failed to update Console UI Datasource ConfigMap %s - operation: %s", datasourceCM.Name, string(op))
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("Console UI Datasource ConfigMap %s successfully changed - operation: %s", datasourceCM.Name, string(op)))
+	}
 
 	// Deploy ServiceMonitor for ceilometer monitoring
 	err = r.ensureWatches(ctx, "servicemonitors.monitoring.rhobs", &monv1.ServiceMonitor{}, eventHandler)
@@ -582,6 +617,7 @@ func isValidDomain(domain string) bool {
 func (r *MetricStorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	control, err := ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.MetricStorage{}).
+		Owns(&monv1.PrometheusRule{}).
 		Build(r)
 	r.Controller = control
 	return err
