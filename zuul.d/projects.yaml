@@ -20,10 +20,9 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
       cifmw_test_operator_tempest_external_plugin:
         # workaround(telemetry_tempest_plugin_release)
-        # NOTE: Until the telemetry-tempest-plugin repo is tagged and the new version is used in the tempest image, we need to manually install it as an external plugin to use the autoscaling tests.
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-          changeRefspec: "master"
+          changeRefspec: "refs/changes/56/909856/6"
 
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
