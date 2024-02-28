@@ -67,7 +67,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-prometheus-datasource",
+									"name": "openstack-metric-storage-datasource",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -163,7 +163,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-prometheus-datasource",
+									"name": "openstack-metric-storage-datasource",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -272,7 +272,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-prometheus-datasource",
+									"name": "openstack-metric-storage-datasource",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -368,7 +368,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-prometheus-datasource",
+									"name": "openstack-metric-storage-datasource",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -477,7 +477,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-prometheus-datasource",
+									"name": "openstack-metric-storage-datasource",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -588,7 +588,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-prometheus-datasource",
+									"name": "openstack-metric-storage-datasource",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -712,7 +712,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-prometheus-datasource",
+									"name": "openstack-metric-storage-datasource",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -808,7 +808,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-prometheus-datasource",
+									"name": "openstack-metric-storage-datasource",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -917,7 +917,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-prometheus-datasource",
+									"name": "openstack-metric-storage-datasource",
 									"type": "prometheus"
 								},
 								"fill": 10,

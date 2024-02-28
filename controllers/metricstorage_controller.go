@@ -306,7 +306,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	// *CS Can I move this to a .Watches callback Fn cross-namespace? (cross-namespace owner references are disallowed)
 	datasourceCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "openstack-" + instance.Name + "-datasource",
+			Name:      instance.Namespace + "-" + instance.Name + "-datasource",
 			Namespace: "console-dashboards",
 		},
 	}
@@ -319,12 +319,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			"dashboard-datasource.yaml": `
                 kind: "Datasource"
                 metadata:
-                    name: "openstack-prometheus-datasource"
+                    name: "` + instance.Namespace + "-" + instance.Name + `-datasource"
                 spec:
                     plugin:
                         kind: "PrometheusDatasource"
                         spec:
-                            direct_url: "http://prometheus-operated.openstack.svc.cluster.local:9090"`,
+                            direct_url: "http://prometheus-operated.` + instance.Namespace + ".svc.cluster.local:9090\"",
 		}
 		return nil
 	})
