@@ -45,6 +45,9 @@ const (
 	// NodeSetReadyCondition Status=True condition which indicates if the NodeSet watch is operational
 	NodeSetReadyCondition condition.Type = "NodeSetWatchReady"
 
+	// PrometheusReadyCondition Status=True condition which indicates if the Prometheus watch is operational
+	PrometheusReadyCondition condition.Type = "PrometheusReady"
+
 	// LoggingReadyCondition Status=True condition which indicates if the Logging is configured and operational
 	LoggingReadyCondition condition.Type = "LoggingReady"
 
@@ -161,6 +164,18 @@ const (
 
 	// NodeSetUnableToWatchMessage
 	NodeSetUnableToWatchMessage = "Error occured when trying to watch %s"
+
+	//
+	// PrometheusReady condition messages
+	//
+	// PrometheusReadyInitMessage
+	PrometheusReadyInitMessage = "Prometheus not ready"
+
+	// PrometheusUnableToWatchMessage
+	PrometheusUnableToWatchMessage = "Error occured when trying to watch %s"
+
+	// PrometheusUnableToRemoveTLSMessage
+	PrometheusUnableToRemoveTLSMessage = "Error occured when trying to remove TLS config: %s"
 
 	//
 	// LoggingReady condition messages

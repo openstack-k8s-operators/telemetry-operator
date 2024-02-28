@@ -173,7 +173,7 @@ func main() {
 		Kclient:    kclient,
 		RESTMapper: mgr.GetRESTMapper(),
 		Cache:      mgr.GetCache(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(context.Background(), mgr); err != nil {
 		setupLog.Error(err, "unable to create MetricStorage controller")
 		os.Exit(1)
 	}

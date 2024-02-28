@@ -352,6 +352,9 @@ spec:
                 maximum: 65535
                 minimum: 1
                 type: integer
+              prometheusTLS:
+                description: If TLS should be used for user deployed prometheus
+                type: boolean
             required:
             - heatInstance
             type: object
@@ -427,6 +430,10 @@ spec:
                 description: PrometheusPort - Port for prometheus used for autoscaling
                 format: int32
                 type: integer
+              prometheusTLS:
+                description: PrometheusTLS - Determines if TLS should be used for
+                  accessing prometheus
+                type: boolean
               readyCount:
                 description: ReadyCount of autoscaling instances
                 format: int32

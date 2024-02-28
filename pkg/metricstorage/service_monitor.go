@@ -17,7 +17,11 @@ limitations under the License.
 package metricstorage
 
 import (
+	"fmt"
+
+	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -81,6 +85,15 @@ func ServiceMonitor(
 				MatchLabels: selector,
 			},
 		},
+	}
+	if instance.Spec.PrometheusTLS.Enabled() {
+		serviceMonitor.Spec.Endpoints[0].Scheme = "https"
+		serviceMonitor.Spec.Endpoints[0].TLSConfig = &monv1.TLSConfig{
+			CAFile: fmt.Sprintf("/etc/prometheus/secrets/%s/%s", instance.Spec.PrometheusTLS.CaBundleSecretName, tls.CABundleKey),
+			SafeTLSConfig: monv1.SafeTLSConfig{
+				ServerName: fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace),
+			},
+		}
 	}
 	return serviceMonitor
 }

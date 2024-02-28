@@ -156,6 +156,10 @@ type AutoscalingSpecBase struct {
 	// +kubebuilder:validation:Optional
 	PrometheusPort int32 `json:"prometheusPort,omitempty"`
 
+	// If TLS should be used for user deployed prometheus
+	// +kubebuilder:validation:Optional
+	PrometheusTLS *bool `json:"prometheusTLS,omitempty"`
+
 	// Heat instance name.
 	// +kubebuilder:default=heat
 	HeatInstance string `json:"heatInstance"`
@@ -186,6 +190,9 @@ type AutoscalingStatus struct {
 
 	// PrometheusPort - Port for prometheus used for autoscaling
 	PrometheusPort int32 `json:"prometheusPort,omitempty"`
+
+	// PrometheusTLS - Determines if TLS should be used for accessing prometheus
+	PrometheusTLS bool `json:"prometheusTLS,omitempty"`
 
 	// API endpoint
 	APIEndpoints map[string]string `json:"apiEndpoint,omitempty"`

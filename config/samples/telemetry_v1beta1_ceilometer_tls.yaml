@@ -1,0 +1,10 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Ceilometer
+metadata:
+  name: ceilometer
+  namespace: openstack
+spec:
+  secret: osp-secret
+  tls:
+    caBundleSecretName: combined-ca-bundle
+    secretName: cert-ceilometer-internal-svc
