@@ -35,14 +35,14 @@ func OpenstackCloud() *corev1.ConfigMap {
 			"openstack-cloud.json": `
 			{
 				"__inputs": [
-		
+
 				],
 				"__requires": [
-		
+
 				],
 				"annotations": {
 					"list": [
-		
+
 					]
 				},
 				"editable": false,
@@ -51,7 +51,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 				"hideControls": false,
 				"id": null,
 				"links": [
-		
+
 				],
 				"refresh": "30s",
 				"rows": [
@@ -61,7 +61,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 						"panels": [
 							{
 								"aliasColors": {
-		
+
 								},
 								"bars": false,
 								"dashLength": 10,
@@ -73,7 +73,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"fill": 10,
 								"fillGradient": 0,
 								"gridPos": {
-		
+
 								},
 								"id": 2,
 								"legend": {
@@ -91,7 +91,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"lines": true,
 								"linewidth": 1,
 								"links": [
-		
+
 								],
 								"nullPointMode": "null",
 								"percentage": false,
@@ -100,7 +100,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"renderer": "flot",
 								"repeat": null,
 								"seriesOverrides": [
-		
+
 								],
 								"spaceLength": 10,
 								"span": 6,
@@ -116,7 +116,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									}
 								],
 								"thresholds": [
-		
+
 								],
 								"timeFrom": null,
 								"timeShift": null,
@@ -133,7 +133,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									"name": null,
 									"show": true,
 									"values": [
-		
+
 									]
 								},
 								"yaxes": [
@@ -157,7 +157,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 							},
 							{
 								"aliasColors": {
-		
+
 								},
 								"bars": false,
 								"dashLength": 10,
@@ -169,7 +169,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"fill": 10,
 								"fillGradient": 0,
 								"gridPos": {
-		
+
 								},
 								"id": 3,
 								"legend": {
@@ -187,7 +187,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"lines": true,
 								"linewidth": 1,
 								"links": [
-		
+
 								],
 								"nullPointMode": "null",
 								"percentage": false,
@@ -196,7 +196,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"renderer": "flot",
 								"repeat": null,
 								"seriesOverrides": [
-		
+
 								],
 								"spaceLength": 10,
 								"span": 6,
@@ -212,7 +212,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									}
 								],
 								"thresholds": [
-		
+
 								],
 								"timeFrom": null,
 								"timeShift": null,
@@ -229,7 +229,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									"name": null,
 									"show": true,
 									"values": [
-		
+
 									]
 								},
 								"yaxes": [
@@ -266,7 +266,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 						"panels": [
 							{
 								"aliasColors": {
-		
+
 								},
 								"bars": false,
 								"dashLength": 10,
@@ -278,7 +278,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"fill": 10,
 								"fillGradient": 0,
 								"gridPos": {
-		
+
 								},
 								"id": 4,
 								"legend": {
@@ -296,7 +296,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"lines": true,
 								"linewidth": 1,
 								"links": [
-		
+
 								],
 								"nullPointMode": "null",
 								"percentage": false,
@@ -305,7 +305,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"renderer": "flot",
 								"repeat": null,
 								"seriesOverrides": [
-		
+
 								],
 								"spaceLength": 10,
 								"span": 6,
@@ -321,7 +321,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									}
 								],
 								"thresholds": [
-		
+
 								],
 								"timeFrom": null,
 								"timeShift": null,
@@ -338,7 +338,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									"name": null,
 									"show": true,
 									"values": [
-		
+
 									]
 								},
 								"yaxes": [
@@ -362,7 +362,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 							},
 							{
 								"aliasColors": {
-		
+
 								},
 								"bars": false,
 								"dashLength": 10,
@@ -374,7 +374,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"fill": 10,
 								"fillGradient": 0,
 								"gridPos": {
-		
+
 								},
 								"id": 5,
 								"legend": {
@@ -392,7 +392,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"lines": true,
 								"linewidth": 1,
 								"links": [
-		
+
 								],
 								"nullPointMode": "null",
 								"percentage": false,
@@ -401,7 +401,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"renderer": "flot",
 								"repeat": null,
 								"seriesOverrides": [
-		
+
 								],
 								"spaceLength": 10,
 								"span": 6,
@@ -417,7 +417,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									}
 								],
 								"thresholds": [
-		
+
 								],
 								"timeFrom": null,
 								"timeShift": null,
@@ -434,7 +434,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									"name": null,
 									"show": true,
 									"values": [
-		
+
 									]
 								},
 								"yaxes": [
@@ -471,7 +471,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 						"panels": [
 							{
 								"aliasColors": {
-		
+
 								},
 								"bars": false,
 								"dashLength": 10,
@@ -483,7 +483,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"fill": 10,
 								"fillGradient": 0,
 								"gridPos": {
-		
+
 								},
 								"id": 6,
 								"legend": {
@@ -501,7 +501,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"lines": true,
 								"linewidth": 1,
 								"links": [
-		
+
 								],
 								"nullPointMode": "null",
 								"percentage": false,
@@ -541,7 +541,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									}
 								],
 								"thresholds": [
-		
+
 								],
 								"timeFrom": null,
 								"timeShift": null,
@@ -558,7 +558,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									"name": null,
 									"show": true,
 									"values": [
-		
+
 									]
 								},
 								"yaxes": [
@@ -582,7 +582,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 							},
 							{
 								"aliasColors": {
-		
+
 								},
 								"bars": false,
 								"dashLength": 10,
@@ -594,7 +594,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"fill": 10,
 								"fillGradient": 0,
 								"gridPos": {
-		
+
 								},
 								"id": 7,
 								"legend": {
@@ -612,7 +612,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"lines": true,
 								"linewidth": 1,
 								"links": [
-		
+
 								],
 								"nullPointMode": "null",
 								"percentage": false,
@@ -652,7 +652,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									}
 								],
 								"thresholds": [
-		
+
 								],
 								"timeFrom": null,
 								"timeShift": null,
@@ -669,7 +669,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									"name": null,
 									"show": true,
 									"values": [
-		
+
 									]
 								},
 								"yaxes": [
@@ -706,7 +706,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 						"panels": [
 							{
 								"aliasColors": {
-		
+
 								},
 								"bars": false,
 								"dashLength": 10,
@@ -718,7 +718,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"fill": 10,
 								"fillGradient": 0,
 								"gridPos": {
-		
+
 								},
 								"id": 8,
 								"legend": {
@@ -736,7 +736,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"lines": true,
 								"linewidth": 1,
 								"links": [
-		
+
 								],
 								"nullPointMode": "null",
 								"percentage": false,
@@ -745,7 +745,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"renderer": "flot",
 								"repeat": null,
 								"seriesOverrides": [
-		
+
 								],
 								"spaceLength": 10,
 								"span": 6,
@@ -761,7 +761,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									}
 								],
 								"thresholds": [
-		
+
 								],
 								"timeFrom": null,
 								"timeShift": null,
@@ -778,7 +778,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									"name": null,
 									"show": true,
 									"values": [
-		
+
 									]
 								},
 								"yaxes": [
@@ -802,7 +802,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 							},
 							{
 								"aliasColors": {
-		
+
 								},
 								"bars": false,
 								"dashLength": 10,
@@ -814,7 +814,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"fill": 10,
 								"fillGradient": 0,
 								"gridPos": {
-		
+
 								},
 								"id": 9,
 								"legend": {
@@ -832,7 +832,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"lines": true,
 								"linewidth": 1,
 								"links": [
-		
+
 								],
 								"nullPointMode": "null",
 								"percentage": false,
@@ -841,7 +841,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"renderer": "flot",
 								"repeat": null,
 								"seriesOverrides": [
-		
+
 								],
 								"spaceLength": 10,
 								"span": 6,
@@ -857,7 +857,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									}
 								],
 								"thresholds": [
-		
+
 								],
 								"timeFrom": null,
 								"timeShift": null,
@@ -874,7 +874,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									"name": null,
 									"show": true,
 									"values": [
-		
+
 									]
 								},
 								"yaxes": [
@@ -911,7 +911,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 						"panels": [
 							{
 								"aliasColors": {
-		
+
 								},
 								"bars": false,
 								"dashLength": 10,
@@ -923,7 +923,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"fill": 10,
 								"fillGradient": 0,
 								"gridPos": {
-		
+
 								},
 								"id": 10,
 								"legend": {
@@ -941,7 +941,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"lines": true,
 								"linewidth": 1,
 								"links": [
-		
+
 								],
 								"nullPointMode": "null",
 								"percentage": false,
@@ -950,7 +950,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"renderer": "flot",
 								"repeat": null,
 								"seriesOverrides": [
-		
+
 								],
 								"spaceLength": 10,
 								"span": 12,
@@ -966,7 +966,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									}
 								],
 								"thresholds": [
-		
+
 								],
 								"timeFrom": null,
 								"timeShift": null,
@@ -983,7 +983,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 									"name": null,
 									"show": true,
 									"values": [
-		
+
 									]
 								},
 								"yaxes": [
