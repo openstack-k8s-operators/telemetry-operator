@@ -302,11 +302,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.PrometheusRuleReadyCondition, condition.ReadyMessage)
 
+	datasourceName := instance.Namespace + "-" + instance.Name + "-datasource"
+
 	// Deploy Configmap for Console UI Datasource
-	// *CS Can I move this to a .Watches callback Fn cross-namespace? (cross-namespace owner references are disallowed)
 	datasourceCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Namespace + "-" + instance.Name + "-datasource",
+			Name:      datasourceName,
 			Namespace: "console-dashboards",
 		},
 	}
@@ -315,11 +316,11 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			"console.openshift.io/dashboard-datasource": "true",
 		}
 		datasourceCM.Data = map[string]string{
-			// *CS Should template this to prevent problems with the spaces vs. tabs
+			// WARNING: The lines below MUST be indented with spaces instead of tabs
 			"dashboard-datasource.yaml": `
                 kind: "Datasource"
                 metadata:
-                    name: "` + instance.Namespace + "-" + instance.Name + `-datasource"
+                    name: "` + datasourceName + `"
                 spec:
                     plugin:
                         kind: "PrometheusDatasource"
@@ -344,7 +345,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		},
 	}
 	op, err = controllerutil.CreateOrPatch(ctx, r.Client, cloudDashboardCM, func() error {
-		desiredCloudDashboardCM := dashboards.OpenstackCloud()
+		desiredCloudDashboardCM := dashboards.OpenstackCloud(datasourceName)
 		cloudDashboardCM.ObjectMeta.Labels = desiredCloudDashboardCM.ObjectMeta.Labels
 		cloudDashboardCM.Data = desiredCloudDashboardCM.Data
 		return nil

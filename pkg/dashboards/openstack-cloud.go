@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func OpenstackCloud() *corev1.ConfigMap {
+func OpenstackCloud(dsName string) *corev1.ConfigMap {
 
 	dashboardCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,7 +67,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-metric-storage-datasource",
+									"name": "` + dsName + `",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -163,7 +163,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-metric-storage-datasource",
+									"name": "` + dsName + `",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -272,7 +272,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-metric-storage-datasource",
+									"name": "` + dsName + `",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -368,7 +368,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-metric-storage-datasource",
+									"name": "` + dsName + `",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -477,7 +477,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-metric-storage-datasource",
+									"name": "` + dsName + `",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -588,7 +588,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-metric-storage-datasource",
+									"name": "` + dsName + `",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -712,7 +712,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-metric-storage-datasource",
+									"name": "` + dsName + `",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -808,7 +808,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-metric-storage-datasource",
+									"name": "` + dsName + `",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -917,7 +917,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 								"dashLength": 10,
 								"dashes": false,
 								"datasource":  {
-									"name": "openstack-metric-storage-datasource",
+									"name": "` + dsName + `",
 									"type": "prometheus"
 								},
 								"fill": 10,
@@ -1050,7 +1050,7 @@ func OpenstackCloud() *corev1.ConfigMap {
 					]
 				},
 				"timezone": "utc",
-				"title": "OSP Node Exporter / USE Method / Cluster",
+				"title": "OpenStack / Node Exporter / USE Method / Cluster",
 				"version": 0
 			}
 			`,
