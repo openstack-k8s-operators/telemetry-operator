@@ -336,6 +336,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		Log.Info(fmt.Sprintf("Console UI Datasource ConfigMap %s successfully changed - operation: %s", datasourceCM.Name, string(op)))
 	}
 
+	// Deploy ConfigMap for Cloud Dashboard
 	cloudDashboardCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "grafana-dashboard-openstack-cloud",

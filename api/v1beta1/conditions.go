@@ -49,7 +49,6 @@ const (
 	LoggingReadyCondition condition.Type = "LoggingReady"
 
 	PrometheusRuleReadyCondition condition.Type = "PrometheusRuleReady"
-
 )
 
 // Telemetry Reasons used by API objects.
