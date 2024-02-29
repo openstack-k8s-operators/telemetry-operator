@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func PrometheusRule(
+func DashboardPrometheusRule(
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,
 	selector map[string]string,
@@ -38,7 +38,7 @@ func PrometheusRule(
 		Spec: monv1.PrometheusRuleSpec{
 			Groups: []monv1.RuleGroup{
 				{
-					Name: "osp-node-exporter.rules",
+					Name: "osp-node-exporter-dashboard.rules",
 					Rules: []monv1.Rule{
 						{
 							Expr: intstr.IntOrString{

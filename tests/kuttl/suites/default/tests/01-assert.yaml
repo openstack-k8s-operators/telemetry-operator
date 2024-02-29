@@ -299,7 +299,7 @@ metadata:
   name: metric-storage
 spec:
   groups:
-  - name: osp-node-exporter.rules
+  - name: osp-node-exporter-dashboard.rules
 ---
 apiVersion: v1
 kind: ConfigMap

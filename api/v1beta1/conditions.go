@@ -48,7 +48,7 @@ const (
 	// LoggingReadyCondition Status=True condition which indicates if the Logging is configured and operational
 	LoggingReadyCondition condition.Type = "LoggingReady"
 
-	PrometheusRuleReadyCondition condition.Type = "PrometheusRuleReady"
+	DashboardPrometheusRuleReadyCondition condition.Type = "DashboardPrometheusRuleReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -173,6 +173,6 @@ const (
 	// LoggingReadyRunningMessage
 	LoggingReadyRunningMessage = "Logging in progress"
 
-	PrometheusRuleReadyInitMessage = "PrometheusRule not started"
-	PrometheusRuleUnableToOwnMessage = "Error occured when trying to own %s"
+	DashboardPrometheusRuleReadyInitMessage = "Dashboard PrometheusRule not started"
+	DashboardPrometheusRuleUnableToOwnMessage = "Error occured when trying to own %s"
 )
