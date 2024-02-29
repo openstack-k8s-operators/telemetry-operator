@@ -44,12 +44,6 @@
       cifmw_test_operator_tempest_namespace: podified-antelope-centos9
       cifmw_test_operator_tempest_container: openstack-tempest-all
       cifmw_test_operator_tempest_image_tag: 'current-podified'
-      cifmw_test_operator_tempest_external_plugin:
-        # workaround(telemetry_tempest_plugin_release)
-        # NOTE: Until the telemetry-tempest-plugin repo is tagged and the new version is used in the tempest image, we need to manually install it as an external plugin to use the autoscaling tests.
-        - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
-          changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-          changeRefspec: "master"
       # This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
       # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
       cifmw_tempest_tempestconf_config:
