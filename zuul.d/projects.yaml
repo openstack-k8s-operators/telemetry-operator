@@ -29,7 +29,10 @@
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
       jobs:
-        - noop
+        - noop:
+            required-projects:
+              - openstack/telemetry-tempest-plugin
+              - openstack-k8s-operators/telemetry-operator
 
 #- project:
 #    name: openstack-k8s-operators/telemetry-operator
