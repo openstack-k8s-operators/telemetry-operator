@@ -28,4 +28,3 @@ cifmw_edpm_prepare_kustomizations:
                 enabled: true
       target:
         kind: OpenStackControlPlane
-
