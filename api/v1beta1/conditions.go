@@ -55,6 +55,9 @@ const (
 	DashboardDatasourceReadyCondition condition.Type = "DashboardDatasourceReady"
 
 	DashboardDefinitionReadyCondition condition.Type = "DashboardDefinitionReady"
+
+	// AvailabilityReadyCondition Status=True condition which indicates if the Availability is configured and operational
+	AvailabilityReadyCondition condition.Type = "AvailabilityReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -189,4 +192,19 @@ const (
 
 	DashboardDefinitionReadyInitMessage = "Dashboard Definition not started"
 	DashboardDefinitionFailedMessage    = "Error occured when trying to install the dashboard definitions: %s"
+
+	//
+	// AvailabilityReady condition messages
+	//
+	// AvailabilityReadyInitMessage
+	AvailabilityReadyInitMessage = "Availability not started"
+
+	// AvailabilityReadyMessage
+	AvailabilityReadyMessage = "Availability completed"
+
+	// AvailabilityReadyErrorMessage
+	AvailabilityReadyErrorMessage = "Availability error occured %s"
+
+	// AvailabilityReadyRunningMessage
+	AvailabilityReadyRunningMessage = "Availability in progress"
 )

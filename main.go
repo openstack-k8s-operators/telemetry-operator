@@ -180,10 +180,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.AvailabilityReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+	}).SetupWithManager(context.Background(), mgr); err != nil {
+		setupLog.Error(err, "unable to create Availability controller")
+		os.Exit(1)
+	}
+
 	// Acquire environmental defaults and initialize defaults with them
 	telemetryv1beta1.SetupDefaultsTelemetry()
 	telemetryv1beta1.SetupDefaultsCeilometer()
 	telemetryv1beta1.SetupDefaultsAutoscaling()
+	telemetryv1beta1.SetupDefaultsAvailability()
 
 	// Setup webhooks if requested
 	checker := healthz.Ping
@@ -203,6 +213,10 @@ func main() {
 		}
 		if err = (&telemetryv1beta1.MetricStorage{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MetricStorage")
+			os.Exit(1)
+		}
+		if err = (&telemetryv1beta1.Availability{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Availability")
 			os.Exit(1)
 		}
 		checker = mgr.GetWebhookServer().StartedChecker()
