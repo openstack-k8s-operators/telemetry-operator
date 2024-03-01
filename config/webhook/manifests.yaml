@@ -31,6 +31,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-telemetry-openstack-org-v1beta1-availabiltiy
+  failurePolicy: Fail
+  name: mavailability.kb.io
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - availability
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-telemetry-openstack-org-v1beta1-ceilometer
   failurePolicy: Fail
   name: mceilometer.kb.io
@@ -111,6 +131,26 @@ webhooks:
     - UPDATE
     resources:
     - autoscalings
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-telemetry-openstack-org-v1beta1-availability
+  failurePolicy: Fail
+  name: vavailability.kb.io
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - availabilities
   sideEffects: None
 - admissionReviewVersions:
   - v1
