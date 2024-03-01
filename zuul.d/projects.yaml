@@ -42,10 +42,11 @@
     run:
       - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
     vars:
+      change_item: "{{ zuul['items'] | selectattr('change_url', 'contains', 'opendev.org') | selectattr('change_url', 'contains', 'openstack/telemetry-tempest-plugin') | last }}"
       cifmw_test_operator_tempest_external_plugin:
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-          changeRefspec: "{{ zuul.projects['opendev.org/openstack/telemetry-tempest-plugin'].commit }}"
+          changeRefspec: "refs/changes/{{ change_item.change[-2:] }}/{{ change_item.change }}/{{ change_item.patchset }}"
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
