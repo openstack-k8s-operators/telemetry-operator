@@ -33,20 +33,23 @@
 
 - job:
     name: telemetry-operator-check-telemetry-tempest-master
-    parent: telemetry-operator-multinode-autoscaling-tempest
+    #parent: telemetry-operator-multinode-autoscaling-tempest
+    parent: base-minimal
     required-projects:
       - name: openstack-k8s-operators/telemetry-operator
       - name: openstack/telemetry-tempest-plugin
+    run:
+      - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
     vars:
       cifmw_test_operator_tempest_external_plugin:
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-          changeRefspec: "{{ zuul.projects['openstack/telemetry-tempest-plugin'].commit }}"
+          changeRefspec: "{{ zuul.projects['opendev.org/openstack/telemetry-tempest-plugin'].commit }}"
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
-    templates:
-      - podified-multinode-edpm-pipeline
+    #templates:
+    #  - podified-multinode-edpm-pipeline
     github-check:
       jobs:
         - telemetry-operator-check-telemetry-tempest-master

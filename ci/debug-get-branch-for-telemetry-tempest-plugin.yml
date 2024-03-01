@@ -1,0 +1,20 @@
+---
+- hosts: localhost
+  ignore_errors: true
+  tasks:
+    - name: Get projects/telemetry-tempest-plugin
+      ansible.builtin.debug:
+        var: zuul.projects['opendev.org/openstack/telemetry-tempest-plugin']
+
+    - name: Get zuul/items
+      ansible.builtin.debug:
+        var: zuul.items
+
+
+    - name: Get the FETCH_HEAD from git
+      shell: |
+        cat {{ ansible_user_dir }}{{ zuul.projects['opendev.org/openstack/telemetry-tempest-plugin'].src }}/.git/FETCH_HEAD
+
+    - name: Get FETCH_HEAD (lookup)
+      debug:
+        var: ansible.builtin.lookup('file', [ ansible_user_dir, zuul.projects['opendev.org/openstack/telemetry-tempest-plugin'].src, .git/FETCH_HEAD ] | join('/'))
