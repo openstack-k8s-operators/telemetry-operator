@@ -37,6 +37,7 @@
     parent: base-minimal
     required-projects:
       - name: openstack-k8s-operators/telemetry-operator
+        override-checkout: main
       - name: openstack/telemetry-tempest-plugin
     run:
       - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
