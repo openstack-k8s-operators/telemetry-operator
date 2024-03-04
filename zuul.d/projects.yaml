@@ -29,15 +29,12 @@
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
       jobs:
-        - noop:
-            required-projects:
-              - openstack/telemetry-tempest-plugin
-              - openstack-k8s-operators/telemetry-operator
+        - noop
 
-#- project:
-#    name: openstack-k8s-operators/telemetry-operator
-#    templates:
-#      - podified-multinode-edpm-pipeline
-#    github-check:
-#      jobs:
-#        - telemetry-operator-multinode-autoscaling-tempest
+- project:
+    name: openstack-k8s-operators/telemetry-operator
+    templates:
+      - podified-multinode-edpm-pipeline
+    github-check:
+      jobs:
+        - telemetry-operator-multinode-autoscaling-tempest
