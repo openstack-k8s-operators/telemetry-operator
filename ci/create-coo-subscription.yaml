@@ -37,4 +37,4 @@
     - name: Wait for the resources to be available
       ansible.builtin.command:
         cmd: |
-          oc wait --for jsonpath="{.status.phase}"=Succeeded csv --namespace=openshift-operators -l operators.coreos.com/cluster-observability-operator.openshift-operators
+          oc wait --timeout=300s --for jsonpath="{.status.phase}"=Succeeded csv --namespace=openshift-operators -l operators.coreos.com/cluster-observability-operator.openshift-operators
