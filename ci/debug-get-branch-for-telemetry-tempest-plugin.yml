@@ -2,34 +2,27 @@
 - hosts: all
   ignore_errors: true
   tasks:
-    #- name: Get list of zuul projects
-    #  debug:
-    #    msg: "{{ zuul.projects }}"
-    #
-    #- name: Get projects/telemetry-tempest-plugin
-    #  ansible.builtin.debug:
-    #    msg: "{{ zuul.projects['opendev.org/openstack/telemetry-tempest-plugin'] }}"
-    #
-    #- name: Get zuul/items
-    #  ansible.builtin.debug:
-    #    var: zuul.items
-    #
-    #- name: Get projects/telemetry-tempest-plugin
-    #  ansible.builtin.debug:
-    #    var: zuul.projects['opendev.org/openstack/telemetry-tempest-plugin']
-    #
-    #- name: Get zuul/items
-    #  ansible.builtin.debug:
-    #    var: zuul.items
-    #
-    #- name: Get the FETCH_HEAD from git
-    #  shell: |
-    #    cat {{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/telemetry-tempest-plugin'].src_dir }}/.git/FETCH_HEAD
-    #
-    #- name: Get FETCH_HEAD (lookup)
-    #  debug:
-    #    msg: "{{  ansible.builtin.lookup('file', [ ansible_user_dir, zuul.projects['opendev.org/openstack/telemetry-tempest-plugin'].src_dir, '.git/FETCH_HEAD' ] | join('/')) }}"
+    - set_fact:
+        allowed_plugin: "openstack/telemetry-tempest-plugin"
 
+    - name: get the item that includes telemetry-tempest-plugin
+      debug:
+        msg: "{{ zuul['items'] }}"
+
+    - debug: msg="{{ zuul['items'] | selectattr('change_url', 'equalto', 'https://review.opendev.org/c/openstack/telemetry-tempest-plugin/+/909856') }}"
+    - debug: msg="{{ zuul['items'] | selectattr('change_url', 'contains', allowed_pluin) }}"
+    - debug: msg="{{ zuul['items'] | selectattr('change_url', 'contains', 'opendev.org') | selectattr('change_url', 'contains', 'openstack/telemetry-tempest-plugin') }}"
+
+    - set_fact:
+        change_item: "{{ zuul['items'] | selectattr('change_url', 'contains', 'opendev.org') | selectattr('change_url', 'contains', 'openstack/telemetry-tempest-plugin') | last }}"
+
+    - debug: msg="{{ change_item }}"
+
+
+    - set_fact:
+        external_plugin_refspec: "refs/changes/{{ change_item.change[-2:] }}/{{ change_item.change }}/{{ change_item.patchset }}"
+
+    - debug: var=external_plugin_refspec
     - name: show external plugin config
       debug:
         msg: "{{ cifmw_test_operator_tempest_external_plugin }}"

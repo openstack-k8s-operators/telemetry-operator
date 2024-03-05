@@ -33,16 +33,17 @@
 
 - job:
     name: telemetry-operator-check-telemetry-tempest-master
-    parent: telemetry-operator-multinode-autoscaling-tempest
-    #parent: base-minimal
+    #parent: telemetry-operator-multinode-autoscaling-tempest
+    parent: base-minimal
     required-projects:
       - name: openstack-k8s-operators/telemetry-operator
         override-checkout: main
       - name: openstack/telemetry-tempest-plugin
-    #run:
-    #  - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
+    pre-run:
+      - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
     vars:
-      change_item: "{{ zuul['items'] | selectattr('change_url', 'contains', 'opendev.org') | selectattr('change_url', 'contains', 'openstack/telemetry-tempest-plugin') | last }}"
+      external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
+      change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) | last }}"
       cifmw_test_operator_tempest_external_plugin:
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
