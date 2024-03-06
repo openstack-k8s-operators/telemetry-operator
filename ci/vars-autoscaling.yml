@@ -1,0 +1,30 @@
+---
+cifmw_edpm_prepare_timeout: 60
+pre_deploy:
+  - name: Create COO subscription
+    source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/create-coo-subscription.yaml"
+    type: playbook
+cifmw_edpm_prepare_kustomizations:
+  - apiVersion: kustomize.config.k8s.io/v1beta1
+    kind: Kustomization
+    namespace: openstack
+    patches:
+    - patch: |-
+        apiVersion: core.openstack.org/v1beta1
+        kind: OpenStackControlPlane
+        metadata:
+          name: unused
+        spec:
+          heat:
+            enabled: true
+          telemetry:
+            enabled: true
+            template:
+              metricStorage:
+                enabled: true
+                monitoringStack:
+                  alertingEnabled: false
+              autoscaling:
+                enabled: true
+      target:
+        kind: OpenStackControlPlane

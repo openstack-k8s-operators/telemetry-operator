@@ -1,0 +1,23 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Autoscaling
+metadata:
+  name: telemetry-kuttl
+spec:
+  aodh:
+    secret: osp-secret
+    apiImage: "quay.io/mmagr/openstack-aodh-api:current-podified"
+    evaluatorImage: "quay.io/mmagr/openstack-aodh-evaluator:current-podified"
+    notifierImage: "quay.io/mmagr/openstack-aodh-notifier:current-podified"
+    listenerImage: "quay.io/mmagr/openstack-aodh-listener:current-podified"
+    passwordSelectors:
+    databaseUser: aodh
+    databaseInstance: openstack
+    memcachedInstance: memcached
+    tls:
+      api:
+        internal:
+          secretName: cert-aodh-internal-svc
+        public:
+          secretName: cert-aodh-public-svc
+      caBundleSecretName: combined-ca-bundle
+  heatInstance: heat

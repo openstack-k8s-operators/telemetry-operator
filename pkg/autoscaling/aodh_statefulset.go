@@ -21,6 +21,8 @@ import (
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/annotations"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -69,6 +71,40 @@ func AodhStatefulSet(
 		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(AodhAPIPort)},
 	}
 
+	if instance.Spec.Aodh.TLS.API.Enabled(service.EndpointPublic) {
+		livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+		readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+	}
+
+	// create Volume and VolumeMounts
+	volumes := getVolumes(ServiceName)
+	volumeMounts := getVolumeMounts("aodh-api")
+
+	// add CA cert if defined
+	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
+		volumes = append(volumes, instance.Spec.Aodh.TLS.CreateVolume())
+		volumeMounts = append(volumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
+	}
+
+	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
+		if instance.Spec.Aodh.TLS.API.Enabled(endpt) {
+			var tlsEndptCfg tls.GenericService
+			switch endpt {
+			case service.EndpointPublic:
+				tlsEndptCfg = instance.Spec.Aodh.TLS.API.Public
+			case service.EndpointInternal:
+				tlsEndptCfg = instance.Spec.Aodh.TLS.API.Internal
+			}
+
+			svc, err := tlsEndptCfg.ToService()
+			if err != nil {
+				return nil, err
+			}
+			volumes = append(volumes, svc.CreateVolume(endpt.String()))
+			volumeMounts = append(volumeMounts, svc.CreateVolumeMounts(endpt.String())...)
+		}
+	}
+
 	envVarsAodh := map[string]env.Setter{}
 	envVarsAodh["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
 	envVarsAodh["CONFIG_HASH"] = env.SetValue(configHash)
@@ -87,7 +123,7 @@ func AodhStatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts("aodh-api"),
+		VolumeMounts: volumeMounts,
 	}
 
 	evaluatorContainer := corev1.Container{
@@ -167,7 +203,7 @@ func AodhStatefulSet(
 		},
 	}
 
-	statefulset.Spec.Template.Spec.Volumes = getVolumes(ServiceName)
+	statefulset.Spec.Template.Spec.Volumes = volumes
 
 	// networks to attach to
 	nwAnnotation, err := annotations.GetNADAnnotation(instance.Namespace, instance.Spec.Aodh.NetworkAttachmentDefinitions)
