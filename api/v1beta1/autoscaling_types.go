@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
@@ -113,6 +114,11 @@ type AodhCore struct {
 	// +kubebuilder:default=memcached
 	// Memcached instance name.
 	MemcachedInstance string `json:"memcachedInstance"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// TLS - Parameters related to the TLS
+	TLS tls.API `json:"tls,omitempty"`
 }
 
 // APIOverrideSpec to override the generated manifest of several child resources.

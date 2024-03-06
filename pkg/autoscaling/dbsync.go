@@ -33,6 +33,15 @@ func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]strin
 	args := []string{"-c"}
 	args = append(args, dbSyncCommand)
 
+	// create Volume and VolumeMounts
+	volumes := getVolumes(ServiceName)
+	volumeMounts := getVolumeMounts("aodh-dbsync")
+	// add CA cert if defined
+	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
+		volumes = append(volumes, instance.Spec.Aodh.TLS.CreateVolume())
+		volumeMounts = append(volumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
+	}
+
 	runAsUser := int64(0)
 	envVars := map[string]env.Setter{}
 	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
@@ -74,10 +83,10 @@ func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]strin
 								RunAsUser: &runAsUser,
 							},
 							Env:          env.MergeEnvs(aodhPassword, envVars),
-							VolumeMounts: getVolumeMounts("aodh-dbsync"),
+							VolumeMounts: volumeMounts,
 						},
 					},
-					Volumes: getVolumes(ServiceName),
+					Volumes: volumes,
 				},
 			},
 		},

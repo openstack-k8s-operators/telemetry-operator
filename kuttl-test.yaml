@@ -25,5 +25,6 @@ testDirs:
   - tests/kuttl/suites/logging/
   - tests/kuttl/suites/default/
   - tests/kuttl/suites/metricstorage/
+  - tests/kuttl/suites/tls/
 suppress:
   - events                     # Remove spammy event logs
