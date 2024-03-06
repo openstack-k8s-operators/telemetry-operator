@@ -40,6 +40,23 @@ const (
 
 // Aodh defines the aodh component spec
 type Aodh struct {
+	AodhCore `json:",inline"`
+
+	// +kubebuilder:validation:Required
+	APIImage string `json:"apiImage"`
+
+	// +kubebuilder:validation:Required
+	EvaluatorImage string `json:"evaluatorImage"`
+
+	// +kubebuilder:validation:Required
+	NotifierImage string `json:"notifierImage"`
+
+	// +kubebuilder:validation:Required
+	ListenerImage string `json:"listenerImage"`
+}
+
+// Aodh defines the aodh component spec
+type AodhCore struct {
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Aodh
 	// +kubebuilder:default=rabbitmq
@@ -98,18 +115,6 @@ type Aodh struct {
 	// Memcached instance name.
 	MemcachedInstance string `json:"memcachedInstance"`
 
-	// +kubebuilder:validation:Required
-	APIImage string `json:"apiImage"`
-
-	// +kubebuilder:validation:Required
-	EvaluatorImage string `json:"evaluatorImage"`
-
-	// +kubebuilder:validation:Required
-	NotifierImage string `json:"notifierImage"`
-
-	// +kubebuilder:validation:Required
-	ListenerImage string `json:"listenerImage"`
-
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
@@ -124,6 +129,22 @@ type APIOverrideSpec struct {
 
 // AutoscalingSpec defines the desired state of Autoscaling
 type AutoscalingSpec struct {
+	AutoscalingSpecBase `json:",inline"`
+
+	// Aodh spec
+	Aodh Aodh `json:"aodh,omitempty"`
+}
+
+// AutoscalingSpecCore defines the desired state of Autoscaling (this version is used by the OpenStackControlplane no image parameters)
+type AutoscalingSpecCore struct {
+	AutoscalingSpecBase `json:",inline"`
+
+	// Aodh spec
+	Aodh AodhCore `json:"aodh,omitempty"`
+}
+
+// AutoscalingSpecBase -
+type AutoscalingSpecBase struct {
 	// Host of user deployed prometheus
 	// +kubebuilder:validation:Optional
 	PrometheusHost string `json:"prometheusHost,omitempty"`
@@ -133,9 +154,6 @@ type AutoscalingSpec struct {
 	// +kubebuilder:validation:Maximum=65535
 	// +kubebuilder:validation:Optional
 	PrometheusPort int32 `json:"prometheusPort,omitempty"`
-
-	// Aodh spec
-	Aodh Aodh `json:"aodh,omitempty"`
 
 	// Heat instance name.
 	// +kubebuilder:default=heat

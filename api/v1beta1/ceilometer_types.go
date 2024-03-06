@@ -38,6 +38,26 @@ const (
 
 // CeilometerSpec defines the desired state of Ceilometer
 type CeilometerSpec struct {
+	CeilometerSpecCore `json:",inline"`
+
+	// +kubebuilder:validation:Required
+	CentralImage string `json:"centralImage"`
+
+	// +kubebuilder:validation:Required
+	NotificationImage string `json:"notificationImage"`
+
+	// +kubebuilder:validation:Required
+	SgCoreImage string `json:"sgCoreImage"`
+
+	// +kubebuilder:validation:Required
+	ComputeImage string `json:"computeImage"`
+
+	// +kubebuilder:validation:Required
+	IpmiImage string `json:"ipmiImage"`
+}
+
+// CeilometerSpecCore defines the desired state of Ceilometer. This version is used by the OpenStackControlplane (no image parameters)
+type CeilometerSpecCore struct {
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Telemetry
 	// +kubebuilder:default=rabbitmq
@@ -69,21 +89,6 @@ type CeilometerSpec struct {
 
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
-
-	// +kubebuilder:validation:Required
-	CentralImage string `json:"centralImage"`
-
-	// +kubebuilder:validation:Required
-	NotificationImage string `json:"notificationImage"`
-
-	// +kubebuilder:validation:Required
-	SgCoreImage string `json:"sgCoreImage"`
-
-	// +kubebuilder:validation:Required
-	ComputeImage string `json:"computeImage"`
-
-	// +kubebuilder:validation:Required
-	IpmiImage string `json:"ipmiImage"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer

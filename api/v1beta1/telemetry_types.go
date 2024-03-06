@@ -45,6 +45,8 @@ type PasswordsSelector struct {
 
 // TelemetrySpec defines the desired state of Telemetry
 type TelemetrySpec struct {
+	TelemetrySpecBase `json:",inline"`
+
 	// +kubebuilder:validation:Optional
 	// Autoscaling - Parameters related to the autoscaling service
 	Autoscaling AutoscalingSection `json:"autoscaling,omitempty"`
@@ -52,7 +54,23 @@ type TelemetrySpec struct {
 	// +kubebuilder:validation:Optional
 	// Ceilometer - Parameters related to the ceilometer service
 	Ceilometer CeilometerSection `json:"ceilometer,omitempty"`
+}
 
+// TelemetrySpecCore defines the desired state of Telemetry. This version has no image parameters and is used by OpenStackControlplane
+type TelemetrySpecCore struct {
+	TelemetrySpecBase `json:",inline"`
+
+	// +kubebuilder:validation:Optional
+	// Autoscaling - Parameters related to the autoscaling service
+	Autoscaling AutoscalingSectionCore `json:"autoscaling,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// Ceilometer - Parameters related to the ceilometer service
+	Ceilometer CeilometerSectionCore `json:"ceilometer,omitempty"`
+}
+
+// TelemetrySpecBase -
+type TelemetrySpecBase struct {
 	// +kubebuilder:validation:Optional
 	// MetricStorage - Parameters related to the metricStorage
 	MetricStorage MetricStorageSection `json:"metricStorage,omitempty"`
@@ -76,6 +94,20 @@ type CeilometerSection struct {
 	CeilometerSpec `json:",inline"`
 }
 
+// CeilometerSectionCore defines the desired state of the ceilometer service
+type CeilometerSectionCore struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// Enabled - Whether OpenStack Ceilometer service should be deployed and managed
+	Enabled bool `json:"enabled"`
+
+	// +kubebuilder:validation:Optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec
+	// Template - Overrides to use when creating the OpenStack Ceilometer service
+	CeilometerSpecCore `json:",inline"`
+}
+
 // AutoscalingSection defines the desired state of the autoscaling service
 type AutoscalingSection struct {
 	// +kubebuilder:validation:Optional
@@ -88,6 +120,20 @@ type AutoscalingSection struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
 	// Template - Overrides to use when creating the OpenStack autoscaling service
 	AutoscalingSpec `json:",inline"`
+}
+
+// AutoscalingSectionCore defines the desired state of the autoscaling service
+type AutoscalingSectionCore struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// Enabled - Whether OpenStack autoscaling service should be deployed and managed
+	Enabled bool `json:"enabled"`
+
+	// +kubebuilder:validation:Optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec
+	// Template - Overrides to use when creating the OpenStack autoscaling service
+	AutoscalingSpecCore `json:",inline"`
 }
 
 // MetricStorageSection defines the desired state of the MetricStorage
@@ -161,19 +207,17 @@ func init() {
 func SetupDefaultsTelemetry() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	telemetryDefaults := TelemetryDefaults{
-		CentralContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
-		ComputeContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
-		IpmiContainerImageURL:          util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
-		NotificationContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
-		SgCoreContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
+		CentralContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
+		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
+		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
+		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
+		SgCoreContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
 
 		// Autoscaling
 		AodhAPIContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
 		AodhEvaluatorContainerImageURL: util.GetEnvVar("RELATED_IMAGE_AODH_EVALUATOR_IMAGE_URL_DEFAULT", AodhEvaluatorContainerImage),
 		AodhNotifierContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_NOTIFIER_IMAGE_URL_DEFAULT", AodhNotifierContainerImage),
 		AodhListenerContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_LISTENER_IMAGE_URL_DEFAULT", AodhListenerContainerImage),
-		AodhInitContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
-
 	}
 
 	SetupTelemetryDefaults(telemetryDefaults)
