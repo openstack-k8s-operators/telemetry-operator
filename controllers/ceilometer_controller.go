@@ -44,12 +44,16 @@ import (
 	projects "github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	deployment "github.com/openstack-k8s-operators/lib-common/modules/common/deployment"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
+	rolebinding "github.com/openstack-k8s-operators/lib-common/modules/common/rolebinding"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
+	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
+	serviceaccount "github.com/openstack-k8s-operators/lib-common/modules/common/serviceaccount"
 	statefulset "github.com/openstack-k8s-operators/lib-common/modules/common/statefulset"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
@@ -58,6 +62,7 @@ import (
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	availability "github.com/openstack-k8s-operators/telemetry-operator/pkg/availability"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 )
 
@@ -280,6 +285,21 @@ func (r *CeilometerReconciler) reconcileInit(
 }
 
 func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
+
+	ceilRes, err := r.reconcileCeilometer(ctx, instance, helper)
+	if err != nil {
+		return ceilRes, err
+	}
+
+	ksmRes, err := r.reconcileKSM(ctx, instance, helper)
+	if err != nil {
+		return ksmRes, err
+	}
+
+	return ceilRes, nil
+}
+
+func (r *CeilometerReconciler) reconcileCeilometer(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", ceilometer.ServiceName))
 
@@ -556,6 +576,177 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		}
 		Log.Info("Reconciled Service successfully")
 	}
+	return ctrl.Result{}, nil
+}
+
+func (r *CeilometerReconciler) reconcileKSM(
+	ctx context.Context,
+	instance *telemetryv1.Ceilometer,
+	helper *helper.Helper,
+) (ctrl.Result, error) {
+	Log := r.GetLogger(ctx)
+	Log.Info(fmt.Sprintf("Reconciling Service '%s'", availability.KSMServiceName))
+
+	// create service account and role binding for the KSM service
+	sa, rb, err := availability.KSMServiceAccount(instance)
+
+	svcacc := serviceaccount.NewServiceAccount(sa, time.Duration(5)*time.Second)
+	ctrlResult, err := svcacc.CreateOrPatch(ctx, helper)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceAccountReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceAccountReadyErrorMessage,
+			err.Error()))
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceAccountReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.ServiceAccountReadyMessage))
+		return ctrlResult, nil
+	}
+
+	err = controllerutil.SetControllerReference(instance, sa, r.Scheme)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	roleBind := rolebinding.NewRoleBinding(rb, time.Duration(5)*time.Second)
+	ctrlResult, err = roleBind.CreateOrPatch(ctx, helper)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.RoleBindingReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceAccountReadyErrorMessage,
+			err.Error()))
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.RoleBindingReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.RoleBindingReadyMessage))
+		return ctrlResult, nil
+	}
+
+	err = controllerutil.SetControllerReference(instance, rb, r.Scheme)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// create the service
+	serviceLabels := map[string]string{
+		common.AppSelector: availability.KSMServiceName,
+	}
+
+	deployDef, err := availability.KSMDeployment(instance, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	deploy := deployment.NewDeployment(
+		deployDef,
+		time.Duration(5)*time.Second,
+	)
+
+	ctrlResult, err = deploy.CreateOrPatch(ctx, helper)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DeploymentReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.DeploymentReadyErrorMessage,
+			err.Error()))
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DeploymentReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.DeploymentReadyRunningMessage))
+		return ctrlResult, nil
+	}
+
+	err = controllerutil.SetControllerReference(instance, deployDef, r.Scheme)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	instance.Status.ReadyCount = deploy.GetDeployment().Status.ReadyReplicas
+	if instance.Status.ReadyCount > 0 {
+		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+	}
+
+	endpointTypeStr := string(service.EndpointInternal)
+	exportLabels := util.MergeStringMaps(
+		serviceLabels,
+		map[string]string{
+			service.AnnotationEndpointKey: endpointTypeStr,
+		},
+	)
+
+	// Create the service
+	svc, err := service.NewService(
+		service.GenericService(&service.GenericServiceDetails{
+			Name:      availability.KSMServiceName,
+			Namespace: instance.Namespace,
+			Labels:    exportLabels,
+			Selector:  serviceLabels,
+			Ports: []corev1.ServicePort{
+				{
+					Port: availability.KSMMetricsPort,
+					Name: "http-metrics",
+				},
+				{
+					Port: availability.KSMHealthPort,
+					Name: "telemetry",
+				},
+			},
+		}),
+		5,
+		&service.OverrideSpec{},
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ExposeServiceReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ExposeServiceReadyErrorMessage,
+			err.Error()))
+
+		return ctrl.Result{}, err
+	}
+
+	svc.AddAnnotation(map[string]string{
+		service.AnnotationEndpointKey: endpointTypeStr,
+	})
+	svc.AddAnnotation(map[string]string{
+		service.AnnotationIngressCreateKey: "false",
+	})
+
+	ctrlResult, err = svc.CreateOrPatch(ctx, helper)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ExposeServiceReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ExposeServiceReadyErrorMessage,
+			err.Error()))
+
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ExposeServiceReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.ExposeServiceReadyRunningMessage))
+		return ctrlResult, nil
+	}
+
+	Log.Info(fmt.Sprintf("Reconciled Service '%s' successfully", availability.KSMServiceName))
 	return ctrl.Result{}, nil
 }
 
@@ -855,6 +1046,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		For(&telemetryv1.Ceilometer{}).
 		Owns(&keystonev1.KeystoneService{}).
 		Owns(&appsv1.StatefulSet{}).
+		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
 		Owns(&rabbitmqv1.TransportURL{}).

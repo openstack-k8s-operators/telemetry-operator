@@ -415,6 +415,8 @@ spec:
                     type: boolean
                   ipmiImage:
                     type: string
+                  ksmImage:
+                    type: string
                   networkAttachmentDefinitions:
                     description: NetworkAttachmentDefinitions list of network attachment
                       definitions the service pod gets attached to
@@ -474,6 +476,7 @@ spec:
                 - centralImage
                 - computeImage
                 - ipmiImage
+                - ksmImage
                 - notificationImage
                 - proxyImage
                 - secret
