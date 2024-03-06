@@ -20,8 +20,8 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 )
 
 const (
@@ -38,6 +38,8 @@ const (
 	// CeilometerProxyContainerImage - default fall-back image for proxy container
 	// CeilometerProxyContainerImage = "registry.redhat.io/ubi9/httpd-24:latest"
 	CeilometerProxyContainerImage = "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
+	// KubeStateMetricsImage - default fall-back image for KSM
+	KubeStateMetricsImage = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0"
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
@@ -62,6 +64,8 @@ type CeilometerSpec struct {
 	// +kubebuilder:validation:Required
 	ProxyImage string `json:"proxyImage"`
 
+	// +kubebuilder:validation:Required
+	KSMImage string `json:"ksmImage"`
 }
 
 // CeilometerSpecCore defines the desired state of Ceilometer. This version is used by the OpenStackControlplane (no image parameters)
@@ -103,6 +107,11 @@ type CeilometerSpecCore struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
 	TLS tls.SimpleService `json:"tls,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// KSMTLS - Parameters related to the TLS for kube-state-metrics
+	KSMTLS tls.SimpleService `json:"tls,omitempty"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer
@@ -184,6 +193,7 @@ func SetupDefaultsCeilometer() {
 		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
 		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
 		ProxyContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_APACHE_IMAGE_URL_DEFAULT", CeilometerProxyContainerImage),
+		KSMContainerImageURL:          util.GetEnvVar("RELATED_IMAGE_KSM_IMAGE_URL_DEFAULT", KubeStateMetricsImage),
 	}
 
 	SetupCeilometerDefaults(ceilometerDefaults)

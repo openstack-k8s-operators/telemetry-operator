@@ -21,10 +21,10 @@ const (
 	KSMServiceName = "kube-state-metrics"
 
 	// KSMHealthPort -
-	KSMHealthPort = 8080
+	KSMHealthPort = 8081
 
 	// KSMMetricsPort -
-	KSMMetricsPort = 8081
+	KSMMetricsPort = 8080
 )
 
 // KSMReplicas -

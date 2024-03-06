@@ -31,7 +31,7 @@ import (
 
 // KSMDeployment requests Deployment of kube-state-metrics
 func KSMDeployment(
-	instance *telemetryv1.Availability,
+	instance *telemetryv1.Ceilometer,
 	labels map[string]string,
 ) (*appsv1.Deployment, error) {
 
