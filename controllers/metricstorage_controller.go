@@ -152,6 +152,8 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			condition.UnknownCondition(telemetryv1.ScrapeConfigReadyCondition, condition.InitReason, telemetryv1.ScrapeConfigReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.NodeSetReadyCondition, condition.InitReason, telemetryv1.NodeSetReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.InitReason, telemetryv1.DashboardPrometheusRuleReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.DashboardDefinitionReadyCondition, condition.InitReason, telemetryv1.DashboardDefinitionReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -442,12 +444,13 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	})
 	if err != nil {
 		Log.Error(err, "Failed to update Console UI Datasource ConfigMap %s - operation: %s", datasourceCM.Name, string(op))
-		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardPrometheusRuleReadyCondition,
+		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDatasourceReadyCondition,
 			condition.Reason("Can't create Console UI Datasource ConfigMap"),
 			condition.SeverityError,
-			telemetryv1.DashboardPrometheusRuleUnableToOwnMessage, err)
+			telemetryv1.DashboardDatasourceFailedMessage, err)
 	} else {
 		dataSourceSuccess = true
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, condition.ReadyMessage)
 	}
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("Console UI Datasource ConfigMap %s successfully changed - operation: %s", datasourceCM.Name, string(op)))
@@ -475,7 +478,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			})
 			if err != nil {
 				Log.Error(err, "Failed to update Dashboard ConfigMap %s - operation: %s", dashboardCM.Name, string(op))
-				return ctrl.Result{}, err
+				instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
+					condition.Reason("Can't create Console UI Dashboard ConfigMap"),
+					condition.SeverityError,
+					telemetryv1.DashboardDefinitionFailedMessage, err)
+			} else {
+				instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, condition.ReadyMessage)
 			}
 			if op != controllerutil.OperationResultNone {
 				Log.Info(fmt.Sprintf("Dashboard ConfigMap %s successfully changed - operation: %s", dashboardCM.Name, string(op)))

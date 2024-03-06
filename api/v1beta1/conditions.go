@@ -49,6 +49,10 @@ const (
 	LoggingReadyCondition condition.Type = "LoggingReady"
 
 	DashboardPrometheusRuleReadyCondition condition.Type = "DashboardPrometheusRuleReady"
+
+	DashboardDatasourceReadyCondition condition.Type = "DashboardDatasourceReady"
+
+	DashboardDefinitionReadyCondition condition.Type = "DashboardDefinitionReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -175,4 +179,11 @@ const (
 
 	DashboardPrometheusRuleReadyInitMessage = "Dashboard PrometheusRule not started"
 	DashboardPrometheusRuleUnableToOwnMessage = "Error occured when trying to own %s"
+
+	DashboardDatasourceReadyInitMessage = "Dashboard Datasource not started"
+	DashboardDatasourceFailedMessage = "Error occured when trying to install the dashboard datasource: %s"
+
+	DashboardDefinitionReadyInitMessage = "Dashboard Definition not started"
+	DashboardDefinitionFailedMessage = "Error occured when trying to install the dashboard definitions: %s"
+
 )
