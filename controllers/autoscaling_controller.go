@@ -27,14 +27,17 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	logr "github.com/go-logr/logr"
@@ -46,6 +49,7 @@ import (
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
+	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
@@ -179,6 +183,7 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			// right now we have no dedicated KeystoneServiceReadyInitMessage
 			condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
 			condition.UnknownCondition(condition.KeystoneEndpointReadyCondition, condition.InitReason, ""),
+			condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -199,6 +204,25 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Handle non-deleted clusters
 	return r.reconcileNormal(ctx, instance, helper)
 }
+
+// fields to index to reconcile when change
+const (
+	autoscalingPasswordSecretField     = ".spec.secret"
+	autoscalingCaBundleSecretNameField = ".spec.tls.caBundleSecretName"
+	autoscalingTlsAPIInternalField     = ".spec.tls.api.internal.secretName"
+	autoscalingTlsAPIPublicField       = ".spec.tls.api.public.secretName"
+	autoscalingTlsField                = ".spec.tls.secretName"
+)
+
+var (
+	autoscalingAllWatchFields = []string{
+		autoscalingPasswordSecretField,
+		autoscalingCaBundleSecretNameField,
+		autoscalingTlsAPIInternalField,
+		autoscalingTlsAPIPublicField,
+		autoscalingTlsField,
+	}
+)
 
 func (r *AutoscalingReconciler) reconcileDelete(
 	ctx context.Context,
@@ -537,6 +561,20 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 			autoscaling.DatabaseName),
 	}
 
+	httpdVhostConfig := map[string]interface{}{}
+	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
+		endptConfig := map[string]interface{}{}
+		endptConfig["ServerName"] = fmt.Sprintf("%s-%s.%s.svc", autoscaling.ServiceName, endpt.String(), instance.Namespace)
+		endptConfig["TLS"] = false // default TLS to false, and set it bellow to true if enabled
+		if instance.Spec.Aodh.TLS.API.Enabled(endpt) {
+			endptConfig["TLS"] = true
+			endptConfig["SSLCertificateFile"] = fmt.Sprintf("/etc/pki/tls/certs/%s.crt", endpt.String())
+			endptConfig["SSLCertificateKeyFile"] = fmt.Sprintf("/etc/pki/tls/private/%s.key", endpt.String())
+		}
+		httpdVhostConfig[endpt.String()] = endptConfig
+	}
+	templateParameters["VHosts"] = httpdVhostConfig
+
 	cms := []util.Template{
 		// ScriptsSecret
 		{
@@ -718,6 +756,42 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		}
 		return nil
 	}
+	// index autoscalingCaBundleSecretNameField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingCaBundleSecretNameField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Autoscaling)
+		if cr.Spec.Aodh.TLS.CaBundleSecretName == "" {
+			return nil
+		}
+		return []string{cr.Spec.Aodh.TLS.CaBundleSecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index autoscalingTlsAPIInternalField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingTlsAPIInternalField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Autoscaling)
+		if cr.Spec.Aodh.TLS.API.Internal.SecretName == nil {
+			return nil
+		}
+		return []string{*cr.Spec.Aodh.TLS.API.Internal.SecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index autoscalingTlsAPIPublicField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingTlsAPIPublicField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Autoscaling)
+		if cr.Spec.Aodh.TLS.API.Public.SecretName == nil {
+			return nil
+		}
+		return []string{*cr.Spec.Aodh.TLS.API.Public.SecretName}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Autoscaling{}).
 		Owns(&appsv1.StatefulSet{}).
@@ -737,5 +811,43 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
 		Watches(&memcachedv1.Memcached{},
 			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
+		Watches(
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Complete(r)
+}
+
+func (r *AutoscalingReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	l := log.FromContext(context.Background()).WithName("Controllers").WithName("Autoscaling")
+
+	for _, field := range autoscalingAllWatchFields {
+		crList := &telemetryv1.AutoscalingList{}
+		listOps := &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
+			Namespace:     src.GetNamespace(),
+		}
+		err := r.Client.List(context.TODO(), crList, listOps)
+		if err != nil {
+			return []reconcile.Request{}
+		}
+
+		for _, item := range crList.Items {
+			l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+
+			requests = append(requests,
+				reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      item.GetName(),
+						Namespace: item.GetNamespace(),
+					},
+				},
+			)
+		}
+	}
+
+	return requests
 }

@@ -38,7 +38,6 @@ type TelemetryDefaults struct {
 	AodhEvaluatorContainerImageURL string
 	AodhNotifierContainerImageURL  string
 	AodhListenerContainerImageURL  string
-	AodhInitContainerImageURL      string
 }
 
 var telemetryDefaults TelemetryDefaults
@@ -99,6 +98,11 @@ func (spec *TelemetrySpec) Default() {
 	if spec.Autoscaling.AutoscalingSpec.Aodh.ListenerImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.ListenerImage = telemetryDefaults.AodhListenerContainerImageURL
 	}
+}
+
+// Default - set defaults for this Telemetry spec core
+func (spec *TelemetrySpecCore) Default() {
+	// nothing here yet
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

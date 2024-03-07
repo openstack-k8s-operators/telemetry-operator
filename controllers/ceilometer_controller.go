@@ -565,11 +565,11 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 	ceilometerPasswordSecret, _, _ := secret.GetSecret(ctx, h, instance.Spec.Secret, instance.Namespace)
 
 	templateParameters := map[string]interface{}{
-		"KeystoneInternalURL":           keystoneInternalURL,
-		"TransportURL":                  string(transportURLSecret.Data["transport_url"]),
-		"CeilometerPassword":            string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
-		"ceilometer_compute_image":      instance.Spec.ComputeImage,
-		"ceilometer_ipmi_image":         instance.Spec.IpmiImage,
+		"KeystoneInternalURL":      keystoneInternalURL,
+		"TransportURL":             string(transportURLSecret.Data["transport_url"]),
+		"CeilometerPassword":       string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
+		"ceilometer_compute_image": instance.Spec.ComputeImage,
+		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
 	}
 
 	cms := []util.Template{
