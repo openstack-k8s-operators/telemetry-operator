@@ -33,8 +33,10 @@ func (in *APIOverrideSpec) DeepCopyInto(out *APIOverrideSpec) {
 	*out = *in
 	if in.Service != nil {
 		in, out := &in.Service, &out.Service
-		*out = new(service.RoutedOverrideSpec)
-		(*in).DeepCopyInto(*out)
+		*out = make(map[service.Endpoint]service.RoutedOverrideSpec, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
 	}
 }
 

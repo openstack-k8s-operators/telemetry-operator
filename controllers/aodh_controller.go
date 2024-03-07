@@ -329,16 +329,20 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 
 	apiEndpoints := make(map[string]string)
 
+	if instance.Spec.Aodh.Override.Service == nil {
+		instance.Spec.Aodh.Override.Service = make(map[service.Endpoint]service.RoutedOverrideSpec)
+	}
+
 	for endpointType, data := range aodhEndpoints {
 		endpointTypeStr := string(endpointType)
 		endpointName := autoscaling.ServiceName + "-" + endpointTypeStr
-		svcOverride := instance.Spec.Aodh.Override.Service
-		if svcOverride == nil {
-			svcOverride = &service.RoutedOverrideSpec{}
-		}
+
+		svcOverride := instance.Spec.Aodh.Override.Service[endpointType]
 		if svcOverride.EmbeddedLabelsAnnotations == nil {
 			svcOverride.EmbeddedLabelsAnnotations = &service.EmbeddedLabelsAnnotations{}
 		}
+
+		instance.Spec.Aodh.Override.Service[endpointType] = svcOverride
 
 		exportLabels := util.MergeStringMaps(
 			serviceLabels,
