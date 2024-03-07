@@ -25,12 +25,6 @@
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
           changeRefspec: "master"
 
-- project-template:
-    name: rdo-telemetry-tempest-plugin-jobs
-    openstack-experimental:
-      jobs:
-        - noop
-
 - job:
     name: telemetry-operator-check-telemetry-tempest-master
     #parent: telemetry-operator-multinode-autoscaling-tempest
@@ -48,6 +42,12 @@
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
           changeRefspec: "refs/changes/{{ change_item.change[-2:] }}/{{ change_item.change }}/{{ change_item.patchset }}"
+
+- project-template:
+    name: rdo-telemetry-tempest-plugin-jobs
+    openstack-experimental:
+      jobs:
+        - noop
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
