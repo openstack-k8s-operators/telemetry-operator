@@ -381,116 +381,117 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 
-	// Deploy PrometheusRule for dashboards
-	err = r.ensureWatches(ctx, "prometheusrules.monitoring.rhobs", &monv1.PrometheusRule{}, eventHandler)
-	if err != nil {
-		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardPrometheusRuleReadyCondition,
-			condition.Reason("Can't own PrometheusRule resource"),
-			condition.SeverityError,
-			telemetryv1.DashboardPrometheusRuleUnableToOwnMessage, err)
-		Log.Info("Can't own PrometheusRule resource")
-		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
-	}
-	prometheusRule := &monv1.PrometheusRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
-			Namespace: instance.Namespace,
-		},
-	}
-	op, err = controllerutil.CreateOrPatch(ctx, r.Client, prometheusRule, func() error {
-		ruleLabels := map[string]string{
-			common.AppSelector: telemetryv1.DefaultServiceName,
+	if instance.Spec.MonitoringStack.DashboardsEnabled {
+		// Deploy PrometheusRule for dashboards
+		err = r.ensureWatches(ctx, "prometheusrules.monitoring.rhobs", &monv1.PrometheusRule{}, eventHandler)
+		if err != nil {
+			instance.Status.Conditions.MarkFalse(telemetryv1.DashboardPrometheusRuleReadyCondition,
+				condition.Reason("Can't own PrometheusRule resource"),
+				condition.SeverityError,
+				telemetryv1.DashboardPrometheusRuleUnableToOwnMessage, err)
+			Log.Info("Can't own PrometheusRule resource")
+			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 		}
-		desiredPrometheusRule := metricstorage.DashboardPrometheusRule(instance, serviceLabels, ruleLabels)
-		desiredPrometheusRule.Spec.DeepCopyInto(&prometheusRule.Spec)
-		prometheusRule.ObjectMeta.Labels = desiredPrometheusRule.ObjectMeta.Labels
-		err = controllerutil.SetControllerReference(instance, prometheusRule, r.Scheme)
-		return err
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("Prometheus Rules %s successfully changed - operation: %s", prometheusRule.Name, string(op)))
-	}
-	instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.ReadyMessage)
-
-	// Deploy Configmap for Console UI Datasource
-	datasourceName := instance.Namespace + "-" + instance.Name + "-datasource"
-	datasourceCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      datasourceName,
-			Namespace: "console-dashboards",
-		},
-	}
-	dataSourceSuccess := false
-	op, err = controllerutil.CreateOrPatch(ctx, r.Client, datasourceCM, func() error {
-		datasourceCM.ObjectMeta.Labels = map[string]string{
-			"console.openshift.io/dashboard-datasource": "true",
+		prometheusRule := &monv1.PrometheusRule{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
+			},
 		}
-		datasourceCM.Data = map[string]string{
-			// WARNING: The lines below MUST be indented with spaces instead of tabs
-			"dashboard-datasource.yaml": `
-                kind: "Datasource"
-                metadata:
-                    name: "` + datasourceName + `"
-                spec:
-                    plugin:
-                        kind: "PrometheusDatasource"
-                        spec:
-                            direct_url: "http://prometheus-operated.` + instance.Namespace + ".svc.cluster.local:9090\"",
-		}
-		return nil
-	})
-	if err != nil {
-		Log.Error(err, "Failed to update Console UI Datasource ConfigMap %s - operation: %s", datasourceCM.Name, string(op))
-		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDatasourceReadyCondition,
-			condition.Reason("Can't create Console UI Datasource ConfigMap"),
-			condition.SeverityError,
-			telemetryv1.DashboardDatasourceFailedMessage, err)
-	} else {
-		dataSourceSuccess = true
-		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, condition.ReadyMessage)
-	}
-	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("Console UI Datasource ConfigMap %s successfully changed - operation: %s", datasourceCM.Name, string(op)))
-	}
-
-	// Deploy ConfigMaps for dashboards
-	// NOTE: Dashboards installed without the custom datasource will default to the openshift-monitoring prometheus causing unexpected results
-	if dataSourceSuccess {
-		dashboardCMs := map[string]*corev1.ConfigMap{
-			"grafana-dashboard-openstack-cloud": dashboards.OpenstackCloud(datasourceName),
-			"grafana-dashboard-openstack-node":  dashboards.OpenstackNode(datasourceName),
-		}
-
-		for dashboardName, desiredCM := range dashboardCMs {
-			dashboardCM := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      dashboardName,
-					Namespace: "openshift-config-managed",
-				},
+		op, err = controllerutil.CreateOrPatch(ctx, r.Client, prometheusRule, func() error {
+			ruleLabels := map[string]string{
+				common.AppSelector: telemetryv1.DefaultServiceName,
 			}
-			op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboardCM, func() error {
-				dashboardCM.ObjectMeta.Labels = desiredCM.ObjectMeta.Labels
-				dashboardCM.Data = desiredCM.Data
-				return nil
-			})
-			if err != nil {
-				Log.Error(err, "Failed to update Dashboard ConfigMap %s - operation: %s", dashboardCM.Name, string(op))
-				instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
-					condition.Reason("Can't create Console UI Dashboard ConfigMap"),
-					condition.SeverityError,
-					telemetryv1.DashboardDefinitionFailedMessage, err)
-			} else {
-				instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, condition.ReadyMessage)
+			desiredPrometheusRule := metricstorage.DashboardPrometheusRule(instance, serviceLabels, ruleLabels)
+			desiredPrometheusRule.Spec.DeepCopyInto(&prometheusRule.Spec)
+			prometheusRule.ObjectMeta.Labels = desiredPrometheusRule.ObjectMeta.Labels
+			err = controllerutil.SetControllerReference(instance, prometheusRule, r.Scheme)
+			return err
+		})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("Prometheus Rules %s successfully changed - operation: %s", prometheusRule.Name, string(op)))
+		}
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.ReadyMessage)
+
+		// Deploy Configmap for Console UI Datasource
+		datasourceName := instance.Namespace + "-" + instance.Name + "-datasource"
+		datasourceCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      datasourceName,
+				Namespace: "console-dashboards",
+			},
+		}
+		dataSourceSuccess := false
+		op, err = controllerutil.CreateOrPatch(ctx, r.Client, datasourceCM, func() error {
+			datasourceCM.ObjectMeta.Labels = map[string]string{
+				"console.openshift.io/dashboard-datasource": "true",
 			}
-			if op != controllerutil.OperationResultNone {
-				Log.Info(fmt.Sprintf("Dashboard ConfigMap %s successfully changed - operation: %s", dashboardCM.Name, string(op)))
+			datasourceCM.Data = map[string]string{
+				// WARNING: The lines below MUST be indented with spaces instead of tabs
+				"dashboard-datasource.yaml": `
+                    kind: "Datasource"
+                    metadata:
+                        name: "` + datasourceName + `"
+                    spec:
+                        plugin:
+                            kind: "PrometheusDatasource"
+                            spec:
+                                direct_url: "http://prometheus-operated.` + instance.Namespace + ".svc.cluster.local:9090\"",
+			}
+			return nil
+		})
+		if err != nil {
+			Log.Error(err, "Failed to update Console UI Datasource ConfigMap %s - operation: %s", datasourceCM.Name, string(op))
+			instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDatasourceReadyCondition,
+				condition.Reason("Can't create Console UI Datasource ConfigMap"),
+				condition.SeverityError,
+				telemetryv1.DashboardDatasourceFailedMessage, err)
+		} else {
+			dataSourceSuccess = true
+			instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, condition.ReadyMessage)
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("Console UI Datasource ConfigMap %s successfully changed - operation: %s", datasourceCM.Name, string(op)))
+		}
+
+		// Deploy ConfigMaps for dashboards
+		// NOTE: Dashboards installed without the custom datasource will default to the openshift-monitoring prometheus causing unexpected results
+		if dataSourceSuccess {
+			dashboardCMs := map[string]*corev1.ConfigMap{
+				"grafana-dashboard-openstack-cloud": dashboards.OpenstackCloud(datasourceName),
+				"grafana-dashboard-openstack-node":  dashboards.OpenstackNode(datasourceName),
+			}
+
+			for dashboardName, desiredCM := range dashboardCMs {
+				dashboardCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      dashboardName,
+						Namespace: "openshift-config-managed",
+					},
+				}
+				op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboardCM, func() error {
+					dashboardCM.ObjectMeta.Labels = desiredCM.ObjectMeta.Labels
+					dashboardCM.Data = desiredCM.Data
+					return nil
+				})
+				if err != nil {
+					Log.Error(err, "Failed to update Dashboard ConfigMap %s - operation: %s", dashboardCM.Name, string(op))
+					instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
+						condition.Reason("Can't create Console UI Dashboard ConfigMap"),
+						condition.SeverityError,
+						telemetryv1.DashboardDefinitionFailedMessage, err)
+				} else {
+					instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, condition.ReadyMessage)
+				}
+				if op != controllerutil.OperationResultNone {
+					Log.Info(fmt.Sprintf("Dashboard ConfigMap %s successfully changed - operation: %s", dashboardCM.Name, string(op)))
+				}
 			}
 		}
 	}
-
 	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }

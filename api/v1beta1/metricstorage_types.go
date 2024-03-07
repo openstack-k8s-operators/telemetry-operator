@@ -66,6 +66,11 @@ type MonitoringStack struct {
 	// +kubebuilder:default=true
 	AlertingEnabled bool `json:"alertingEnabled"`
 
+	// DashboardsEnabled allows to enable or disable dashboards and related artifacts
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	DashboardsEnabled bool `json:"dashboardsEnabled"`
+
 	// ScrapeInterval sets the interval between scrapes
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="30s"

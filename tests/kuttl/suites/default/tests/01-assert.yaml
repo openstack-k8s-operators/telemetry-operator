@@ -291,13 +291,3 @@ status:
   readyReplicas: 1
   replicas: 1
 ---
-apiVersion: monitoring.rhobs/v1
-kind: PrometheusRule
-metadata:
-  labels:
-    service: metricStorage
-  name: metric-storage
-spec:
-  groups:
-  - name: osp-node-exporter-dashboard.rules
----
