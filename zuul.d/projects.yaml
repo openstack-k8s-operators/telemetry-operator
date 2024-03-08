@@ -27,8 +27,8 @@
 
 - job:
     name: telemetry-operator-check-telemetry-tempest-master
-    #parent: telemetry-operator-multinode-autoscaling-tempest
-    parent: base-minimal
+    parent: telemetry-operator-multinode-autoscaling-tempest
+    #parent: base-minimal
     description: |
       This job runs on changes to telemetry-tempest-plugin and
       configures the external plugin for test_operator based on the
@@ -37,7 +37,7 @@
       - name: openstack-k8s-operators/telemetry-operator
         override-checkout: main
       - name: openstack/telemetry-tempest-plugin
-    run:
+    pre-run:
       - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
     vars:
       external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
@@ -53,8 +53,8 @@
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
-    #templates:
-    #  - podified-multinode-edpm-pipeline
+    templates:
+      - podified-multinode-edpm-pipeline
     github-check:
       jobs:
         - telemetry-operator-check-telemetry-tempest-master
