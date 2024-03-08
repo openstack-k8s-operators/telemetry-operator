@@ -381,7 +381,11 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 
-	if instance.Spec.MonitoringStack.DashboardsEnabled {
+	if !instance.Spec.MonitoringStack.DashboardsEnabled {
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
+	} else {
 		// Deploy PrometheusRule for dashboards
 		err = r.ensureWatches(ctx, "prometheusrules.monitoring.rhobs", &monv1.PrometheusRule{}, eventHandler)
 		if err != nil {

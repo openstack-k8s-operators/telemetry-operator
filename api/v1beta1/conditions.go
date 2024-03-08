@@ -177,6 +177,8 @@ const (
 	// LoggingReadyRunningMessage
 	LoggingReadyRunningMessage = "Logging in progress"
 
+	DashboardsNotEnabledMessage = "Dashboarding was not enabled, so no actions required"
+
 	DashboardPrometheusRuleReadyInitMessage = "Dashboard PrometheusRule not started"
 	DashboardPrometheusRuleUnableToOwnMessage = "Error occured when trying to own %s"
 
