@@ -36,11 +36,6 @@ type PasswordsSelector struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=AodhPassword
 	AodhService string `json:"aodhService"`
-
-	// Database - Selector to get the aodh database user password from the Secret
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=AodhDatabasePassword
-	Database string `json:"database"`
 }
 
 // TelemetrySpec defines the desired state of Telemetry

@@ -436,12 +436,19 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
 	}
 
+	db, result, err := r.ensureDB(ctx, helper, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	} else if (result != ctrl.Result{}) {
+		return result, nil
+	}
+
 	//
 	// create secret required for autoscaling input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
 	// - %-config configmap holding minimal autoscaling config required to get the service up, user can add additional files to be added to the service
 	//
-	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars, memcached)
+	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars, memcached, db)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -518,6 +525,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	instance *telemetryv1.Autoscaling,
 	envVars *map[string]env.Setter,
 	mc *memcachedv1.Memcached,
+	db *mariadbv1.Database,
 ) error {
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(autoscaling.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.Aodh.CustomServiceConfig}
@@ -545,6 +553,9 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		return err
 	}
 
+	databaseAccount := db.GetAccount()
+	databaseSecret := db.GetSecret()
+
 	templateParameters := map[string]interface{}{
 		"AodhUser":                 instance.Spec.Aodh.ServiceUser,
 		"AodhPassword":             string(ospSecret.Data[instance.Spec.Aodh.PasswordSelectors.AodhService]),
@@ -555,8 +566,8 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		"MemcachedServers":         strings.Join(mc.Status.ServerList, ","),
 		"MemcachedServersWithInet": strings.Join(mc.Status.ServerListWithInet, ","),
 		"DatabaseConnection": fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s",
-			instance.Spec.Aodh.DatabaseUser,
-			string(ospSecret.Data[instance.Spec.Aodh.PasswordSelectors.Database]),
+			databaseAccount.Spec.UserName,
+			string(databaseSecret.Data[mariadbv1.DatabasePasswordSelector]),
 			instance.Status.DatabaseHostname,
 			autoscaling.DatabaseName),
 	}
