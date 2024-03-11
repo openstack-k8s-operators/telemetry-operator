@@ -25,25 +25,25 @@
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
           changeRefspec: "master"
 
-- job:
-    name: telemetry-operator-check-telemetry-tempest-master
-    parent: telemetry-operator-multinode-autoscaling-tempest
-    #parent: base-minimal
-    description: |
-      This job runs on changes to telemetry-tempest-plugin and
-      configures the external plugin for test_operator based on the
-      patch in depends-on.
-    required-projects:
-      - name: openstack-k8s-operators/telemetry-operator
-        override-checkout: main
-      - name: openstack/telemetry-tempest-plugin
-    pre-run:
-      - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
-    vars:
-      external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
-      change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
-      cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://opendev.org/openstack/telemetry-tempest-plugin.git',
-        'changeRepository': 'https://review.opendev.org/openstack/telemetry-tempest-plugin', 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
+#- job:
+#    name: telemetry-operator-check-telemetry-tempest-master
+#    parent: telemetry-operator-multinode-autoscaling-tempest
+#    #parent: base-minimal
+#    description: |
+#      This job runs on changes to telemetry-tempest-plugin and
+#      configures the external plugin for test_operator based on the
+#      patch in depends-on.
+#    required-projects:
+#      - name: openstack-k8s-operators/telemetry-operator
+#        override-checkout: main
+#      - name: openstack/telemetry-tempest-plugin
+#    pre-run:
+#      - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
+#    vars:
+#      external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
+#      change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
+#      cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://opendev.org/openstack/telemetry-tempest-plugin.git',
+#        'changeRepository': 'https://review.opendev.org/openstack/telemetry-tempest-plugin', 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
 
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
@@ -57,5 +57,12 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
-        - telemetry-operator-check-telemetry-tempest-master
-        #- telemetry-operator-multinode-autoscaling-tempest
+        #- telemetry-operator-check-telemetry-tempest-master
+        - telemetry-operator-multinode-autoscaling-tempest:
+            pre-run:
+              - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
+            vars:
+              external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
+              change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
+              cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://opendev.org/openstack/telemetry-tempest-plugin.git',
+        'changeRepository': 'https://review.opendev.org/openstack/telemetry-tempest-plugin', 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
