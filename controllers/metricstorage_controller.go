@@ -52,6 +52,7 @@ import (
 	dataplanev1 "github.com/openstack-k8s-operators/dataplane-operator/api/v1beta1"
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	availability "github.com/openstack-k8s-operators/telemetry-operator/pkg/availability"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/dashboards"
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
@@ -271,7 +272,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.MonitoringStackReadyCondition, condition.ReadyMessage)
 	}
 
-	// Deploy ServiceMonitor for ceilometer monitoring
+	// Deploy ServiceMonitor for ceilometer and kube-state-metrics monitoring
 	err = r.ensureWatches(ctx, "servicemonitors.monitoring.rhobs", &monv1.ServiceMonitor{}, eventHandler)
 
 	if err != nil {
@@ -303,6 +304,29 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("Ceilometer ServiceMonitor %s successfully changed - operation: %s", ceilometerMonitor.Name, string(op)))
+	}
+
+	ksmMonitor := &monv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instance.Name,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, ksmMonitor, func() error {
+		ksmLabels := map[string]string{
+			common.AppSelector: availability.KSMServiceName,
+		}
+		desiredKSMMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, ksmLabels)
+		desiredKSMMonitor.Spec.DeepCopyInto(&ksmMonitor.Spec)
+		ksmMonitor.ObjectMeta.Labels = desiredKSMMonitor.ObjectMeta.Labels
+		err = controllerutil.SetControllerReference(instance, ksmMonitor, r.Scheme)
+		return err
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("KSM ServiceMonitor %s successfully changed - operation: %s", ksmMonitor.Name, string(op)))
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ServiceMonitorReadyCondition, condition.ReadyMessage)
 	// Deploy ScrapeConfig for NodeExporter monitoring
