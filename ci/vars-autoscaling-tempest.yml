@@ -13,6 +13,7 @@ cifmw_tempest_tempestconf_config:
       service_available.sg_core true
       service_available.aodh true
       service_available.heat true
+      service_available.heat_plugin true
       telemetry.sg_core_service_url "ceilometer.openstack.svc.cluster.local:3000"
       telemetry.prometheus_service_url "metric-storage-prometheus.openstack.svc.cluster.local:9090"
       telemetry_services.metric_backends "prometheus"
