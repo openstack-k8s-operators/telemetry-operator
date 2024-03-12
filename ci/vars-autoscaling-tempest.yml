@@ -12,9 +12,11 @@ cifmw_tempest_tempestconf_config:
       service_available.ceilometer true
       service_available.sg_core true
       service_available.aodh true
+      service_available.heat true
       telemetry.sg_core_service_url "ceilometer.openstack.svc.cluster.local:3000"
+      telemetry.prometheus_service_url "metric-storage-prometheus.openstack.svc.cluster.local:9090"
+      telemetry_services.metric_backends "prometheus"
 cifmw_test_operator_tempest_include_list: |
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh
-cifmw_test_operator_tempest_exclude_list: |
-  telemetry_tempest_plugin.scenario.test_telemetry_integration_prometheus.PrometheusGabbiTest.test_ceilometer_sg_core_integration
+cifmw_test_operator_tempest_exclude_list: ''
