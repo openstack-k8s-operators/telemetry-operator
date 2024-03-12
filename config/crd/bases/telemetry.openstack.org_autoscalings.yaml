@@ -48,15 +48,15 @@ spec:
                       content gets added to to /etc/<service>/<service>.conf.d directory
                       as custom.conf file.
                     type: string
+                  databaseAccount:
+                    default: aodh
+                    description: DatabaseAccount - optional MariaDBAccount CR name
+                      used for aodh DB, defaults to aodh
+                    type: string
                   databaseInstance:
                     description: MariaDB instance name Right now required by the maridb-operator
                       to get the credentials from the instance to create the DB Might
                       not be required in future
-                    type: string
-                  databaseUser:
-                    default: aodh
-                    description: Database user name Needed to connect to a database
-                      used by aodh
                     type: string
                   defaultConfigOverwrite:
                     additionalProperties:
@@ -267,7 +267,6 @@ spec:
                   passwordSelector:
                     default:
                       aodhService: AodhPassword
-                      database: AodhDatabasePassword
                     description: PasswordSelectors - Selectors to identify the service
                       from the Secret
                     properties:
@@ -275,11 +274,6 @@ spec:
                         default: AodhPassword
                         description: AodhService - Selector to get the aodh service
                           password from the Secret
-                        type: string
-                      database:
-                        default: AodhDatabasePassword
-                        description: Database - Selector to get the aodh database
-                          user password from the Secret
                         type: string
                       service:
                         default: CeilometerPassword

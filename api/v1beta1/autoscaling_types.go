@@ -68,13 +68,13 @@ type AodhCore struct {
 	// Might not be required in future
 	DatabaseInstance string `json:"databaseInstance"`
 
-	// Database user name
-	// Needed to connect to a database used by aodh
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=aodh
-	DatabaseUser string `json:"databaseUser,omitempty"`
+	// DatabaseAccount - optional MariaDBAccount CR name used for aodh DB, defaults to aodh
+	DatabaseAccount string `json:"databaseAccount"`
 
 	// PasswordSelectors - Selectors to identify the service from the Secret
-	// +kubebuilder:default:={aodhService: AodhPassword, database: AodhDatabasePassword}
+	// +kubebuilder:default:={aodhService: AodhPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
 
 	// ServiceUser - optional username used for this service to register in keystone
