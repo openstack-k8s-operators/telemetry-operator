@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -346,7 +345,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	//
 	// Check for required memcached used for caching
 	//
-	memcached, err := r.getAutoscalingMemcached(ctx, helper, instance)
+	memcached, err := memcachedv1.GetMemcachedByName(ctx, helper, instance.Spec.Aodh.MemcachedInstance, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -573,8 +572,8 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		"TransportURL":             string(transportURLSecret.Data["transport_url"]),
 		"PrometheusHost":           instance.Status.PrometheusHost,
 		"PrometheusPort":           instance.Status.PrometheusPort,
-		"MemcachedServers":         strings.Join(mc.Status.ServerList, ","),
-		"MemcachedServersWithInet": strings.Join(mc.Status.ServerListWithInet, ","),
+		"MemcachedServers":         mc.GetMemcachedServerListString(),
+		"MemcachedServersWithInet": mc.GetMemcachedServerListWithInetString(),
 		"DatabaseConnection": fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
 			databaseAccount.Spec.UserName,
 			string(databaseSecret.Data[mariadbv1.DatabasePasswordSelector]),
@@ -618,26 +617,6 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		},
 	}
 	return secret.EnsureSecrets(ctx, h, instance, cms, envVars)
-}
-
-// getAutoscalingMemcached - gets the Memcached instance used for aodh cache backend
-func (r *AutoscalingReconciler) getAutoscalingMemcached(
-	ctx context.Context,
-	h *helper.Helper,
-	instance *telemetryv1.Autoscaling,
-) (*memcachedv1.Memcached, error) {
-	memcached := &memcachedv1.Memcached{}
-	err := h.GetClient().Get(
-		ctx,
-		types.NamespacedName{
-			Name:      instance.Spec.Aodh.MemcachedInstance,
-			Namespace: instance.Namespace,
-		},
-		memcached)
-	if err != nil {
-		return nil, err
-	}
-	return memcached, err
 }
 
 func (r *AutoscalingReconciler) getAutoscalingHeat(
