@@ -1025,6 +1025,11 @@ spec:
                     default: true
                     description: AlertingEnabled allows to enable or disable alertmanager
                     type: boolean
+                  dashboardsEnabled:
+                    default: false
+                    description: DashboardsEnabled allows to enable or disable dashboards
+                      and related artifacts
+                    type: boolean
                   dataplaneNetwork:
                     default: ctlplane
                     description: DataplaneNetwork defines the network that will be

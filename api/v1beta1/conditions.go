@@ -47,6 +47,12 @@ const (
 
 	// LoggingReadyCondition Status=True condition which indicates if the Logging is configured and operational
 	LoggingReadyCondition condition.Type = "LoggingReady"
+
+	DashboardPrometheusRuleReadyCondition condition.Type = "DashboardPrometheusRuleReady"
+
+	DashboardDatasourceReadyCondition condition.Type = "DashboardDatasourceReady"
+
+	DashboardDefinitionReadyCondition condition.Type = "DashboardDefinitionReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -170,4 +176,16 @@ const (
 
 	// LoggingReadyRunningMessage
 	LoggingReadyRunningMessage = "Logging in progress"
+
+	DashboardsNotEnabledMessage = "Dashboarding was not enabled, so no actions required"
+
+	DashboardPrometheusRuleReadyInitMessage = "Dashboard PrometheusRule not started"
+	DashboardPrometheusRuleUnableToOwnMessage = "Error occured when trying to own %s"
+
+	DashboardDatasourceReadyInitMessage = "Dashboard Datasource not started"
+	DashboardDatasourceFailedMessage = "Error occured when trying to install the dashboard datasource: %s"
+
+	DashboardDefinitionReadyInitMessage = "Dashboard Definition not started"
+	DashboardDefinitionFailedMessage = "Error occured when trying to install the dashboard definitions: %s"
+
 )

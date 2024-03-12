@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"regexp"
 
+	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,6 +53,7 @@ import (
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
+	"github.com/openstack-k8s-operators/telemetry-operator/pkg/dashboards"
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
@@ -79,6 +81,7 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=monitoringstacks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=scrapeconfigs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.rhobs,resources=prometheusrules,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=network.openstack.org,resources=ipsets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=dataplane.openstack.org,resources=openstackdataplanenodesets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=dataplane.openstack.org,resources=openstackdataplaneservices,verbs=get;list;watch
@@ -148,6 +151,9 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			condition.UnknownCondition(telemetryv1.ServiceMonitorReadyCondition, condition.InitReason, telemetryv1.ServiceMonitorReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.ScrapeConfigReadyCondition, condition.InitReason, telemetryv1.ScrapeConfigReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.NodeSetReadyCondition, condition.InitReason, telemetryv1.NodeSetReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.InitReason, telemetryv1.DashboardPrometheusRuleReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.DashboardDefinitionReadyCondition, condition.InitReason, telemetryv1.DashboardDefinitionReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -375,6 +381,121 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 
+	if !instance.Spec.MonitoringStack.DashboardsEnabled {
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
+	} else {
+		// Deploy PrometheusRule for dashboards
+		err = r.ensureWatches(ctx, "prometheusrules.monitoring.rhobs", &monv1.PrometheusRule{}, eventHandler)
+		if err != nil {
+			instance.Status.Conditions.MarkFalse(telemetryv1.DashboardPrometheusRuleReadyCondition,
+				condition.Reason("Can't own PrometheusRule resource"),
+				condition.SeverityError,
+				telemetryv1.DashboardPrometheusRuleUnableToOwnMessage, err)
+			Log.Info("Can't own PrometheusRule resource")
+			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+		}
+		prometheusRule := &monv1.PrometheusRule{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
+			},
+		}
+		op, err = controllerutil.CreateOrPatch(ctx, r.Client, prometheusRule, func() error {
+			ruleLabels := map[string]string{
+				common.AppSelector: telemetryv1.DefaultServiceName,
+			}
+			desiredPrometheusRule := metricstorage.DashboardPrometheusRule(instance, serviceLabels, ruleLabels)
+			desiredPrometheusRule.Spec.DeepCopyInto(&prometheusRule.Spec)
+			prometheusRule.ObjectMeta.Labels = desiredPrometheusRule.ObjectMeta.Labels
+			err = controllerutil.SetControllerReference(instance, prometheusRule, r.Scheme)
+			return err
+		})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("Prometheus Rules %s successfully changed - operation: %s", prometheusRule.Name, string(op)))
+		}
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.ReadyMessage)
+
+		// Deploy Configmap for Console UI Datasource
+		datasourceName := instance.Namespace + "-" + instance.Name + "-datasource"
+		datasourceCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      datasourceName,
+				Namespace: "console-dashboards",
+			},
+		}
+		dataSourceSuccess := false
+		op, err = controllerutil.CreateOrPatch(ctx, r.Client, datasourceCM, func() error {
+			datasourceCM.ObjectMeta.Labels = map[string]string{
+				"console.openshift.io/dashboard-datasource": "true",
+			}
+			datasourceCM.Data = map[string]string{
+				// WARNING: The lines below MUST be indented with spaces instead of tabs
+				"dashboard-datasource.yaml": `
+                    kind: "Datasource"
+                    metadata:
+                        name: "` + datasourceName + `"
+                    spec:
+                        plugin:
+                            kind: "PrometheusDatasource"
+                            spec:
+                                direct_url: "http://prometheus-operated.` + instance.Namespace + ".svc.cluster.local:9090\"",
+			}
+			return nil
+		})
+		if err != nil {
+			Log.Error(err, "Failed to update Console UI Datasource ConfigMap %s - operation: %s", datasourceCM.Name, string(op))
+			instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDatasourceReadyCondition,
+				condition.Reason("Can't create Console UI Datasource ConfigMap"),
+				condition.SeverityError,
+				telemetryv1.DashboardDatasourceFailedMessage, err)
+		} else {
+			dataSourceSuccess = true
+			instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, condition.ReadyMessage)
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("Console UI Datasource ConfigMap %s successfully changed - operation: %s", datasourceCM.Name, string(op)))
+		}
+
+		// Deploy ConfigMaps for dashboards
+		// NOTE: Dashboards installed without the custom datasource will default to the openshift-monitoring prometheus causing unexpected results
+		if dataSourceSuccess {
+			dashboardCMs := map[string]*corev1.ConfigMap{
+				"grafana-dashboard-openstack-cloud": dashboards.OpenstackCloud(datasourceName),
+				"grafana-dashboard-openstack-node":  dashboards.OpenstackNode(datasourceName),
+			}
+
+			for dashboardName, desiredCM := range dashboardCMs {
+				dashboardCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      dashboardName,
+						Namespace: "openshift-config-managed",
+					},
+				}
+				op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboardCM, func() error {
+					dashboardCM.ObjectMeta.Labels = desiredCM.ObjectMeta.Labels
+					dashboardCM.Data = desiredCM.Data
+					return nil
+				})
+				if err != nil {
+					Log.Error(err, "Failed to update Dashboard ConfigMap %s - operation: %s", dashboardCM.Name, string(op))
+					instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
+						condition.Reason("Can't create Console UI Dashboard ConfigMap"),
+						condition.SeverityError,
+						telemetryv1.DashboardDefinitionFailedMessage, err)
+				} else {
+					instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, condition.ReadyMessage)
+				}
+				if op != controllerutil.OperationResultNone {
+					Log.Info(fmt.Sprintf("Dashboard ConfigMap %s successfully changed - operation: %s", dashboardCM.Name, string(op)))
+				}
+			}
+		}
+	}
 	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
@@ -547,6 +668,7 @@ func isValidDomain(domain string) bool {
 func (r *MetricStorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	control, err := ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.MetricStorage{}).
+		Owns(&monv1.PrometheusRule{}).
 		Build(r)
 	r.Controller = control
 	return err
