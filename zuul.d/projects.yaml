@@ -22,7 +22,7 @@
         # workaround(telemetry_tempest_plugin_release)
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-          changeRefspec: "refs/changes/56/909856/8"
+          changeRefspec: "refs/changes/56/909856/9"
 
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
