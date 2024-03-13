@@ -13,6 +13,9 @@
 - job:
     name: telemetry-operator-multinode-autoscaling-tempest
     parent: telemetry-operator-multinode-autoscaling
+    required-projects:
+      - openstack/heat-tempest-plugin
+      - openstack/heat
     vars:
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
@@ -22,7 +25,7 @@
         # workaround(telemetry_tempest_plugin_release)
         - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
           changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-          changeRefspec: "refs/changes/56/909856/8"
+          changeRefspec: "refs/changes/23/912723/1"
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
