@@ -15,7 +15,6 @@
     parent: telemetry-operator-multinode-autoscaling
     required-projects:
       - openstack/heat-tempest-plugin
-      - openstack/heat
     vars:
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
