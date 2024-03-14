@@ -83,8 +83,8 @@ github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.2024030820124
 github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.20240308201241-e6f2d26d41c4/go.mod h1:BLrhsqzkrA8+7ztKBBmBUcJOBthZZcw9UTZs16YrSgk=
 github.com/openstack-k8s-operators/heat-operator/api v0.3.1-0.20240307055016-f66e43861199 h1:w+bFX+oyK7h7bfa2yF1adoffcpb3ZXMRhZjwzd0Z2sE=
 github.com/openstack-k8s-operators/heat-operator/api v0.3.1-0.20240307055016-f66e43861199/go.mod h1:63UcRnUoHAyeXwUJa/6tmphZf4ScoY2+s7ItDV+m3BQ=
-github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240310120756-8b35d05cd24e h1:uHfadgXmCKYwLpLdlV4GRDsnfI5dD13BRUniQsfl8EA=
-github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240310120756-8b35d05cd24e/go.mod h1:qKuzDDDMlAmJn4JWPoUeBEzpAia7J17++hhzR0oPv88=
+github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240312175130-455be042c07f h1:2HYgZbbHngmqWad1Dyz7whg/fEmXtKny2O5HcreoBEc=
+github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240312175130-455be042c07f/go.mod h1:qKuzDDDMlAmJn4JWPoUeBEzpAia7J17++hhzR0oPv88=
 github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20240310093110-b4b2614f40ba h1:0wfKrQMGwjh/kKTH/UpZGKk91HrnReYieHFG73OC+Vg=
 github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20240310093110-b4b2614f40ba/go.mod h1:gB/IeXuvocAv0yNSf79U1lBHhbx6fdWUB501xFJ0l+A=
 github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240306153230-dc65ab49ebc0 h1:1Q/9F3SAKvLN9vX+YxwaEB0WvBekj9eakQPoQbI1K6w=
