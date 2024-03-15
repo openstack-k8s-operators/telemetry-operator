@@ -1,0 +1,6 @@
+---
+- hosts: all
+  tasks:
+    - name: show external plugin config
+      debug:
+        var: "{{ cifmw_test_operator_tempest_external_plugin | default('not defined') }}"

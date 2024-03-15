@@ -18,18 +18,28 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
+      external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
+      change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
       cifmw_test_operator_tempest_external_plugin:
         # workaround(telemetry_tempest_plugin_release)
         # NOTE: Until the telemetry-tempest-plugin repo is tagged and the new version is used in the tempest image, we need to manually install it as an external plugin to use the autoscaling tests.
-        - repository: "https://opendev.org/openstack/telemetry-tempest-plugin.git"
-          changeRepository: "https://review.opendev.org/openstack/telemetry-tempest-plugin"
-          changeRefspec: "master"
+        - repository: "https://{{ external_plugin }}.git"
+          changeRepository: "https://review.{{ external_plugin }}"
+          changeRefspec: "{{ 'master' if change_item | length < 1 else [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') }}"
+      # This value will be used when the telemetry-tempest-plugin is released, and we no longer need to install from the master branch
+      # cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + {{ external_plugin }}, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
 
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
       jobs:
-        - noop
+        - telemetry-operator-multinode-autoscaling-tempest:
+            pre-run:
+              - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
+            vars:
+              external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
+              change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
+              cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + {{ external_plugin }}, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
