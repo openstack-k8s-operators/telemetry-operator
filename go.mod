@@ -6,27 +6,27 @@ replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 
 require (
 	github.com/go-logr/logr v1.4.1
-	github.com/onsi/ginkgo/v2 v2.15.0
+	github.com/onsi/ginkgo/v2 v2.16.0
 	github.com/onsi/gomega v1.31.1
-	github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.20240308201241-e6f2d26d41c4
-	github.com/openstack-k8s-operators/heat-operator/api v0.3.1-0.20240307055016-f66e43861199
-	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240312175130-455be042c07f
-	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20240310093110-b4b2614f40ba
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240306153230-dc65ab49ebc0
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.3.1-0.20240308170012-6b04e3e9b9ee
+	github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.20240315071715-308b1a7103ed
+	github.com/openstack-k8s-operators/heat-operator/api v0.3.1-0.20240314023224-0eccb812f4bb
+	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240313161042-88282483a04f
+	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20240313143432-9108b7f7290a
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240314165949-fec16b14c33b
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.3.1-0.20240314113200-40cf3e6aa38e
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240216140901-d56c3aef3fb7
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.64.1-rhobs3
 	github.com/rhobs/observability-operator v0.0.20
 	k8s.io/api v0.28.7
 	k8s.io/apimachinery v0.28.7
 	k8s.io/client-go v0.28.7
-	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
+	k8s.io/utils v0.0.0-20240310230437-4693a0247e57
 	sigs.k8s.io/controller-runtime v0.16.5
 )
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cert-manager/cert-manager v1.13.4 // indirect
+	github.com/cert-manager/cert-manager v1.13.5 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.11.2 // indirect
@@ -50,15 +50,15 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/metal3-io/baremetal-operator/apis v0.5.0 // indirect
+	github.com/metal3-io/baremetal-operator/apis v0.5.1 // indirect
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.4.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.3.1-0.20240306153230-dc65ab49ebc0 // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.3.1-0.20240306153230-dc65ab49ebc0 // indirect
-	github.com/openstack-k8s-operators/openstack-baremetal-operator/api v0.3.1-0.20240306124145-51d0de73a123 // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.3.1-0.20240314165949-fec16b14c33b // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.3.1-0.20240314165949-fec16b14c33b // indirect
+	github.com/openstack-k8s-operators/openstack-baremetal-operator/api v0.3.1-0.20240315144007-c4efa711df03 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.18.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
@@ -77,7 +77,7 @@ require (
 	golang.org/x/tools v0.18.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/protobuf v1.32.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
