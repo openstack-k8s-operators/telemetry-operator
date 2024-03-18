@@ -43,7 +43,6 @@ import (
 	logr "github.com/go-logr/logr"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	deployment "github.com/openstack-k8s-operators/lib-common/modules/common/deployment"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
@@ -654,16 +653,13 @@ func (r *CeilometerReconciler) reconcileKSM(
 		common.AppSelector: availability.KSMServiceName,
 	}
 
-	deployDef, err := availability.KSMDeployment(instance, serviceLabels)
+	ssDef, err := availability.KSMStatefulSet(instance, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	deploy := deployment.NewDeployment(
-		deployDef,
-		time.Duration(5)*time.Second,
-	)
+	ss := statefulset.NewStatefulSet(ssDef, time.Duration(5)*time.Second)
 
-	ctrlResult, err = deploy.CreateOrPatch(ctx, helper)
+	ctrlResult, err = ss.CreateOrPatch(ctx, helper)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
@@ -681,12 +677,12 @@ func (r *CeilometerReconciler) reconcileKSM(
 		return ctrlResult, nil
 	}
 
-	err = controllerutil.SetControllerReference(instance, deployDef, r.Scheme)
+	err = controllerutil.SetControllerReference(instance, ssDef, r.Scheme)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	instance.Status.ReadyCount = deploy.GetDeployment().Status.ReadyReplicas
+	instance.Status.ReadyCount = ss.GetStatefulSet().Status.ReadyReplicas
 	if instance.Status.ReadyCount > 0 {
 		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
 	}

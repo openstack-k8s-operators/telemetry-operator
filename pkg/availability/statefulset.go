@@ -20,20 +20,21 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/utils/ptr"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
 
 // KSMDeployment requests Deployment of kube-state-metrics
-func KSMDeployment(
+func KSMStatefulSet(
 	instance *telemetryv1.Ceilometer,
 	labels map[string]string,
-) (*appsv1.Deployment, error) {
+) (*appsv1.StatefulSet, error) {
 
 	livenessProbe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
@@ -58,12 +59,12 @@ func KSMDeployment(
 	}
 
 	secCtx := &corev1.SecurityContext{
-		AllowPrivilegeEscalation: pointer.BoolPtr(false),
+		AllowPrivilegeEscalation: ptr.To(false),
 		Capabilities: &corev1.Capabilities{
 			Drop: []corev1.Capability{"ALL"},
 		},
-		ReadOnlyRootFilesystem: pointer.BoolPtr(true),
-		RunAsNonRoot:           pointer.BoolPtr(true),
+		ReadOnlyRootFilesystem: ptr.To(true),
+		RunAsNonRoot:           ptr.To(true),
 		SeccompProfile: &corev1.SeccompProfile{
 			Type: corev1.SeccompProfileTypeRuntimeDefault,
 		},
@@ -96,13 +97,13 @@ func KSMDeployment(
 	labels["app.kubernetes.io/name"] = KSMServiceName
 	labels["app.kubernetes.io/version"] = instance.Spec.KSMImage[strings.LastIndex(instance.Spec.KSMImage, ":")+1:]
 
-	deployment := &appsv1.Deployment{
+	ss := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      KSMServiceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
-		Spec: appsv1.DeploymentSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Replicas: &KSMReplicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -114,7 +115,7 @@ func KSMDeployment(
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					AutomountServiceAccountToken: pointer.BoolPtr(true),
+					AutomountServiceAccountToken: ptr.To(true),
 					ServiceAccountName:           KSMServiceName,
 					Containers:                   []corev1.Container{container},
 				},
@@ -122,5 +123,5 @@ func KSMDeployment(
 		},
 	}
 
-	return deployment, nil
+	return ss, nil
 }
