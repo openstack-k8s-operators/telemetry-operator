@@ -668,7 +668,6 @@ func isValidDomain(domain string) bool {
 func (r *MetricStorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	control, err := ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.MetricStorage{}).
-		Owns(&monv1.PrometheusRule{}).
 		Build(r)
 	r.Controller = control
 	return err
