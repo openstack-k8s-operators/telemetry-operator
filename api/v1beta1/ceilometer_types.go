@@ -34,6 +34,8 @@ const (
 	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
 	CeilometerIpmiContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
+	// KubeStateMetricsImage - default fall-back image for KSM
+	KubeStateMetricsImage = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0"
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
@@ -54,6 +56,9 @@ type CeilometerSpec struct {
 
 	// +kubebuilder:validation:Required
 	IpmiImage string `json:"ipmiImage"`
+
+	// +kubebuilder:validation:Required
+	KSMImage string `json:"ksmImage"`
 }
 
 // CeilometerSpecCore defines the desired state of Ceilometer. This version is used by the OpenStackControlplane (no image parameters)
@@ -163,6 +168,7 @@ func SetupDefaultsCeilometer() {
 		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
 		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
 		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
+		KSMImageURL:                   util.GetEnvVar("RELATED_IMAGE_KSM_IMAGE_URL_DEFAULT", KubeStateMetricsImage),
 	}
 
 	SetupCeilometerDefaults(ceilometerDefaults)
