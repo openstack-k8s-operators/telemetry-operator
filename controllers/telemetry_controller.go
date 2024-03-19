@@ -397,6 +397,9 @@ func reconcileMetricStorage(ctx context.Context, instance *telemetryv1.Telemetry
 			metricStorageInstance.Spec.MonitoringStack = &telemetryv1.MonitoringStack{}
 			instance.Spec.MetricStorage.MetricStorageSpec.MonitoringStack.DeepCopyInto(metricStorageInstance.Spec.MonitoringStack)
 		}
+		instance.Spec.MetricStorage.MetricStorageSpec.PrometheusTLS.DeepCopyInto(&metricStorageInstance.Spec.PrometheusTLS)
+		// TODO: Uncomment this line when implementing TLS for Alertmanager
+		//instance.Spec.MetricStorage.MetricStorageSpec.AlertmanagerTLS.DeepCopyInto(&metricStorageInstance.Spec.AlertmanagerTLS)
 
 		err := controllerutil.SetControllerReference(helper.GetBeforeObject(), metricStorageInstance, helper.GetScheme())
 		if err != nil {

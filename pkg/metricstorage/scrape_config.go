@@ -17,6 +17,9 @@ limitations under the License.
 package metricstorage
 
 import (
+	"fmt"
+
+	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,6 +35,7 @@ func ScrapeConfig(
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,
 	targets []string,
+	tlsEnabled bool,
 ) *unstructured.Unstructured {
 	var scrapeInterval string
 	if instance.Spec.MonitoringStack != nil && instance.Spec.MonitoringStack.ScrapeInterval != "" {
@@ -42,16 +46,30 @@ func ScrapeConfig(
 	} else {
 		scrapeInterval = telemetryv1.DefaultScrapeInterval
 	}
-	scrapeConfig := &unstructured.Unstructured{}
-	scrapeConfig.SetUnstructuredContent(map[string]interface{}{
-		"spec": map[string]interface{}{
-			"scrapeInterval": scrapeInterval,
-			"staticConfigs": []interface{}{
-				map[string]interface{}{
-					"targets": targets,
-				},
+	spec := map[string]interface{}{
+		"scrapeInterval": scrapeInterval,
+		"staticConfigs": []interface{}{
+			map[string]interface{}{
+				"targets": targets,
 			},
 		},
+	}
+
+	if tlsEnabled {
+		spec["scheme"] = "HTTPS"
+		spec["tlsConfig"] = map[string]interface{}{
+			"ca": map[string]interface{}{
+				"secret": map[string]interface{}{
+					"name": instance.Spec.PrometheusTLS.CaBundleSecretName,
+					"key":  tls.CABundleKey,
+				},
+			},
+		}
+	}
+
+	scrapeConfig := &unstructured.Unstructured{}
+	scrapeConfig.SetUnstructuredContent(map[string]interface{}{
+		"spec": spec,
 	})
 	// NOTE: SetUnstructuredContent will overwrite any data, including GVK, name, ...
 	//       Any other Set* function call must be done after SetUnstructuredContent
@@ -60,7 +78,11 @@ func ScrapeConfig(
 		Version: "v1alpha1",
 		Kind:    "ScrapeConfig",
 	})
-	scrapeConfig.SetName(instance.Name)
+	if tlsEnabled {
+		scrapeConfig.SetName(fmt.Sprintf("%s-tls", instance.Name))
+	} else {
+		scrapeConfig.SetName(instance.Name)
+	}
 	scrapeConfig.SetNamespace(instance.Namespace)
 	scrapeConfig.SetLabels(labels)
 	return scrapeConfig

@@ -370,6 +370,9 @@ spec:
                     maximum: 65535
                     minimum: 1
                     type: integer
+                  prometheusTLS:
+                    description: If TLS should be used for user deployed prometheus
+                    type: boolean
                 required:
                 - heatInstance
                 type: object
@@ -428,6 +431,8 @@ spec:
                           password from the Secret
                         type: string
                     type: object
+                  proxyImage:
+                    type: string
                   rabbitMqClusterName:
                     default: rabbitmq
                     description: RabbitMQ instance name Needed to request a transportURL
@@ -444,11 +449,23 @@ spec:
                     type: string
                   sgCoreImage:
                     type: string
+                  tls:
+                    description: TLS - Parameters related to the TLS
+                    properties:
+                      caBundleSecretName:
+                        description: CaBundleSecretName - holding the CA certs in
+                          a pre-created bundle file
+                        type: string
+                      secretName:
+                        description: SecretName - holding the cert, key for the service
+                        type: string
+                    type: object
                 required:
                 - centralImage
                 - computeImage
                 - ipmiImage
                 - notificationImage
+                - proxyImage
                 - secret
                 - sgCoreImage
                 type: object
@@ -1633,6 +1650,17 @@ spec:
                         type: object
                     required:
                     - dataplaneNetwork
+                    type: object
+                  prometheusTls:
+                    description: TLS - Parameters related to the TLS
+                    properties:
+                      caBundleSecretName:
+                        description: CaBundleSecretName - holding the CA certs in
+                          a pre-created bundle file
+                        type: string
+                      secretName:
+                        description: SecretName - holding the cert, key for the service
+                        type: string
                     type: object
                 type: object
             type: object

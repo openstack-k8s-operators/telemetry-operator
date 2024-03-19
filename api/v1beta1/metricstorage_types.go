@@ -19,6 +19,7 @@ package v1beta1
 import (
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -100,11 +101,26 @@ type MetricStorageSpec struct {
 	// +kubebuilder:validation:Optional
 	// +nullable
 	CustomMonitoringStack *obov1.MonitoringStackSpec `json:"customMonitoringStack,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// TLS - Parameters related to the TLS
+	PrometheusTLS tls.SimpleService `json:"prometheusTls,omitempty"`
+
+	// TODO: Implement TLS for alertmanager Web UI
+	//       This currently isn't possible because of COO limitations.
+	//       See rh-jira: OSPRH-5177 and COO-44
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// TLS - Parameters related to the TLS
+	// AlertmanagerTLS tls.SimpleService `json:"alertmanagerTls,omitempty"`
 }
 
 // MetricStorageStatus defines the observed state of MetricStorage
 type MetricStorageStatus struct {
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
+	PrometheusTLSPatched bool `json:"prometheusTLSPatched,omitempty" optional:"true"`
 }
 
 //+kubebuilder:object:root=true

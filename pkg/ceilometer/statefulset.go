@@ -20,12 +20,14 @@ import (
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/annotations"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
@@ -79,6 +81,36 @@ func StatefulSet(
 
 	var replicas int32 = 1
 
+	volumes := getVolumes(ServiceName)
+	centralVolumeMounts := getVolumeMounts("ceilometer-central")
+	notificationVolumeMounts := getVolumeMounts("ceilometer-notification")
+	httpdVolumeMounts := getHttpdVolumeMounts()
+
+	if instance.Spec.TLS.Enabled() {
+		svc, err := instance.Spec.TLS.GenericService.ToService()
+		if err != nil {
+			return nil, err
+		}
+		// httpd container is not using kolla, mount the certs to its dst
+		svc.CertMount = ptr.To(fmt.Sprintf("/etc/pki/tls/certs/%s", tls.CertKey))
+		svc.KeyMount = ptr.To(fmt.Sprintf("/etc/pki/tls/private/%s", tls.PrivateKey))
+
+		livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+		readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+
+		volumes = append(volumes, svc.CreateVolume(ServiceName))
+		httpdVolumeMounts = append(httpdVolumeMounts, svc.CreateVolumeMounts(ServiceName)...)
+	}
+
+	// add CA cert if defined
+	if instance.Spec.TLS.CaBundleSecretName != "" {
+		ca := instance.Spec.TLS.Ca
+		volumes = append(volumes, ca.CreateVolume())
+		httpdVolumeMounts = append(httpdVolumeMounts, ca.CreateVolumeMounts(nil)...)
+		centralVolumeMounts = append(centralVolumeMounts, ca.CreateVolumeMounts(nil)...)
+		notificationVolumeMounts = append(notificationVolumeMounts, ca.CreateVolumeMounts(nil)...)
+	}
+
 	centralAgentContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
 		Command: []string{
@@ -91,7 +123,7 @@ func StatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts("ceilometer-central"),
+		VolumeMounts: centralVolumeMounts,
 	}
 	notificationAgentContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
@@ -105,7 +137,7 @@ func StatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts("ceilometer-notification"),
+		VolumeMounts: notificationVolumeMounts,
 	}
 	sgCoreContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
@@ -114,9 +146,24 @@ func StatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts:   getSgCoreVolumeMounts(),
+		VolumeMounts: getSgCoreVolumeMounts(),
+	}
+	proxyContainer := corev1.Container{
+		ImagePullPolicy: corev1.PullAlways,
+		Image:           instance.Spec.ProxyImage,
+		Name:            "proxy-httpd",
+		SecurityContext: &corev1.SecurityContext{
+			RunAsUser: &runAsUser,
+		},
+		Ports: []corev1.ContainerPort{{
+			ContainerPort: 3000,
+			Name:          "proxy-httpd",
+		}},
+		VolumeMounts:   httpdVolumeMounts,
 		ReadinessProbe: readinessProbe,
 		LivenessProbe:  livenessProbe,
+		Command:        []string{"/usr/sbin/httpd"},
+		Args:           []string{"-DFOREGROUND"},
 	}
 
 	pod := corev1.PodTemplateSpec{
@@ -131,6 +178,7 @@ func StatefulSet(
 				centralAgentContainer,
 				notificationAgentContainer,
 				sgCoreContainer,
+				proxyContainer,
 			},
 		},
 	}
@@ -150,7 +198,7 @@ func StatefulSet(
 		},
 	}
 
-	statefulset.Spec.Template.Spec.Volumes = getVolumes(ServiceName)
+	statefulset.Spec.Template.Spec.Volumes = volumes
 
 	// networks to attach to
 	nwAnnotation, err := annotations.GetNADAnnotation(instance.Namespace, instance.Spec.NetworkAttachmentDefinitions)

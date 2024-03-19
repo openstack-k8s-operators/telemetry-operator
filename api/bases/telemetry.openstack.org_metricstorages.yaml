@@ -1125,6 +1125,17 @@ spec:
                 required:
                 - dataplaneNetwork
                 type: object
+              prometheusTls:
+                description: TLS - Parameters related to the TLS
+                properties:
+                  caBundleSecretName:
+                    description: CaBundleSecretName - holding the CA certs in a pre-created
+                      bundle file
+                    type: string
+                  secretName:
+                    description: SecretName - holding the cert, key for the service
+                    type: string
+                type: object
             type: object
           status:
             description: MetricStorageStatus defines the observed state of MetricStorage
@@ -1173,6 +1184,8 @@ spec:
                   - type
                   type: object
                 type: array
+              prometheusTLSPatched:
+                type: boolean
             type: object
         type: object
     served: true
