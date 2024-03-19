@@ -25,7 +25,7 @@ import (
 )
 
 // AodhStatefulSet func
-func KSMServiceAccount(instance *telemetryv1.Ceilometer) (*corev1.ServiceAccount, *rbacv1.RoleBinding, error) {
+func KSMServiceAccount(instance *telemetryv1.Ceilometer) (*corev1.ServiceAccount, *rbacv1.RoleBinding) {
 
 	// Define a ServiceAccount
 	sa := &corev1.ServiceAccount{
@@ -55,5 +55,5 @@ func KSMServiceAccount(instance *telemetryv1.Ceilometer) (*corev1.ServiceAccount
 		},
 	}
 
-	return sa, rb, nil
+	return sa, rb
 }
