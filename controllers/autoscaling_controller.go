@@ -49,7 +49,7 @@ import (
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
-	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
+	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
@@ -422,7 +422,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// run check TransportURL secret - end
 
 	//
-	// Get correct prometheus host and port
+	// Get correct prometheus host, port and if TLS should be used
 	// NOTE: Always do this before calling the generateServiceConfig to get the newest values in the ServiceConfig
 	//
 	if instance.Spec.PrometheusHost == "" {
@@ -434,6 +434,24 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		instance.Status.PrometheusPort = telemetryv1.DefaultPrometheusPort
 	} else {
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
+	}
+	if instance.Spec.PrometheusTLS == nil {
+		metricStorage := &telemetryv1.MetricStorage{}
+		err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: instance.Namespace,
+			Name:      telemetryv1.DefaultServiceName,
+		}, metricStorage)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ServiceConfigReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.ServiceConfigReadyErrorMessage,
+				err.Error()))
+		}
+		instance.Status.PrometheusTLS = metricStorage.Spec.PrometheusTLS.Enabled()
+	} else {
+		instance.Status.PrometheusTLS = *instance.Spec.PrometheusTLS
 	}
 
 	db, result, err := r.ensureDB(ctx, helper, instance)
@@ -580,6 +598,14 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 			instance.Status.DatabaseHostname,
 			autoscaling.DatabaseName),
 	}
+
+	prometheusParams := map[string]interface{}{
+		"Host":   instance.Status.PrometheusHost,
+		"Port":   instance.Status.PrometheusPort,
+		"TLS":    instance.Status.PrometheusPort,
+		"CaCert": tls.DownstreamTLSCABundlePath,
+	}
+	templateParameters["Prometheus"] = prometheusParams
 
 	httpdVhostConfig := map[string]interface{}{}
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {

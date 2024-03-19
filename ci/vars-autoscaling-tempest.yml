@@ -12,7 +12,7 @@ cifmw_tempest_tempestconf_config:
       service_available.ceilometer true
       service_available.sg_core true
       service_available.aodh true
-      telemetry.sg_core_service_url "ceilometer.openstack.svc.cluster.local:3000"
+      telemetry.sg_core_service_url "ceilometer-internal.openstack.svc.cluster.local:3000"
 cifmw_test_operator_tempest_include_list: |
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh

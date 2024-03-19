@@ -54,18 +54,265 @@ spec:
       args:
         - -c
         - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+      volumeMounts:
+        - mountPath: /var/lib/openstack/bin
+          name: scripts
+          readOnly: true
+        - mountPath: /var/lib/openstack/config
+          name: config-data
+          readOnly: true
+        - mountPath: /var/lib/kolla/config_files/config.json
+          name: config-data
+          readOnly: true
+          subPath: aodh-evaluator-config.json
+        - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+          name: combined-ca-bundle
+          readOnly: true
+          subPath: tls-ca-bundle.pem
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
     - name: aodh-notifier
       command:
         - /bin/bash
       args:
         - -c
         - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+      volumeMounts:
+        - mountPath: /var/lib/openstack/bin
+          name: scripts
+          readOnly: true
+        - mountPath: /var/lib/openstack/config
+          name: config-data
+          readOnly: true
+        - mountPath: /var/lib/kolla/config_files/config.json
+          name: config-data
+          readOnly: true
+          subPath: aodh-notifier-config.json
+        - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+          name: combined-ca-bundle
+          readOnly: true
+          subPath: tls-ca-bundle.pem
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
     - name: aodh-listener
       command:
         - /bin/bash
       args:
         - -c
         - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+      volumeMounts:
+        - mountPath: /var/lib/openstack/bin
+          name: scripts
+          readOnly: true
+        - mountPath: /var/lib/openstack/config
+          name: config-data
+          readOnly: true
+        - mountPath: /var/lib/kolla/config_files/config.json
+          name: config-data
+          readOnly: true
+          subPath: aodh-listener-config.json
+        - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+          name: combined-ca-bundle
+          readOnly: true
+          subPath: tls-ca-bundle.pem
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    service: ceilometer
+  name: ceilometer-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: ceilometer
+spec:
+  containers:
+    - name: ceilometer-central-agent
+      args:
+        - -c
+        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+      command:
+        - /bin/bash
+      volumeMounts:
+        - mountPath: /var/lib/openstack/bin
+          name: scripts
+          readOnly: true
+        - mountPath: /var/lib/openstack/config
+          name: config-data
+          readOnly: true
+        - mountPath: /var/lib/kolla/config_files/config.json
+          name: config-data
+          readOnly: true
+          subPath: ceilometer-central-config.json
+        - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+          name: combined-ca-bundle
+          readOnly: true
+          subPath: tls-ca-bundle.pem
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+    - name: ceilometer-notification-agent
+      args:
+        - -c
+        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+      command:
+        - /bin/bash
+      volumeMounts:
+        - mountPath: /var/lib/openstack/bin
+          name: scripts
+          readOnly: true
+        - mountPath: /var/lib/openstack/config
+          name: config-data
+          readOnly: true
+        - mountPath: /var/lib/kolla/config_files/config.json
+          name: config-data
+          readOnly: true
+          subPath: ceilometer-notification-config.json
+        - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+          name: combined-ca-bundle
+          readOnly: true
+          subPath: tls-ca-bundle.pem
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+    - name: sg-core
+      volumeMounts:
+        - mountPath: /etc/sg-core.conf.yaml
+          name: sg-core-conf-yaml
+          subPath: sg-core.conf.yaml
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+    - name: proxy-httpd
+      args:
+      - -DFOREGROUND
+      command:
+      - /usr/sbin/httpd
+      volumeMounts:
+        - mountPath: /etc/httpd/conf/httpd.conf
+          name: config-data
+          readOnly: true
+          subPath: httpd.conf
+        - mountPath: /etc/httpd/conf.d/ssl.conf
+          name: config-data
+          readOnly: true
+          subPath: ssl.conf
+        - mountPath: /run/httpd
+          name: run-httpd
+        - mountPath: /var/log/httpd
+          name: log-httpd
+        - mountPath: /etc/pki/tls/certs/tls.crt
+          name: ceilometer-tls-certs
+          readOnly: true
+          subPath: tls.crt
+        - mountPath: /etc/pki/tls/private/tls.key
+          name: ceilometer-tls-certs
+          readOnly: true
+          subPath: tls.key
+        - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+          name: combined-ca-bundle
+          readOnly: true
+          subPath: tls-ca-bundle.pem
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: prometheus-telemetry-kuttl-metricstorage-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: prometheus-telemetry-kuttl-metricstorage
+spec:
+    containers:
+    - name: prometheus
+      volumeMounts:
+      - mountPath: /etc/prometheus/config_out
+        name: config-out
+        readOnly: true
+      - mountPath: /etc/prometheus/certs
+        name: tls-assets
+        readOnly: true
+      - mountPath: /prometheus
+        name: prometheus-telemetry-kuttl-metricstorage-db
+      - mountPath: /etc/prometheus/secrets/combined-ca-bundle
+        name: secret-combined-ca-bundle
+        readOnly: true
+      - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-0
+        name: prometheus-telemetry-kuttl-metricstorage-rulefiles-0
+      - mountPath: /etc/prometheus/web_config/web-config.yaml
+        name: web-config
+        readOnly: true
+        subPath: web-config.yaml
+      - mountPath: /etc/prometheus/web_config/secret/cert-metric-storage-prometheus-svc-key
+        readOnly: true
+      - mountPath: /etc/prometheus/web_config/secret/cert-metric-storage-prometheus-svc-cert
+        readOnly: true
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        readOnly: true
+    - name: config-reloader
+    - name: thanos-sidecar
+---
+apiVersion: monitoring.rhobs/v1
+kind: Prometheus
+metadata:
+  name: telemetry-kuttl-metricstorage
+  ownerReferences:
+  - kind: MonitoringStack
+    name: telemetry-kuttl-metricstorage
+spec:
+  web:
+    tlsConfig:
+      cert:
+        secret:
+          key: tls.crt
+          name: cert-metric-storage-prometheus-svc
+      keySecret:
+        key: tls.key
+        name: cert-metric-storage-prometheus-svc
+  secrets:
+  - combined-ca-bundle
+---
+apiVersion: monitoring.rhobs/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry-kuttl-metricstorage
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl-metricstorage
+spec:
+  endpoints:
+  - scheme: https
+    tlsConfig:
+      caFile: /etc/prometheus/secrets/combined-ca-bundle/tls-ca-bundle.pem
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry-kuttl-metricstorage-tls
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl-metricstorage
+spec:
+  scheme: HTTPS
+  tlsConfig:
+    ca:
+      secret:
+        key: tls-ca-bundle.pem
+        name: combined-ca-bundle
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry-kuttl-metricstorage
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl-metricstorage
 ---
 apiVersion: v1
 kind: Service
@@ -76,7 +323,7 @@ metadata:
   name: aodh-internal
   ownerReferences:
   - kind: Autoscaling
-    name: telemetry-kuttl
+    name: telemetry-kuttl-autoscaling
 spec:
   ports:
   - name: aodh-internal
@@ -93,10 +340,39 @@ metadata:
   name: aodh-public
   ownerReferences:
   - kind: Autoscaling
-    name: telemetry-kuttl
+    name: telemetry-kuttl-autoscaling
 spec:
   ports:
   - name: aodh-public
     port: 8042
     protocol: TCP
     targetPort: 8042
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: ceilometer
+  name: ceilometer-internal
+  ownerReferences:
+  - kind: Ceilometer
+    name: telemetry-kuttl-ceilometer
+spec:
+  ports:
+  - port: 3000
+    protocol: TCP
+    targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telemetry-kuttl-metricstorage-prometheus
+  ownerReferences:
+  - kind: MonitoringStack
+    name: telemetry-kuttl-metricstorage
+spec:
+  ports:
+  - name: web
+    port: 9090
+    protocol: TCP
+    targetPort: 9090

@@ -197,9 +197,31 @@ rules:
 - apiGroups:
   - monitoring.rhobs
   resources:
+  - alertmanagers
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.rhobs
+  resources:
   - monitoringstacks
   verbs:
   - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.rhobs
+  resources:
+  - prometheuses
+  verbs:
   - delete
   - get
   - list

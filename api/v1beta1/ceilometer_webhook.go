@@ -32,6 +32,7 @@ type CeilometerDefaults struct {
 	ComputeContainerImageURL      string
 	IpmiContainerImageURL         string
 	NodeExporterContainerImageURL string
+	ProxyContainerImageURL string
 }
 
 var ceilometerDefaults CeilometerDefaults
@@ -81,6 +82,9 @@ func (spec *CeilometerSpec) Default() {
 	}
 	if spec.IpmiImage == "" {
 		spec.IpmiImage = ceilometerDefaults.IpmiContainerImageURL
+	}
+	if spec.ProxyImage == "" {
+		spec.ProxyImage = ceilometerDefaults.ProxyContainerImageURL
 	}
 }
 

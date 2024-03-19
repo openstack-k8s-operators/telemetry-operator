@@ -28,17 +28,20 @@ import (
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -48,6 +51,7 @@ import (
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
+	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 
 	dataplanev1 "github.com/openstack-k8s-operators/dataplane-operator/api/v1beta1"
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
@@ -57,6 +61,19 @@ import (
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
+)
+
+// fields to index to reconcile when change
+const (
+	prometheusCaBundleSecretNameField = ".spec.prometheusTls.caBundleSecretName"
+	prometheusTlsField                = ".spec.prometheusTls.secretName"
+)
+
+var (
+	prometheusAllWatchFields = []string{
+		prometheusCaBundleSecretNameField,
+		prometheusTlsField,
+	}
 )
 
 // MetricStorageReconciler reconciles a MetricStorage object
@@ -82,6 +99,8 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=scrapeconfigs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=prometheusrules,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.rhobs,resources=prometheuses,verbs=get;list;watch;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.rhobs,resources=alertmanagers,verbs=get;list;watch;update;patch;delete
 //+kubebuilder:rbac:groups=network.openstack.org,resources=ipsets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=dataplane.openstack.org,resources=openstackdataplanenodesets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=dataplane.openstack.org,resources=openstackdataplaneservices,verbs=get;list;watch
@@ -154,6 +173,8 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			condition.UnknownCondition(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.InitReason, telemetryv1.DashboardPrometheusRuleReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
 			condition.UnknownCondition(telemetryv1.DashboardDefinitionReadyCondition, condition.InitReason, telemetryv1.DashboardDefinitionReadyInitMessage),
+			condition.UnknownCondition(telemetryv1.PrometheusReadyCondition, condition.InitReason, telemetryv1.PrometheusReadyInitMessage),
+			condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -253,6 +274,71 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("MonitoringStack %s successfully changed - operation: %s", monitoringStack.Name, string(op)))
 	}
+
+	if instance.Spec.PrometheusTLS.Enabled() {
+		// Patch Prometheus to add TLS
+		prometheusWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+			name := client.ObjectKey{
+				Namespace: o.GetNamespace(),
+				Name:      o.GetName(),
+			}
+			return []reconcile.Request{{NamespacedName: name}}
+		}
+		err = r.ensureWatches(ctx, "prometheuses.monitoring.rhobs", &monv1.Prometheus{}, handler.EnqueueRequestsFromMapFunc(prometheusWatchFn))
+		if err != nil {
+			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
+				condition.Reason("Can't watch prometheus resource"),
+				condition.SeverityError,
+				telemetryv1.PrometheusUnableToWatchMessage, err)
+			Log.Info("Can't watch Prometheus resource")
+			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+		}
+		prometheusTLSPatch := metricstorage.PrometheusTLS(instance)
+		err = r.Client.Patch(context.Background(), &prometheusTLSPatch, client.Apply, client.FieldOwner("telemetry-operator"))
+		if err != nil {
+			Log.Error(err, "Can't patch Prometheus resource")
+			return ctrl.Result{}, err
+		}
+		instance.Status.PrometheusTLSPatched = true
+	} else if instance.Status.PrometheusTLSPatched {
+		// Delete the prometheus CR, so it can be automatically restored without the TLS patch
+		prometheus := monv1.Prometheus{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: instance.Namespace,
+				Name:      instance.Name,
+			},
+		}
+		err = r.Client.Delete(context.Background(), &prometheus)
+		if err != nil && !k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
+				condition.Reason("Can't delete old Prometheus CR to remove TLS configuration"),
+				condition.SeverityError,
+				telemetryv1.PrometheusUnableToRemoveTLSMessage, err)
+			Log.Error(err, "Can't delete old Prometheus CR to remove TLS configuration")
+			return ctrl.Result{}, err
+		}
+		instance.Status.PrometheusTLSPatched = false
+	}
+	instance.Status.Conditions.MarkTrue(telemetryv1.PrometheusReadyCondition, condition.ReadyMessage)
+
+	// Patch Prometheus service to add route creation
+	prometheusServicePatch := metricstorage.PrometheusService(instance)
+	err = r.Client.Patch(context.Background(), &prometheusServicePatch, client.Apply, client.FieldOwner("telemetry-operator"))
+	if err != nil {
+		Log.Error(err, "Can't patch Prometheus service resource")
+		return ctrl.Result{}, err
+	}
+
+	// Patch Alertmanager service to add route creation
+	if instance.Spec.MonitoringStack != nil && instance.Spec.MonitoringStack.AlertingEnabled {
+		alertmanagerServicePatch := metricstorage.AlertmanagerService(instance)
+		err = r.Client.Patch(context.Background(), &alertmanagerServicePatch, client.Apply, client.FieldOwner("telemetry-operator"))
+		if err != nil {
+			Log.Error(err, "Can't patch Alertmanager service resource")
+			return ctrl.Result{}, err
+		}
+	}
+
 	monitoringStackReady := true
 	for _, c := range monitoringStack.Status.Conditions {
 		if c.Status != "True" {
@@ -343,6 +429,9 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	instance.Status.Conditions.MarkTrue(telemetryv1.NodeSetReadyCondition, condition.ReadyMessage)
 
 	// TODO: Move to structured once OBO version is bumped
+	endpointsNonTLS, endpointsTLS, err := getNodeExporterTargets(instance, helper)
+
+	// scrapeConfig for non-tls nodes
 	scrapeConfig := &unstructured.Unstructured{}
 	scrapeConfig.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "monitoring.rhobs",
@@ -363,11 +452,47 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfig, func() error {
-		endpoints, err := getNodeExporterTargets(instance, helper)
 		if err != nil {
 			return err
 		}
-		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, endpoints)
+		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, endpointsNonTLS, false)
+		scrapeConfig.UnstructuredContent()["spec"] = desiredScrapeConfig.UnstructuredContent()["spec"]
+		scrapeConfig.SetLabels(desiredScrapeConfig.GetLabels())
+		err = controllerutil.SetControllerReference(instance, scrapeConfig, r.Scheme)
+		return err
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("Node Exporter ScrapeConfig %s successfully changed - operation: %s", scrapeConfig.GetName(), string(op)))
+	}
+
+	// scrapeConfig for tls nodes
+	scrapeConfig = &unstructured.Unstructured{}
+	scrapeConfig.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "monitoring.rhobs",
+		Version: "v1alpha1",
+		Kind:    "ScrapeConfig",
+	})
+	scrapeConfig.SetName(fmt.Sprintf("%s-tls", instance.Name))
+	scrapeConfig.SetNamespace(instance.Namespace)
+
+	err = r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", scrapeConfig, eventHandler)
+
+	if err != nil {
+		instance.Status.Conditions.MarkFalse(telemetryv1.ScrapeConfigReadyCondition,
+			condition.Reason("Can't own ScrapeConfig resource"),
+			condition.SeverityError,
+			telemetryv1.ScrapeConfigUnableToOwnMessage, err)
+		Log.Info("Can't own ScrapeConfig resource")
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfig, func() error {
+		if err != nil {
+			return err
+		}
+		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, endpointsTLS, true)
 		scrapeConfig.UnstructuredContent()["spec"] = desiredScrapeConfig.UnstructuredContent()["spec"]
 		scrapeConfig.SetLabels(desiredScrapeConfig.GetLabels())
 		err = controllerutil.SetControllerReference(instance, scrapeConfig, r.Scheme)
@@ -496,6 +621,51 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			}
 		}
 	}
+	//
+	// TLS input validation
+	//
+	// Validate the CA cert secret if provided
+	if instance.Spec.PrometheusTLS.CaBundleSecretName != "" {
+		_, ctrlResult, err := tls.ValidateCACertSecret(
+			ctx,
+			helper.GetClient(),
+			types.NamespacedName{
+				Name:      instance.Spec.PrometheusTLS.CaBundleSecretName,
+				Namespace: instance.Namespace,
+			},
+		)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.TLSInputReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.TLSInputErrorMessage,
+				err.Error()))
+			return ctrlResult, err
+		} else if (ctrlResult != ctrl.Result{}) {
+			return ctrlResult, nil
+		}
+	}
+
+	// Validate API service certs secrets
+	if instance.Spec.PrometheusTLS.Enabled() {
+		_, ctrlResult, err := instance.Spec.PrometheusTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.TLSInputReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.TLSInputErrorMessage,
+				err.Error()))
+			return ctrlResult, err
+		} else if (ctrlResult != ctrl.Result{}) {
+			return ctrlResult, nil
+		}
+	}
+
+	// all cert input checks out so report InputReady
+	instance.Status.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
+
 	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
@@ -540,17 +710,18 @@ func (r *MetricStorageReconciler) ensureWatches(
 func getNodeExporterTargets(
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
-) ([]string, error) {
+) ([]string, []string, error) {
 	ipSetList, err := getIPSetList(instance, helper)
 	if err != nil {
-		return []string{}, err
+		return []string{}, []string{}, err
 	}
 	nodeSetList, err := getNodeSetList(instance, helper)
 	if err != nil {
-		return []string{}, err
+		return []string{}, []string{}, err
 	}
 	var address string
-	addresses := []string{}
+	addressesNonTLS := []string{}
+	addressesTLS := []string{}
 	for _, nodeSet := range nodeSetList.Items {
 		telemetryServiceInNodeSet := false
 		for _, service := range nodeSet.Spec.Services {
@@ -578,16 +749,20 @@ func getNodeExporterTargets(
 				address, _ = getAddressFromAnsibleHost(&item)
 			} else {
 				// we were unable to find an IP or HostName for a node, so we do not go further
-				return addresses, nil
+				return addressesNonTLS, addressesTLS, nil
 			}
 			if address == "" {
 				// we were unable to find an IP or HostName for a node, so we do not go further
-				return addresses, nil
+				return addressesNonTLS, addressesTLS, nil
 			}
-			addresses = append(addresses, fmt.Sprintf("%s:%d", address, telemetryv1.DefaultNodeExporterPort))
+			if nodeSet.Spec.TLSEnabled {
+				addressesTLS = append(addressesTLS, fmt.Sprintf("%s:%d", address, telemetryv1.DefaultNodeExporterPort))
+			} else {
+				addressesNonTLS = append(addressesNonTLS, fmt.Sprintf("%s:%d", address, telemetryv1.DefaultNodeExporterPort))
+			}
 		}
 	}
-	return addresses, nil
+	return addressesNonTLS, addressesTLS, nil
 }
 
 func getIPSetList(instance *telemetryv1.MetricStorage, helper *helper.Helper) (*infranetworkv1.IPSetList, error) {
@@ -665,11 +840,104 @@ func isValidDomain(domain string) bool {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *MetricStorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	Log := r.GetLogger(ctx)
+	prometheusServiceWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+		result := []reconcile.Request{}
+
+		// get all metricstorage CRs
+		metricStorages := &telemetryv1.MetricStorageList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(o.GetNamespace()),
+		}
+		if err := r.Client.List(context.Background(), metricStorages, listOpts...); err != nil {
+			Log.Error(err, "Unable to retrieve MetricStorage CRs %w")
+			return nil
+		}
+
+		for _, cr := range metricStorages.Items {
+			if o.GetName() == fmt.Sprintf("%s-prometheus", cr.Name) {
+				name := client.ObjectKey{
+					Namespace: o.GetNamespace(),
+					Name:      cr.Name,
+				}
+				Log.Info(fmt.Sprintf("Prometheus service %s is used by MetricStorage CR %s", o.GetName(), cr.Name))
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
+
+	// index prometheusCaBundleSecretNameField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, prometheusCaBundleSecretNameField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.PrometheusTLS.CaBundleSecretName == "" {
+			return nil
+		}
+		return []string{cr.Spec.PrometheusTLS.CaBundleSecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index prometheusTlsField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, prometheusTlsField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.PrometheusTLS.SecretName == nil {
+			return nil
+		}
+		return []string{*cr.Spec.PrometheusTLS.SecretName}
+	}); err != nil {
+		return err
+	}
 	control, err := ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.MetricStorage{}).
 		Owns(&monv1.PrometheusRule{}).
+		Watches(&corev1.Service{},
+			handler.EnqueueRequestsFromMapFunc(prometheusServiceWatchFn)).
+		Watches(
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Build(r)
 	r.Controller = control
 	return err
+}
+
+func (r *MetricStorageReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	l := log.FromContext(context.Background()).WithName("Controllers").WithName("MetricStorage")
+
+	for _, field := range prometheusAllWatchFields {
+		crList := &telemetryv1.MetricStorageList{}
+		listOps := &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
+			Namespace:     src.GetNamespace(),
+		}
+		err := r.Client.List(ctx, crList, listOps)
+		if err != nil {
+			return []reconcile.Request{}
+		}
+
+		for _, item := range crList.Items {
+			l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+
+			requests = append(requests,
+				reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      item.GetName(),
+						Namespace: item.GetNamespace(),
+					},
+				},
+			)
+		}
+	}
+
+	return requests
 }

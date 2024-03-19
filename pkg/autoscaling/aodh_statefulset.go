@@ -78,12 +78,18 @@ func AodhStatefulSet(
 
 	// create Volume and VolumeMounts
 	volumes := getVolumes(ServiceName)
-	volumeMounts := getVolumeMounts("aodh-api")
+	apiVolumeMounts := getVolumeMounts("aodh-api")
+	evaluatorVolumeMounts := getVolumeMounts("aodh-evaluator")
+	notifierVolumeMounts := getVolumeMounts("aodh-notifier")
+	listenerVolumeMounts := getVolumeMounts("aodh-listener")
 
 	// add CA cert if defined
 	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
 		volumes = append(volumes, instance.Spec.Aodh.TLS.CreateVolume())
-		volumeMounts = append(volumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
+		apiVolumeMounts = append(apiVolumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
+		evaluatorVolumeMounts = append(evaluatorVolumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
+		notifierVolumeMounts = append(notifierVolumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
+		listenerVolumeMounts = append(listenerVolumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
 	}
 
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
@@ -101,7 +107,7 @@ func AodhStatefulSet(
 				return nil, err
 			}
 			volumes = append(volumes, svc.CreateVolume(endpt.String()))
-			volumeMounts = append(volumeMounts, svc.CreateVolumeMounts(endpt.String())...)
+			apiVolumeMounts = append(apiVolumeMounts, svc.CreateVolumeMounts(endpt.String())...)
 		}
 	}
 
@@ -123,7 +129,7 @@ func AodhStatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: volumeMounts,
+		VolumeMounts: apiVolumeMounts,
 	}
 
 	evaluatorContainer := corev1.Container{
@@ -138,7 +144,7 @@ func AodhStatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts("aodh-evaluator"),
+		VolumeMounts: evaluatorVolumeMounts,
 	}
 
 	notifierContainer := corev1.Container{
@@ -153,7 +159,7 @@ func AodhStatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts("aodh-notifier"),
+		VolumeMounts: notifierVolumeMounts,
 	}
 
 	listenerContainer := corev1.Container{
@@ -168,7 +174,7 @@ func AodhStatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: getVolumeMounts("aodh-listener"),
+		VolumeMounts: listenerVolumeMounts,
 	}
 
 	pod := corev1.PodTemplateSpec{
