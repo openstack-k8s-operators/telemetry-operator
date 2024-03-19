@@ -18,6 +18,7 @@ package availability
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"k8s.io/utils/ptr"
@@ -30,9 +31,10 @@ import (
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
 
-// KSMDeployment requests Deployment of kube-state-metrics
+// KSMStatefulSet requests seployment of kube-state-metrics and creation of TLS config if it is necessary
 func KSMStatefulSet(
 	instance *telemetryv1.Ceilometer,
+	tlsConfName string,
 	labels map[string]string,
 ) (*appsv1.StatefulSet, error) {
 
@@ -70,14 +72,63 @@ func KSMStatefulSet(
 		},
 	}
 
+	labels["app.kubernetes.io/component"] = "exporter"
+	labels["app.kubernetes.io/name"] = KSMServiceName
+	labels["app.kubernetes.io/version"] = instance.Spec.KSMImage[strings.LastIndex(instance.Spec.KSMImage, ":")+1:]
+
+	// kube-state-metrics relevant default arguments
+	args := []string{
+		"--resources=pods",
+		fmt.Sprintf("--namespaces=%s", instance.Namespace),
+	}
+
+	volumes := []corev1.Volume{}
+	mounts := []corev1.VolumeMount{}
+	if instance.Spec.KSMTLS.Enabled() {
+		svc, err := instance.Spec.KSMTLS.GenericService.ToService()
+		if err != nil {
+			return nil, err
+		}
+
+		tlsConfFullPath := filepath.Join(tlsConfPath, tlsConfKey)
+		svc.CertMount = ptr.To(TLSCertPath)
+		svc.KeyMount = ptr.To(TLSKeyPath)
+
+		livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+		readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+
+		volumes = append(volumes, svc.CreateVolume(KSMServiceName), corev1.Volume{
+			Name: fmt.Sprintf("%s-tls-config", KSMServiceName),
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName:  tlsConfName,
+					DefaultMode: ptr.To[int32](0400),
+				},
+			},
+		})
+		mounts = svc.CreateVolumeMounts(KSMServiceName)
+		mounts = append(mounts, corev1.VolumeMount{
+			Name:      fmt.Sprintf("%s-tls-config", KSMServiceName),
+			MountPath: tlsConfFullPath,
+			SubPath:   tlsConfKey,
+			ReadOnly:  true,
+		})
+
+		// add CA cert if defined
+		if instance.Spec.KSMTLS.CaBundleSecretName != "" {
+			ca := instance.Spec.KSMTLS.Ca
+			volumes = append(volumes, ca.CreateVolume())
+			mounts = append(mounts, ca.CreateVolumeMounts(nil)...)
+		}
+
+		args = append(args, fmt.Sprintf("--tls-config=%s", tlsConfFullPath))
+	}
+
 	container := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
 		Image:           instance.Spec.KSMImage,
 		Name:            KSMServiceName,
-		Args: []string{
-			"--resources=pods",
-			fmt.Sprintf("--namespaces=%s", instance.Namespace),
-		},
+		Args:            args,
 		SecurityContext: secCtx,
 		LivenessProbe:   livenessProbe,
 		ReadinessProbe:  readinessProbe,
@@ -91,11 +142,8 @@ func KSMStatefulSet(
 				Name:          "telemetry",
 			},
 		},
+		VolumeMounts: mounts,
 	}
-
-	labels["app.kubernetes.io/component"] = "exporter"
-	labels["app.kubernetes.io/name"] = KSMServiceName
-	labels["app.kubernetes.io/version"] = instance.Spec.KSMImage[strings.LastIndex(instance.Spec.KSMImage, ":")+1:]
 
 	ss := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -118,6 +166,7 @@ func KSMStatefulSet(
 					AutomountServiceAccountToken: ptr.To(true),
 					ServiceAccountName:           KSMServiceName,
 					Containers:                   []corev1.Container{container},
+					Volumes:                      volumes,
 				},
 			},
 		},
