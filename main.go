@@ -131,6 +131,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.MetricStorageReconciler{
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Kclient:    kclient,
+		RESTMapper: mgr.GetRESTMapper(),
+		Cache:      mgr.GetCache(),
+	}).SetupWithManager(context.Background(), mgr); err != nil {
+		setupLog.Error(err, "unable to create MetricStorage controller")
+		os.Exit(1)
+	}
+
 	if err = (&controllers.TelemetryReconciler{
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
@@ -164,17 +175,6 @@ func main() {
 		Kclient: kclient,
 	}).SetupWithManager(context.Background(), mgr); err != nil {
 		setupLog.Error(err, "unable to create Logging controller")
-		os.Exit(1)
-	}
-
-	if err = (&controllers.MetricStorageReconciler{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		Kclient:    kclient,
-		RESTMapper: mgr.GetRESTMapper(),
-		Cache:      mgr.GetCache(),
-	}).SetupWithManager(context.Background(), mgr); err != nil {
-		setupLog.Error(err, "unable to create MetricStorage controller")
 		os.Exit(1)
 	}
 
