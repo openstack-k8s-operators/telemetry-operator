@@ -896,7 +896,6 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 	control, err := ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.MetricStorage{}).
-		Owns(&monv1.PrometheusRule{}).
 		Watches(&corev1.Service{},
 			handler.EnqueueRequestsFromMapFunc(prometheusServiceWatchFn)).
 		Watches(
