@@ -34,6 +34,7 @@
     openstack-experimental:
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest:
+            dependencies: []
             pre-run:
               - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
             vars:
