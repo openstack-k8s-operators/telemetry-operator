@@ -31,7 +31,6 @@ type CeilometerDefaults struct {
 	SgCoreContainerImageURL       string
 	ComputeContainerImageURL      string
 	IpmiContainerImageURL         string
-	NodeExporterContainerImageURL string
 	ProxyContainerImageURL string
 }
 
