@@ -444,6 +444,16 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	}
 
 	//
+	// Swift Role for storage.* metrics
+	//
+	if r.roleExists(ctx, helper, instance, "SwiftSystemReader", Log) {
+		err = r.ensureSwiftRole(ctx, helper, instance, Log)
+		if err != nil {
+			Log.Info("SwiftSystemReader cannot be assigned to Ceilometer. No storage metrics will be available.")
+		}
+	}
+
+	//
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
 	//
@@ -585,6 +595,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		"TransportURL":        string(transportURLSecret.Data["transport_url"]),
 		"CeilometerPassword":  string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
 		"TLS":                 false, // Default to false. Change to true later if TLS enabled
+		"SwiftRole":           false, //
 	}
 
 	// create httpd  vhost template parameters
@@ -598,8 +609,13 @@ func (r *CeilometerReconciler) generateServiceConfig(
 	}
 	templateParameters["vhost"] = endptConfig
 
+	// If the Swift user exists, we add it to the polling
+	if r.roleExists(ctx, h, instance, "SwiftSystemReader", h.GetLogger()) {
+		templateParameters["SwiftRole"] = true
+	}
+
 	cms := []util.Template{
-		// ScriptsConfigMap
+		// ScriptsSecrets
 		{
 			Name:               fmt.Sprintf("%s-scripts", ceilometer.ServiceName),
 			Namespace:          instance.Namespace,
@@ -608,7 +624,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
 			Labels:             cmLabels,
 		},
-		// ConfigMap
+		// Secrets
 		{
 			Name:          fmt.Sprintf("%s-config-data", ceilometer.ServiceName),
 			Namespace:     instance.Namespace,
@@ -853,4 +869,70 @@ func (r *CeilometerReconciler) findObjectsForSrc(ctx context.Context, src client
 	}
 
 	return requests
+}
+
+func (r CeilometerReconciler) roleExists(
+	ctx context.Context,
+	helper *helper.Helper,
+	instance *telemetryv1.Ceilometer,
+	roleName string,
+	log logr.Logger,
+) bool {
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, helper, instance.Namespace, map[string]string{})
+	if err != nil {
+		return false
+	}
+
+	os, ctrlResult, err := keystonev1.GetAdminServiceClient(
+		ctx,
+		helper,
+		keystoneAPI,
+	)
+	if err != nil || (ctrlResult != ctrl.Result{}) {
+		return false
+	}
+
+	role, err := os.GetRole(log, roleName)
+	if err != nil || role == nil {
+		return false
+	}
+	return true
+}
+
+func (r *CeilometerReconciler) ensureSwiftRole(
+	ctx context.Context,
+	helper *helper.Helper,
+	instance *telemetryv1.Ceilometer,
+	log logr.Logger,
+) error {
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, helper, instance.Namespace, map[string]string{})
+	if err != nil {
+		return err
+	}
+
+	os, ctrlResult, err := keystonev1.GetAdminServiceClient(
+		ctx,
+		helper,
+		keystoneAPI,
+	)
+	if err != nil || (ctrlResult != ctrl.Result{}) {
+		return err
+	}
+
+	// We are using the fixed domainID "default" because it is also fixed in ceilometer.conf
+	user, err := os.GetUser(log, instance.Spec.ServiceUser, "default")
+	if err != nil {
+		return err
+	}
+
+	err = os.AssignUserDomainRole(
+		log,
+		"SwiftSystemReader",
+		user.ID,
+		"default")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

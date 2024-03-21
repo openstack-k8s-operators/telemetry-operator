@@ -19,11 +19,19 @@ spec:
       displayName: Autoscaling
       kind: Autoscaling
       name: autoscalings.telemetry.openstack.org
+      specDescriptors:
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: aodh.tls
       version: v1beta1
     - description: Ceilometer is the Schema for the ceilometers API
       displayName: Ceilometer
       kind: Ceilometer
       name: ceilometers.telemetry.openstack.org
+      specDescriptors:
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: tls
       version: v1beta1
     - description: Logging is the Schema for the loggings API
       displayName: Logging
@@ -34,12 +42,19 @@ spec:
       displayName: Metric Storage
       kind: MetricStorage
       name: metricstorages.telemetry.openstack.org
+      specDescriptors:
+      - description: TLS - Parameters related to the TLS
+        displayName: Prometheus TLS
+        path: prometheusTls
       version: v1beta1
     - description: Telemetry is the Schema for the telemetry API
       displayName: Telemetry
       kind: Telemetry
       name: telemetries.telemetry.openstack.org
       specDescriptors:
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: autoscaling.aodh.tls
       - description: Enabled - Whether OpenStack autoscaling service should be deployed
           and managed
         displayName: Enabled
@@ -52,11 +67,23 @@ spec:
         path: ceilometer.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: ceilometer.tls
+      - description: Enabled - Whether OpenStack logging service should be deployed
+          and managed
+        displayName: Enabled
+        path: logging.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: Enabled - Whether a MetricStorage should be deployed and managed
         displayName: Enabled
         path: metricStorage.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: TLS - Parameters related to the TLS
+        displayName: Prometheus TLS
+        path: metricStorage.prometheusTls
       version: v1beta1
   description: Telemetry Operator
   displayName: Telemetry Operator
