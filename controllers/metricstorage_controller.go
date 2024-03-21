@@ -60,6 +60,7 @@ import (
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/dashboards"
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
+	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 )
 
@@ -391,6 +392,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		Log.Info(fmt.Sprintf("Ceilometer ServiceMonitor %s successfully changed - operation: %s", ceilometerMonitor.Name, string(op)))
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ServiceMonitorReadyCondition, condition.ReadyMessage)
+
 	// Deploy ScrapeConfig for NodeExporter monitoring
 	nodeSetWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
 		// Reconcile all metricstorages when a nodeset changes
@@ -428,20 +430,10 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.NodeSetReadyCondition, condition.ReadyMessage)
 
-	// TODO: Move to structured once OBO version is bumped
 	endpointsNonTLS, endpointsTLS, err := getNodeExporterTargets(instance, helper)
 
 	// scrapeConfig for non-tls nodes
-	scrapeConfig := &unstructured.Unstructured{}
-	scrapeConfig.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "monitoring.rhobs",
-		Version: "v1alpha1",
-		Kind:    "ScrapeConfig",
-	})
-	scrapeConfig.SetName(instance.Name)
-	scrapeConfig.SetNamespace(instance.Namespace)
-
-	err = r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", scrapeConfig, eventHandler)
+	err = r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", &monv1alpha1.ScrapeConfig{}, eventHandler)
 
 	if err != nil {
 		instance.Status.Conditions.MarkFalse(telemetryv1.ScrapeConfigReadyCondition,
@@ -451,13 +443,16 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		Log.Info("Can't own ScrapeConfig resource")
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
+	scrapeConfig := &monv1alpha1.ScrapeConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instance.Name,
+			Namespace: instance.Namespace,
+		},
+	}
 	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfig, func() error {
-		if err != nil {
-			return err
-		}
 		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, endpointsNonTLS, false)
-		scrapeConfig.UnstructuredContent()["spec"] = desiredScrapeConfig.UnstructuredContent()["spec"]
-		scrapeConfig.SetLabels(desiredScrapeConfig.GetLabels())
+		desiredScrapeConfig.Spec.DeepCopyInto(&scrapeConfig.Spec)
+		scrapeConfig.ObjectMeta.Labels = desiredScrapeConfig.ObjectMeta.Labels
 		err = controllerutil.SetControllerReference(instance, scrapeConfig, r.Scheme)
 		return err
 	})
@@ -468,34 +463,17 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		Log.Info(fmt.Sprintf("Node Exporter ScrapeConfig %s successfully changed - operation: %s", scrapeConfig.GetName(), string(op)))
 	}
 
-	// scrapeConfig for tls nodes
-	scrapeConfig = &unstructured.Unstructured{}
-	scrapeConfig.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "monitoring.rhobs",
-		Version: "v1alpha1",
-		Kind:    "ScrapeConfig",
-	})
-	scrapeConfig.SetName(fmt.Sprintf("%s-tls", instance.Name))
-	scrapeConfig.SetNamespace(instance.Namespace)
-
-	err = r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", scrapeConfig, eventHandler)
-
-	if err != nil {
-		instance.Status.Conditions.MarkFalse(telemetryv1.ScrapeConfigReadyCondition,
-			condition.Reason("Can't own ScrapeConfig resource"),
-			condition.SeverityError,
-			telemetryv1.ScrapeConfigUnableToOwnMessage, err)
-		Log.Info("Can't own ScrapeConfig resource")
-		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	scrapeConfigTLS := &monv1alpha1.ScrapeConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-tls", instance.Name),
+			Namespace: instance.Namespace,
+		},
 	}
-	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfig, func() error {
-		if err != nil {
-			return err
-		}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfigTLS, func() error {
 		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, endpointsTLS, true)
-		scrapeConfig.UnstructuredContent()["spec"] = desiredScrapeConfig.UnstructuredContent()["spec"]
-		scrapeConfig.SetLabels(desiredScrapeConfig.GetLabels())
-		err = controllerutil.SetControllerReference(instance, scrapeConfig, r.Scheme)
+		desiredScrapeConfig.Spec.DeepCopyInto(&scrapeConfigTLS.Spec)
+		scrapeConfigTLS.ObjectMeta.Labels = desiredScrapeConfig.ObjectMeta.Labels
+		err = controllerutil.SetControllerReference(instance, scrapeConfigTLS, r.Scheme)
 		return err
 	})
 	if err != nil {
