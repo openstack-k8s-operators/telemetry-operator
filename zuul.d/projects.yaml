@@ -1,4 +1,3 @@
----
 - job:
     name: telemetry-operator-multinode-autoscaling
     parent: podified-multinode-edpm-deployment-crc
@@ -35,6 +34,26 @@
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest:
             dependencies: []
+            # Required because RDO and openstack repos use master as their default branch and also try to check out master for all the projects included in a job.
+            required-projects:
+              - name: openstack-k8s-operators/ci-framework
+                override-checkout: main
+              - name: openstack-k8s-operators/dataplane-operator
+                override-checkout: main
+              - name: openstack-k8s-operators/install_yamls
+                override-checkout: main
+              - name: openstack-k8s-operators/infra-operator
+                override-checkout: main
+              - name: openstack-k8s-operators/openstack-baremetal-operator
+                override-checkout: main
+              - name: openstack-k8s-operators/openstack-must-gather
+                override-checkout: main
+              - name: openstack-k8s-operators/openstack-operator
+                override-checkout: main
+              - name: openstack-k8s-operators/repo-setup
+                override-checkout: main
+              - name: openstack-k8s-operators/edpm-ansible
+                override-checkout: main
             pre-run:
               - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
             vars:
