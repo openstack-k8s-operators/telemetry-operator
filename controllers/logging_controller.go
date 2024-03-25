@@ -140,6 +140,8 @@ func (r *LoggingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
 			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
 			condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
+			// logging conditions
+			condition.UnknownCondition(telemetryv1.LoggingCLONamespaceReadyCondition, condition.InitReason, telemetryv1.LoggingReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -246,6 +248,14 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 
 	_, _, err = logging.Service(instance, helper, serviceLabels)
 	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.MarkFalse(telemetryv1.LoggingCLONamespaceReadyCondition,
+				condition.Reason("CLO Namespace does not exist"),
+				condition.SeverityError,
+				telemetryv1.LoggingCLONamespaceFailedMessage, instance.Spec.CLONamespace)
+			Log.Info("CLO Namespace does not exist")
+			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+		}
 		return ctrl.Result{}, err
 	}
 	// Operators cannot own objects in different namespaces

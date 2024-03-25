@@ -51,6 +51,9 @@ const (
 	// LoggingReadyCondition Status=True condition which indicates if the Logging is configured and operational
 	LoggingReadyCondition condition.Type = "LoggingReady"
 
+	// LoggingCLONamespaceReadyCondition Status=True condition which indicates if the cluster-logging-operator namespace is created
+	LoggingCLONamespaceReadyCondition condition.Type = "LoggingCLONamespaceReady"
+
 	DashboardPrometheusRuleReadyCondition condition.Type = "DashboardPrometheusRuleReady"
 
 	DashboardDatasourceReadyCondition condition.Type = "DashboardDatasourceReady"
@@ -192,6 +195,9 @@ const (
 	// LoggingReadyRunningMessage
 	LoggingReadyRunningMessage = "Logging in progress"
 
+	// LoggingCLONamespaceFailedMessage
+	LoggingCLONamespaceFailedMessage = "CLO Namespace %s does not exist"
+
 	DashboardsNotEnabledMessage = "Dashboarding was not enabled, so no actions required"
 
 	DashboardPrometheusRuleReadyInitMessage = "Dashboard PrometheusRule not started"
@@ -202,5 +208,4 @@ const (
 
 	DashboardDefinitionReadyInitMessage = "Dashboard Definition not started"
 	DashboardDefinitionFailedMessage = "Error occured when trying to install the dashboard definitions: %s"
-
 )

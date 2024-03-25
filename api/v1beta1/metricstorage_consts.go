@@ -29,7 +29,7 @@ const (
 	// DefaultScrapeInterval -
 	DefaultScrapeInterval = "30s"
 	// PauseBetweenWatchAttempts -
-	PauseBetweenWatchAttempts = time.Duration(10) * time.Second
+	PauseBetweenWatchAttempts = time.Duration(60) * time.Second
 )
 
 // PrometheusReplicas -
