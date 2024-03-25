@@ -1,0 +1,212 @@
+---
+- name: "Check telemetry-operator logs for errors"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  vars:
+    expected_logs:
+      - "INFO	Controllers.MetricStorage	Can't own MonitoringStack resource"
+    expected_metricstorage_conditions: >-
+      {{
+        dict([
+          ["MonitoringStackReady", 'Error occured when trying to own: customresourcedefinitions.apiextensions.k8s.io "monitoringstacks.monitoring.rhobs" not found'],
+          ["Ready", 'Error occured when trying to own: customresourcedefinitions.apiextensions.k8s.io "monitoringstacks.monitoring.rhobs" not found']
+        ])
+      }}
+    expected_autoscaling_conditions: >-
+      {{
+        dict([
+          ["Ready", 'Setup complete']
+        ])
+      }}
+  tasks:
+    - name: "Get telemetry condition"
+      ansible.builtin.command:
+        cmd:
+          oc get telemetry telemetry --output=jsonpath --template={.status.conditions[*].status}
+      register: output
+      retries: 12
+      delay: 10
+      until: output.stdout is ansible.builtin.regex("(True\s?)+$")
+
+    - name: "Get telemetry-operator logs"
+      ansible.builtin.import_tasks: "get-operator-logs.yml"
+
+    - name: "Check telemetry-operator logs for Errors"
+      ansible.builtin.set_fact:
+        error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
+
+    - name: "Fail if errors were found"
+      block:
+        - name: "Output found errors for debugging purposes"
+          ansible.builtin.debug:
+            var: error_list
+
+        - name: "Fail because errors were found in telemetry-operator logs"
+          ansible.builtin.fail:
+            msg: "Errors were found in the telemetry-operator logs"
+      when: error_list | length != 0
+
+    - name: "Get telemetry-operator container restart counts"
+      ansible.builtin.command:
+        cmd:
+          oc get pods -n openstack-operators -l "openstack.org/operator-name=telemetry" --output=jsonpath --template='{.items[*].status.containerStatuses[*].restartCount}'
+      register: restart_counts
+
+    - name: "Fail if telemetry-operator was restarted"
+      block:
+        - name: "Get telemetry-operator failed pod logs"
+          ansible.builtin.command:
+            cmd:
+              oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
+          register: operator_logs_previous
+
+        - name: "Output logs for debugging purposes"
+          ansible.builtin.debug:
+            var: operator_logs_previous.stdout_lines
+
+        - name: "Fail because telemetry-operator restarted"
+          ansible.builtin.fail:
+            msg: "Telemetry-operator restarted"
+      when: restart_counts.stdout != "0 0"
+
+    # Enabling Autoscaling and MetricStorage without COO installed. Expected to see errors.
+    - name: "Enable MetricStorage"
+      ansible.builtin.command:
+        cmd: |
+          oc patch oscp/openstack-galera-network-isolation --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/metricStorage/enabled", "value":true}]'
+
+    - name: "Enable Autoscaling"
+      ansible.builtin.command:
+        cmd: |
+          oc patch oscp/openstack-galera-network-isolation --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/autoscaling/enabled", "value":true}]'
+
+    - name: "Wait until reconciliation finishes"
+      # There isn't a convinient way to know when it finished. The status conditions will never get to a "Ready" state in this situation
+      ansible.builtin.wait_for:
+        timeout: 120
+
+    - name: "Get telemetry-operator container restart counts"
+      ansible.builtin.command:
+        cmd:
+          oc get pods -n openstack-operators -l "openstack.org/operator-name=telemetry" --output=jsonpath --template='{.items[*].status.containerStatuses[*].restartCount}'
+      register: restart_counts
+
+    - name: "Fail if telemetry-operator was restarted"
+      block:
+        - name: "Get telemetry-operator failed pod logs"
+          ansible.builtin.command:
+            cmd:
+              oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
+          register: operator_logs_previous
+
+        - name: "Output logs for debugging purposes"
+          ansible.builtin.debug:
+            var: operator_logs_previous.stdout_lines
+
+        - name: "Fail because telemetry-operator restarted"
+          ansible.builtin.fail:
+            msg: "Telemetry-operator restarted"
+      when: restart_counts.stdout != "0 0"
+
+    - name: "Get telemetry-operator logs"
+      ansible.builtin.import_tasks: "get-operator-logs.yml"
+
+    - name: "Fail if expected logs are missing"
+      ansible.builtin.fail:
+        msg: "telemetry-operator logs don't include expected log: {{ item }}"
+      loop: "{{ expected_logs }}"
+      when: operator_logs.stdout | ansible.builtin.regex_search( "^.*" + item + ".*$" )
+
+    - name: "Check telemetry-operator logs for Errors"
+      ansible.builtin.set_fact:
+        error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
+
+    - name: "Fail if unexpected errors are present"
+      ansible.builtin.fail:
+        msg: "telemetry-operator logs include an unexpected error: {{ item }}"
+      loop: "{{ error_list }}"
+      when: item not in expected_logs
+
+    - name: "Check if we have the expected conditions for MetricStorage"
+      block:
+        - name: "Get MetricStorage condition types"
+          ansible.builtin.command:
+            cmd:
+              oc get metricstorage metric-storage -o jsonpath='{.status.conditions[*].type}'
+          register: condition_types
+
+        - name: "Get MetricStorage condition values"
+          ansible.builtin.command:
+            cmd:
+              oc get metricstorage metric-storage -o jsonpath='{.status.conditions[?(@.type == "{{ item }}")].message}'
+          register: output
+          loop: "{{ condition_types.stdout | split(' ') }}"
+
+        - name: "Construct MetricStorage condition dictionary"
+          ansible.builtin.set_fact:
+            conditions: "{{ conditions | default({}) | combine({item.item: item.stdout}) }}"
+          loop: "{{ output.results }}"
+
+        - name: "Fail if an expected condition wasn't found"
+          ansible.builtin.fail:
+            msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
+          when: conditions[item.key] != item.value
+          loop: "{{ expected_metricstorage_conditions | dict2items }}"
+
+    - name: "Check that we have the expected conditions for Autoscaling"
+      block:
+        - name: "Get Autoscaling condition types"
+          ansible.builtin.command:
+            cmd:
+              oc get autoscaling autoscaling -o jsonpath='{.status.conditions[*].type}'
+          register: condition_types
+
+        - name: "Get Autoscaling condition values"
+          ansible.builtin.command:
+            cmd:
+              oc get autoscaling autoscaling -o jsonpath='{.status.conditions[?(@.type == "{{ item }}")].message}'
+          register: output
+          loop: "{{ condition_types.stdout | split(' ') }}"
+
+        - name: "Construct Autoscaling condition dictionary"
+          ansible.builtin.set_fact:
+            conditions: "{{ conditions | default({}) | combine({item.item: item.stdout}) }}"
+          loop: "{{ output.results }}"
+
+        - name: "Fail if an expected condition wasn't found"
+          ansible.builtin.fail:
+            msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
+          when: conditions[item.key] != item.value
+          loop: "{{ expected_autoscaling_conditions | dict2items }}"
+
+    # Installing COO and restarting the operators. Expecting everything to run without errors.
+    - name: Install COO
+      ansible.builtin.include_tasks: "create-coo-subscription.yaml"
+
+    - name: "Wait until Autoscaling and MetricStorage are ready"
+      ansible.builtin.command:
+        cmd:
+          oc get telemetry telemetry --output=jsonpath --template={.status.conditions[*].status}
+      register: output
+      retries: 12
+      delay: 10
+      until: output.stdout is ansible.builtin.regex("(True\s?)+$")
+
+    - name: "Get telemetry-operator logs"
+      ansible.builtin.import_tasks: "get-operator-logs.yml"
+
+    - name: "Check telemetry-operator logs for Errors"
+      ansible.builtin.set_fact:
+        error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
+
+    - name: "Fail if unexpected errors are present"
+      ansible.builtin.fail:
+        msg: "telemetry-operator logs include an expected error"
+      when: error_list | length != 0
+
+    # If we got here, we know that the telemetry status is Ready
+    # and there aren't any new error. Everything should be correctly
+    # deployed.

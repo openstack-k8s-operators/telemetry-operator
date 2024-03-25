@@ -1,0 +1,10 @@
+---
+- name: "Create the cluster-observability-operator subscription"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+    - name: Import tasks for creating COO subscription
+      ansible.builtin.include_tasks: "create-coo-subscription.yaml"
