@@ -56,8 +56,8 @@ const (
 
 	DashboardDefinitionReadyCondition condition.Type = "DashboardDefinitionReady"
 
-	// AvailabilityReadyCondition Status=True condition which indicates if the Availability is configured and operational
-	AvailabilityReadyCondition condition.Type = "AvailabilityReady"
+	// KSMReadyCondition Status=True condition which indicates if the KSM is configured and operational
+	KSMReadyCondition condition.Type = "KSMReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -194,17 +194,17 @@ const (
 	DashboardDefinitionFailedMessage    = "Error occured when trying to install the dashboard definitions: %s"
 
 	//
-	// AvailabilityReady condition messages
+	// KSMReady condition messages
 	//
-	// AvailabilityReadyInitMessage
-	AvailabilityReadyInitMessage = "Availability not started"
+	// KSMReadyInitMessage
+	KSMReadyInitMessage = "KSM not started"
 
-	// AvailabilityReadyMessage
-	AvailabilityReadyMessage = "Availability completed"
+	// KSMReadyMessage
+	KSMReadyMessage = "KSM completed"
 
-	// AvailabilityReadyErrorMessage
-	AvailabilityReadyErrorMessage = "Availability error occured %s"
+	// KSMReadyErrorMessage
+	KSMReadyErrorMessage = "KSM error occured %s"
 
-	// AvailabilityReadyRunningMessage
-	AvailabilityReadyRunningMessage = "Availability in progress"
+	// KSMReadyRunningMessage
+	KSMReadyRunningMessage = "KSM in progress"
 )
