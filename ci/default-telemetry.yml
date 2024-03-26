@@ -6,6 +6,19 @@
     KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
     PATH: "{{ cifmw_path }}"
   tasks:
+    - name: "Get telemetry status"
+      ansible.builtin.command:
+        cmd:
+          oc get telemetry telemetry --output=jsonpath --template={.status.conditions[*].status}
+      register: output
+      retries: 12
+      delay: 10
+      until: output.stdout is ansible.builtin.regex("(True\s?)+$")
+
+    - name: "tmp"
+      ansible.builtin.debug:
+        var: output.stdout
+
     - name: "Get telemetry-operator logs"
       ansible.builtin.command:
         cmd:
@@ -14,7 +27,7 @@
 
     - name: "Check telemetry-operator logs for Errors"
       ansible.builtin.set_fact:
-        errors: "{{operator_logs.stdout_lines | regex_search('^.*ERROR.*$')}}"
+        errors: "{{operator_logs.stdout_lines | ansible.builtin.regex_search('^.*ERROR.*$')}}"
 
     - name: "Fail if errors were found"
       block:
@@ -30,3 +43,4 @@
           ansible.builtin.fail:
             msg: "Errors were found in the telemetry-operator logs"
       when: errors != ""
+

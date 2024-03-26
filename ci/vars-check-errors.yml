@@ -1,5 +1,0 @@
----
-cifmw_run_test_role: test_operator
-post_ctlplane_deploy_check_errors:
-    source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/check_errors.yaml"
-    type: playbook
