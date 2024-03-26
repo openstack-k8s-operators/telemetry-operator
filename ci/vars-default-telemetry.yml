@@ -1,6 +1,6 @@
 ---
-post_ctlplane_deploy_check_errors:
-    source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/default_telemetry.yaml"
+post_ctlplane_deploy_check_default_telemetry:
+    source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/check-default-telemetry.yaml"
     type: playbook
 cifmw_edpm_prepare_kustomizations:
   - apiVersion: kustomize.config.k8s.io/v1beta1
