@@ -881,6 +881,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
+		Owns(&obov1.MonitoringStack{}).
 		Build(r)
 	r.Controller = control
 	return err

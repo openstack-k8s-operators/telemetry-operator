@@ -1,0 +1,46 @@
+---
+- name: "Check telemetry-operator logs for errors"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+    - name: "Get telemetry status"
+      ansible.builtin.command:
+        cmd:
+          oc get telemetry telemetry --output=jsonpath --template={.status.conditions[*].status}
+      register: output
+      retries: 12
+      delay: 10
+      until: output.stdout is ansible.builtin.regex("(True\s?)+$")
+
+    - name: "tmp"
+      ansible.builtin.debug:
+        var: output.stdout
+
+    - name: "Get telemetry-operator logs"
+      ansible.builtin.command:
+        cmd:
+          oc logs -n openstack-operators -l "openstack.org/operator-name=telemetry"
+      register: operator_logs
+
+    - name: "Check telemetry-operator logs for Errors"
+      ansible.builtin.set_fact:
+        errors: "{{operator_logs.stdout_lines | ansible.builtin.regex_search('^.*ERROR.*$')}}"
+
+    - name: "Fail if errors were found"
+      block:
+        - name: "Output logs for debugging purposes"
+          ansible.builtin.debug:
+            var: operator_logs.stdout_lines
+
+        - name: "Output found errors for debugging purposes"
+          ansible.builtin.debug:
+            var: errors
+
+        - name: "Fail because errors were found in telemetry-operator logs"
+          ansible.builtin.fail:
+            msg: "Errors were found in the telemetry-operator logs"
+      when: errors != ""
+
