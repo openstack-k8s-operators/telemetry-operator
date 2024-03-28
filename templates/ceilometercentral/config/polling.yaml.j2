@@ -1,0 +1,10 @@
+---
+sources:
+    - name: pollsters
+      interval: 300
+      meters:
+        - volume.*
+        - image.*
+{{- if .SwiftRole }}
+        - storage.*
+{{- end }}
