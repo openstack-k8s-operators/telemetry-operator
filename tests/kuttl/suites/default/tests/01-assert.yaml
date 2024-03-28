@@ -166,7 +166,7 @@ metadata:
     name: metric-storage
 spec:
   staticConfigs:
-  - targets: []
+  - {}
 ---
 apiVersion: v1
 kind: Service

@@ -15,8 +15,8 @@ require (
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240314165949-fec16b14c33b
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.3.1-0.20240314113200-40cf3e6aa38e
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240216140901-d56c3aef3fb7
-	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.64.1-rhobs3
-	github.com/rhobs/observability-operator v0.0.20
+	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.69.0-rhobs1
+	github.com/rhobs/observability-operator v0.0.28
 	k8s.io/api v0.28.7
 	k8s.io/apimachinery v0.28.7
 	k8s.io/client-go v0.28.7

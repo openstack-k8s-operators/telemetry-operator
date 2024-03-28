@@ -32,12 +32,11 @@ func ServiceMonitor(
 	labels map[string]string,
 	selector map[string]string,
 ) *monv1.ServiceMonitor {
-	var scrapeInterval string
+	var scrapeInterval monv1.Duration
 	if instance.Spec.MonitoringStack != nil && instance.Spec.MonitoringStack.ScrapeInterval != "" {
-		scrapeInterval = instance.Spec.MonitoringStack.ScrapeInterval
-		// TODO: Uncomment the following else if once we update to OBOv0.0.21
-		//} else if instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval {
-		//	scrapeInterval = instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval
+		scrapeInterval = monv1.Duration(instance.Spec.MonitoringStack.ScrapeInterval)
+	} else if instance.Spec.CustomMonitoringStack != nil && *instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval != monv1.Duration("") {
+		scrapeInterval = *instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval
 	} else {
 		scrapeInterval = telemetryv1.DefaultScrapeInterval
 	}
@@ -51,7 +50,7 @@ func ServiceMonitor(
 		Spec: monv1.ServiceMonitorSpec{
 			Endpoints: []monv1.Endpoint{
 				{
-					Interval: monv1.Duration(scrapeInterval),
+					Interval: scrapeInterval,
 					MetricRelabelConfigs: []*monv1.RelabelConfig{
 						{
 							Action:       "labeldrop",

@@ -60,9 +60,10 @@ spec:
                     - error
                     type: string
                   namespaceSelector:
-                    description: Namespace selector for Monitoring Stack Resources.
-                      If left empty the Monitoring Stack will only match resources
-                      in the namespace it was created in.
+                    description: 'Namespace selector for Monitoring Stack Resources.
+                      To monitor everything, set to empty map selector. E.g. namespaceSelector:
+                      {}. To monitor resources in the namespace where Monitoring Stack
+                      was created in, set to null. E.g. namespaceSelector:.'
                     properties:
                       matchExpressions:
                         description: matchExpressions is a list of label selector
@@ -341,11 +342,14 @@ spec:
                             write samples from Prometheus to a remote endpoint.
                           properties:
                             authorization:
-                              description: Authorization section for remote write
+                              description: "Authorization section for the URL. \n
+                                It requires Prometheus >= v2.26.0. \n Cannot be set
+                                at the same time as `sigv4`, `basicAuth`, `oauth2`,
+                                or `azureAd`."
                               properties:
                                 credentials:
-                                  description: The secret's key that contains the
-                                    credentials of the request
+                                  description: Selects a key of a Secret in the namespace
+                                    that contains the credentials for authentication.
                                   properties:
                                     key:
                                       description: The key of the secret to select
@@ -367,15 +371,44 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 credentialsFile:
                                   description: File to read a secret from, mutually
-                                    exclusive with Credentials (from SafeAuthorization)
+                                    exclusive with `credentials`.
                                   type: string
                                 type:
-                                  description: Set the authentication type. Defaults
-                                    to Bearer, Basic will cause an error
+                                  description: "Defines the authentication type. The
+                                    value is case-insensitive. \n \"Basic\" is not
+                                    a supported value. \n Default: \"Bearer\""
                                   type: string
                               type: object
+                            azureAd:
+                              description: "AzureAD for the URL. \n It requires Prometheus
+                                >= v2.45.0. \n Cannot be set at the same time as `authorization`,
+                                `basicAuth`, `oauth2`, or `sigv4`."
+                              properties:
+                                cloud:
+                                  description: The Azure Cloud. Options are 'AzurePublic',
+                                    'AzureChina', or 'AzureGovernment'.
+                                  enum:
+                                  - AzureChina
+                                  - AzureGovernment
+                                  - AzurePublic
+                                  type: string
+                                managedIdentity:
+                                  description: ManagedIdentity defines the Azure User-assigned
+                                    Managed identity.
+                                  properties:
+                                    clientId:
+                                      description: The client id
+                                      type: string
+                                  required:
+                                  - clientId
+                                  type: object
+                              required:
+                              - managedIdentity
+                              type: object
                             basicAuth:
-                              description: BasicAuth for the URL.
+                              description: "BasicAuth configuration for the URL. \n
+                                Cannot be set at the same time as `sigv4`, `authorization`,
+                                `oauth2`, or `azureAd`."
                               properties:
                                 password:
                                   description: The secret in the service monitor namespace
@@ -423,42 +456,49 @@ spec:
                                   x-kubernetes-map-type: atomic
                               type: object
                             bearerToken:
-                              description: Bearer token for remote write.
+                              description: "*Warning: this field shouldn't be used
+                                because the token value appears in clear-text. Prefer
+                                using `authorization`.* \n *Deprecated: this will
+                                be removed in a future release.*"
                               type: string
                             bearerTokenFile:
-                              description: File to read bearer token for remote write.
+                              description: "File from which to read bearer token for
+                                the URL. \n *Deprecated: this will be removed in a
+                                future release. Prefer using `authorization`.*"
                               type: string
                             headers:
                               additionalProperties:
                                 type: string
-                              description: Custom HTTP headers to be sent along with
+                              description: "Custom HTTP headers to be sent along with
                                 each remote write request. Be aware that headers that
                                 are set by Prometheus itself can't be overwritten.
-                                Only valid in Prometheus versions 2.25.0 and newer.
+                                \n It requires Prometheus >= v2.25.0."
                               type: object
                             metadataConfig:
                               description: MetadataConfig configures the sending of
                                 series metadata to the remote storage.
                               properties:
                                 send:
-                                  description: Whether metric metadata is sent to
-                                    the remote storage or not.
+                                  description: Defines whether metric metadata is
+                                    sent to the remote storage or not.
                                   type: boolean
                                 sendInterval:
-                                  description: How frequently metric metadata is sent
-                                    to the remote storage.
+                                  description: Defines how frequently metric metadata
+                                    is sent to the remote storage.
                                   pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                                   type: string
                               type: object
                             name:
-                              description: The name of the remote write queue, it
+                              description: "The name of the remote write queue, it
                                 must be unique if specified. The name is used in metrics
-                                and logging in order to differentiate queues. Only
-                                valid in Prometheus versions 2.15.0 and newer.
+                                and logging in order to differentiate queues. \n It
+                                requires Prometheus >= v2.15.0."
                               type: string
                             oauth2:
-                              description: OAuth2 for the URL. Only valid in Prometheus
-                                versions 2.27.0 and newer.
+                              description: "OAuth2 configuration for the URL. \n It
+                                requires Prometheus >= v2.27.0. \n Cannot be set at
+                                the same time as `sigv4`, `authorization`, `basicAuth`,
+                                or `azureAd`."
                               properties:
                                 clientId:
                                   description: The secret or configmap containing
@@ -599,20 +639,27 @@ spec:
                               pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                               type: string
                             sendExemplars:
-                              description: Enables sending of exemplars over remote
+                              description: "Enables sending of exemplars over remote
                                 write. Note that exemplar-storage itself must be enabled
-                                using the enableFeature option for exemplars to be
-                                scraped in the first place.  Only valid in Prometheus
-                                versions 2.27.0 and newer.
+                                using the `spec.enableFeature` option for exemplars
+                                to be scraped in the first place. \n It requires Prometheus
+                                >= v2.27.0."
+                              type: boolean
+                            sendNativeHistograms:
+                              description: "Enables sending of native histograms,
+                                also known as sparse histograms over remote write.
+                                \n It requires Prometheus >= v2.40.0."
                               type: boolean
                             sigv4:
-                              description: Sigv4 allows to configures AWS's Signature
-                                Verification 4
+                              description: "Sigv4 allows to configures AWS's Signature
+                                Verification 4 for the URL. \n It requires Prometheus
+                                >= v2.26.0. \n Cannot be set at the same time as `authorization`,
+                                `basicAuth`, `oauth2`, or `azureAd`."
                               properties:
                                 accessKey:
-                                  description: AccessKey is the AWS API key. If blank,
-                                    the environment variable `AWS_ACCESS_KEY_ID` is
-                                    used.
+                                  description: AccessKey is the AWS API key. If not
+                                    specified, the environment variable `AWS_ACCESS_KEY_ID`
+                                    is used.
                                   properties:
                                     key:
                                       description: The key of the secret to select
@@ -647,7 +694,7 @@ spec:
                                   type: string
                                 secretKey:
                                   description: SecretKey is the AWS API secret. If
-                                    blank, the environment variable `AWS_SECRET_ACCESS_KEY`
+                                    not specified, the environment variable `AWS_SECRET_ACCESS_KEY`
                                     is used.
                                   properties:
                                     key:
@@ -670,7 +717,7 @@ spec:
                                   x-kubernetes-map-type: atomic
                               type: object
                             tlsConfig:
-                              description: TLS Config to use for remote write.
+                              description: TLS Config to use for the URL.
                               properties:
                                 ca:
                                   description: Certificate authority used when verifying
@@ -817,16 +864,17 @@ spec:
                             writeRelabelConfigs:
                               description: The list of remote write relabel configurations.
                               items:
-                                description: 'RelabelConfig allows dynamic rewriting
-                                  of the label set, being applied to samples before
-                                  ingestion. It defines `<metric_relabel_configs>`-section
-                                  of Prometheus configuration. More info: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs'
+                                description: "RelabelConfig allows dynamic rewriting
+                                  of the label set for targets, alerts, scraped samples
+                                  and remote write samples. \n More info: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config"
                                 properties:
                                   action:
                                     default: replace
-                                    description: Action to perform based on regex
-                                      matching. Default is 'replace'. uppercase and
-                                      lowercase actions require Prometheus >= 2.36.
+                                    description: "Action to perform based on the regex
+                                      matching. \n `Uppercase` and `Lowercase` actions
+                                      require Prometheus >= v2.36.0. `DropEqual` and
+                                      `KeepEqual` actions require Prometheus >= v2.41.0.
+                                      \n Default: \"Replace\""
                                     enum:
                                     - replace
                                     - Replace
@@ -852,30 +900,30 @@ spec:
                                     - DropEqual
                                     type: string
                                   modulus:
-                                    description: Modulus to take of the hash of the
-                                      source label values.
+                                    description: "Modulus to take of the hash of the
+                                      source label values. \n Only applicable when
+                                      the action is `HashMod`."
                                     format: int64
                                     type: integer
                                   regex:
                                     description: Regular expression against which
-                                      the extracted value is matched. Default is '(.*)'
+                                      the extracted value is matched.
                                     type: string
                                   replacement:
-                                    description: Replacement value against which a
-                                      regex replace is performed if the regular expression
-                                      matches. Regex capture groups are available.
-                                      Default is '$1'
+                                    description: "Replacement value against which
+                                      a Replace action is performed if the regular
+                                      expression matches. \n Regex capture groups
+                                      are available."
                                     type: string
                                   separator:
-                                    description: Separator placed between concatenated
-                                      source label values. default is ';'.
+                                    description: Separator is the string between concatenated
+                                      SourceLabels.
                                     type: string
                                   sourceLabels:
                                     description: The source labels select values from
                                       existing labels. Their content is concatenated
-                                      using the configured separator and matched against
-                                      the configured regular expression for the replace,
-                                      keep, and drop actions.
+                                      using the configured Separator and matched against
+                                      the configured regular expression.
                                     items:
                                       description: LabelName is a valid Prometheus
                                         label name which may only contain ASCII letters,
@@ -884,10 +932,11 @@ spec:
                                       type: string
                                     type: array
                                   targetLabel:
-                                    description: Label to which the resulting value
-                                      is written in a replace action. It is mandatory
-                                      for replace actions. Regex capture groups are
-                                      available.
+                                    description: "Label to which the resulting string
+                                      is written in a replacement. \n It is mandatory
+                                      for `Replace`, `HashMod`, `Lowercase`, `Uppercase`,
+                                      `KeepEqual` and `DropEqual` actions. \n Regex
+                                      capture groups are available."
                                     type: string
                                 type: object
                               type: array
@@ -902,11 +951,15 @@ spec:
                         format: int32
                         minimum: 0
                         type: integer
+                      scrapeInterval:
+                        description: Default interval between scrapes.
+                        pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                        type: string
                     type: object
                   resourceSelector:
-                    description: Label selector for Monitoring Stack Resources. Set
-                      to the empty LabelSelector ({}) to monitoring everything. Set
-                      to null to disable service discovery.
+                    description: 'Label selector for Monitoring Stack Resources. To
+                      monitor everything, set to empty map selector. E.g. resourceSelector:
+                      {}. To disable service discovery, set to null. E.g. resourceSelector:.'
                     nullable: true
                     properties:
                       matchExpressions:
