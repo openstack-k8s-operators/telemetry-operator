@@ -765,6 +765,20 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		}
 		return nil
 	}
+
+	// Force restart of Ceilometer every time a keystoneendpoint is modified
+	keystoneEndpointsWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+		pod := &corev1.Pod{}
+		// Ceilometer can never have replicas so it will always be pod 0
+		err := r.Client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%v-0", ceilometer.ServiceName), Namespace: o.GetNamespace()}, pod)
+		if err != nil {
+			return nil
+		}
+		// Delete the pod so the statefulset re-creates it
+		r.Client.Delete(ctx, pod)
+		return nil
+	}
+
 	// index ceilometerPasswordSecretField
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ceilometerPasswordSecretField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
@@ -818,6 +832,10 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
+		Watches(
+			&keystonev1.KeystoneEndpoint{},
+			handler.EnqueueRequestsFromMapFunc(keystoneEndpointsWatchFn),
 		).
 		Complete(r)
 }
