@@ -8,7 +8,7 @@
         "perm": "0600"
       },
       {
-        "source": "/var/lib/openstack/config/polling.yaml",
+        "source": "/var/lib/openstack/config/polling.yaml.j2",
         "dest": "/etc/ceilometer/polling.yaml",
         "owner": "ceilometer",
         "perm": "0600"
