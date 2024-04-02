@@ -94,7 +94,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"steppedLine": false,
 					"targets": [
 						{
-						"expr": "label_replace(rate(ceilometer_cpu{project =~ \"$project\", vm_instance =~ \"$VM\"}[1m]), \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"expr": "vm:ceilometer_cpu:ratio1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
 						"hide": false,
 						"interval": "",
 						"legendFormat": "{{vm_name}}",
@@ -105,7 +105,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"timeFrom": null,
 					"timeRegions": [],
 					"timeShift": null,
-					"title": "VM CPU %",
+					"title": "VM CPU Util",
 					"tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -184,7 +184,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"steppedLine": false,
 					"targets": [
 						{
-						"expr": "label_replace(ceilometer_memory_usage{project =~ \"$project\", vm_instance =~ \"$VM\"}, \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"expr": "vm:ceilometer_memory_usage:total{project =~ \"$project\", vm_name =~ \"$VM\"}",
 						"hide": false,
 						"interval": "",
 						"legendFormat": "{{vm_name}}",
@@ -195,7 +195,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"timeFrom": null,
 					"timeRegions": [],
 					"timeShift": null,
-					"title": "VM Memory Allocation",
+					"title": "VM Memory Usage",
 					"tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -273,7 +273,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"steppedLine": false,
 					"targets": [
 						{
-						"expr": "label_replace(label_replace(ceilometer_disk_device_usage{project =~ \"$project\", vm_instance =~ \"$VM\"}, \"device\", \"$1\", \"resource\", \".*-.*-.*-.*-.*-(.*)\"), \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"expr": "vm:ceilometer_disk_device_usage:total{project =~ \"$project\", vm_name =~ \"$VM\"}",
 						"hide": false,
 						"interval": "",
 						"legendFormat": "{{vm_name}}({{device}})",
@@ -362,13 +362,13 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"steppedLine": false,
 					"targets": [
 						{
-						"expr": "label_replace(label_replace(rate(ceilometer_disk_device_read_bytes{project =~ \"$project\", vm_instance =~ \"$VM\"}[1m]), \"device\", \"$1\", \"resource\", \".*-.*-.*-.*-.*-(.*)\"), \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"expr": "vm:ceilometer_disk_device_read_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
 						"interval": "",
 						"legendFormat": "{{vm_name}} read ({{device}})",
 						"refId": "A"
 						},
 						{
-						"expr": "label_replace(label_replace(rate(ceilometer_disk_device_write_bytes{project =~ \"$project\", vm_instance =~ \"$VM\"}[1m]), \"device\", \"$1\", \"resource\", \".*-.*-.*-.*-.*-(.*)\"), \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"expr": "vm:ceilometer_disk_device_write_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
 						"hide": false,
 						"interval": "",
 						"legendFormat": "{{vm_name}} write ({{device}})",
@@ -457,18 +457,18 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"steppedLine": false,
 					"targets": [
 						{
-						"expr": "label_replace(label_replace(rate(ceilometer_network_outgoing_bytes{project =~ \"$project\", vm_instance =~ \"$VM\"}[1m]), \"device\", \"$1\", \"resource_name\", \".*:(.*)\")\n, \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
-						"hide": false,
-						"interval": "",
-						"legendFormat": "{{vm_name}} in ({{device}})",
-						"refId": "A"
+							"expr": "vm:ceilometer_network_incoming_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
+							"hide": false,
+							"interval": "",
+							"legendFormat": "{{vm_name}} in ({{device}})",
+							"refId": "B"
 						},
 						{
-						"expr": "label_replace(label_replace(rate(ceilometer_network_incoming_bytes{project =~ \"$project\", vm_instance =~ \"$VM\"}[1m]), \"device\", \"$1\", \"resource_name\", \".*:(.*)\")\n, \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"expr": "vm:ceilometer_network_outgoing_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
 						"hide": false,
 						"interval": "",
-						"legendFormat": "{{vm_name}} in ({{device}})",
-						"refId": "B"
+						"legendFormat": "{{vm_name}} out ({{device}})",
+						"refId": "A"
 						}
 					],
 					"thresholds": [],
@@ -553,14 +553,14 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"steppedLine": false,
 					"targets": [
 						{
-						"expr": "label_replace(label_replace(rate(ceilometer_network_incoming_packets_error{project =~ \"$project\", vm_instance =~ \"$VM\"}[1m]), \"device\", \"$1\", \"resource_name\", \".*:(.*)\")\n, \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"expr": "vm:ceilometer_network_incoming_packets_error:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
 						"hide": false,
 						"interval": "",
 						"legendFormat": "{{vm_name}} in ({{device}})",
 						"refId": "A"
 						},
 						{
-						"expr": "label_replace(label_replace(rate(ceilometer_network_outgoing_packets_error{project =~ \"$project\", vm_instance =~ \"$VM\"}[1m]), \"device\", \"$1\", \"resource_name\", \".*:(.*)\")\n, \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"expr": "vm:ceilometer_network_outgoing_packets_error:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
 						"hide": false,
 						"interval": "",
 						"legendFormat": "{{vm_name}} out ({{device}})",
@@ -697,7 +697,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 							"value": "1d0808c7d062b9b20bfb2979b0d940b55c10312b1a56894a4b7c3238"
 						}
 						],
-						"query": "label_values(ceilometer_cpu{project =~ \"$project\"}, vm_instance)",
+						"query": "label_values(vm:ceilometer_cpu:ratio1m{project =~ \"$project\"}, vm_name)",
 						"refresh": 0,
 						"regex": "",
 						"skipUrlSync": false,
