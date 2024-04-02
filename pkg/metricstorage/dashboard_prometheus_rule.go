@@ -132,7 +132,7 @@ func DashboardPrometheusRule(
 						{
 							Expr: intstr.IntOrString{
 								Type:   intstr.String,
-								StrVal: `sum without(type) (label_replace(ceilometer_memory_usage, "vm_name", "$1", "resource_name", "(.*):.*"))`,
+								StrVal: `sum without(type) (label_replace(ceilometer_memory_usage, "vm_name", "$1", "resource_name", "(.*):.*") * 1024 * 1024)`,
 							},
 							Record: "vm:ceilometer_memory_usage:total",
 						},

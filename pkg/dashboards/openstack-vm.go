@@ -105,7 +105,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"timeFrom": null,
 					"timeRegions": [],
 					"timeShift": null,
-					"title": "VM CPU Util",
+					"title": "CPU Utilisation",
 					"tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -195,7 +195,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"timeFrom": null,
 					"timeRegions": [],
 					"timeShift": null,
-					"title": "VM Memory Usage",
+					"title": "Memory Utilisation",
 					"tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -211,7 +211,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					},
 					"yaxes": [
 						{
-						"format": "mbytes",
+						"format": "bytes",
 						"label": null,
 						"logBase": 1,
 						"max": null,
@@ -284,7 +284,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"timeFrom": null,
 					"timeRegions": [],
 					"timeShift": null,
-					"title": "VM Disk Usage",
+					"title": "Disk Space Utilisation",
 					"tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -379,7 +379,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"timeFrom": null,
 					"timeRegions": [],
 					"timeShift": null,
-					"title": "VM Disk IO",
+					"title": "Disk R/W Utilisation",
 					"tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -395,7 +395,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					},
 					"yaxes": [
 						{
-						"format": "bytes",
+						"format": "Bps",
 						"label": null,
 						"logBase": 1,
 						"max": null,
@@ -475,7 +475,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"timeFrom": null,
 					"timeRegions": [],
 					"timeShift": null,
-					"title": "VM Network IO",
+					"title": "Network Utilisation",
 					"tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -491,7 +491,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					},
 					"yaxes": [
 						{
-						"format": "bytes",
+						"format": "Bps",
 						"label": null,
 						"logBase": 1,
 						"max": null,
@@ -571,7 +571,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"timeFrom": null,
 					"timeRegions": [],
 					"timeShift": null,
-					"title": "VM Network Errors",
+					"title": "Network Error Rate",
 					"tooltip": {
 						"shared": true,
 						"sort": 0,
