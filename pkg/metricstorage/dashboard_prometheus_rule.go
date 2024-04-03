@@ -174,6 +174,20 @@ func DashboardPrometheusRule(
 						{
 							Expr: intstr.IntOrString{
 								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_network_outgoing_packets_drop[1m]), "device", "$1", "resource_name", ".*:(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_network_outgoing_packets_drop:rate1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_network_incoming_packets_drop[1m]), "device", "$1", "resource_name", ".*:(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_network_incoming_packets_drop:rate1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
 								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_network_incoming_packets_error[1m]), "device", "$1", "resource_name", ".*:(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
 							},
 							Record: "vm:ceilometer_network_incoming_packets_error:rate1m",

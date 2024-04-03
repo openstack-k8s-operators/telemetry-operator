@@ -59,7 +59,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"dashLength": 10,
 					"dashes": false,
 					"datasource": { "name": "` + dsName + `", "type": "prometheus" },
-					"fill": 1,
+					"fill": 10,
 					"fillGradient": 0,
 					"gridPos": {
 						"h": 9,
@@ -122,7 +122,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"yaxes": [
 						{
 						"decimals": null,
-						"format": "ns",
+						"format": "percentunit",
 						"label": "",
 						"logBase": 1,
 						"max": null,
@@ -149,7 +149,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"dashLength": 10,
 					"dashes": false,
 					"datasource": { "name": "` + dsName + `", "type": "prometheus" },
-					"fill": 1,
+					"fill": 10,
 					"fillGradient": 0,
 					"gridPos": {
 						"h": 9,
@@ -238,7 +238,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"dashLength": 10,
 					"dashes": false,
 					"datasource": { "name": "` + dsName + `", "type": "prometheus" },
-					"fill": 1,
+					"fill": 10,
 					"fillGradient": 0,
 					"gridPos": {
 						"h": 8,
@@ -327,7 +327,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"dashLength": 10,
 					"dashes": false,
 					"datasource": { "name": "` + dsName + `", "type": "prometheus" },
-					"fill": 1,
+					"fill": 10,
 					"fillGradient": 0,
 					"gridPos": {
 						"h": 8,
@@ -422,7 +422,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"dashLength": 10,
 					"dashes": false,
 					"datasource": { "name": "` + dsName + `", "type": "prometheus" },
-					"fill": 1,
+					"fill": 10,
 					"fillGradient": 0,
 					"gridPos": {
 						"h": 8,
@@ -518,7 +518,103 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"dashLength": 10,
 					"dashes": false,
 					"datasource": { "name": "` + dsName + `", "type": "prometheus" },
-					"fill": 1,
+					"fill": 10,
+					"fillGradient": 0,
+					"gridPos": {
+						"h": 8,
+						"w": 12,
+						"x": 12,
+						"y": 17
+					},
+					"hiddenSeries": false,
+					"id": 12,
+					"legend": {
+						"avg": false,
+						"current": false,
+						"max": false,
+						"min": false,
+						"show": true,
+						"total": false,
+						"values": false
+					},
+					"lines": true,
+					"linewidth": 1,
+					"nullPointMode": "null",
+					"options": {
+						"dataLinks": []
+					},
+					"percentage": false,
+					"pointradius": 2,
+					"points": false,
+					"renderer": "flot",
+					"seriesOverrides": [],
+					"spaceLength": 10,
+					"stack": false,
+					"steppedLine": false,
+					"targets": [
+						{
+						"expr": "vm:ceilometer_network_incoming_packets_drop:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
+						"hide": false,
+						"interval": "",
+						"legendFormat": "{{vm_name}} in ({{device}})",
+						"refId": "A"
+						},
+						{
+						"expr": "vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
+						"hide": false,
+						"interval": "",
+						"legendFormat": "{{vm_name}} out ({{device}})",
+						"refId": "B"
+						}
+					],
+					"thresholds": [],
+					"timeFrom": null,
+					"timeRegions": [],
+					"timeShift": null,
+					"title": "Network Saturation (Drop Rate)",
+					"tooltip": {
+						"shared": true,
+						"sort": 0,
+						"value_type": "individual"
+					},
+					"type": "graph",
+					"xaxis": {
+						"buckets": null,
+						"mode": "time",
+						"name": null,
+						"show": true,
+						"values": []
+					},
+					"yaxes": [
+						{
+						"format": "short",
+						"label": null,
+						"logBase": 1,
+						"max": null,
+						"min": null,
+						"show": true
+						},
+						{
+						"format": "short",
+						"label": null,
+						"logBase": 1,
+						"max": null,
+						"min": null,
+						"show": true
+						}
+					],
+					"yaxis": {
+						"align": false,
+						"alignLevel": null
+					}
+					},
+					{
+					"aliasColors": {},
+					"bars": false,
+					"dashLength": 10,
+					"dashes": false,
+					"datasource": { "name": "` + dsName + `", "type": "prometheus" },
+					"fill": 10,
 					"fillGradient": 0,
 					"gridPos": {
 						"h": 8,
