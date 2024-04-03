@@ -81,6 +81,7 @@ type CeilometerSpecCore struct {
 
 	// Secret containing OpenStack password information for ceilometer
 	// +kubebuilder:validation:Required
+	// +kubebuilder:default=osp-secret
 	Secret string `json:"secret"`
 
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,

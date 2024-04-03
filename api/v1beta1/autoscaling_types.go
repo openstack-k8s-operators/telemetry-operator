@@ -63,6 +63,7 @@ type AodhCore struct {
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
 	// +kubebuilder:validation:Required
+	// +kubebuilder:default=openstack
 	// MariaDB instance name
 	// Right now required by the maridb-operator to get the credentials from the instance to create the DB
 	// Might not be required in future
@@ -84,6 +85,7 @@ type AodhCore struct {
 
 	// Secret containing OpenStack password information for aodh
 	// +kubebuilder:validation:Required
+	// +kubebuilder:default=osp-secret
 	Secret string `json:"secret"`
 
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
@@ -128,6 +130,7 @@ type AutoscalingSpec struct {
 	AutoscalingSpecBase `json:",inline"`
 
 	// Aodh spec
+	// +kubebuilder:default={rabbitMqClusterName: rabbitmq, databaseAccount: aodh, passwordSelector: {aodhService: AodhPassword}, serviceUser: aodh, apiImage: "", evaluatorImage: "", notifierImage: "", listenerImage: "", databaseInstance: "openstack", secret: "osp-secret"}
 	Aodh Aodh `json:"aodh,omitempty"`
 }
 
@@ -136,6 +139,7 @@ type AutoscalingSpecCore struct {
 	AutoscalingSpecBase `json:",inline"`
 
 	// Aodh spec
+	// +kubebuilder:default={rabbitMqClusterName: rabbitmq, databaseAccount: aodh, passwordSelector: {aodhService: AodhPassword}, serviceUser: aodh, databaseInstance: "openstack", secret: "osp-secret"}
 	Aodh AodhCore `json:"aodh,omitempty"`
 }
 
