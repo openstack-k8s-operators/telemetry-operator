@@ -288,9 +288,9 @@ spec:
                             description: AodhService - Selector to get the aodh service
                               password from the Secret
                             type: string
-                          service:
+                          ceilometerService:
                             default: CeilometerPassword
-                            description: Service - Selector to get the ceilometer
+                            description: CeilometerService - Selector to get the ceilometer
                               service password from the Secret
                             type: string
                         type: object
@@ -416,7 +416,7 @@ spec:
                     type: string
                   passwordSelector:
                     default:
-                      service: CeilometerPassword
+                      ceilometerService: CeilometerPassword
                     description: PasswordSelectors - Selectors to identify the service
                       from the Secret
                     properties:
@@ -425,10 +425,10 @@ spec:
                         description: AodhService - Selector to get the aodh service
                           password from the Secret
                         type: string
-                      service:
+                      ceilometerService:
                         default: CeilometerPassword
-                        description: Service - Selector to get the ceilometer service
-                          password from the Secret
+                        description: CeilometerService - Selector to get the ceilometer
+                          service password from the Secret
                         type: string
                     type: object
                   proxyImage:
