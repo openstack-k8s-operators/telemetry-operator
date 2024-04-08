@@ -1,4 +1,3 @@
----
 - job:
     name: telemetry-operator-multinode-autoscaling
     parent: podified-multinode-edpm-deployment-crc
@@ -18,12 +17,43 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
+      external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
+      change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
+      # This value will be used when the telemetry-tempest-plugin is released, and we no longer need to install from the master branch
+      cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + {{ external_plugin }}, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
 
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
       jobs:
-        - noop
+        - telemetry-operator-multinode-autoscaling-tempest:
+            dependencies: []
+            # Required because RDO and openstack repos use master as their default branch and also try to check out master for all the projects included in a job.
+            required-projects:
+              - name: openstack-k8s-operators/ci-framework
+                override-checkout: main
+              - name: openstack-k8s-operators/dataplane-operator
+                override-checkout: main
+              - name: openstack-k8s-operators/install_yamls
+                override-checkout: main
+              - name: openstack-k8s-operators/infra-operator
+                override-checkout: main
+              - name: openstack-k8s-operators/openstack-baremetal-operator
+                override-checkout: main
+              - name: openstack-k8s-operators/openstack-must-gather
+                override-checkout: main
+              - name: openstack-k8s-operators/openstack-operator
+                override-checkout: main
+              - name: openstack-k8s-operators/repo-setup
+                override-checkout: main
+              - name: openstack-k8s-operators/edpm-ansible
+                override-checkout: main
+            pre-run:
+              - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
+            vars:
+              external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
+              change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
+              cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + {{ external_plugin }}, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
 
 - project:
     name: openstack-k8s-operators/telemetry-operator

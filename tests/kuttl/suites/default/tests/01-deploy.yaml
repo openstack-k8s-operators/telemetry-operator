@@ -22,7 +22,7 @@ spec:
       notifierImage: "quay.io/mmagr/openstack-aodh-notifier:current-podified"
       listenerImage: "quay.io/mmagr/openstack-aodh-listener:current-podified"
       passwordSelectors:
-      databaseUser: aodh
+      databaseAccount: aodh
       databaseInstance: openstack
       memcachedInstance: memcached
     heatInstance: heat

@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -50,6 +49,7 @@ import (
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
+	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
@@ -101,7 +101,7 @@ func (r *AutoscalingReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
 
 // Reconcile reconciles an Autoscaling
-func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
 	Log := r.GetLogger(ctx)
 
 	// Fetch the Autoscaling instance
@@ -129,66 +129,61 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	// Always patch the instance status when exiting this function so we can persist any changes.
+	// initialize status if Conditions is nil, but do not reset if it already
+	// exists
+	isNewInstance := instance.Status.Conditions == nil
+	if isNewInstance {
+		instance.Status.Conditions = condition.Conditions{}
+	}
+
+	// Save a copy of the condtions so that we can restore the LastTransitionTime
+	// when a condition's state doesn't change.
+	savedConditions := instance.Status.Conditions.DeepCopy()
+
+	// Always patch the instance status when exiting this function so we can
+	// persist any changes.
 	defer func() {
-		// update the Ready condition based on the sub conditions
-		if instance.Status.Conditions.AllSubConditionIsTrue() {
-			instance.Status.Conditions.MarkTrue(
-				condition.ReadyCondition, condition.ReadyMessage)
-		} else {
-			// something is not ready so reset the Ready condition
-			instance.Status.Conditions.MarkUnknown(
-				condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage)
-			// and recalculate it based on the state of the rest of the conditions
+		condition.RestoreLastTransitionTimes(
+			&instance.Status.Conditions, savedConditions)
+		if instance.Status.Conditions.IsUnknown(condition.ReadyCondition) {
 			instance.Status.Conditions.Set(
 				instance.Status.Conditions.Mirror(condition.ReadyCondition))
 		}
 		err := helper.PatchInstance(ctx, instance)
 		if err != nil {
+			_err = err
 			return
 		}
 	}()
 
-	// If we're not deleting this and the service object doesn't have our finalizer, add it.
-	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) {
-		return ctrl.Result{}, nil
-	}
-
 	//
 	// initialize status
 	//
-	if instance.Status.Conditions == nil {
-		instance.Status.Conditions = condition.Conditions{}
-		// initialize conditions used later as Status=Unknown
-		cl := condition.CreateList(
-			// service account, role, rolebinding conditions
-			condition.UnknownCondition(condition.ServiceAccountReadyCondition,
-				condition.InitReason,
-				condition.ServiceAccountReadyInitMessage),
-			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
-			condition.UnknownCondition(condition.RoleBindingReadyCondition,
-				condition.InitReason,
-				condition.RoleBindingReadyInitMessage),
 
-			// Prometheus, Aodh, Heat conditions
-			condition.UnknownCondition(telemetryv1.HeatReadyCondition, condition.InitReason, telemetryv1.HeatReadyInitMessage),
-			condition.UnknownCondition(condition.MemcachedReadyCondition, condition.InitReason, condition.MemcachedReadyInitMessage),
+	// initialize conditions used later as Status=Unknown
+	cl := condition.CreateList(
+		// service account, role, rolebinding conditions
+		condition.UnknownCondition(condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage),
+		condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
+		condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
+		condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
+		// Prometheus, Aodh, Heat conditions
+		condition.UnknownCondition(telemetryv1.HeatReadyCondition, condition.InitReason, telemetryv1.HeatReadyInitMessage),
+		condition.UnknownCondition(condition.MemcachedReadyCondition, condition.InitReason, condition.MemcachedReadyInitMessage),
+		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
+		condition.UnknownCondition(condition.DBReadyCondition, condition.InitReason, condition.DBReadyInitMessage),
+		condition.UnknownCondition(condition.DBSyncReadyCondition, condition.InitReason, condition.DBSyncReadyInitMessage),
+		condition.UnknownCondition(condition.RabbitMqTransportURLReadyCondition, condition.InitReason, condition.RabbitMqTransportURLReadyInitMessage),
+		condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+		// right now we have no dedicated KeystoneServiceReadyInitMessage
+		condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
+		condition.UnknownCondition(condition.KeystoneEndpointReadyCondition, condition.InitReason, ""),
+		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
+	)
+	instance.Status.Conditions.Init(&cl)
 
-			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-			condition.UnknownCondition(condition.DBReadyCondition, condition.InitReason, condition.DBReadyInitMessage),
-			condition.UnknownCondition(condition.DBSyncReadyCondition, condition.InitReason, condition.DBSyncReadyInitMessage),
-			condition.UnknownCondition(condition.RabbitMqTransportURLReadyCondition, condition.InitReason, condition.RabbitMqTransportURLReadyInitMessage),
-
-			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
-			// right now we have no dedicated KeystoneServiceReadyInitMessage
-			condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
-			condition.UnknownCondition(condition.KeystoneEndpointReadyCondition, condition.InitReason, ""),
-			condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
-		)
-
-		instance.Status.Conditions.Init(&cl)
-
-		// Register overall status immediately to have an early feedback e.g. in the cli
+	// If we're not deleting this and the service object doesn't have our finalizer, add it.
+	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) || isNewInstance {
 		return ctrl.Result{}, nil
 	}
 
@@ -345,7 +340,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	//
 	// Check for required memcached used for caching
 	//
-	memcached, err := r.getAutoscalingMemcached(ctx, helper, instance)
+	memcached, err := memcachedv1.GetMemcachedByName(ctx, helper, instance.Spec.Aodh.MemcachedInstance, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -422,7 +417,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// run check TransportURL secret - end
 
 	//
-	// Get correct prometheus host and port
+	// Get correct prometheus host, port and if TLS should be used
 	// NOTE: Always do this before calling the generateServiceConfig to get the newest values in the ServiceConfig
 	//
 	if instance.Spec.PrometheusHost == "" {
@@ -435,13 +430,38 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	} else {
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
 	}
+	if instance.Spec.PrometheusTLS == nil {
+		metricStorage := &telemetryv1.MetricStorage{}
+		err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: instance.Namespace,
+			Name:      telemetryv1.DefaultServiceName,
+		}, metricStorage)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ServiceConfigReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.ServiceConfigReadyErrorMessage,
+				err.Error()))
+		}
+		instance.Status.PrometheusTLS = metricStorage.Spec.PrometheusTLS.Enabled()
+	} else {
+		instance.Status.PrometheusTLS = *instance.Spec.PrometheusTLS
+	}
+
+	db, result, err := r.ensureDB(ctx, helper, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	} else if (result != ctrl.Result{}) {
+		return result, nil
+	}
 
 	//
 	// create secret required for autoscaling input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
 	// - %-config configmap holding minimal autoscaling config required to get the service up, user can add additional files to be added to the service
 	//
-	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars, memcached)
+	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars, memcached, db)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -484,6 +504,11 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	if err != nil {
 		return ctrlResult, err
 	}
+
+	if instance.Status.Conditions.AllSubConditionIsTrue() {
+		instance.Status.Conditions.MarkTrue(
+			condition.ReadyCondition, condition.ReadyMessage)
+	}
 	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
@@ -518,9 +543,19 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	instance *telemetryv1.Autoscaling,
 	envVars *map[string]env.Setter,
 	mc *memcachedv1.Memcached,
+	db *mariadbv1.Database,
 ) error {
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(autoscaling.ServiceName), map[string]string{})
-	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.Aodh.CustomServiceConfig}
+
+	var tlsCfg *tls.Service
+	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
+		tlsCfg = &tls.Service{}
+	}
+
+	customData := map[string]string{
+		common.CustomServiceConfigFileName: instance.Spec.Aodh.CustomServiceConfig,
+		"my.cnf":                           db.GetDatabaseClientConfig(tlsCfg), //(mschuppert) for now just get the default my.cnf
+	}
 	for key, data := range instance.Spec.Aodh.DefaultConfigOverwrite {
 		customData[key] = data
 	}
@@ -545,6 +580,9 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		return err
 	}
 
+	databaseAccount := db.GetAccount()
+	databaseSecret := db.GetSecret()
+
 	templateParameters := map[string]interface{}{
 		"AodhUser":                 instance.Spec.Aodh.ServiceUser,
 		"AodhPassword":             string(ospSecret.Data[instance.Spec.Aodh.PasswordSelectors.AodhService]),
@@ -552,14 +590,22 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		"TransportURL":             string(transportURLSecret.Data["transport_url"]),
 		"PrometheusHost":           instance.Status.PrometheusHost,
 		"PrometheusPort":           instance.Status.PrometheusPort,
-		"MemcachedServers":         strings.Join(mc.Status.ServerList, ","),
-		"MemcachedServersWithInet": strings.Join(mc.Status.ServerListWithInet, ","),
-		"DatabaseConnection": fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s",
-			instance.Spec.Aodh.DatabaseUser,
-			string(ospSecret.Data[instance.Spec.Aodh.PasswordSelectors.Database]),
+		"MemcachedServers":         mc.GetMemcachedServerListString(),
+		"MemcachedServersWithInet": mc.GetMemcachedServerListWithInetString(),
+		"DatabaseConnection": fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
+			databaseAccount.Spec.UserName,
+			string(databaseSecret.Data[mariadbv1.DatabasePasswordSelector]),
 			instance.Status.DatabaseHostname,
 			autoscaling.DatabaseName),
 	}
+
+	prometheusParams := map[string]interface{}{
+		"Host":   instance.Status.PrometheusHost,
+		"Port":   instance.Status.PrometheusPort,
+		"TLS":    instance.Status.PrometheusPort,
+		"CaCert": tls.DownstreamTLSCABundlePath,
+	}
+	templateParameters["Prometheus"] = prometheusParams
 
 	httpdVhostConfig := map[string]interface{}{}
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
@@ -597,26 +643,6 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		},
 	}
 	return secret.EnsureSecrets(ctx, h, instance, cms, envVars)
-}
-
-// getAutoscalingMemcached - gets the Memcached instance used for aodh cache backend
-func (r *AutoscalingReconciler) getAutoscalingMemcached(
-	ctx context.Context,
-	h *helper.Helper,
-	instance *telemetryv1.Autoscaling,
-) (*memcachedv1.Memcached, error) {
-	memcached := &memcachedv1.Memcached{}
-	err := h.GetClient().Get(
-		ctx,
-		types.NamespacedName{
-			Name:      instance.Spec.Aodh.MemcachedInstance,
-			Namespace: instance.Namespace,
-		},
-		memcached)
-	if err != nil {
-		return nil, err
-	}
-	return memcached, err
 }
 
 func (r *AutoscalingReconciler) getAutoscalingHeat(

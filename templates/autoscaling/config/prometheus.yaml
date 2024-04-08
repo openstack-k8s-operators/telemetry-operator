@@ -1,2 +1,5 @@
-host: {{ .PrometheusHost }}
-port: {{ .PrometheusPort }}
+host: {{ .Prometheus.Host }}
+port: {{ .Prometheus.Port }}
+{{- if .Prometheus.TLS }}
+ca_cert: {{ .Prometheus.CaCert }}
+{{- end }}

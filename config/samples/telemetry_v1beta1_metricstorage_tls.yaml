@@ -1,0 +1,22 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: MetricStorage
+metadata:
+  labels:
+    app.kubernetes.io/name: metricstorage
+    app.kubernetes.io/instance: metricstorage-sample
+    app.kubernetes.io/part-of: telemetry-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: telemetry-operator
+  name: metricstorage-sample
+spec:
+  monitoringStack:
+    alertingEnabled: true
+    scrapeInterval: 30s
+    storage:
+      strategy: persistent
+      retention: 24h
+      persistent:
+        pvcStorageRequest: 20G
+  prometheusTls:
+    caBundleSecretName: combined-ca-bundle
+    secretName: cert-metric-storage-sample-prometheus-svc

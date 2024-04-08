@@ -12,7 +12,7 @@ spec:
   aodh:
     secret: osp-secret
     passwordSelectors:
-    databaseUser: aodh
+    databaseAccount: aodh
     databaseInstance: openstack
     memcachedInstance: memcached
     tls:

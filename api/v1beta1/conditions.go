@@ -45,8 +45,20 @@ const (
 	// NodeSetReadyCondition Status=True condition which indicates if the NodeSet watch is operational
 	NodeSetReadyCondition condition.Type = "NodeSetWatchReady"
 
+	// PrometheusReadyCondition Status=True condition which indicates if the Prometheus watch is operational
+	PrometheusReadyCondition condition.Type = "PrometheusReady"
+
 	// LoggingReadyCondition Status=True condition which indicates if the Logging is configured and operational
 	LoggingReadyCondition condition.Type = "LoggingReady"
+
+	// LoggingCLONamespaceReadyCondition Status=True condition which indicates if the cluster-logging-operator namespace is created
+	LoggingCLONamespaceReadyCondition condition.Type = "LoggingCLONamespaceReady"
+
+	DashboardPrometheusRuleReadyCondition condition.Type = "DashboardPrometheusRuleReady"
+
+	DashboardDatasourceReadyCondition condition.Type = "DashboardDatasourceReady"
+
+	DashboardDefinitionReadyCondition condition.Type = "DashboardDefinitionReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -157,6 +169,18 @@ const (
 	NodeSetUnableToWatchMessage = "Error occured when trying to watch %s"
 
 	//
+	// PrometheusReady condition messages
+	//
+	// PrometheusReadyInitMessage
+	PrometheusReadyInitMessage = "Prometheus not ready"
+
+	// PrometheusUnableToWatchMessage
+	PrometheusUnableToWatchMessage = "Error occured when trying to watch %s"
+
+	// PrometheusUnableToRemoveTLSMessage
+	PrometheusUnableToRemoveTLSMessage = "Error occured when trying to remove TLS config: %s"
+
+	//
 	// LoggingReady condition messages
 	//
 	// LoggingReadyInitMessage
@@ -170,4 +194,18 @@ const (
 
 	// LoggingReadyRunningMessage
 	LoggingReadyRunningMessage = "Logging in progress"
+
+	// LoggingCLONamespaceFailedMessage
+	LoggingCLONamespaceFailedMessage = "CLO Namespace %s does not exist"
+
+	DashboardsNotEnabledMessage = "Dashboarding was not enabled, so no actions required"
+
+	DashboardPrometheusRuleReadyInitMessage = "Dashboard PrometheusRule not started"
+	DashboardPrometheusRuleUnableToOwnMessage = "Error occured when trying to own %s"
+
+	DashboardDatasourceReadyInitMessage = "Dashboard Datasource not started"
+	DashboardDatasourceFailedMessage = "Error occured when trying to install the dashboard datasource: %s"
+
+	DashboardDefinitionReadyInitMessage = "Dashboard Definition not started"
+	DashboardDefinitionFailedMessage = "Error occured when trying to install the dashboard definitions: %s"
 )

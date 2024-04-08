@@ -3,7 +3,7 @@ kind: Service
 metadata:
   labels:
     service: ceilometer
-  name: ceilometer
+  name: ceilometer-internal
   ownerReferences:
   - kind: Ceilometer
     name: ceilometer
@@ -37,6 +37,11 @@ spec:
     - /bin/bash
     name: ceilometer-notification-agent
   - name: sg-core
+  - args:
+    - -DFOREGROUND
+    command:
+    - /usr/sbin/httpd
+    name: proxy-httpd
   hostname: ceilometer-0
 status:
   containerStatuses:
@@ -44,6 +49,9 @@ status:
     ready: true
     started: true
   - name: ceilometer-notification-agent
+    ready: true
+    started: true
+  - name: proxy-httpd
     ready: true
     started: true
   - name: sg-core
@@ -80,6 +88,7 @@ spec:
         - /bin/bash
         name: ceilometer-notification-agent
       - name: sg-core
+      - name: proxy-httpd
 status:
   availableReplicas: 1
   currentReplicas: 1
@@ -157,7 +166,7 @@ metadata:
     name: metric-storage
 spec:
   staticConfigs:
-  - targets: []
+  - {}
 ---
 apiVersion: v1
 kind: Service
@@ -290,3 +299,4 @@ status:
   currentReplicas: 1
   readyReplicas: 1
   replicas: 1
+---

@@ -55,7 +55,7 @@ func (r *AutoscalingReconciler) reconcileDeleteAodh(
 	Log.Info("Reconciling Service Aodh delete")
 
 	// remove db finalizer first
-	db, err := mariadbv1.GetDatabaseByName(ctx, helper, autoscaling.DatabaseName)
+	db, err := mariadbv1.GetDatabaseByNameAndAccount(ctx, helper, autoscaling.DatabaseCRName, instance.Spec.Aodh.DatabaseAccount, instance.Namespace)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -147,70 +147,13 @@ func (r *AutoscalingReconciler) reconcileInitAodh(
 	if instance.Status.Hash == nil {
 		instance.Status.Hash = map[string]string{}
 	}
-	//
-	// create service DB instance
-	//
-	db := mariadbv1.NewDatabaseWithNamespace(
-		// instance.Name
-		// TODO: We might want to change the db name.
-		// The mariadb-operator is currently implemented
-		// in a way, that the db name needs to be the
-		// same as the user
-		instance.Spec.Aodh.DatabaseUser,
-		instance.Spec.Aodh.DatabaseUser,
-		instance.Spec.Aodh.Secret,
-		map[string]string{
-			"dbName": instance.Spec.Aodh.DatabaseInstance,
-		},
-		autoscaling.ServiceName,
-		instance.Namespace,
-	)
-	// create or patch the DB
-	ctrlResult, err = db.CreateOrPatchDBByName(
-		ctx,
-		helper,
-		instance.Spec.Aodh.DatabaseInstance,
-	)
+
+	_, result, err := r.ensureDB(ctx, helper, instance)
 	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.DBReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.DBReadyErrorMessage,
-			err.Error()))
 		return ctrl.Result{}, err
+	} else if (result != ctrl.Result{}) {
+		return result, nil
 	}
-	if (ctrlResult != ctrl.Result{}) {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.DBReadyCondition,
-			condition.RequestedReason,
-			condition.SeverityInfo,
-			condition.DBReadyRunningMessage))
-		return ctrlResult, nil
-	}
-	// wait for the DB to be setup
-	ctrlResult, err = db.WaitForDBCreated(ctx, helper)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.DBReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.DBReadyErrorMessage,
-			err.Error()))
-		return ctrlResult, err
-	}
-	if (ctrlResult != ctrl.Result{}) {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.DBReadyCondition,
-			condition.RequestedReason,
-			condition.SeverityInfo,
-			condition.DBReadyRunningMessage))
-		return ctrlResult, nil
-	}
-	// update Status.DatabaseHostname, used to config the service
-	instance.Status.DatabaseHostname = db.GetDatabaseHostname()
-	instance.Status.Conditions.MarkTrue(condition.DBReadyCondition, condition.DBReadyMessage)
-	// create service DB - end
 
 	//
 	// run Aodh db sync
@@ -254,6 +197,94 @@ func (r *AutoscalingReconciler) reconcileInitAodh(
 	// run Aodh db sync - end
 	Log.Info("Reconciled Service Aodh init successfully")
 	return ctrl.Result{}, nil
+}
+
+// ensureDB - create aodh DB instance
+func (r *AutoscalingReconciler) ensureDB(
+	ctx context.Context,
+	h *helper.Helper,
+	instance *telemetryv1.Autoscaling,
+) (*mariadbv1.Database, ctrl.Result, error) {
+	// ensure MariaDBAccount exists.  This account record may be created by
+	// openstack-operator or the cloud operator up front without a specific
+	// MariaDBDatabase configured yet.   Otherwise, a MariaDBAccount CR is
+	// created here with a generated username as well as a secret with
+	// generated password.   The MariaDBAccount is created without being
+	// yet associated with any MariaDBDatabase.
+	_, _, err := mariadbv1.EnsureMariaDBAccount(
+		ctx, h, instance.Spec.Aodh.DatabaseAccount,
+		instance.Namespace, false, autoscaling.DatabaseUsernamePrefix,
+	)
+
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			mariadbv1.MariaDBAccountReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			mariadbv1.MariaDBAccountNotReadyMessage,
+			err.Error()))
+
+		return nil, ctrl.Result{}, err
+	}
+	instance.Status.Conditions.MarkTrue(
+		mariadbv1.MariaDBAccountReadyCondition,
+		mariadbv1.MariaDBAccountReadyMessage)
+
+	// create aodh DB instance
+	//
+	db := mariadbv1.NewDatabaseForAccount(
+		instance.Spec.Aodh.DatabaseInstance, // mariadb/galera service to target
+		autoscaling.DatabaseName,            // name used in CREATE DATABASE in mariadb
+		autoscaling.DatabaseCRName,          // CR name for MariaDBDatabase
+		instance.Spec.Aodh.DatabaseAccount,  // CR name for MariaDBAccount
+		instance.Namespace,                  // namespace
+	)
+
+	// create or patch the DB
+	ctrlResult, err := db.CreateOrPatchAll(ctx, h)
+
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DBReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.DBReadyErrorMessage,
+			err.Error()))
+		return db, ctrl.Result{}, err
+	}
+	if (ctrlResult != ctrl.Result{}) {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DBReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.DBReadyRunningMessage))
+		return db, ctrlResult, nil
+	}
+	// wait for the DB to be setup
+	ctrlResult, err = db.WaitForDBCreated(ctx, h)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DBReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.DBReadyErrorMessage,
+			err.Error()))
+		return db, ctrlResult, err
+	}
+	if (ctrlResult != ctrl.Result{}) {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DBReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.DBReadyRunningMessage))
+		return db, ctrlResult, nil
+	}
+	// update Status.DatabaseHostname, used to config the service
+	instance.Status.DatabaseHostname = db.GetDatabaseHostname()
+	instance.Status.Conditions.MarkTrue(condition.DBReadyCondition, condition.DBReadyMessage)
+	// create service DB - end
+
+	return db, ctrlResult, nil
 }
 
 func (r *AutoscalingReconciler) reconcileNormalAodh(
@@ -329,16 +360,20 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 
 	apiEndpoints := make(map[string]string)
 
+	if instance.Spec.Aodh.Override.Service == nil {
+		instance.Spec.Aodh.Override.Service = make(map[service.Endpoint]service.RoutedOverrideSpec)
+	}
+
 	for endpointType, data := range aodhEndpoints {
 		endpointTypeStr := string(endpointType)
 		endpointName := autoscaling.ServiceName + "-" + endpointTypeStr
-		svcOverride := instance.Spec.Aodh.Override.Service
-		if svcOverride == nil {
-			svcOverride = &service.RoutedOverrideSpec{}
-		}
+
+		svcOverride := instance.Spec.Aodh.Override.Service[endpointType]
 		if svcOverride.EmbeddedLabelsAnnotations == nil {
 			svcOverride.EmbeddedLabelsAnnotations = &service.EmbeddedLabelsAnnotations{}
 		}
+
+		instance.Spec.Aodh.Override.Service[endpointType] = svcOverride
 
 		exportLabels := util.MergeStringMaps(
 			serviceLabels,
@@ -502,6 +537,14 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		}
 
 		configVars[tls.TLSHashName] = env.SetValue(certsHash)
+	}
+
+	// remove finalizers from unused MariaDBAccount records
+	err = mariadbv1.DeleteUnusedMariaDBAccountFinalizers(
+		ctx, helper, autoscaling.DatabaseCRName,
+		instance.Spec.Aodh.DatabaseAccount, instance.Namespace)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// all cert input checks out so report InputReady

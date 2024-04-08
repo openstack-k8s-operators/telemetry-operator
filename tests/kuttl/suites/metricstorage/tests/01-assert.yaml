@@ -69,4 +69,4 @@ metadata:
     name: telemetry-kuttl
 spec:
   staticConfigs:
-  - targets: []
+    - {}

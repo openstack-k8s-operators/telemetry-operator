@@ -14,8 +14,10 @@ package ceilometer
 
 import (
 	"context"
+	"fmt"
 
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
+	svc "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -34,8 +36,11 @@ func Service(
 ) (*corev1.Service, controllerutil.OperationResult, error) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ServiceName,
+			Name:      fmt.Sprintf("%s-internal", ServiceName),
 			Namespace: instance.Namespace,
+			Annotations: map[string]string{
+				svc.AnnotationEndpointKey: string(svc.EndpointInternal),
+			},
 		},
 	}
 
