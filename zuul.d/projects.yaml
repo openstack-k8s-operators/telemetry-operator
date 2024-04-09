@@ -19,8 +19,6 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
       external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
       change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
-      # This value will be used when the telemetry-tempest-plugin is released, and we no longer need to install from the master branch
-      cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + {{ external_plugin }}, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
 
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
