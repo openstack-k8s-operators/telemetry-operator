@@ -251,7 +251,7 @@ func (r *CeilometerReconciler) reconcileInit(
 		Enabled:            true,
 		ServiceUser:        instance.Spec.ServiceUser,
 		Secret:             instance.Spec.Secret,
-		PasswordSelector:   instance.Spec.PasswordSelectors.Service,
+		PasswordSelector:   instance.Spec.PasswordSelectors.CeilometerService,
 	}
 
 	ksSvc := keystonev1.NewKeystoneService(ksSvcSpec, instance.Namespace, serviceLabels, 10)
