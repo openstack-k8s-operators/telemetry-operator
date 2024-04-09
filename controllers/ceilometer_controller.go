@@ -948,11 +948,11 @@ func (r *CeilometerReconciler) ensureSwiftRole(
 		return err
 	}
 
-	err = os.AssignUserDomainRole(
+	err = os.AssignUserRole(
 		log,
 		"SwiftSystemReader",
 		user.ID,
-		"default")
+		"service")
 	if err != nil {
 		return err
 	}
