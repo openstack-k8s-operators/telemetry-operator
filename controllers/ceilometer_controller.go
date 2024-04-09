@@ -454,6 +454,19 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		}
 	}
 
+	// Hash all the endpointurls to trigger a redeployment everytime one of the internal endpoints changes or is added
+	v := "internal"
+	endpointurls, err := keystonev1.GetKeystoneEndpointUrls(ctx, helper, instance.Namespace, &v)
+	if err != nil {
+
+		return ctrl.Result{}, err
+	}
+	hash, err := util.ObjectHash(endpointurls)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	configMapVars["endpointurls"] = env.SetValue(hash)
+
 	//
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
@@ -787,17 +800,15 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return nil
 	}
 
-	// Force restart of Ceilometer every time a keystoneendpoint is modified
+	// Reconcile every time a keystoneendpoint is modified
 	keystoneEndpointsWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
-		pod := &corev1.Pod{}
-		// Ceilometer can never have replicas so it will always be pod 0
-		err := r.Client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%v-0", ceilometer.ServiceName), Namespace: o.GetNamespace()}, pod)
-		if err != nil {
-			return nil
+		result := []reconcile.Request{}
+		name := client.ObjectKey{
+			Namespace: o.GetNamespace(),
+			Name:      ceilometer.ServiceName,
 		}
-		// Delete the pod so the statefulset re-creates it
-		r.Client.Delete(ctx, pod)
-		return nil
+		result = append(result, reconcile.Request{NamespacedName: name})
+		return result
 	}
 
 	// index ceilometerPasswordSecretField
@@ -948,12 +959,13 @@ func (r *CeilometerReconciler) ensureSwiftRole(
 		return err
 	}
 
-	err = os.AssignUserDomainRole(
+	err = os.AssignUserRole(
 		log,
 		"SwiftSystemReader",
 		user.ID,
-		"default")
+		"service")
 	if err != nil {
+		log.Error(err, "Cannot AssignUserRole")
 		return err
 	}
 
