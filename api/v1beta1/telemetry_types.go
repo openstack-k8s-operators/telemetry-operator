@@ -23,24 +23,17 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 )
 
-// TODO: We might want to split this to aodh and ceilometer and move it to appropriate files
-
 // PasswordsSelector to identify the Service password from the Secret
 type PasswordsSelector struct {
-	// Service - Selector to get the ceilometer service password from the Secret
+	// CeilometerService - Selector to get the ceilometer service password from the Secret
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=CeilometerPassword
-	Service string `json:"service"`
+	CeilometerService string `json:"ceilometerService"`
 
 	// AodhService - Selector to get the aodh service password from the Secret
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=AodhPassword
 	AodhService string `json:"aodhService"`
-
-	// Database - Selector to get the aodh database user password from the Secret
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=AodhDatabasePassword
-	Database string `json:"database"`
 }
 
 // TelemetrySpec defines the desired state of Telemetry
@@ -171,6 +164,12 @@ type TelemetryStatus struct {
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
+
+	// ObservedGeneration - the most recent generation observed for this
+	// service. If the observed generation is less than the spec generation,
+	// then the controller has not processed the latest changes injected by
+	// the opentack-operator in the top-level CR (e.g. the ContainerImage)
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 //+kubebuilder:object:root=true

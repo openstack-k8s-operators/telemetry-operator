@@ -11,4 +11,14 @@ metadata:
 apiVersion: v1
 kind: Secret
 metadata:
+  name: cert-ceilometer-internal-svc
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cert-metric-storage-prometheus-svc
+---
+apiVersion: v1
+kind: Secret
+metadata:
   name: combined-ca-bundle

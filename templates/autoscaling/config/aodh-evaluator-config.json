@@ -19,6 +19,12 @@
         "dest": "/etc/openstack/prometheus.yaml",
         "owner": "aodh",
         "perm": "0600"
+      },
+      {
+        "source": "/var/lib/openstack/config/my.cnf",
+        "dest": "/etc/my.cnf",
+        "owner": "aodh",
+        "perm": "0644"
       }
     ]
   }

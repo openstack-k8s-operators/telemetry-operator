@@ -26,8 +26,15 @@ const (
 	// PrometheusRetention -
 	PrometheusRetention = "5h"
 
-	// DatabaseName -
+	// DatabaseName - Name of the database used in CREATE DATABASE statement
 	DatabaseName = "aodh"
+
+	// DatabaseCRName - Name of the MariaDBDatabase CR
+	DatabaseCRName = "aodh"
+
+	// DatabaseUsernamePrefix - used by EnsureMariaDBAccount when a new username
+	// is to be generated, e.g. "aodh_e5a4", "aodh_78bc", etc
+	DatabaseUsernamePrefix = "aodh"
 
 	// AodhAPIPort -
 	AodhAPIPort = 8042

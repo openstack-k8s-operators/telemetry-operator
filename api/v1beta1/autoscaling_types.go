@@ -68,13 +68,13 @@ type AodhCore struct {
 	// Might not be required in future
 	DatabaseInstance string `json:"databaseInstance"`
 
-	// Database user name
-	// Needed to connect to a database used by aodh
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=aodh
-	DatabaseUser string `json:"databaseUser,omitempty"`
+	// DatabaseAccount - optional MariaDBAccount CR name used for aodh DB, defaults to aodh
+	DatabaseAccount string `json:"databaseAccount"`
 
 	// PasswordSelectors - Selectors to identify the service from the Secret
-	// +kubebuilder:default:={aodhService: AodhPassword, database: AodhDatabasePassword}
+	// +kubebuilder:default:={aodhService: AodhPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
 
 	// ServiceUser - optional username used for this service to register in keystone
@@ -124,7 +124,8 @@ type AodhCore struct {
 // APIOverrideSpec to override the generated manifest of several child resources.
 type APIOverrideSpec struct {
 	// Override configuration for the Service created to serve traffic to the cluster.
-	Service *service.RoutedOverrideSpec `json:"service,omitempty"`
+	// The key must be the endpoint type (public, internal)
+	Service map[service.Endpoint]service.RoutedOverrideSpec `json:"service,omitempty"`
 }
 
 // AutoscalingSpec defines the desired state of Autoscaling
@@ -154,6 +155,10 @@ type AutoscalingSpecBase struct {
 	// +kubebuilder:validation:Maximum=65535
 	// +kubebuilder:validation:Optional
 	PrometheusPort int32 `json:"prometheusPort,omitempty"`
+
+	// If TLS should be used for user deployed prometheus
+	// +kubebuilder:validation:Optional
+	PrometheusTLS *bool `json:"prometheusTLS,omitempty"`
 
 	// Heat instance name.
 	// +kubebuilder:default=heat
@@ -185,6 +190,9 @@ type AutoscalingStatus struct {
 
 	// PrometheusPort - Port for prometheus used for autoscaling
 	PrometheusPort int32 `json:"prometheusPort,omitempty"`
+
+	// PrometheusTLS - Determines if TLS should be used for accessing prometheus
+	PrometheusTLS bool `json:"prometheusTLS,omitempty"`
 
 	// API endpoint
 	APIEndpoints map[string]string `json:"apiEndpoint,omitempty"`

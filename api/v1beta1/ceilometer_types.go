@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 )
 
 const (
@@ -34,6 +35,8 @@ const (
 	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
 	CeilometerIpmiContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
+	// ProxyContainerImage - default fall-back image for proxy container
+	ProxyContainerImage     = "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
@@ -54,6 +57,10 @@ type CeilometerSpec struct {
 
 	// +kubebuilder:validation:Required
 	IpmiImage string `json:"ipmiImage"`
+
+	// +kubebuilder:validation:Required
+	ProxyImage string `json:"proxyImage"`
+
 }
 
 // CeilometerSpecCore defines the desired state of Ceilometer. This version is used by the OpenStackControlplane (no image parameters)
@@ -64,7 +71,7 @@ type CeilometerSpecCore struct {
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
 	// PasswordSelectors - Selectors to identify the service from the Secret
-	// +kubebuilder:default:={service: CeilometerPassword}
+	// +kubebuilder:default:={ceilometerService: CeilometerPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
 
 	// ServiceUser - optional username used for this service to register in keystone
@@ -89,6 +96,11 @@ type CeilometerSpecCore struct {
 
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// TLS - Parameters related to the TLS
+	TLS tls.SimpleService `json:"tls,omitempty"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer
@@ -163,6 +175,7 @@ func SetupDefaultsCeilometer() {
 		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
 		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
 		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
+		ProxyContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_PROXY_IMAGE_URL_DEFAULT", ProxyContainerImage),
 	}
 
 	SetupCeilometerDefaults(ceilometerDefaults)
