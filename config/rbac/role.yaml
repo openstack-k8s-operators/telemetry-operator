@@ -187,14 +187,6 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - memcached.openstack.org
-  resources:
-  - memcacheds
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - monitoring.rhobs
   resources:
   - alertmanagers
