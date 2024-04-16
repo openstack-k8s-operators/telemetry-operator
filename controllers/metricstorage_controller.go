@@ -172,6 +172,7 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		condition.UnknownCondition(telemetryv1.ScrapeConfigReadyCondition, condition.InitReason, telemetryv1.ScrapeConfigReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.NodeSetReadyCondition, condition.InitReason, telemetryv1.NodeSetReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.InitReason, telemetryv1.DashboardPrometheusRuleReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.DashboardPluginReadyCondition, condition.InitReason, telemetryv1.DashboardPluginReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDefinitionReadyCondition, condition.InitReason, telemetryv1.DashboardDefinitionReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.PrometheusReadyCondition, condition.InitReason, telemetryv1.PrometheusReadyInitMessage),
@@ -489,7 +490,49 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
+		// Deploy dashboard UI plugin from OBO
+		// TODO: Use the following instead of Unstructured{} after COO 0.2.0
+		// =====
+		// uiPluginObj := &obsui.ObservabilityUIPlugin{
+		// 	ObjectMeta: metav1.ObjectMeta{
+		// 		Name:      "ui-dashboards",
+		// 		Namespace: instance.Namespace,
+		// 	},
+		// }
+		// =====
+		uiPluginObj := &unstructured.Unstructured{}
+		uiPluginObj.SetUnstructuredContent(map[string]interface{}{
+			"spec": map[string]interface{}{
+				"type": "Dashboards",
+			},
+		})
+		uiPluginObj.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "observabilityui.rhobs",
+			Version: "v1alpha1",
+			Kind:    "ObservabilityUIPlugin",
+		})
+		uiPluginObj.SetName("ui-dashboards")
+		uiPluginObj.SetNamespace(instance.Namespace)
+		// =====
+		op, err = controllerutil.CreateOrPatch(ctx, r.Client, uiPluginObj, func() error {
+			// uiPluginObj.Spec.Type = "Dashboards" // After COO 0.2.0
+			err = controllerutil.SetControllerReference(instance, uiPluginObj, r.Scheme)
+			return err
+		})
+		if err != nil {
+			Log.Error(err, fmt.Sprintf("Failed to update Dashboard Plugin definition %s - operation: %s", uiPluginObj.GetName(), string(op)))
+			instance.Status.Conditions.MarkFalse(telemetryv1.DashboardPluginReadyCondition,
+				condition.Reason("Can't create Dashboard Plugin definition"),
+				condition.SeverityError,
+				telemetryv1.DashboardPluginFailedMessage, err)
+		} else {
+			instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, condition.ReadyMessage)
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("Dashboard Plugin definition %s successfully changed - operation: %s", uiPluginObj.GetName(), string(op)))
+		}
 		// Deploy PrometheusRule for dashboards
 		err = r.ensureWatches(ctx, "prometheusrules.monitoring.rhobs", &monv1.PrometheusRule{}, eventHandler)
 		if err != nil {
@@ -529,7 +572,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		datasourceCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      datasourceName,
-				Namespace: "console-dashboards",
+				Namespace: instance.Namespace,
 			},
 		}
 		dataSourceSuccess := false
