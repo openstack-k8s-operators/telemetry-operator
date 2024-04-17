@@ -35,8 +35,8 @@ const (
 	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
 	CeilometerIpmiContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
-	// ProxyContainerImage - default fall-back image for proxy container
-	ProxyContainerImage     = "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
+	// CeilometerProxyContainerImage - default fall-back image for proxy container
+	CeilometerProxyContainerImage     = "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
@@ -175,7 +175,7 @@ func SetupDefaultsCeilometer() {
 		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
 		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
 		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
-		ProxyContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_PROXY_IMAGE_URL_DEFAULT", ProxyContainerImage),
+		ProxyContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_CEILOMETER_PROXY_IMAGE_URL_DEFAULT", CeilometerProxyContainerImage),
 	}
 
 	SetupCeilometerDefaults(ceilometerDefaults)
