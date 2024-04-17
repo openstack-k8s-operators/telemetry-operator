@@ -492,6 +492,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
+
+		const (
+			dashboardArtifactsNamespace = "openshift-config-managed"
+			dashboardPluginNamespace    = "openshift-operators"
+		)
+
 		// Deploy dashboard UI plugin from OBO
 		// TODO: Use the following instead of Unstructured{} after COO 0.2.0
 		// =====
@@ -514,12 +520,11 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			Kind:    "ObservabilityUIPlugin",
 		})
 		uiPluginObj.SetName("ui-dashboards")
-		uiPluginObj.SetNamespace(instance.Namespace)
+		uiPluginObj.SetNamespace(dashboardPluginNamespace)
 		// =====
 		op, err = controllerutil.CreateOrPatch(ctx, r.Client, uiPluginObj, func() error {
 			// uiPluginObj.Spec.Type = "Dashboards" // After COO 0.2.0
-			err = controllerutil.SetControllerReference(instance, uiPluginObj, r.Scheme)
-			return err
+			return nil
 		})
 		if err != nil {
 			Log.Error(err, fmt.Sprintf("Failed to update Dashboard Plugin definition %s - operation: %s", uiPluginObj.GetName(), string(op)))
@@ -572,13 +577,17 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		datasourceCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      datasourceName,
-				Namespace: instance.Namespace,
+				Namespace: "console-dashboards", // Should be "dashboardArtifactsNamespace" once https://github.com/openshift/console-dashboards-plugin/pull/35 is in the build
 			},
 		}
 		dataSourceSuccess := false
 		op, err = controllerutil.CreateOrPatch(ctx, r.Client, datasourceCM, func() error {
 			datasourceCM.ObjectMeta.Labels = map[string]string{
 				"console.openshift.io/dashboard-datasource": "true",
+			}
+			scheme := "http"
+			if instance.Spec.PrometheusTLS.Enabled() {
+				scheme = "https"
 			}
 			datasourceCM.Data = map[string]string{
 				// WARNING: The lines below MUST be indented with spaces instead of tabs
@@ -590,7 +599,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
                         plugin:
                             kind: "PrometheusDatasource"
                             spec:
-                                direct_url: "http://prometheus-operated.` + instance.Namespace + ".svc.cluster.local:9090\"",
+                                direct_url: "` + scheme + `://metric-storage-prometheus.` + instance.Namespace + ".svc.cluster.local:9090\"",
 			}
 			return nil
 		})
@@ -621,7 +630,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 				dashboardCM := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      dashboardName,
-						Namespace: "openshift-config-managed",
+						Namespace: dashboardArtifactsNamespace,
 					},
 				}
 				op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboardCM, func() error {
