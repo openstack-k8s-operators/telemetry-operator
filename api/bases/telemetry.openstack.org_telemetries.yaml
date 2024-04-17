@@ -73,10 +73,6 @@ spec:
                         type: string
                       listenerImage:
                         type: string
-                      memcachedInstance:
-                        default: memcached
-                        description: Memcached instance name.
-                        type: string
                       networkAttachmentDefinitions:
                         description: NetworkAttachmentDefinitions list of network
                           attachment definitions the service pod gets attached to
@@ -348,7 +344,6 @@ spec:
                     - databaseInstance
                     - evaluatorImage
                     - listenerImage
-                    - memcachedInstance
                     - notifierImage
                     - secret
                     type: object

@@ -110,11 +110,6 @@ type AodhCore struct {
 	// PreserveJobs - do not delete jobs after they finished e.g. to check logs
 	PreserveJobs bool `json:"preserveJobs"`
 
-	// +kubebuilder:validation:Required
-	// +kubebuilder:default=memcached
-	// Memcached instance name.
-	MemcachedInstance string `json:"memcachedInstance"`
-
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
