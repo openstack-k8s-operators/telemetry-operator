@@ -493,10 +493,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
 
-		const (
-			dashboardArtifactsNamespace = "openshift-config-managed"
-			dashboardPluginNamespace    = "openshift-operators"
-		)
+		const dashboardArtifactsNamespace = "openshift-config-managed"
 
 		// Deploy dashboard UI plugin from OBO
 		// TODO: Use the following instead of Unstructured{} after COO 0.2.0
@@ -504,7 +501,6 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		// uiPluginObj := &obsui.ObservabilityUIPlugin{
 		// 	ObjectMeta: metav1.ObjectMeta{
 		// 		Name:      "ui-dashboards",
-		// 		Namespace: dashboardPluginNamespace,
 		// 	},
 		// }
 		// =====
@@ -515,12 +511,11 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			},
 		})
 		uiPluginObj.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   "observabilityui.rhobs", // ***** Soon to be "uiplugins.observability.openshift.io" https://github.com/rhobs/observability-operator/pull/434/files#diff-87f3ff0ffd8a86bfc90125fa3543caff45c234d6d2d54e2da371c560b65c0e1dR129
+			Group:   "observability.openshift.io",
 			Version: "v1alpha1",
-			Kind:    "ObservabilityUIPlugin", // ***** Soon to be "UIPlugin"
+			Kind:    "UIPlugin",
 		})
 		uiPluginObj.SetName("ui-dashboards")
-		uiPluginObj.SetNamespace(dashboardPluginNamespace)
 		// =====
 		op, err = controllerutil.CreateOrPatch(ctx, r.Client, uiPluginObj, func() error {
 			// uiPluginObj.Spec.Type = "Dashboards" // After we update to COO 0.2.0 as dependency
@@ -577,7 +572,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		datasourceCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      datasourceName,
-				Namespace: "console-dashboards", // Should be "dashboardArtifactsNamespace" once https://github.com/openshift/console-dashboards-plugin/pull/35 is in the build
+				Namespace: dashboardArtifactsNamespace,
 			},
 		}
 		dataSourceSuccess := false
@@ -585,23 +580,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			datasourceCM.ObjectMeta.Labels = map[string]string{
 				"console.openshift.io/dashboard-datasource": "true",
 			}
-			scheme := "http"
-			if instance.Spec.PrometheusTLS.Enabled() {
-				scheme = "https"
-			}
-			datasourceCM.Data = map[string]string{
-				// WARNING: The lines below MUST be indented with spaces instead of tabs
-				"dashboard-datasource.yaml": `
-                    kind: "Datasource"
-                    metadata:
-                        name: "` + datasourceName + `"
-                    spec:
-                        plugin:
-                            kind: "PrometheusDatasource"
-                            spec:
-                                direct_url: "` + scheme + `://metric-storage-prometheus.` + instance.Namespace + ".svc.cluster.local:9090\"",
-			}
-			return nil
+			datasourceCM.Data, err = metricstorage.DashboardDatasourceData(ctx, r.Client, instance, datasourceName, dashboardArtifactsNamespace)
+			return err
 		})
 		if err != nil {
 			Log.Error(err, "Failed to update Console UI Datasource ConfigMap %s - operation: %s", datasourceCM.Name, string(op))
