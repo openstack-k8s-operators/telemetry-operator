@@ -391,9 +391,9 @@ func (r TelemetryReconciler) reconcileAutoscaling(ctx context.Context, instance 
 	}
 	if !autoObsGen {
 		instance.Status.Conditions.Set(condition.UnknownCondition(
-			telemetryv1.CeilometerReadyCondition,
+			telemetryv1.AutoscalingReadyCondition,
 			condition.InitReason,
-			telemetryv1.CeilometerReadyRunningMessage,
+			telemetryv1.AutoscalingReadyInitMessage,
 		))
 	} else {
 		// Mirror Autoscaling condition status
@@ -558,7 +558,7 @@ func (r TelemetryReconciler) reconcileLogging(ctx context.Context, instance *tel
 		))
 	} else {
 
-		// Mirror Ceilometer's condition status
+		// Mirror Logging's condition status
 		c := loggingInstance.Status.Conditions.Mirror(telemetryv1.LoggingReadyCondition)
 		if c != nil {
 			instance.Status.Conditions.Set(c)
@@ -649,7 +649,7 @@ func (r *TelemetryReconciler) checkLoggingGeneration(
 	instance *telemetryv1.Telemetry,
 ) (bool, error) {
 	Log := r.GetLogger(context.Background())
-	l := &telemetryv1.MetricStorageList{}
+	l := &telemetryv1.LoggingList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.Namespace),
 	}

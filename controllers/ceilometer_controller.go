@@ -520,22 +520,24 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		return ctrl.Result{}, err
 	}
 
-	instance.Status.ReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
-	if instance.Status.ReadyCount > 0 {
-		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+	// Evaluate the last part of the reconciliation only if we see the last
+	// version of the CR
+	if sfset.GetStatefulSet().Generation == sfset.GetStatefulSet().Status.ObservedGeneration {
+		instance.Status.ReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
+		instance.Status.Networks = instance.Spec.NetworkAttachmentDefinitions
+		_, _, err = ceilometer.Service(instance, helper, ceilometer.CeilometerPrometheusPort, serviceLabels)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if instance.Status.ReadyCount > 0 {
+			instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+		}
+		if instance.Status.Conditions.AllSubConditionIsTrue() {
+			instance.Status.Conditions.MarkTrue(
+				condition.ReadyCondition, condition.ReadyMessage)
+		}
+		Log.Info("Reconciled Service successfully")
 	}
-	instance.Status.Networks = instance.Spec.NetworkAttachmentDefinitions
-
-	_, _, err = ceilometer.Service(instance, helper, ceilometer.CeilometerPrometheusPort, serviceLabels)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if instance.Status.Conditions.AllSubConditionIsTrue() {
-		instance.Status.Conditions.MarkTrue(
-			condition.ReadyCondition, condition.ReadyMessage)
-	}
-	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
 
