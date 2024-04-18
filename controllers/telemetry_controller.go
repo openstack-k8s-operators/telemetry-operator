@@ -141,6 +141,7 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	)
 
 	instance.Status.Conditions.Init(&cl)
+	instance.Status.ObservedGeneration = instance.Generation
 
 	// If we're not deleting this and the service object doesn't have our finalizer, add it.
 	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) || isNewInstance {
@@ -200,28 +201,28 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 
-	ctrlResult, err := reconcileAutoscaling(ctx, instance, helper)
+	ctrlResult, err := r.reconcileAutoscaling(ctx, instance, helper)
 	if err != nil {
 		return ctrl.Result{}, err
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
 
-	ctrlResult, err = reconcileCeilometer(ctx, instance, helper)
+	ctrlResult, err = r.reconcileCeilometer(ctx, instance, helper)
 	if err != nil {
 		return ctrl.Result{}, err
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
 
-	ctrlResult, err = reconcileMetricStorage(ctx, instance, helper)
+	ctrlResult, err = r.reconcileMetricStorage(ctx, instance, helper)
 	if err != nil {
 		return ctrl.Result{}, err
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
 
-	ctrlResult, err = reconcileLogging(ctx, instance, helper)
+	ctrlResult, err = r.reconcileLogging(ctx, instance, helper)
 	if err != nil {
 		return ctrl.Result{}, err
 	} else if (ctrlResult != ctrl.Result{}) {
@@ -230,7 +231,6 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 
 	// We reached the end of the Reconcile, update the Ready condition based on
 	// the sub conditions
-	instance.Status.ObservedGeneration = instance.Generation
 	if instance.Status.Conditions.AllSubConditionIsTrue() {
 		instance.Status.Conditions.MarkTrue(
 			condition.ReadyCondition, condition.ReadyMessage)
@@ -259,7 +259,7 @@ func ensureDeleted(ctx context.Context, helper *helper.Helper, obj client.Object
 }
 
 // reconcileCeilometer ...
-func reconcileCeilometer(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
+func (r TelemetryReconciler) reconcileCeilometer(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
 	const (
 		ceilometerNamespaceLabel = "Ceilometer.Namespace"
 		ceilometerNameLabel      = "Ceilometer.Name"
@@ -299,25 +299,43 @@ func reconcileCeilometer(ctx context.Context, instance *telemetryv1.Telemetry, h
 			err.Error()))
 		return ctrl.Result{}, err
 	}
-	if op != controllerutil.OperationResultNone {
-		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", ceilometer.ServiceName, ceilometerInstance.Name, op))
-	}
 
-	if ceilometerInstance.IsReady() {
-		instance.Status.Conditions.MarkTrue(telemetryv1.CeilometerReadyCondition, telemetryv1.CeilometerReadyMessage)
-	} else {
+	// Check the observed Generation and mirror the condition from the underlying
+	// resource reconciliation
+	ceilObsGen, err := r.checkCeilometerGeneration(instance)
+	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.CeilometerReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			telemetryv1.CeilometerReadyRunningMessage))
+		return ctrl.Result{}, nil
+	}
+
+	if !ceilObsGen {
+		instance.Status.Conditions.Set(condition.UnknownCondition(
+			telemetryv1.CeilometerReadyCondition,
+			condition.InitReason,
+			telemetryv1.CeilometerReadyRunningMessage,
+		))
+	} else {
+
+		// Mirror Ceilometer's condition status
+		c := ceilometerInstance.Status.Conditions.Mirror(telemetryv1.CeilometerReadyCondition)
+		if c != nil {
+			instance.Status.Conditions.Set(c)
+		}
+	}
+
+	if op != controllerutil.OperationResultNone && ceilObsGen {
+		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", ceilometer.ServiceName, ceilometerInstance.Name, op))
 	}
 
 	return ctrl.Result{}, nil
 }
 
 // reconcileAutoscaling ...
-func reconcileAutoscaling(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
+func (r TelemetryReconciler) reconcileAutoscaling(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
 	const (
 		autoscalingNamespaceLabel = "Autoscaling.Namespace"
 		autoscalingNameLabel      = "Autoscaling.Name"
@@ -358,25 +376,41 @@ func reconcileAutoscaling(ctx context.Context, instance *telemetryv1.Telemetry, 
 			err.Error()))
 		return ctrl.Result{}, err
 	}
-	if op != controllerutil.OperationResultNone {
-		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", autoscalingName, autoscalingInstance.Name, op))
-	}
 
-	if autoscalingInstance.IsReady() {
-		instance.Status.Conditions.MarkTrue(telemetryv1.AutoscalingReadyCondition, telemetryv1.AutoscalingReadyMessage)
-	} else {
+	// Check the observed Generation and mirror the condition from the
+	// underlying resource reconciliation
+	autoObsGen, err := r.checkAutoscalingGeneration(instance)
+	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.AutoscalingReadyCondition,
-			condition.RequestedReason,
-			condition.SeverityInfo,
-			telemetryv1.AutoscalingReadyRunningMessage))
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.AutoscalingReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, nil
+	}
+	if !autoObsGen {
+		instance.Status.Conditions.Set(condition.UnknownCondition(
+			telemetryv1.CeilometerReadyCondition,
+			condition.InitReason,
+			telemetryv1.CeilometerReadyRunningMessage,
+		))
+	} else {
+		// Mirror Autoscaling condition status
+		c := autoscalingInstance.Status.Conditions.Mirror(telemetryv1.AutoscalingReadyCondition)
+		if c != nil {
+			instance.Status.Conditions.Set(c)
+		}
+	}
+	if op != controllerutil.OperationResultNone && autoObsGen {
+		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", autoscalingName, autoscalingInstance.Name, op))
 	}
 
 	return ctrl.Result{}, nil
 }
 
 // reconcileMetricStorage ...
-func reconcileMetricStorage(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
+func (r TelemetryReconciler) reconcileMetricStorage(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
 	const (
 		metricStorageNamespaceLabel = "MetricStorage.Namespace"
 		metricStorageNameLabel      = "MetricStorage.Name"
@@ -427,25 +461,43 @@ func reconcileMetricStorage(ctx context.Context, instance *telemetryv1.Telemetry
 			err.Error()))
 		return ctrl.Result{}, err
 	}
-	if op != controllerutil.OperationResultNone {
-		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", telemetryv1.DefaultServiceName, metricStorageInstance.Name, op))
-	}
 
-	if metricStorageInstance.IsReady() {
-		instance.Status.Conditions.MarkTrue(telemetryv1.MetricStorageReadyCondition, telemetryv1.MetricStorageReadyMessage)
-	} else {
+	// Check the observed Generation and mirror the condition from the underlying
+	// resource reconciliation
+	msObsGen, err := r.checkMetricsStorageGeneration(instance)
+	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.MetricStorageReadyCondition,
-			condition.RequestedReason,
-			condition.SeverityInfo,
-			telemetryv1.MetricStorageReadyRunningMessage))
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.MetricStorageReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, nil
+	}
+
+	if !msObsGen {
+		instance.Status.Conditions.Set(condition.UnknownCondition(
+			telemetryv1.MetricStorageReadyCondition,
+			condition.InitReason,
+			telemetryv1.MetricStorageReadyRunningMessage,
+		))
+	} else {
+		// Mirror MetricsStorage's condition status
+		c := metricStorageInstance.Status.Conditions.Mirror(telemetryv1.MetricStorageReadyCondition)
+		if c != nil {
+			instance.Status.Conditions.Set(c)
+		}
+	}
+
+	if op != controllerutil.OperationResultNone && msObsGen {
+		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", telemetryv1.DefaultServiceName, metricStorageInstance.Name, op))
 	}
 
 	return ctrl.Result{}, nil
 }
 
 // reconcileLogging ...
-func reconcileLogging(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
+func (r TelemetryReconciler) reconcileLogging(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
 	const (
 		loggingNamespaceLabel = "Logging.Namespace"
 		loggingNameLabel      = "Logging.Name"
@@ -485,20 +537,36 @@ func reconcileLogging(ctx context.Context, instance *telemetryv1.Telemetry, help
 			err.Error()))
 		return ctrl.Result{}, err
 	}
-	if op != controllerutil.OperationResultNone {
-		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", logging.ServiceName, loggingInstance.Name, op))
-	}
 
-	if loggingInstance.IsReady() {
-		instance.Status.Conditions.MarkTrue(telemetryv1.LoggingReadyCondition, telemetryv1.LoggingReadyMessage)
-	} else {
+	// Check the observed Generation and mirror the condition from the underlying
+	// resource reconciliation
+	logObsGen, err := r.checkLoggingGeneration(instance)
+	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.LoggingReadyCondition,
-			condition.RequestedReason,
-			condition.SeverityInfo,
-			telemetryv1.LoggingReadyRunningMessage))
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.LoggingReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, nil
 	}
+	if !logObsGen {
+		instance.Status.Conditions.Set(condition.UnknownCondition(
+			telemetryv1.LoggingReadyCondition,
+			condition.InitReason,
+			telemetryv1.LoggingReadyRunningMessage,
+		))
+	} else {
 
+		// Mirror Ceilometer's condition status
+		c := loggingInstance.Status.Conditions.Mirror(telemetryv1.LoggingReadyCondition)
+		if c != nil {
+			instance.Status.Conditions.Set(c)
+		}
+	}
+	if op != controllerutil.OperationResultNone && logObsGen {
+		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", logging.ServiceName, loggingInstance.Name, op))
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -511,4 +579,88 @@ func (r *TelemetryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&telemetryv1.MetricStorage{}).
 		Owns(&telemetryv1.Logging{}).
 		Complete(r)
+}
+
+// checkCeilometerGeneration -
+func (r *TelemetryReconciler) checkCeilometerGeneration(
+	instance *telemetryv1.Telemetry,
+) (bool, error) {
+	Log := r.GetLogger(context.Background())
+	clm := &telemetryv1.CeilometerList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.Namespace),
+	}
+	if err := r.Client.List(context.Background(), clm, listOpts...); err != nil {
+		Log.Error(err, "Unable to retrieve Ceilometer CR %w")
+		return false, err
+	}
+	for _, item := range clm.Items {
+		if item.Generation != item.Status.ObservedGeneration {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// checkAutoscalingGeneration -
+func (r *TelemetryReconciler) checkAutoscalingGeneration(
+	instance *telemetryv1.Telemetry,
+) (bool, error) {
+	Log := r.GetLogger(context.Background())
+	as := &telemetryv1.AutoscalingList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.Namespace),
+	}
+	if err := r.Client.List(context.Background(), as, listOpts...); err != nil {
+		Log.Error(err, "Unable to retrieve Autoscaling CR %w")
+		return false, err
+	}
+	for _, item := range as.Items {
+		if item.Generation != item.Status.ObservedGeneration {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// checkMetricsStorageGeneration -
+func (r *TelemetryReconciler) checkMetricsStorageGeneration(
+	instance *telemetryv1.Telemetry,
+) (bool, error) {
+	Log := r.GetLogger(context.Background())
+	ms := &telemetryv1.MetricStorageList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.Namespace),
+	}
+	if err := r.Client.List(context.Background(), ms, listOpts...); err != nil {
+		Log.Error(err, "Unable to retrieve MetricsStorage CR %w")
+		return false, err
+	}
+	for _, item := range ms.Items {
+		if item.Generation != item.Status.ObservedGeneration {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// checkLoggingGeneration -
+func (r *TelemetryReconciler) checkLoggingGeneration(
+	instance *telemetryv1.Telemetry,
+) (bool, error) {
+	Log := r.GetLogger(context.Background())
+	l := &telemetryv1.MetricStorageList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.Namespace),
+	}
+	if err := r.Client.List(context.Background(), l, listOpts...); err != nil {
+		Log.Error(err, "Unable to retrieve Logging CR %w")
+		return false, err
+	}
+	for _, item := range l.Items {
+		if item.Generation != item.Status.ObservedGeneration {
+			return false, nil
+		}
+	}
+	return true, nil
 }
