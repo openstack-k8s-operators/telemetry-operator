@@ -504,7 +504,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		// uiPluginObj := &obsui.ObservabilityUIPlugin{
 		// 	ObjectMeta: metav1.ObjectMeta{
 		// 		Name:      "ui-dashboards",
-		// 		Namespace: instance.Namespace,
+		// 		Namespace: dashboardPluginNamespace,
 		// 	},
 		// }
 		// =====
@@ -515,15 +515,15 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			},
 		})
 		uiPluginObj.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   "observabilityui.rhobs",
+			Group:   "observabilityui.rhobs", // ***** Soon to be "uiplugins.observability.openshift.io" https://github.com/rhobs/observability-operator/pull/434/files#diff-87f3ff0ffd8a86bfc90125fa3543caff45c234d6d2d54e2da371c560b65c0e1dR129
 			Version: "v1alpha1",
-			Kind:    "ObservabilityUIPlugin",
+			Kind:    "ObservabilityUIPlugin", // ***** Soon to be "UIPlugin"
 		})
 		uiPluginObj.SetName("ui-dashboards")
 		uiPluginObj.SetNamespace(dashboardPluginNamespace)
 		// =====
 		op, err = controllerutil.CreateOrPatch(ctx, r.Client, uiPluginObj, func() error {
-			// uiPluginObj.Spec.Type = "Dashboards" // After COO 0.2.0
+			// uiPluginObj.Spec.Type = "Dashboards" // After we update to COO 0.2.0 as dependency
 			return nil
 		})
 		if err != nil {
