@@ -32,7 +32,7 @@ func DashboardDatasourceData(ctx context.Context, c client.Client, instance *tel
 	if instance.Spec.PrometheusTLS.Enabled() {
 		scheme = "https"
 		namespacedName := types.NamespacedName{
-			Name:      instance.Spec.PrometheusTLS.CaBundleSecretName,
+			Name:      *instance.Spec.PrometheusTLS.SecretName,
 			Namespace: instance.Namespace,
 		}
 		caSecret := &corev1.Secret{}
@@ -40,7 +40,7 @@ func DashboardDatasourceData(ctx context.Context, c client.Client, instance *tel
 		if err != nil {
 			return nil, err
 		}
-		certText = string(caSecret.Data["internal-ca-bundle.pem"])
+		certText = string(caSecret.Data["ca.crt"])
 	}
 
 	return map[string]string{
