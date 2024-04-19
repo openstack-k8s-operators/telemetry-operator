@@ -277,6 +277,7 @@ rules:
   resources:
   - uiplugins
   verbs:
+  - create
   - get
   - list
   - patch
