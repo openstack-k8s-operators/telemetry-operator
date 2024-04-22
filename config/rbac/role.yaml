@@ -265,6 +265,16 @@ rules:
   - list
   - watch
 - apiGroups:
+  - observability.openshift.io
+  resources:
+  - uiplugins
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
   - rabbitmq.openstack.org
   resources:
   - transporturls

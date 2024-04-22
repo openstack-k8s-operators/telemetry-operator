@@ -105,6 +105,8 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=network.openstack.org,resources=ipsets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=dataplane.openstack.org,resources=openstackdataplanenodesets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=dataplane.openstack.org,resources=openstackdataplaneservices,verbs=get;list;watch
+//+kubebuilder:rbac:groups=observability.openshift.io,resources=uiplugins,verbs=get;list;watch;create;patch
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile reconciles MetricStorage
 func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -172,6 +174,7 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		condition.UnknownCondition(telemetryv1.ScrapeConfigReadyCondition, condition.InitReason, telemetryv1.ScrapeConfigReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.NodeSetReadyCondition, condition.InitReason, telemetryv1.NodeSetReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.InitReason, telemetryv1.DashboardPrometheusRuleReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.DashboardPluginReadyCondition, condition.InitReason, telemetryv1.DashboardPluginReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDefinitionReadyCondition, condition.InitReason, telemetryv1.DashboardDefinitionReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.PrometheusReadyCondition, condition.InitReason, telemetryv1.PrometheusReadyInitMessage),
@@ -489,7 +492,49 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
+
+		const dashboardArtifactsNamespace = "openshift-config-managed"
+
+		// Deploy dashboard UI plugin from OBO
+		// TODO: Use the following instead of Unstructured{} after COO 0.2.0
+		// =====
+		// uiPluginObj := &obsui.ObservabilityUIPlugin{
+		// 	ObjectMeta: metav1.ObjectMeta{
+		// 		Name:      "ui-dashboards",
+		// 	},
+		// }
+		// =====
+		uiPluginObj := &unstructured.Unstructured{}
+		uiPluginObj.SetUnstructuredContent(map[string]interface{}{
+			"spec": map[string]interface{}{
+				"type": "Dashboards",
+			},
+		})
+		uiPluginObj.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "observability.openshift.io",
+			Version: "v1alpha1",
+			Kind:    "UIPlugin",
+		})
+		uiPluginObj.SetName("ui-dashboards")
+		// =====
+		op, err = controllerutil.CreateOrPatch(ctx, r.Client, uiPluginObj, func() error {
+			// uiPluginObj.Spec.Type = "Dashboards" // After we update to COO 0.2.0 as dependency
+			return nil
+		})
+		if err != nil {
+			Log.Error(err, fmt.Sprintf("Failed to update Dashboard Plugin definition %s - operation: %s", uiPluginObj.GetName(), string(op)))
+			instance.Status.Conditions.MarkFalse(telemetryv1.DashboardPluginReadyCondition,
+				condition.Reason("Can't create Dashboard Plugin definition"),
+				condition.SeverityError,
+				telemetryv1.DashboardPluginFailedMessage, err)
+		} else {
+			instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, condition.ReadyMessage)
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("Dashboard Plugin definition %s successfully changed - operation: %s", uiPluginObj.GetName(), string(op)))
+		}
 		// Deploy PrometheusRule for dashboards
 		err = r.ensureWatches(ctx, "prometheusrules.monitoring.rhobs", &monv1.PrometheusRule{}, eventHandler)
 		if err != nil {
@@ -529,7 +574,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		datasourceCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      datasourceName,
-				Namespace: "console-dashboards",
+				Namespace: dashboardArtifactsNamespace,
 			},
 		}
 		dataSourceSuccess := false
@@ -537,19 +582,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			datasourceCM.ObjectMeta.Labels = map[string]string{
 				"console.openshift.io/dashboard-datasource": "true",
 			}
-			datasourceCM.Data = map[string]string{
-				// WARNING: The lines below MUST be indented with spaces instead of tabs
-				"dashboard-datasource.yaml": `
-                    kind: "Datasource"
-                    metadata:
-                        name: "` + datasourceName + `"
-                    spec:
-                        plugin:
-                            kind: "PrometheusDatasource"
-                            spec:
-                                direct_url: "http://prometheus-operated.` + instance.Namespace + ".svc.cluster.local:9090\"",
-			}
-			return nil
+			datasourceCM.Data, err = metricstorage.DashboardDatasourceData(ctx, r.Client, instance, datasourceName, dashboardArtifactsNamespace)
+			return err
 		})
 		if err != nil {
 			Log.Error(err, "Failed to update Console UI Datasource ConfigMap %s - operation: %s", datasourceCM.Name, string(op))
@@ -578,7 +612,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 				dashboardCM := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      dashboardName,
-						Namespace: "openshift-config-managed",
+						Namespace: dashboardArtifactsNamespace,
 					},
 				}
 				op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboardCM, func() error {
