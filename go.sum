@@ -134,6 +134,8 @@ github.com/openstack-k8s-operators/ovn-operator/api v0.3.1-0.20240415222517-eb81
 github.com/openstack-k8s-operators/ovn-operator/api v0.3.1-0.20240415222517-eb816e08cb4a/go.mod h1:BUPvHv4+dcNNT50Kvkj9ae8FX9VBht8+7wtpiBWUbm0=
 github.com/openstack-k8s-operators/placement-operator/api v0.3.1-0.20240417101529-887edc53c417 h1:7I3V+nw8bd/k2qJMKsdzKO6rYTBkAU3rvQTSpqAgzco=
 github.com/openstack-k8s-operators/placement-operator/api v0.3.1-0.20240417101529-887edc53c417/go.mod h1:NYOgk2HS4mSR+4WwsiexepNU1pjxeo7h2WTs8qtS9/0=
+github.com/openstack-k8s-operators/rabbitmq-cluster-operator/v2 v2.6.1-0.20240313124519-961a0ee8bf7f h1:wWaOCAkCym4t+NZWXYT/LErGhKujDdKgc7Qy/3vX4uU=
+github.com/openstack-k8s-operators/rabbitmq-cluster-operator/v2 v2.6.1-0.20240313124519-961a0ee8bf7f/go.mod h1:Zryxg5YgbPUFcLSCcKpf10il8kIRAK5HloNo6khhdis=
 github.com/openstack-k8s-operators/swift-operator/api v0.3.1-0.20240417131140-2e30bb18b13b h1:GaaEwq7a0zspjS6I8ZiSoru9Gn2Wi/0gvHPxdjpQG4s=
 github.com/openstack-k8s-operators/swift-operator/api v0.3.1-0.20240417131140-2e30bb18b13b/go.mod h1:Jyxa9ZtVrXUQgDbuCl9mGWByF5duJ3LOWcLYIzMbrtc=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
@@ -148,8 +150,6 @@ github.com/prometheus/common v0.46.0 h1:doXzt5ybi1HBKpsZOL0sSkaNHJJqkyfEWZGGqqSc
 github.com/prometheus/common v0.46.0/go.mod h1:Tp0qkxpb9Jsg54QMe+EAmqXkSV7Evdy1BTn+g2pa/hQ=
 github.com/prometheus/procfs v0.12.0 h1:jluTpSng7V9hY0O2R9DzzJHYb2xULk9VTR1V1R/k6Bo=
 github.com/prometheus/procfs v0.12.0/go.mod h1:pcuDEFsWDnvcgNzo4EEweacyhjeA9Zk3cnaOZAZEfOo=
-github.com/rabbitmq/cluster-operator/v2 v2.6.0 h1:pr42elurQgi4DVmLTI1cOh8VZRNkfFKZK9+FgQuM/8w=
-github.com/rabbitmq/cluster-operator/v2 v2.6.0/go.mod h1:Zryxg5YgbPUFcLSCcKpf10il8kIRAK5HloNo6khhdis=
 github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.69.0-rhobs1 h1:d6UamuHl8GaEXcQqM7VO8jMnnhzHmTA0f6h4dQTQsGk=
 github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.69.0-rhobs1/go.mod h1:SDL0R6499oleOOVL5ovIxHpyLOh2sR2g0rvBuuqHyQM=
 github.com/rhobs/observability-operator v0.0.28 h1:FFMBkmI1LWJVWyJKJqelYbV5iUc4u/wJClqowRJZRoU=
