@@ -50,6 +50,7 @@ func Service(
 			"provider":                   "openshift",
 		}
 		service.Annotations = instance.Spec.Annotations
+		service.Labels = labels
 		service.Spec.Type = "LoadBalancer"
 
 		return nil

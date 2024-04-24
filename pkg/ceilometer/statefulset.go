@@ -81,7 +81,7 @@ func StatefulSet(
 
 	var replicas int32 = 1
 
-	volumes := getVolumes(ServiceName)
+	volumes := getVolumes()
 	centralVolumeMounts := getVolumeMounts("ceilometer-central")
 	notificationVolumeMounts := getVolumeMounts("ceilometer-notification")
 	httpdVolumeMounts := getHttpdVolumeMounts()
