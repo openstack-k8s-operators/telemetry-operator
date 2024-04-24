@@ -51,6 +51,9 @@ func (spec *MetricStorageSpec) Default() {
 		// and we don't have a way of distinguishing if the value was left
 		// empty or set to false by the user in the spec.MonitoringStack.Default()
 		spec.MonitoringStack.AlertingEnabled = true
+
+		// NOTE: If we want to enable dashboards in the future by default, set
+		//       it here like Alerting above
 	}
 	if spec.MonitoringStack != nil {
 		spec.MonitoringStack.Default()
@@ -61,6 +64,9 @@ func (spec *MetricStorageSpec) Default() {
 func (ms *MonitoringStack) Default() {
 	if ms.ScrapeInterval == "" {
 		ms.ScrapeInterval = "30s"
+	}
+	if ms.DataplaneNetwork == "" {
+		ms.DataplaneNetwork = "ctlplane"
 	}
 	ms.Storage.Default()
 }
