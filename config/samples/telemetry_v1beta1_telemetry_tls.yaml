@@ -22,7 +22,6 @@ spec:
       passwordSelectors:
       databaseUser: aodh
       databaseInstance: openstack
-      memcachedInstance: memcached
       secret: osp-secret
       tls:
         api:

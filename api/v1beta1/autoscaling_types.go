@@ -63,6 +63,7 @@ type AodhCore struct {
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
 	// +kubebuilder:validation:Required
+	// +kubebuilder:default=openstack
 	// MariaDB instance name
 	// Right now required by the maridb-operator to get the credentials from the instance to create the DB
 	// Might not be required in future
@@ -84,6 +85,7 @@ type AodhCore struct {
 
 	// Secret containing OpenStack password information for aodh
 	// +kubebuilder:validation:Required
+	// +kubebuilder:default=osp-secret
 	Secret string `json:"secret"`
 
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
@@ -110,11 +112,6 @@ type AodhCore struct {
 	// PreserveJobs - do not delete jobs after they finished e.g. to check logs
 	PreserveJobs bool `json:"preserveJobs"`
 
-	// +kubebuilder:validation:Required
-	// +kubebuilder:default=memcached
-	// Memcached instance name.
-	MemcachedInstance string `json:"memcachedInstance"`
-
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
@@ -133,6 +130,7 @@ type AutoscalingSpec struct {
 	AutoscalingSpecBase `json:",inline"`
 
 	// Aodh spec
+	// +kubebuilder:default={rabbitMqClusterName: rabbitmq, databaseAccount: aodh, passwordSelector: {aodhService: AodhPassword}, serviceUser: aodh, apiImage: "", evaluatorImage: "", notifierImage: "", listenerImage: "", databaseInstance: "openstack", secret: "osp-secret"}
 	Aodh Aodh `json:"aodh,omitempty"`
 }
 
@@ -141,6 +139,7 @@ type AutoscalingSpecCore struct {
 	AutoscalingSpecBase `json:",inline"`
 
 	// Aodh spec
+	// +kubebuilder:default={rabbitMqClusterName: rabbitmq, databaseAccount: aodh, passwordSelector: {aodhService: AodhPassword}, serviceUser: aodh, databaseInstance: "openstack", secret: "osp-secret"}
 	Aodh AodhCore `json:"aodh,omitempty"`
 }
 
@@ -196,6 +195,12 @@ type AutoscalingStatus struct {
 
 	// API endpoint
 	APIEndpoints map[string]string `json:"apiEndpoint,omitempty"`
+
+	// ObservedGeneration - the most recent generation observed for this
+	// service. If the observed generation is less than the spec generation,
+	// then the controller has not processed the latest changes injected by
+	// the openstack-operator in the top-level CR (e.g. the ContainerImage)
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -90,6 +90,7 @@ spec:
                   that is created and used in Telemetry
                 type: string
               secret:
+                default: osp-secret
                 description: Secret containing OpenStack password information for
                   ceilometer
                 type: string
@@ -177,6 +178,14 @@ spec:
                 items:
                   type: string
                 type: array
+              observedGeneration:
+                description: ObservedGeneration - the most recent generation observed
+                  for this service. If the observed generation is less than the spec
+                  generation, then the controller has not processed the latest changes
+                  injected by the openstack-operator in the top-level CR (e.g. the
+                  ContainerImage)
+                format: int64
+                type: integer
               readyCount:
                 description: ReadyCount of ceilometer instances
                 format: int32
