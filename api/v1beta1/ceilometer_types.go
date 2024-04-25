@@ -71,7 +71,7 @@ type CeilometerSpecCore struct {
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
 	// PasswordSelectors - Selectors to identify the service from the Secret
-	// +kubebuilder:default:={service: CeilometerPassword}
+	// +kubebuilder:default:={ceilometerService: CeilometerPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
 
 	// ServiceUser - optional username used for this service to register in keystone

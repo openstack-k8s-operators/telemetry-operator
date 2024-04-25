@@ -571,6 +571,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			dashboardCMs := map[string]*corev1.ConfigMap{
 				"grafana-dashboard-openstack-cloud": dashboards.OpenstackCloud(datasourceName),
 				"grafana-dashboard-openstack-node":  dashboards.OpenstackNode(datasourceName),
+				"grafana-dashboard-openstack-vm":    dashboards.OpenstackVM(datasourceName),
 			}
 
 			for dashboardName, desiredCM := range dashboardCMs {

@@ -54,7 +54,7 @@ func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]strin
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: instance.Spec.Aodh.Secret,
 					},
-					Key: instance.Spec.Aodh.PasswordSelectors.Service,
+					Key: instance.Spec.Aodh.PasswordSelectors.AodhService,
 				},
 			},
 		},

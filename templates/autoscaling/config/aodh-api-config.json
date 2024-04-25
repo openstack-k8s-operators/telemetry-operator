@@ -49,7 +49,7 @@
         "merge": true
     },
     {
-        "source": "/var/lib/openstack//config/my.cnf",
+        "source": "/var/lib/openstack/config/my.cnf",
         "dest": "/etc/my.cnf",
         "owner": "aodh",
         "perm": "0644"

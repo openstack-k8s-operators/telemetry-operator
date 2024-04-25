@@ -119,6 +119,88 @@ func DashboardPrometheusRule(
 						},
 					},
 				},
+				{
+					Name: "osp-ceilometer-dashboard.rules",
+					Rules: []monv1.Rule{
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(unit, type) (label_replace(rate(ceilometer_cpu[1m]), "vm_name", "$1", "resource_name", "(.*):.*") / 1000000000)`,
+							},
+							Record: "vm:ceilometer_cpu:ratio1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(ceilometer_memory_usage, "vm_name", "$1", "resource_name", "(.*):.*") * 1024 * 1024)`,
+							},
+							Record: "vm:ceilometer_memory_usage:total",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(ceilometer_disk_device_usage, "device", "$1", "resource", ".*-.*-.*-.*-.*-(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_disk_device_usage:total",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_disk_device_read_bytes[1m]), "device", "$1", "resource", ".*-.*-.*-.*-.*-(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_disk_device_read_bytes:rate1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_disk_device_write_bytes[1m]), "device", "$1", "resource", ".*-.*-.*-.*-.*-(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_disk_device_write_bytes:rate1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_network_outgoing_bytes[1m]), "device", "$1", "resource_name", ".*:(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_network_outgoing_bytes:rate1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_network_incoming_bytes[1m]), "device", "$1", "resource_name", ".*:(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_network_incoming_bytes:rate1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_network_outgoing_packets_drop[1m]), "device", "$1", "resource_name", ".*:(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_network_outgoing_packets_drop:rate1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_network_incoming_packets_drop[1m]), "device", "$1", "resource_name", ".*:(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_network_incoming_packets_drop:rate1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_network_incoming_packets_error[1m]), "device", "$1", "resource_name", ".*:(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_network_incoming_packets_error:rate1m",
+						},
+						{
+							Expr: intstr.IntOrString{
+								Type:   intstr.String,
+								StrVal: `sum without(type) (label_replace(label_replace(rate(ceilometer_network_outgoing_packets_error[1m]), "device", "$1", "resource_name", ".*:(.*)"), "vm_name", "$1", "resource_name", "(.*):.*"))`,
+							},
+							Record: "vm:ceilometer_network_outgoing_packets_error:rate1m",
+						},
+					},
+				},
 			},
 		},
 	}
