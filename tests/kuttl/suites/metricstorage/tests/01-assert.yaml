@@ -70,3 +70,49 @@ metadata:
 spec:
   staticConfigs:
     - {}
+---
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  name: ui-dashboards
+spec:
+  type: Dashboards
+status:
+  conditions:
+  - status: "True"
+    type: Reconciled
+  - status: "True"
+    type: Available
+---
+apiVersion: monitoring.rhobs/v1
+kind: PrometheusRule
+metadata:
+  name: telemetry-kuttl
+spec:
+  groups:
+  - name: osp-node-exporter-dashboard.rules
+  - name: osp-ceilometer-dashboard.rules
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telemetry-kuttl-tests-telemetry-kuttl-datasource
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-cloud
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-node
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-vm
+  namespace: openshift-config-managed

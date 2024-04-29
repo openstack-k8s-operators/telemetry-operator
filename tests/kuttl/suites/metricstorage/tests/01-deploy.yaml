@@ -5,6 +5,7 @@ metadata:
 spec:
   monitoringStack:
     alertingEnabled: true
+    dashboardsEnabled: true
     scrapeInterval: 30s
     storage:
       strategy: persistent
