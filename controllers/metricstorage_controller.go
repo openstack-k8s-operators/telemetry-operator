@@ -553,10 +553,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			},
 		}
 		op, err = controllerutil.CreateOrPatch(ctx, r.Client, prometheusRule, func() error {
-			ruleLabels := map[string]string{
-				common.AppSelector: telemetryv1.DefaultServiceName,
-			}
-			desiredPrometheusRule := metricstorage.DashboardPrometheusRule(instance, serviceLabels, ruleLabels)
+			desiredPrometheusRule := metricstorage.DashboardPrometheusRule(instance, serviceLabels)
 			desiredPrometheusRule.Spec.DeepCopyInto(&prometheusRule.Spec)
 			prometheusRule.ObjectMeta.Labels = desiredPrometheusRule.ObjectMeta.Labels
 			err = controllerutil.SetControllerReference(instance, prometheusRule, r.Scheme)
