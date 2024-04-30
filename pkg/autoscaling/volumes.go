@@ -33,7 +33,7 @@ var (
 )
 
 // getVolumes - service volumes
-func getVolumes(name string) []corev1.Volume {
+func getVolumes() []corev1.Volume {
 	return []corev1.Volume{
 		{
 			Name: "scripts",

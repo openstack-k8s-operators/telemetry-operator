@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	logr "github.com/go-logr/logr"
+	projects "github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
@@ -52,7 +53,6 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	openstack "github.com/openstack-k8s-operators/lib-common/modules/openstack"
-	projects "github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
@@ -185,14 +185,14 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 const (
 	ceilometerPasswordSecretField     = ".spec.secret"
 	ceilometerCaBundleSecretNameField = ".spec.tls.caBundleSecretName"
-	ceilometerTlsField                = ".spec.tls.secretName"
+	ceilometerTLSField                = ".spec.tls.secretName"
 )
 
 var (
 	ceilometerWatchFields = []string{
 		ceilometerPasswordSecretField,
 		ceilometerCaBundleSecretNameField,
-		ceilometerTlsField,
+		ceilometerTLSField,
 	}
 )
 
@@ -837,7 +837,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	}
 
 	// index ceilometerTlsField
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ceilometerTlsField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ceilometerTLSField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
 		cr := rawObj.(*telemetryv1.Ceilometer)
 		if cr.Spec.TLS.SecretName == nil {
@@ -876,7 +876,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 func (r *CeilometerReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
-	l := log.FromContext(context.Background()).WithName("Controllers").WithName("Ceilometer")
+	l := log.FromContext(ctx).WithName("Controllers").WithName("Ceilometer")
 
 	for _, field := range ceilometerWatchFields {
 		crList := &telemetryv1.CeilometerList{}
@@ -884,7 +884,7 @@ func (r *CeilometerReconciler) findObjectsForSrc(ctx context.Context, src client
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
 			Namespace:     src.GetNamespace(),
 		}
-		err := r.Client.List(context.TODO(), crList, listOps)
+		err := r.Client.List(ctx, crList, listOps)
 		if err != nil {
 			return []reconcile.Request{}
 		}

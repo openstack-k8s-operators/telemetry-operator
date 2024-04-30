@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	logr "github.com/go-logr/logr"
-	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	"k8s.io/client-go/kubernetes"
@@ -37,7 +36,6 @@ import (
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	logging "github.com/openstack-k8s-operators/telemetry-operator/pkg/logging"
-	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 )
 
@@ -152,12 +150,8 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		instance.Status.Hash = map[string]string{}
 	}
 
-	serviceLabels := map[string]string{
-		common.AppSelector: telemetry.ServiceName,
-	}
-
 	// Handle service init
-	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
+	ctrlResult, err := r.reconcileInit(ctx)
 	if err != nil {
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
@@ -186,9 +180,6 @@ func (r *TelemetryReconciler) reconcileDelete(ctx context.Context, instance *tel
 
 func (r *TelemetryReconciler) reconcileInit(
 	ctx context.Context,
-	instance *telemetryv1.Telemetry,
-	helper *helper.Helper,
-	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info("Reconciling Service init")

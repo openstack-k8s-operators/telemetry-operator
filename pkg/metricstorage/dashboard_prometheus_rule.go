@@ -26,7 +26,7 @@ import (
 func DashboardPrometheusRule(
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,
-	selector map[string]string,
+	_ map[string]string,
 ) *monv1.PrometheusRule {
 
 	prometheusRule := &monv1.PrometheusRule{
