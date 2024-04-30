@@ -5,8 +5,8 @@ go 1.20
 require (
 	github.com/onsi/ginkgo/v2 v2.17.2
 	github.com/onsi/gomega v1.33.0
-	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240427071432-31803b8857ac
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240425065931-fcb08823a660
+	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240429104248-25176c735750
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240429052447-09a614506ca6
 	github.com/rhobs/observability-operator v0.0.28
 	k8s.io/api v0.28.9
 	k8s.io/apimachinery v0.28.9
