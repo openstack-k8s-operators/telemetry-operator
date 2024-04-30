@@ -29,7 +29,7 @@
       ansible.builtin.command:
         cmd:
           oc get csv --namespace=openshift-operators -l operators.coreos.com/cluster-observability-operator.openshift-operators
-      delay: 2
+      delay: 5
       retries: 10
       register: output
       until: output.stdout_lines | length != 0
