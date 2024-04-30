@@ -183,14 +183,14 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 const (
 	ceilometerPasswordSecretField     = ".spec.secret"
 	ceilometerCaBundleSecretNameField = ".spec.tls.caBundleSecretName"
-	ceilometerTlsField                = ".spec.tls.secretName"
+	ceilometerTLSField                = ".spec.tls.secretName"
 )
 
 var (
 	ceilometerWatchFields = []string{
 		ceilometerPasswordSecretField,
 		ceilometerCaBundleSecretNameField,
-		ceilometerTlsField,
+		ceilometerTLSField,
 	}
 )
 
@@ -795,7 +795,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			return nil
 		}
 		// Delete the pod so the statefulset re-creates it
-		r.Client.Delete(ctx, pod)
+		_ = r.Client.Delete(ctx, pod)
 		return nil
 	}
 
@@ -824,7 +824,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	}
 
 	// index ceilometerTlsField
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ceilometerTlsField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ceilometerTLSField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
 		cr := rawObj.(*telemetryv1.Ceilometer)
 		if cr.Spec.TLS.SecretName == nil {
@@ -863,7 +863,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 func (r *CeilometerReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
-	l := log.FromContext(context.Background()).WithName("Controllers").WithName("Ceilometer")
+	l := log.FromContext(ctx).WithName("Controllers").WithName("Ceilometer")
 
 	for _, field := range ceilometerWatchFields {
 		crList := &telemetryv1.CeilometerList{}
@@ -871,7 +871,7 @@ func (r *CeilometerReconciler) findObjectsForSrc(ctx context.Context, src client
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
 			Namespace:     src.GetNamespace(),
 		}
-		err := r.Client.List(context.TODO(), crList, listOps)
+		err := r.Client.List(ctx, crList, listOps)
 		if err != nil {
 			return []reconcile.Request{}
 		}

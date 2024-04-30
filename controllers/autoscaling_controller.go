@@ -202,18 +202,18 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 const (
 	autoscalingPasswordSecretField     = ".spec.secret"
 	autoscalingCaBundleSecretNameField = ".spec.tls.caBundleSecretName"
-	autoscalingTlsAPIInternalField     = ".spec.tls.api.internal.secretName"
-	autoscalingTlsAPIPublicField       = ".spec.tls.api.public.secretName"
-	autoscalingTlsField                = ".spec.tls.secretName"
+	autoscalingTLSAPIInternalField     = ".spec.tls.api.internal.secretName"
+	autoscalingTLSAPIPublicField       = ".spec.tls.api.public.secretName"
+	autoscalingTLSField                = ".spec.tls.secretName"
 )
 
 var (
 	autoscalingAllWatchFields = []string{
 		autoscalingPasswordSecretField,
 		autoscalingCaBundleSecretNameField,
-		autoscalingTlsAPIInternalField,
-		autoscalingTlsAPIPublicField,
-		autoscalingTlsField,
+		autoscalingTLSAPIInternalField,
+		autoscalingTLSAPIPublicField,
+		autoscalingTLSField,
 	}
 )
 
@@ -727,7 +727,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	}
 
 	// index autoscalingTlsAPIInternalField
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingTlsAPIInternalField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingTLSAPIInternalField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
 		cr := rawObj.(*telemetryv1.Autoscaling)
 		if cr.Spec.Aodh.TLS.API.Internal.SecretName == nil {
@@ -739,7 +739,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	}
 
 	// index autoscalingTlsAPIPublicField
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingTlsAPIPublicField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingTLSAPIPublicField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
 		cr := rawObj.(*telemetryv1.Autoscaling)
 		if cr.Spec.Aodh.TLS.API.Public.SecretName == nil {
@@ -778,7 +778,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 func (r *AutoscalingReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
-	l := log.FromContext(context.Background()).WithName("Controllers").WithName("Autoscaling")
+	l := log.FromContext(ctx).WithName("Controllers").WithName("Autoscaling")
 
 	for _, field := range autoscalingAllWatchFields {
 		crList := &telemetryv1.AutoscalingList{}
@@ -786,7 +786,7 @@ func (r *AutoscalingReconciler) findObjectsForSrc(ctx context.Context, src clien
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
 			Namespace:     src.GetNamespace(),
 		}
-		err := r.Client.List(context.TODO(), crList, listOps)
+		err := r.Client.List(ctx, crList, listOps)
 		if err != nil {
 			return []reconcile.Request{}
 		}

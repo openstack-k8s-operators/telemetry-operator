@@ -67,13 +67,13 @@ import (
 // fields to index to reconcile when change
 const (
 	prometheusCaBundleSecretNameField = ".spec.prometheusTls.caBundleSecretName"
-	prometheusTlsField                = ".spec.prometheusTls.secretName"
+	prometheusTLSField                = ".spec.prometheusTls.secretName"
 )
 
 var (
 	prometheusAllWatchFields = []string{
 		prometheusCaBundleSecretNameField,
-		prometheusTlsField,
+		prometheusTLSField,
 	}
 )
 
@@ -903,7 +903,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 
 	// index prometheusTlsField
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, prometheusTlsField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, prometheusTLSField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
 		cr := rawObj.(*telemetryv1.MetricStorage)
 		if cr.Spec.PrometheusTLS.SecretName == nil {

@@ -355,7 +355,7 @@ func (r *LoggingReconciler) createHashOfInputHashes(
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *LoggingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *LoggingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Logging{}).
 		Owns(&corev1.Secret{}).

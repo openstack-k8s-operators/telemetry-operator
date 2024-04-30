@@ -77,7 +77,7 @@ func AodhStatefulSet(
 	}
 
 	// create Volume and VolumeMounts
-	volumes := getVolumes(ServiceName)
+	volumes := getVolumes()
 	apiVolumeMounts := getVolumeMounts("aodh-api")
 	evaluatorVolumeMounts := getVolumeMounts("aodh-evaluator")
 	notifierVolumeMounts := getVolumeMounts("aodh-notifier")
