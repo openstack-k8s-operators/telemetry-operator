@@ -6,6 +6,7 @@ replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 
 require (
 	github.com/go-logr/logr v1.4.1
+	github.com/gophercloud/gophercloud v1.11.0
 	github.com/onsi/ginkgo/v2 v2.17.2
 	github.com/onsi/gomega v1.33.0
 	github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.20240430064940-efe1bb725a94
@@ -13,6 +14,7 @@ require (
 	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240429104248-25176c735750
 	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20240429164853-7e1e3b111ee9
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240429052447-09a614506ca6
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.3.1-0.20240429052447-09a614506ca6
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.3.1-0.20240429121622-952f44520872
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240429095317-40ac2890007c
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.69.0-rhobs1
@@ -49,7 +51,6 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gophercloud/gophercloud v1.11.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -67,7 +68,6 @@ require (
 	github.com/openstack-k8s-operators/glance-operator/api v0.3.1-0.20240430052712-841fde32d943 // indirect
 	github.com/openstack-k8s-operators/horizon-operator/api v0.3.1-0.20240430085044-cf46cfe9e9aa // indirect
 	github.com/openstack-k8s-operators/ironic-operator/api v0.3.1-0.20240430085043-5c245a596d9b // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.3.1-0.20240429052447-09a614506ca6 // indirect
 	github.com/openstack-k8s-operators/lib-common/modules/storage v0.3.1-0.20240429052447-09a614506ca6 // indirect
 	github.com/openstack-k8s-operators/manila-operator/api v0.3.1-0.20240430085856-68c83fbc3041 // indirect
 	github.com/openstack-k8s-operators/neutron-operator/api v0.3.1-0.20240430093731-289b1f3dcb7b // indirect

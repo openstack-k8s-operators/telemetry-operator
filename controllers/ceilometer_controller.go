@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	logr "github.com/go-logr/logr"
+	projects "github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
@@ -51,6 +52,7 @@ import (
 	statefulset "github.com/openstack-k8s-operators/lib-common/modules/common/statefulset"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	openstack "github.com/openstack-k8s-operators/lib-common/modules/openstack"
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
@@ -451,6 +453,19 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		}
 	}
 
+	// Hash all the endpointurls to trigger a redeployment everytime one of the internal endpoints changes or is added
+	v := "internal"
+	endpointurls, err := keystonev1.GetKeystoneEndpointUrls(ctx, helper, instance.Namespace, &v)
+	if err != nil {
+
+		return ctrl.Result{}, err
+	}
+	hash, err := util.ObjectHash(endpointurls)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	configMapVars["endpointurls"] = env.SetValue(hash)
+
 	//
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
@@ -786,17 +801,15 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return nil
 	}
 
-	// Force restart of Ceilometer every time a keystoneendpoint is modified
+	// Reconcile every time a keystoneendpoint is modified
 	keystoneEndpointsWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
-		pod := &corev1.Pod{}
-		// Ceilometer can never have replicas so it will always be pod 0
-		err := r.Client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%v-0", ceilometer.ServiceName), Namespace: o.GetNamespace()}, pod)
-		if err != nil {
-			return nil
+		result := []reconcile.Request{}
+		name := client.ObjectKey{
+			Namespace: o.GetNamespace(),
+			Name:      ceilometer.ServiceName,
 		}
-		// Delete the pod so the statefulset re-creates it
-		_ = r.Client.Delete(ctx, pod)
-		return nil
+		result = append(result, reconcile.Request{NamespacedName: name})
+		return result
 	}
 
 	// index ceilometerPasswordSecretField
@@ -947,14 +960,48 @@ func (r *CeilometerReconciler) ensureSwiftRole(
 		return err
 	}
 
-	err = os.AssignUserRole(
-		log,
-		"SwiftSystemReader",
-		user.ID,
-		"service")
+	// We are using the fixed domainID "default" because it is also fixed in ceilometer.conf
+	project, err := getProject(os, log, "service", "default")
 	if err != nil {
 		return err
 	}
 
+	err = os.AssignUserRole(
+		log,
+		"SwiftSystemReader",
+		user.ID,
+		project.ID)
+	if err != nil {
+		log.Error(err, "Cannot AssignUserRole")
+		return err
+	}
+
 	return nil
+}
+
+// getProject - gets project with projectName
+func getProject(
+	o *openstack.OpenStack,
+	log logr.Logger,
+	projectName string,
+	domainID string,
+) (*projects.Project, error) {
+	allPages, err := projects.List(o.GetOSClient(), projects.ListOpts{Name: projectName, DomainID: domainID}).AllPages()
+	if err != nil {
+		return nil, err
+	}
+	allProjects, err := projects.ExtractProjects(allPages)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(allProjects) == 0 {
+		log.Error(err, fmt.Sprintf("%s %s", projectName, "project not found"))
+		return nil, err
+	} else if len(allProjects) > 1 {
+		log.Error(err, fmt.Sprintf("multiple project named \"%s\" found", projectName))
+		return nil, err
+	}
+
+	return &allProjects[0], nil
 }
