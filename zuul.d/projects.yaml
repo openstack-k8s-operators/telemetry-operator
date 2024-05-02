@@ -17,6 +17,10 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
+      cifmw_test_operator_tempest_external_plugin:
+        - repository: 'https://opendev.org/openstack/telemetry-tempest-plugin.git'
+          changeRepository: 'https://review.opendev.org/openstack/telemetry-tempest-plugin'
+          changeRefspec: '2.1.0'
 
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
