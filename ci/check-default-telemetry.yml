@@ -49,11 +49,8 @@
             msg: "Errors were found in the telemetry-operator logs"
       when: error_list | length != 0
 
-    - name: "Get telemetry-operator container restart counts"
-      ansible.builtin.command:
-        cmd:
-          oc get pods -n openstack-operators -l "openstack.org/operator-name=telemetry" --output=jsonpath --template='{.items[*].status.containerStatuses[*].restartCount}'
-      register: restart_counts
+    - name: "Get telemetry-operator restart counts"
+      ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
 
     - name: "Fail if telemetry-operator was restarted"
       block:
@@ -70,7 +67,7 @@
         - name: "Fail because telemetry-operator restarted"
           ansible.builtin.fail:
             msg: "Telemetry-operator restarted"
-      when: restart_counts.stdout != "0 0"
+      when: restart_counts != [0, 0]
 
     # Enabling Autoscaling and MetricStorage without COO installed. Expected to see errors.
     - name: "Enable MetricStorage"
@@ -88,11 +85,8 @@
       ansible.builtin.wait_for:
         timeout: 120
 
-    - name: "Get telemetry-operator container restart counts"
-      ansible.builtin.command:
-        cmd:
-          oc get pods -n openstack-operators -l "openstack.org/operator-name=telemetry" --output=jsonpath --template='{.items[*].status.containerStatuses[*].restartCount}'
-      register: restart_counts
+    - name: "Get telemetry-operator restart counts"
+      ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
 
     - name: "Fail if telemetry-operator was restarted"
       block:
@@ -109,7 +103,7 @@
         - name: "Fail because telemetry-operator restarted"
           ansible.builtin.fail:
             msg: "Telemetry-operator restarted"
-      when: restart_counts.stdout != "0 0"
+      when: restart_counts != [0, 0]
 
     - name: "Get telemetry-operator logs"
       ansible.builtin.import_tasks: "get-operator-logs.yml"
@@ -118,7 +112,7 @@
       ansible.builtin.fail:
         msg: "telemetry-operator logs don't include expected log: {{ item }}"
       loop: "{{ expected_logs }}"
-      when: operator_logs.stdout | ansible.builtin.regex_search( "^.*" + item + ".*$" )
+      when: not (operator_logs.stdout | ansible.builtin.regex_search( ".*" + item + ".*" ))
 
     - name: "Check telemetry-operator logs for Errors"
       ansible.builtin.set_fact:
@@ -204,7 +198,7 @@
 
     - name: "Fail if unexpected errors are present"
       ansible.builtin.fail:
-        msg: "telemetry-operator logs include an expected error"
+        msg: "telemetry-operator logs include an unexpected error"
       when: error_list | length != 0
 
     # If we got here, we know that the telemetry status is Ready
