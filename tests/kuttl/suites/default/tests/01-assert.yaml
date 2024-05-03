@@ -95,78 +95,34 @@ status:
   readyReplicas: 1
   replicas: 1
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: telemetry.openstack.org/v1beta1
+kind: MetricStorage
 metadata:
-  labels:
-    prometheus: metric-storage
-  name: prometheus-metric-storage-0
+  name: metric-storage
 status:
-  containerStatuses:
-  - name: config-reloader
-    ready: true
-    started: true
-  - name: prometheus
-    ready: true
-    started: true
-  - name: thanos-sidecar
-    ready: true
-    started: true
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: metric-storage-prometheus
-  ownerReferences:
-    - kind: MonitoringStack
-      name: metric-storage
-spec:
-  ports:
-  - name: web
-    port: 9090
-    protocol: TCP
-    targetPort: 9090
----
-apiVersion: monitoring.rhobs/v1
-kind: ServiceMonitor
-metadata:
-  labels:
-    service: metricStorage
-  name: metric-storage
-  ownerReferences:
-  - kind: MetricStorage
-    name: metric-storage
-spec:
-  endpoints:
-  - interval: 30s
-    metricRelabelings:
-    - action: labeldrop
-      regex: pod
-    - action: labeldrop
-      regex: namespace
-    - action: labeldrop
-      regex: instance
-    - action: labeldrop
-      regex: job
-    - action: labeldrop
-      regex: publisher
-  namespaceSelector: {}
-  selector:
-    matchLabels:
-      service: ceilometer
----
-apiVersion: monitoring.rhobs/v1alpha1
-kind: ScrapeConfig
-metadata:
-  labels:
-    service: metricStorage
-  name: metric-storage
-  ownerReferences:
-  - kind: MetricStorage
-    name: metric-storage
-spec:
-  staticConfigs:
-  - {}
+  conditions:
+    - type: Ready
+      status: "True"
+    - type: CeilometerServiceMonitorReady
+      status: "True"
+    - type: DashboardDatasourceReady
+      status: "True"
+    - type: DashboardDefinitionReady
+      status: "True"
+    - type: DashboardPluginReady
+      status: "True"
+    - type: DashboardPrometheusRuleReady
+      status: "True"
+    - type: MonitoringStackReady
+      status: "True"
+    - type: NodeExporterScrapeConfigReady
+      status: "True"
+    - type: NodeSetWatchReady
+      status: "True"
+    - type: PrometheusReady
+      status: "True"
+    - type: TLSInputReady
+      status: "True"
 ---
 apiVersion: v1
 kind: Service
