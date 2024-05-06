@@ -106,6 +106,18 @@ DATAPLANE_RUNNER_IMG=<url_to_custom_image> ANSIBLEEE_IMAGE_URL_DEFAULT=<url_to_c
 
 3.- During deployment `dataplane-deployment-*` pods would get spawned with the custom image.
 
+## Running kuttl tests locally
+
+For the default suite, simply run `make kuttl-test`.
+
+For standalone suites, you must follow these steps:
+
+1. Set up the testing namespace using install_yamls: `cd install_yamls && make kuttl_common_prep heat heat_deploy NAMESPACE=telemetry-kuttl-tests`
+2. (Optionally) Edit the list of suites to run: `cd telemetry-operator && vi kuttl-test.yaml` (Comment out any suites you don't need from the testDirs list)
+3. Run kuttl specifying that config file and namespace: `kubectl-kuttl test --config ./kuttl-test.yaml --namespace telemetry-kuttl-tests`
+
+NOTE - (May 2024) These tests appear very reliable when running a single suite, but occasional flakiness (~ 25% failure) has been observed when they all run serially. This problem appears to be order/timing related and may or may not affect the automated CI.
+
 ## Destroy the environment to start again
 ```
 cd install_yamls/devsetup
