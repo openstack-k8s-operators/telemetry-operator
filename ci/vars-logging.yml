@@ -1,0 +1,38 @@
+---
+pre_deploy:
+  - name: deploy_logging_dependencies
+    source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-logging-dependencies.yml"
+    type: playbook
+cifmw_edpm_prepare_kustomizations:
+  - apiVersion: kustomize.config.k8s.io/v1beta1
+    kind: Kustomization
+    namespace: openstack
+    patches:
+    - patch: |-
+        apiVersion: core.openstack.org/v1beta1
+        kind: OpenStackControlPlane
+        metadata:
+          name: unused
+        spec:
+          telemetry:
+            enabled: true
+            template:
+              logging:
+                enabled: true
+      target:
+        kind: OpenStackControlPlane
+cifmw_edpm_kustomize_content:
+  - apiVersion: kustomize.config.k8s.io/v1beta1
+    kind: Kustomization
+    namespace: openstack
+    patches:
+    - patch: |-
+        apiVersion: dataplane.openstack.org/v1beta1
+        kind: OpenStackDataPlaneNodeSet
+        metadata:
+          name: unused
+        spec:
+          services:
+            - logging
+      target:
+        kind: OpenStackDataPlaneNodeSet

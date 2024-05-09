@@ -1,0 +1,156 @@
+- name: Create the CLO subscription and loki-operator subscriptions
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/operators.yaml
+
+  # need to have a wait here, since the csv is not created immediately. There is a slight delay, during which time, the oc wait command would fail, since there's no resource to watch
+- name: Wait for the CLO csv to be created
+  ansible.builtin.command:
+    cmd:
+      oc get csv --namespace=openshift-logging -l operators.coreos.com/cluster-logging.openshift-logging
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the loki-operator csv to be created
+  ansible.builtin.command:
+    cmd:
+      oc get csv --namespace=openshift-operators-redhat -l operators.coreos.com/loki-operator.openshift-operators-redhat
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the CLO resources to be available
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for jsonpath="{.status.phase}"=Succeeded csv --namespace=openshift-logging -l operators.coreos.com/cluster-logging.openshift-logging
+
+- name: Wait for the Loki resources to be available
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for jsonpath="{.status.phase}"=Succeeded csv --namespace=openshift-operators-redhat -l operators.coreos.com/loki-operator.openshift-operators-redhat
+
+- name: Create minio deployment
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/minio-dev.yaml
+
+- name: Wait for the minio pod to be created
+  ansible.builtin.command:
+    cmd:
+      oc get pods --namespace=minio-dev minio
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the minio pod to be running
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for jsonpath="{.status.phase}"=Running --namespace=minio-dev pod minio
+  ###
+  # TODO: delete
+  ignore_errors: true
+
+- name: TMP get minio pod
+  ansible.builtin.command:
+    cmd: |
+      oc get --namespace=minio-dev pod minio -oyaml
+  register: output
+
+- name: TMP debug output of minio pod
+  ansible.builtin.debug:
+    msg: "{{ output.stdout_lines }}"
+  ###
+
+- name: Create loki S3 secret
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/loki_secret.yaml -n openshift-logging
+
+- name: Create loki stack
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/lokistack.yaml -n openshift-logging
+
+- name: Wait for lokistack to be created
+  ansible.builtin.command:
+    cmd:
+      oc get lokistacks --namespace=openshift-logging logging-loki
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the lokistack to be ready
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging lokistacks logging-loki
+  ###
+  # TODO: delete
+  ignore_errors: true
+
+- name: TMP get lokistack
+  ansible.builtin.command:
+    cmd: |
+      oc get --namespace=openshift-logging lokistacks logging-loki -oyaml
+  register: output
+  ignore_errors: true
+
+- name: TMP debug output of lokistack
+  ansible.builtin.debug:
+    msg: "{{ output.stdout_lines }}"
+  ignore_errors: true
+
+- name: TMP get lokistack pods
+  ansible.builtin.command:
+    cmd: |
+      oc get pods -n openshift-logging -oyaml -l app.kubernetes.io/instance=logging-loki
+  register: output
+  ignore_errors: true
+
+- name: TMP debug output of lokistack pods yaml
+  ansible.builtin.debug:
+    msg: "{{ output.stdout_lines }}"
+  ignore_errors: true
+  ###
+
+- name: Create cluster logging
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/cluster_logging.yaml -n openshift-logging
+
+- name: Wait for cluster logging to be created
+  ansible.builtin.command:
+    cmd:
+      oc get clusterlogging --namespace=openshift-logging instance
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the cluster logging to be ready
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogging instance
+
+- name: Create cluster log forwarder
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/cluster_log_forwarder.yaml -n openshift-logging
+
+- name: Wait for cluster log forwarder to be created
+  ansible.builtin.command:
+    cmd:
+      oc get clusterlogforwarder --namespace=openshift-logging instance
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the cluster log forwarder to be ready
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder instance
