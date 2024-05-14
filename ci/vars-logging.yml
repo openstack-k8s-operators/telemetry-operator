@@ -21,18 +21,3 @@ cifmw_edpm_prepare_kustomizations:
                 enabled: true
       target:
         kind: OpenStackControlPlane
-cifmw_edpm_kustomize_content:
-  - apiVersion: kustomize.config.k8s.io/v1beta1
-    kind: Kustomization
-    namespace: openstack
-    patches:
-    - patch: |-
-        apiVersion: dataplane.openstack.org/v1beta1
-        kind: OpenStackDataPlaneNodeSet
-        metadata:
-          name: unused
-        spec:
-          services:
-            - logging
-      target:
-        kind: OpenStackDataPlaneNodeSet

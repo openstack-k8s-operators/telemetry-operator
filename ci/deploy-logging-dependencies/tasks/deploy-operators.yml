@@ -1,0 +1,33 @@
+- name: Create the CLO subscription and loki-operator subscriptions
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/operators.yaml
+
+  # need to have a wait here, since the csv is not created immediately. There is a slight delay, during which time, the oc wait command would fail, since there's no resource to watch
+- name: Wait for the CLO csv to be created
+  ansible.builtin.command:
+    cmd:
+      oc get csv --namespace=openshift-logging -l operators.coreos.com/cluster-logging.openshift-logging
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the loki-operator csv to be created
+  ansible.builtin.command:
+    cmd:
+      oc get csv --namespace=openshift-operators-redhat -l operators.coreos.com/loki-operator.openshift-operators-redhat
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the CLO resources to be available
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for jsonpath="{.status.phase}"=Succeeded csv --namespace=openshift-logging -l operators.coreos.com/cluster-logging.openshift-logging
+
+- name: Wait for the Loki resources to be available
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for jsonpath="{.status.phase}"=Succeeded csv --namespace=openshift-operators-redhat -l operators.coreos.com/loki-operator.openshift-operators-redhat

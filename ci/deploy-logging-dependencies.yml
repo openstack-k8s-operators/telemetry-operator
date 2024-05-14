@@ -9,3 +9,19 @@
     - name: Deploy logging dependencies
       ansible.builtin.import_role:
         name: deploy-logging-dependencies
+    - name: Copy dataplane nodeset kustomization
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/dataplane/90-kustomize-dataplane-logging-service.yaml"
+        content: |-
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          resources:
+          namespace: {{ cifmw_install_yamls_defaults['NAMESPACE'] }}
+          patches:
+          - target:
+              kind: OpenStackDataPlaneNodeSet
+              name: .*
+            patch: |-
+              - op: add
+                path: /spec/services/-
+                value: logging
