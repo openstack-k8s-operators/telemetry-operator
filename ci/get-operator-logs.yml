@@ -1,0 +1,14 @@
+---
+- name: "Get current time"
+  ansible.builtin.set_fact:
+    operator_reconciled_timestamp: "{{ now(utc=true,fmt='%Y-%m-%dT%H:%M:%SZ') }}"
+
+- name: "Wait for new logs to be generated"
+  ansible.builtin.wait_for:
+    timeout: 120
+
+- name: "Get new telemetry-operator logs"
+  ansible.builtin.command:
+    cmd:
+      oc logs -n openstack-operators -l "openstack.org/operator-name=telemetry" --tail=-1 --since-time "{{ operator_reconciled_timestamp }}"
+  register: operator_logs

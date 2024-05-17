@@ -1,0 +1,14 @@
+---
+- name: "Get telemetry-operator pod data"
+  ansible.builtin.command:
+    cmd:
+      oc get pods -n openstack-operators -l "openstack.org/operator-name=telemetry" --output=jsonpath --template='{.items[0]}'
+  register: output
+
+- name: "Get telemetry-operator container statuses"
+  ansible.builtin.set_fact:
+    container_statuses: "{{ (output.stdout | from_json).status.containerStatuses }}"
+
+- name: "Get telemetry-operator restart counts"
+  ansible.builtin.set_fact:
+    restart_counts: "{{ range(container_statuses | length) | map('extract', container_statuses) | map(attribute='restartCount') }}"

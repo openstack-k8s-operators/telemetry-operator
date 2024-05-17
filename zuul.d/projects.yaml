@@ -18,6 +18,17 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
 
+- job:
+    name: telemetry-operator-multinode-default-telemetry
+    parent: podified-multinode-edpm-deployment-crc
+    dependencies: ["openstack-k8s-operators-content-provider"]
+    description: |
+      Deploy a default OpenStack with telemetry enabled, but without COO installed. Check that the telemetry-operator logs don't have any errors.
+    vars:
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-default-telemetry.yml"
+
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
@@ -54,3 +65,4 @@
     github-check:
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest
+        - telemetry-operator-multinode-default-telemetry
