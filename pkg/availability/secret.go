@@ -28,12 +28,16 @@ import (
 )
 
 const (
-	tlsConfPath     = "/etc/ksm"
-	tlsConfKey      = "tls_config.yaml"
-	tlsConfTemplate = `---
-tls_server_config:
+	tlsConfPath         = "/etc/ksm"
+	tlsConfKey          = "tls_config.yaml"
+	tlsBaseConfTemplate = `---
+tls_server_config:`
+	tlsClntConfTemplate = `
   cert_file: %s
-  key_file: %s
+  key_file: %s`
+	tlsCaConfTemplate = `
+  client_ca_file: %s
+  client_auth_type: VerifyClientCertIfGiven
 `
 )
 
@@ -46,13 +50,15 @@ var (
 func KSMTLSConfig(
 	instance *telemetryv1.Ceilometer,
 	labels map[string]string,
-	certPath string,
-	keyPath string,
+	clntCert bool,
 ) *corev1.Secret {
-	content := fmt.Sprintf(tlsConfTemplate, certPath, keyPath)
-	if instance.Spec.KSMTLS.CaBundleSecretName != "" {
-		content = fmt.Sprintf("%s  client_ca_file: %s", content, tls.DownstreamTLSCABundlePath)
+	content := tlsBaseConfTemplate
+	if clntCert {
+		content = fmt.Sprintf("%s%s", content, fmt.Sprintf(tlsClntConfTemplate, TLSCertPath, TLSKeyPath))
 	}
+	//if instance.Spec.KSMTLS.CaBundleSecretName != "" {
+	//	content = fmt.Sprintf("%s%s", content, fmt.Sprintf(tlsCaConfTemplate, tls.DownstreamTLSCABundlePath))
+	//}
 
 	sec := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

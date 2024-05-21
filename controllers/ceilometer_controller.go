@@ -64,6 +64,12 @@ import (
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 )
 
+const (
+	msgOperation        = "Service '%s' successfully changed - operation: %s"
+	msgReconcileStart   = "Reconciling Service '%s'"
+	msgReconcileSuccess = "Reconciled Service '%s' successfully"
+)
+
 // CeilometerReconciler reconciles a Ceilometer object
 type CeilometerReconciler struct {
 	client.Client
@@ -125,12 +131,13 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// initialize status if Conditions is nil, but do not reset if it already
 	// exists
-	isNewInstance := instance.CeilometerStatus.Conditions == nil
+	isNewInstance := instance.CeilometerStatus.Conditions == nil && instance.KSMStatus.Conditions == nil
 	if isNewInstance {
 		instance.CeilometerStatus.Conditions = condition.Conditions{}
+		instance.KSMStatus.Conditions = condition.Conditions{}
 	}
 
-	// Save a copy of the condtions so that we can restore the LastTransitionTime
+	// Save a copy of the conditions so that we can restore the LastTransitionTime
 	// when a condition's state doesn't change.
 	savedConditions := instance.CeilometerStatus.Conditions.DeepCopy()
 
@@ -178,29 +185,25 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
 		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 	)
-
 	instance.CeilometerStatus.Conditions.Init(&cl)
 	instance.CeilometerStatus.ObservedGeneration = instance.Generation
-
-	if instance.KSMStatus.Conditions == nil {
-		instance.KSMStatus.Conditions = condition.Conditions{}
-		// initialize conditions used later as Status=Unknown
-		cl := condition.CreateList(
-			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
-			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
-			// service account, role, rolebinding conditions
-			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
-			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
-			condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
-		)
-
-		instance.KSMStatus.Conditions.Init(&cl)
-	}
 
 	if instance.CeilometerStatus.Hash == nil {
 		instance.CeilometerStatus.Hash = map[string]string{}
 	}
+
+	cl = condition.CreateList(
+		condition.UnknownCondition(condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage),
+		condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
+		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
+		condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+		// service account, role, rolebinding conditions
+		condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
+		condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
+		condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
+	)
+	instance.KSMStatus.Conditions.Init(&cl)
+	instance.KSMStatus.ObservedGeneration = instance.Generation
 
 	if instance.KSMStatus.Hash == nil {
 		instance.KSMStatus.Hash = map[string]string{}
@@ -344,7 +347,7 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	configMapVars *map[string]env.Setter,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
-	Log.Info(fmt.Sprintf("Reconciling Service '%s'", ceilometer.ServiceName))
+	Log.Info(fmt.Sprintf(msgReconcileStart, ceilometer.ServiceName))
 
 	// Service account, role, binding
 	rbacRules := []rbacv1.PolicyRule{
@@ -603,9 +606,12 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	if sfset.GetStatefulSet().Generation == sfset.GetStatefulSet().Status.ObservedGeneration {
 		instance.CeilometerStatus.ReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
 		instance.CeilometerStatus.Networks = instance.Spec.NetworkAttachmentDefinitions
-		_, _, err = ceilometer.Service(instance, helper, ceilometer.CeilometerPrometheusPort, serviceLabels)
+		svc, op, err := ceilometer.Service(instance, helper, ceilometer.CeilometerPrometheusPort, serviceLabels)
 		if err != nil {
 			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf(msgOperation, svc.Name, string(op)))
 		}
 		if instance.CeilometerStatus.ReadyCount > 0 {
 			instance.CeilometerStatus.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
@@ -614,7 +620,7 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 			instance.CeilometerStatus.Conditions.MarkTrue(
 				condition.ReadyCondition, condition.ReadyMessage)
 		}
-		Log.Info("Reconciled Service successfully")
+		Log.Info(fmt.Sprintf(msgReconcileSuccess, ceilometer.ServiceName))
 	}
 	return ctrl.Result{}, nil
 }
@@ -626,7 +632,7 @@ func (r *CeilometerReconciler) reconcileKSM(
 	configMapVars *map[string]env.Setter,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
-	Log.Info(fmt.Sprintf("Reconciling Service '%s'", availability.KSMServiceName))
+	Log.Info(fmt.Sprintf(msgReconcileStart, availability.KSMServiceName))
 
 	// create service account and role binding for the KSM service
 	sa, rb := availability.KSMServiceAccount(instance)
@@ -729,7 +735,7 @@ func (r *CeilometerReconciler) reconcileKSM(
 
 	tlsConfName := ""
 	if instance.Spec.KSMTLS.Enabled() {
-		tlsConfDef := availability.KSMTLSConfig(instance, serviceLabels, availability.TLSCertPath, availability.TLSKeyPath)
+		tlsConfDef := availability.KSMTLSConfig(instance, serviceLabels, true)
 		tlsConfName = tlsConfDef.Name
 
 		hash, op, err := secret.CreateOrPatchSecret(ctx, helper, instance, tlsConfDef)
@@ -772,28 +778,38 @@ func (r *CeilometerReconciler) reconcileKSM(
 		return ctrl.Result{}, err
 	}
 
-	instance.KSMStatus.ReadyCount = ss.GetStatefulSet().Status.ReadyReplicas
-	if instance.KSMStatus.ReadyCount > 0 {
-		instance.KSMStatus.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+	// Evaluate the last part of the reconciliation only if we see the last
+	// version of the CR
+	ssobj := ss.GetStatefulSet()
+	if ssobj.Generation == ssobj.Status.ObservedGeneration {
+		instance.KSMStatus.ReadyCount = ss.GetStatefulSet().Status.ReadyReplicas
+		if instance.KSMStatus.ReadyCount > 0 {
+			instance.KSMStatus.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+		}
+
+		// Create the service
+		svc, op, err := availability.KSMService(instance, helper, serviceLabels)
+		if err != nil {
+			instance.KSMStatus.Conditions.Set(condition.FalseCondition(
+				condition.ExposeServiceReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.ExposeServiceReadyErrorMessage,
+				err.Error()))
+
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf(msgOperation, svc.Name, string(op)))
+		}
+
+		if instance.CeilometerStatus.Conditions.AllSubConditionIsTrue() {
+			instance.CeilometerStatus.Conditions.MarkTrue(
+				condition.ReadyCondition, condition.ReadyMessage)
+		}
+		Log.Info(fmt.Sprintf(msgReconcileSuccess, availability.KSMServiceName))
 	}
 
-	// Create the service
-	svc, op, err := availability.KSMService(instance, helper, serviceLabels)
-	if err != nil {
-		instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-			condition.ExposeServiceReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.ExposeServiceReadyErrorMessage,
-			err.Error()))
-
-		return ctrl.Result{}, err
-	}
-	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("KSM service %s successfully changed - operation: %s", svc.Name, string(op)))
-	}
-
-	Log.Info(fmt.Sprintf("Reconciled Service '%s' successfully", availability.KSMServiceName))
 	return ctrl.Result{}, nil
 }
 
