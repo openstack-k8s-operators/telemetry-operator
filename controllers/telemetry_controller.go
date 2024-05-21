@@ -293,7 +293,7 @@ func (r TelemetryReconciler) reconcileCeilometer(ctx context.Context, instance *
 	} else {
 
 		// Mirror Ceilometer's condition status
-		c := ceilometerInstance.Status.Conditions.Mirror(telemetryv1.CeilometerReadyCondition)
+		c := ceilometerInstance.CeilometerStatus.Conditions.Mirror(telemetryv1.CeilometerReadyCondition)
 		if c != nil {
 			instance.Status.Conditions.Set(c)
 		}
@@ -557,7 +557,7 @@ func (r *TelemetryReconciler) checkCeilometerGeneration(
 		return false, err
 	}
 	for _, item := range clm.Items {
-		if item.Generation != item.Status.ObservedGeneration {
+		if item.Generation != item.CeilometerStatus.ObservedGeneration {
 			return false, nil
 		}
 	}
