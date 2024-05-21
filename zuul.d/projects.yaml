@@ -66,3 +66,5 @@
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
+        - functional-tests-on-osp18:
+            voting: false
