@@ -384,7 +384,7 @@ func (r TelemetryReconciler) reconcileAutoscaling(ctx context.Context, instance 
 		instance.Status.Conditions.Set(condition.UnknownCondition(
 			telemetryv1.AutoscalingReadyCondition,
 			condition.InitReason,
-			telemetryv1.AutoscalingReadyInitMessage,
+			telemetryv1.AutoscalingReadyRunningMessage,
 		))
 	} else {
 		// Mirror Autoscaling condition status
