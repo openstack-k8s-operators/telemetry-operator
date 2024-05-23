@@ -261,6 +261,7 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 		return ctrl.Result{}, err
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.LoggingCLONamespaceReadyCondition, condition.ReadyMessage)
+  
 	// Operators cannot own objects in different namespaces
 	/*err := controllerutil.SetControllerReference(instance, service, r.Scheme)
 	if err != nil {
