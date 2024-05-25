@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/gophercloud/gophercloud v1.11.0
 	github.com/onsi/ginkgo/v2 v2.17.2
-	github.com/onsi/gomega v1.33.0
+	github.com/onsi/gomega v1.33.1
 	github.com/openstack-k8s-operators/dataplane-operator/api v0.3.1-0.20240430064940-efe1bb725a94
 	github.com/openstack-k8s-operators/heat-operator/api v0.3.1-0.20240430090712-e6c78e4ea887
 	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240429104248-25176c735750
