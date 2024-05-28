@@ -9,6 +9,8 @@ metadata:
 spec:
   group: telemetry.openstack.org
   names:
+    categories:
+    - logging
     kind: Logging
     listKind: LoggingList
     plural: loggings
