@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -456,6 +457,8 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	// Hash all the endpointurls to trigger a redeployment everytime one of the internal endpoints changes or is added
 	v := "internal"
 	endpointurls, err := keystonev1.GetKeystoneEndpointUrls(ctx, helper, instance.Namespace, &v)
+	sort.Strings(endpointurls)
+
 	if err != nil {
 
 		return ctrl.Result{}, err

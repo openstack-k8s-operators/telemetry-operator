@@ -1,0 +1,18 @@
+- name: Create minio deployment
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/minio-dev.yaml
+
+- name: Wait for the minio pod to be created
+  ansible.builtin.command:
+    cmd:
+      oc get pods --namespace=minio-dev minio
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the minio pod to be running
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for jsonpath="{.status.phase}"=Running --namespace=minio-dev pod minio

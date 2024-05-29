@@ -1,0 +1,37 @@
+- name: Create cluster logging
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/cluster_logging.yaml -n openshift-logging
+
+- name: Wait for cluster logging to be created
+  ansible.builtin.command:
+    cmd:
+      oc get clusterlogging --namespace=openshift-logging instance
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the cluster logging to be ready
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogging instance
+
+- name: Create cluster log forwarder
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/cluster_log_forwarder.yaml -n openshift-logging
+
+- name: Wait for cluster log forwarder to be created
+  ansible.builtin.command:
+    cmd:
+      oc get clusterlogforwarder --namespace=openshift-logging instance
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the cluster log forwarder to be ready
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder instance

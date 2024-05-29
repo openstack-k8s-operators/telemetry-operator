@@ -1,0 +1,11 @@
+- name: Deploy CLO and loki-operator
+  ansible.builtin.import_tasks: deploy-operators.yml
+
+- name: Deploy minio
+  ansible.builtin.import_tasks: deploy-minio.yml
+
+- name: Deploy CLO and loki-operator
+  ansible.builtin.import_tasks: deploy-loki.yml
+
+- name: Deploy cluster logging and cluster log forwarder
+  ansible.builtin.import_tasks: deploy-cluster-logging.yml

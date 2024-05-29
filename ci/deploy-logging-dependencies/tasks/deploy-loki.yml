@@ -1,0 +1,23 @@
+- name: Create loki S3 secret
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/loki_secret.yaml -n openshift-logging
+
+- name: Create loki stack
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/lokistack.yaml -n openshift-logging
+
+- name: Wait for lokistack to be created
+  ansible.builtin.command:
+    cmd:
+      oc get lokistacks --namespace=openshift-logging logging-loki
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the lokistack to be ready
+  ansible.builtin.command:
+    cmd: |
+      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging lokistacks logging-loki
