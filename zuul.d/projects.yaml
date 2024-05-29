@@ -80,4 +80,6 @@
         - telemetry-operator-multinode-logging
         - functional-tests-on-osp18:
             voting: false
-            override-checkout: master
+            required-projects:
+                - name: infrawatch/feature-verification-tests
+                   override-checkout: master
