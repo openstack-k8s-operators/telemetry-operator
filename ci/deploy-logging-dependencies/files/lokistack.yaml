@@ -1,0 +1,16 @@
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: logging-loki
+spec:
+  size: 1x.demo
+  storage:
+    schemas:
+    - version: v12
+      effectiveDate: "2022-06-01"
+    secret:
+      name: logging-loki-s3
+      type: s3
+  storageClassName: crc-csi-hostpath-provisioner
+  tenants:
+    mode: openshift-logging

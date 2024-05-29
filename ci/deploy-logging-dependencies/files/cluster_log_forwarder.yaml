@@ -1,0 +1,19 @@
+apiVersion: logging.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: instance
+  namespace: openshift-logging
+spec:
+  inputs:
+  - name: syslog
+    receiver:
+      type: syslog
+      syslog:
+        port: 10514
+  pipelines:
+  - name: to-default
+    inputRefs:
+    - syslog
+    - application
+    outputRefs:
+    - default
