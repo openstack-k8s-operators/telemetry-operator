@@ -80,3 +80,4 @@
         - telemetry-operator-multinode-logging
         - functional-tests-on-osp18:
             voting: false
+            override-checkout: master
