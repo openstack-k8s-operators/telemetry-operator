@@ -82,4 +82,4 @@
             voting: false
             required-projects:
                 - name: infrawatch/feature-verification-tests
-                   override-checkout: master
+                  override-checkout: master
