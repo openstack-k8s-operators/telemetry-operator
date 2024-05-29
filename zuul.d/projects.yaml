@@ -74,6 +74,7 @@
     templates:
       - podified-multinode-edpm-pipeline
     github-check:
+      debug: true
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
