@@ -70,6 +70,8 @@ const (
 	prometheusTLSField                = ".spec.prometheusTls.secretName"
 )
 
+const dashboardArtifactsNamespace = "openshift-config-managed"
+
 var (
 	prometheusAllWatchFields = []string{
 		prometheusCaBundleSecretNameField,
@@ -198,6 +200,45 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
+func (r *MetricStorageReconciler) deleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper) (ctrl.Result, error) {
+
+	promRule := &monv1.PrometheusRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      instance.Name,
+			Namespace: instance.Namespace,
+		},
+	}
+	if res, err := ensureDeleted(ctx, helper, promRule); err != nil {
+		return res, err
+	}
+
+	datasourceName := instance.Namespace + "-" + instance.Name + "-datasource"
+	datasourceCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      datasourceName,
+			Namespace: dashboardArtifactsNamespace,
+		},
+	}
+	if res, err := ensureDeleted(ctx, helper, datasourceCM); err != nil {
+		return res, err
+	}
+
+	var dashboards = []string{"grafana-dashboard-openstack-cloud", "grafana-dashboard-openstack-node", "grafana-dashboard-openstack-vm"}
+	for _, name := range dashboards {
+		dashboardCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: dashboardArtifactsNamespace,
+			},
+		}
+		if res, err := ensureDeleted(ctx, helper, dashboardCM); err != nil {
+			return res, err
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
 func (r *MetricStorageReconciler) reconcileDelete(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
@@ -205,6 +246,11 @@ func (r *MetricStorageReconciler) reconcileDelete(
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info("Reconciling Service delete")
+
+	if res, err := r.deleteDashboardObjects(ctx, instance, helper); err != nil {
+		return res, err
+	}
+
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", instance.Name))
@@ -490,13 +536,14 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 
 	if !instance.Spec.MonitoringStack.DashboardsEnabled {
+		if res, err := r.deleteDashboardObjects(ctx, instance, helper); err != nil {
+			return res, err
+		}
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
-
-		const dashboardArtifactsNamespace = "openshift-config-managed"
 
 		// Deploy dashboard UI plugin from OBO
 		// TODO: Use the following instead of Unstructured{} after COO 0.2.0
@@ -536,6 +583,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		if op != controllerutil.OperationResultNone {
 			Log.Info(fmt.Sprintf("Dashboard Plugin definition %s successfully changed - operation: %s", uiPluginObj.GetName(), string(op)))
 		}
+
 		// Deploy PrometheusRule for dashboards
 		err = r.ensureWatches(ctx, "prometheusrules.monitoring.rhobs", &monv1.PrometheusRule{}, eventHandler)
 		if err != nil {
