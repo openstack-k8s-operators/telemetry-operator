@@ -3,15 +3,15 @@ module github.com/openstack-k8s-operators/telemetry-operator/api
 go 1.20
 
 require (
-	github.com/onsi/ginkgo/v2 v2.18.0
+	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240525122647-715f01bb2987
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240525110728-367272c05a7a
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20240531085522-94fdcd5ff4fd
 	github.com/rhobs/observability-operator v0.0.28
 	k8s.io/api v0.28.10
 	k8s.io/apimachinery v0.28.10
 	k8s.io/client-go v0.28.10
-	sigs.k8s.io/controller-runtime v0.16.5
+	sigs.k8s.io/controller-runtime v0.16.6
 )
 
 require (
