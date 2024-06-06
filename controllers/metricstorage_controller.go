@@ -70,8 +70,6 @@ const (
 	prometheusTLSField                = ".spec.prometheusTls.secretName"
 )
 
-const dashboardArtifactsNamespace = "openshift-config-managed"
-
 var (
 	prometheusAllWatchFields = []string{
 		prometheusCaBundleSecretNameField,
@@ -200,45 +198,6 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
-func (r *MetricStorageReconciler) deleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper) (ctrl.Result, error) {
-
-	promRule := &monv1.PrometheusRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
-			Namespace: instance.Namespace,
-		},
-	}
-	if res, err := ensureDeleted(ctx, helper, promRule); err != nil {
-		return res, err
-	}
-
-	datasourceName := instance.Namespace + "-" + instance.Name + "-datasource"
-	datasourceCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      datasourceName,
-			Namespace: dashboardArtifactsNamespace,
-		},
-	}
-	if res, err := ensureDeleted(ctx, helper, datasourceCM); err != nil {
-		return res, err
-	}
-
-	var dashboards = []string{"grafana-dashboard-openstack-cloud", "grafana-dashboard-openstack-node", "grafana-dashboard-openstack-vm"}
-	for _, name := range dashboards {
-		dashboardCM := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: dashboardArtifactsNamespace,
-			},
-		}
-		if res, err := ensureDeleted(ctx, helper, dashboardCM); err != nil {
-			return res, err
-		}
-	}
-
-	return ctrl.Result{}, nil
-}
-
 func (r *MetricStorageReconciler) reconcileDelete(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
@@ -247,7 +206,7 @@ func (r *MetricStorageReconciler) reconcileDelete(
 	Log := r.GetLogger(ctx)
 	Log.Info("Reconciling Service delete")
 
-	if res, err := r.deleteDashboardObjects(ctx, instance, helper); err != nil {
+	if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
 		return res, err
 	}
 
@@ -536,7 +495,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 
 	if !instance.Spec.MonitoringStack.DashboardsEnabled {
-		if res, err := r.deleteDashboardObjects(ctx, instance, helper); err != nil {
+		if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
 			return res, err
 		}
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
@@ -620,7 +579,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		datasourceCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      datasourceName,
-				Namespace: dashboardArtifactsNamespace,
+				Namespace: metricstorage.DashboardArtifactsNamespace,
 			},
 		}
 		dataSourceSuccess := false
@@ -628,7 +587,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			datasourceCM.ObjectMeta.Labels = map[string]string{
 				"console.openshift.io/dashboard-datasource": "true",
 			}
-			datasourceCM.Data, err = metricstorage.DashboardDatasourceData(ctx, r.Client, instance, datasourceName, dashboardArtifactsNamespace)
+			datasourceCM.Data, err = metricstorage.DashboardDatasourceData(ctx, r.Client, instance, datasourceName, metricstorage.DashboardArtifactsNamespace)
 			return err
 		})
 		if err != nil {
@@ -658,7 +617,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 				dashboardCM := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      dashboardName,
-						Namespace: dashboardArtifactsNamespace,
+						Namespace: metricstorage.DashboardArtifactsNamespace,
 					},
 				}
 				op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboardCM, func() error {
