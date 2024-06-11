@@ -223,6 +223,7 @@ func (r *MetricStorageReconciler) createServiceMonitor(
 	instance *telemetryv1.MetricStorage,
 	serviceName string,
 	serviceLabels map[string]string,
+	serverName string,
 ) (*monv1.ServiceMonitor, error) {
 	monitor := &monv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -234,7 +235,7 @@ func (r *MetricStorageReconciler) createServiceMonitor(
 		labels := map[string]string{
 			common.AppSelector: serviceName,
 		}
-		desiredMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, labels)
+		desiredMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, labels, serverName)
 		desiredMonitor.Spec.DeepCopyInto(&monitor.Spec)
 		monitor.ObjectMeta.Labels = desiredMonitor.ObjectMeta.Labels
 		return controllerutil.SetControllerReference(instance, monitor, r.Scheme)
@@ -404,14 +405,16 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 
-	ceilometerMonitor, err := r.createServiceMonitor(ctx, instance, ceilometer.ServiceName, serviceLabels)
+	ceilometerMonitor, err := r.createServiceMonitor(ctx, instance, ceilometer.ServiceName, serviceLabels,
+		fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("Ceilometer ServiceMonitor %s successfully changed - operation: %s", ceilometerMonitor.Name, string(op)))
 	}
-	ksmMonitor, err := r.createServiceMonitor(ctx, instance, availability.KSMServiceName, serviceLabels)
+	ksmMonitor, err := r.createServiceMonitor(ctx, instance, availability.KSMServiceName, serviceLabels,
+		fmt.Sprintf("%s.%s.svc", availability.KSMServiceName, instance.Namespace))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
