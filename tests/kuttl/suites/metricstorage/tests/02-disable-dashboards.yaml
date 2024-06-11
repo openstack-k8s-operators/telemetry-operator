@@ -1,0 +1,14 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: MetricStorage
+metadata:
+  name: telemetry-kuttl
+spec:
+  monitoringStack:
+    alertingEnabled: true
+    dashboardsEnabled: false
+    scrapeInterval: 30s
+    storage:
+      strategy: persistent
+      retention: 24h
+      persistent:
+        pvcStorageRequest: 20G
