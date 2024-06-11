@@ -36,6 +36,7 @@ import (
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	logging "github.com/openstack-k8s-operators/telemetry-operator/pkg/logging"
+	utils "github.com/openstack-k8s-operators/telemetry-operator/pkg/utils"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 )
 
@@ -230,25 +231,6 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	return ctrl.Result{}, nil
 }
 
-// ensureDeleted - Delete the object which in turn will clean the sub resources
-func ensureDeleted(ctx context.Context, helper *helper.Helper, obj client.Object) (ctrl.Result, error) {
-	key := client.ObjectKeyFromObject(obj)
-	if err := helper.GetClient().Get(ctx, key, obj); err != nil {
-		if k8s_errors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
-		return ctrl.Result{}, err
-	}
-	// Delete the object
-	if obj.GetDeletionTimestamp().IsZero() {
-		if err := helper.GetClient().Delete(ctx, obj); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-	return ctrl.Result{}, nil
-
-}
-
 // reconcileCeilometer ...
 func (r TelemetryReconciler) reconcileCeilometer(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
 	const (
@@ -263,7 +245,7 @@ func (r TelemetryReconciler) reconcileCeilometer(ctx context.Context, instance *
 	}
 
 	if !instance.Spec.Ceilometer.Enabled {
-		if res, err := ensureDeleted(ctx, helper, ceilometerInstance); err != nil {
+		if res, err := utils.EnsureDeleted(ctx, helper, ceilometerInstance); err != nil {
 			return res, err
 		}
 		instance.Status.Conditions.Remove(telemetryv1.CeilometerReadyCondition)
@@ -340,7 +322,7 @@ func (r TelemetryReconciler) reconcileAutoscaling(ctx context.Context, instance 
 	}
 
 	if !instance.Spec.Autoscaling.Enabled {
-		if res, err := ensureDeleted(ctx, helper, autoscalingInstance); err != nil {
+		if res, err := utils.EnsureDeleted(ctx, helper, autoscalingInstance); err != nil {
 			return res, err
 		}
 		instance.Status.Conditions.Remove(telemetryv1.AutoscalingReadyCondition)
@@ -415,7 +397,7 @@ func (r TelemetryReconciler) reconcileMetricStorage(ctx context.Context, instanc
 	}
 
 	if !instance.Spec.MetricStorage.Enabled {
-		if res, err := ensureDeleted(ctx, helper, metricStorageInstance); err != nil {
+		if res, err := utils.EnsureDeleted(ctx, helper, metricStorageInstance); err != nil {
 			return res, err
 		}
 		instance.Status.Conditions.Remove(telemetryv1.MetricStorageReadyCondition)
@@ -501,7 +483,7 @@ func (r TelemetryReconciler) reconcileLogging(ctx context.Context, instance *tel
 	}
 
 	if !instance.Spec.Logging.Enabled {
-		if res, err := ensureDeleted(ctx, helper, loggingInstance); err != nil {
+		if res, err := utils.EnsureDeleted(ctx, helper, loggingInstance); err != nil {
 			return res, err
 		}
 		instance.Status.Conditions.Remove(telemetryv1.LoggingReadyCondition)
