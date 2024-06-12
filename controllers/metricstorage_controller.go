@@ -61,6 +61,7 @@ import (
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/dashboards"
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
+	rabbitmqv1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
@@ -105,6 +106,7 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=prometheuses,verbs=get;list;watch;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=alertmanagers,verbs=get;list;watch;update;patch;delete
 //+kubebuilder:rbac:groups=network.openstack.org,resources=ipsets,verbs=get;list;watch
+//+kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=observability.openshift.io,resources=uiplugins,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
@@ -367,7 +369,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.MonitoringStackReadyCondition, condition.ReadyMessage)
 	}
 
-	// Deploy ServiceMonitor for ceilometer monitoring
+	// Deploy ServiceMonitors
 	err = r.ensureWatches(ctx, "servicemonitors.monitoring.rhobs", &monv1.ServiceMonitor{}, eventHandler)
 
 	if err != nil {
@@ -378,9 +380,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		Log.Info("Can't own ServiceMonitor resource")
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
+
+	// ServiceMonitor for ceilometer monitoring
+	ceilometerServerName := fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
 	ceilometerMonitor := &monv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
+			Name:      fmt.Sprintf("%s-%s", instance.Name, ceilometerServerName),
 			Namespace: instance.Namespace,
 		},
 	}
@@ -388,7 +393,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		ceilometerLabels := map[string]string{
 			common.AppSelector: ceilometer.ServiceName,
 		}
-		desiredCeilometerMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, ceilometerLabels)
+		desiredCeilometerMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, ceilometerLabels, ceilometerServerName, "")
 		desiredCeilometerMonitor.Spec.DeepCopyInto(&ceilometerMonitor.Spec)
 		ceilometerMonitor.ObjectMeta.Labels = desiredCeilometerMonitor.ObjectMeta.Labels
 		err = controllerutil.SetControllerReference(instance, ceilometerMonitor, r.Scheme)
@@ -399,6 +404,73 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("Ceilometer ServiceMonitor %s successfully changed - operation: %s", ceilometerMonitor.Name, string(op)))
+	}
+	// ServiceMonitors for RabbitMQ monitoring
+	rabbitList := &rabbitmqv1.RabbitmqClusterList{}
+	listOpts := &client.ListOptions{
+		Namespace: instance.Namespace,
+	}
+	err = r.Client.List(ctx, rabbitList, listOpts)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	for _, rabbit := range rabbitList.Items {
+		rabbitServerName := fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)
+		rabbitMonitor := &monv1.ServiceMonitor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("%s-%s", instance.Name, rabbitServerName),
+				Namespace: instance.Namespace,
+			},
+		}
+		op, err = controllerutil.CreateOrPatch(ctx, r.Client, rabbitMonitor, func() error {
+			rabbitLabels := map[string]string{
+				"app.kubernetes.io/name": rabbit.Name,
+			}
+			desiredRabbitMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, rabbitLabels, rabbitServerName, "prometheus-tls")
+			desiredRabbitMonitor.Spec.DeepCopyInto(&rabbitMonitor.Spec)
+			rabbitMonitor.ObjectMeta.Labels = desiredRabbitMonitor.ObjectMeta.Labels
+			err = controllerutil.SetControllerReference(instance, rabbitMonitor, r.Scheme)
+			return err
+		})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("Rabbit ServiceMonitor %s successfully changed - operation: %s", rabbitMonitor.Name, string(op)))
+		}
+	}
+	// Check that RabbitMQ monitor's RabbitMQs still exist
+	// Delete the ServiceMonitors, which don't have a RabbitMQ anymore
+	svcMonitorList := &monv1.ServiceMonitorList{}
+	listOpts = &client.ListOptions{
+		Namespace: instance.Namespace,
+	}
+	err = r.Client.List(ctx, svcMonitorList, listOpts)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	for _, svcMonitor := range svcMonitorList.Items {
+		if svcMonitor.OwnerReferences == nil ||
+			len(svcMonitor.OwnerReferences) < 1 ||
+			svcMonitor.OwnerReferences[0].Name != instance.Name {
+			continue
+		}
+		if svcMonitor.Name == fmt.Sprintf("%s-ceilometer-internal.%s.svc", instance.Name, instance.Namespace) {
+			continue
+		}
+		rabbitmqExists := false
+		for _, rabbit := range rabbitList.Items {
+			if svcMonitor.Name == fmt.Sprintf("%s-%s.%s.svc", instance.Name, rabbit.Name, instance.Namespace) {
+				rabbitmqExists = true
+			}
+		}
+		if !rabbitmqExists {
+			err = r.Client.Delete(ctx, svcMonitor)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			Log.Info(fmt.Sprintf("Deleted ServiceMonitor: %s because its RabbitMQ doesn't exist", svcMonitor.Name))
+		}
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ServiceMonitorReadyCondition, condition.ReadyMessage)
 
@@ -857,6 +929,33 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		return nil
 	}
 
+	rabbitmqWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+		result := []reconcile.Request{}
+
+		// get all metricstorage CRs
+		metricStorages := &telemetryv1.MetricStorageList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(o.GetNamespace()),
+		}
+		if err := r.Client.List(context.Background(), metricStorages, listOpts...); err != nil {
+			Log.Error(err, "Unable to retrieve MetricStorage CRs %w")
+			return nil
+		}
+
+		for _, cr := range metricStorages.Items {
+			// Reconcile all metricstorages
+			name := client.ObjectKey{
+				Namespace: o.GetNamespace(),
+				Name:      cr.Name,
+			}
+			result = append(result, reconcile.Request{NamespacedName: name})
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
+
 	// index prometheusCaBundleSecretNameField
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, prometheusCaBundleSecretNameField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
@@ -904,6 +1003,10 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.nodeSetWatchFn),
 			builder.WithPredicates(inventoryPredicator),
+		).
+		Watches(
+			&rabbitmqv1.RabbitmqCluster{},
+			handler.EnqueueRequestsFromMapFunc(rabbitmqWatchFn),
 		).
 		Build(r)
 	r.Controller = control

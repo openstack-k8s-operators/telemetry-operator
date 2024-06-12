@@ -277,7 +277,7 @@ kind: ServiceMonitor
 metadata:
   labels:
     service: metricStorage
-  name: telemetry-kuttl-metricstorage
+  name: telemetry-kuttl-metricstorage-ceilometer-internal.telemetry-kuttl-tests.svc
   ownerReferences:
   - kind: MetricStorage
     name: telemetry-kuttl-metricstorage

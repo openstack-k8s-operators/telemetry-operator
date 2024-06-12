@@ -44,6 +44,7 @@ import (
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	mariadbv1beta1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
+	rabbitmqclusterv1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
@@ -70,6 +71,7 @@ func init() {
 	utilruntime.Must(mariadbv1beta1.AddToScheme(scheme))
 	utilruntime.Must(heatv1.AddToScheme(scheme))
 	utilruntime.Must(infranetworkv1.AddToScheme(scheme))
+	utilruntime.Must(rabbitmqclusterv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
