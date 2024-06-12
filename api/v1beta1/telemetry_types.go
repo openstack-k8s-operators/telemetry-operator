@@ -79,7 +79,7 @@ type CeilometerSection struct {
 	// +kubebuilder:default=true
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	// Enabled - Whether OpenStack Ceilometer service should be deployed and managed
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
@@ -93,7 +93,7 @@ type CeilometerSectionCore struct {
 	// +kubebuilder:default=true
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	// Enabled - Whether OpenStack Ceilometer service should be deployed and managed
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
@@ -107,7 +107,7 @@ type AutoscalingSection struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	// Enabled - Whether OpenStack autoscaling service should be deployed and managed
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
@@ -121,7 +121,7 @@ type AutoscalingSectionCore struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	// Enabled - Whether OpenStack autoscaling service should be deployed and managed
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
@@ -135,7 +135,7 @@ type MetricStorageSection struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	// Enabled - Whether a MetricStorage should be deployed and managed
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
@@ -149,7 +149,7 @@ type LoggingSection struct {
 	// +kubebuilder:default=true
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	// Enabled - Whether OpenStack logging service should be deployed and managed
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled"`
 
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec

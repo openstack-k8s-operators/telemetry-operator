@@ -244,7 +244,7 @@ func (r TelemetryReconciler) reconcileCeilometer(ctx context.Context, instance *
 		},
 	}
 
-	if !instance.Spec.Ceilometer.Enabled {
+	if instance.Spec.Ceilometer.Enabled == nil || !*instance.Spec.Ceilometer.Enabled {
 		if res, err := utils.EnsureDeleted(ctx, helper, ceilometerInstance); err != nil {
 			return res, err
 		}
@@ -321,7 +321,7 @@ func (r TelemetryReconciler) reconcileAutoscaling(ctx context.Context, instance 
 		},
 	}
 
-	if !instance.Spec.Autoscaling.Enabled {
+	if instance.Spec.Autoscaling.Enabled == nil || !*instance.Spec.Autoscaling.Enabled {
 		if res, err := utils.EnsureDeleted(ctx, helper, autoscalingInstance); err != nil {
 			return res, err
 		}
@@ -396,7 +396,7 @@ func (r TelemetryReconciler) reconcileMetricStorage(ctx context.Context, instanc
 		},
 	}
 
-	if !instance.Spec.MetricStorage.Enabled {
+	if instance.Spec.MetricStorage.Enabled == nil || !*instance.Spec.MetricStorage.Enabled {
 		if res, err := utils.EnsureDeleted(ctx, helper, metricStorageInstance); err != nil {
 			return res, err
 		}
@@ -482,7 +482,7 @@ func (r TelemetryReconciler) reconcileLogging(ctx context.Context, instance *tel
 		},
 	}
 
-	if !instance.Spec.Logging.Enabled {
+	if instance.Spec.Logging.Enabled == nil || !*instance.Spec.Logging.Enabled {
 		if res, err := utils.EnsureDeleted(ctx, helper, loggingInstance); err != nil {
 			return res, err
 		}
