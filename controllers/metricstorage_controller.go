@@ -23,6 +23,8 @@ import (
 	"reflect"
 	"regexp"
 
+	"golang.org/x/exp/slices"
+
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
@@ -48,12 +50,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 
 	logr "github.com/go-logr/logr"
+	"github.com/openstack-k8s-operators/lib-common/modules/ansible"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 
-	dataplanev1 "github.com/openstack-k8s-operators/dataplane-operator/api/v1beta1"
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
@@ -103,8 +105,6 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=prometheuses,verbs=get;list;watch;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=alertmanagers,verbs=get;list;watch;update;patch;delete
 //+kubebuilder:rbac:groups=network.openstack.org,resources=ipsets,verbs=get;list;watch
-//+kubebuilder:rbac:groups=dataplane.openstack.org,resources=openstackdataplanenodesets,verbs=get;list;watch
-//+kubebuilder:rbac:groups=dataplane.openstack.org,resources=openstackdataplaneservices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=observability.openshift.io,resources=uiplugins,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
@@ -172,7 +172,6 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		condition.UnknownCondition(telemetryv1.MonitoringStackReadyCondition, condition.InitReason, telemetryv1.MonitoringStackReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.ServiceMonitorReadyCondition, condition.InitReason, telemetryv1.ServiceMonitorReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.ScrapeConfigReadyCondition, condition.InitReason, telemetryv1.ScrapeConfigReadyInitMessage),
-		condition.UnknownCondition(telemetryv1.NodeSetReadyCondition, condition.InitReason, telemetryv1.NodeSetReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.InitReason, telemetryv1.DashboardPrometheusRuleReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardPluginReadyCondition, condition.InitReason, telemetryv1.DashboardPluginReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
@@ -402,43 +401,6 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		Log.Info(fmt.Sprintf("Ceilometer ServiceMonitor %s successfully changed - operation: %s", ceilometerMonitor.Name, string(op)))
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ServiceMonitorReadyCondition, condition.ReadyMessage)
-
-	// Deploy ScrapeConfig for NodeExporter monitoring
-	nodeSetWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
-		// Reconcile all metricstorages when a nodeset changes
-		result := []reconcile.Request{}
-
-		// get all MetricStorage CRs
-		metricstorages := &telemetryv1.MetricStorageList{}
-		listOpts := []client.ListOption{
-			client.InNamespace(o.GetNamespace()),
-		}
-		if err := r.Client.List(context.Background(), metricstorages, listOpts...); err != nil {
-			Log.Error(err, "Unable to retrieve MetricStorage CRs %v")
-			return nil
-		}
-		for _, cr := range metricstorages.Items {
-			name := client.ObjectKey{
-				Namespace: o.GetNamespace(),
-				Name:      cr.Name,
-			}
-			result = append(result, reconcile.Request{NamespacedName: name})
-		}
-		if len(result) > 0 {
-			return result
-		}
-		return nil
-	}
-	err = r.ensureWatches(ctx, "openstackdataplanenodesets.dataplane.openstack.org", &dataplanev1.OpenStackDataPlaneNodeSet{}, handler.EnqueueRequestsFromMapFunc(nodeSetWatchFn))
-	if err != nil {
-		instance.Status.Conditions.MarkFalse(telemetryv1.NodeSetReadyCondition,
-			condition.Reason("Can't watch NodeSet resource"),
-			condition.SeverityError,
-			telemetryv1.NodeSetUnableToWatchMessage, err)
-		Log.Info("Can't watch OpenStackDataPlaneNodeSet resource")
-		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
-	}
-	instance.Status.Conditions.MarkTrue(telemetryv1.NodeSetReadyCondition, condition.ReadyMessage)
 
 	endpointsNonTLS, endpointsTLS, err := getNodeExporterTargets(instance, helper)
 
@@ -738,28 +700,26 @@ func getNodeExporterTargets(
 	if err != nil {
 		return []string{}, []string{}, err
 	}
-	nodeSetList, err := getNodeSetList(instance, helper)
+	inventorySecretList, err := getInventorySecretList(instance, helper)
 	if err != nil {
 		return []string{}, []string{}, err
 	}
 	var address string
 	addressesNonTLS := []string{}
 	addressesTLS := []string{}
-	for _, nodeSet := range nodeSetList.Items {
-		telemetryServiceInNodeSet := false
-		for _, service := range nodeSet.Spec.Services {
-			if service == "telemetry" {
-				telemetryServiceInNodeSet = true
-				break
-			}
+	for _, secret := range inventorySecretList.Items {
+		inventory, err := ansible.UnmarshalYAML(secret.Data["inventory"])
+		if err != nil {
+			return []string{}, []string{}, err
 		}
-		if !telemetryServiceInNodeSet {
+		nodeSetGroup := inventory.Groups[secret.Labels["openstackdataplanenodeset"]]
+		if !slices.Contains(nodeSetGroup.Vars["edpm_services"].([]string), "telemetry") {
 			// Telemetry isn't deployed on this nodeset
 			// there is no reason to include these nodes
 			// for scraping by prometheus
 			continue
 		}
-		for name, item := range nodeSet.Spec.Nodes {
+		for name, item := range nodeSetGroup.Hosts {
 			namespacedName := &types.NamespacedName{
 				Name:      name,
 				Namespace: instance.GetNamespace(),
@@ -768,7 +728,7 @@ func getNodeExporterTargets(
 			if len(ipSetList.Items) > 0 {
 				// if we have IPSets, lets go to search for the IPs there
 				address, _ = getAddressFromIPSet(instance, &item, namespacedName, helper)
-			} else if len(item.Ansible.AnsibleHost) > 0 {
+			} else if _, ok := item.Vars["ansible_host"]; ok {
 				address, _ = getAddressFromAnsibleHost(&item)
 			} else {
 				// we were unable to find an IP or HostName for a node, so we do not go further
@@ -778,7 +738,7 @@ func getNodeExporterTargets(
 				// we were unable to find an IP or HostName for a node, so we do not go further
 				return addressesNonTLS, addressesTLS, nil
 			}
-			if nodeSet.Spec.TLSEnabled {
+			if TLSEnabled, ok := nodeSetGroup.Vars["edpm_tls_certs_enabled"].(bool); ok && TLSEnabled {
 				addressesTLS = append(addressesTLS, fmt.Sprintf("%s:%d", address, telemetryv1.DefaultNodeExporterPort))
 			} else {
 				addressesNonTLS = append(addressesNonTLS, fmt.Sprintf("%s:%d", address, telemetryv1.DefaultNodeExporterPort))
@@ -797,28 +757,34 @@ func getIPSetList(instance *telemetryv1.MetricStorage, helper *helper.Helper) (*
 	return ipSets, err
 }
 
-func getNodeSetList(instance *telemetryv1.MetricStorage, helper *helper.Helper) (*dataplanev1.OpenStackDataPlaneNodeSetList, error) {
-	nodeSets := &dataplanev1.OpenStackDataPlaneNodeSetList{}
+func getInventorySecretList(instance *telemetryv1.MetricStorage, helper *helper.Helper) (*corev1.SecretList, error) {
+	secrets := &corev1.SecretList{}
+	labelSelector := map[string]string{
+		"openstack.org/operator-name": "dataplane",
+		"inventory":                   "true",
+	}
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.GetNamespace()),
+		client.MatchingLabels(labelSelector),
 	}
-	err := helper.GetClient().List(context.Background(), nodeSets, listOpts...)
-	return nodeSets, err
+	err := helper.GetClient().List(context.Background(), secrets, listOpts...)
+	return secrets, err
 }
 
 func getAddressFromIPSet(
 	instance *telemetryv1.MetricStorage,
-	item *dataplanev1.NodeSection,
+	item *ansible.Host,
 	namespacedName *types.NamespacedName,
 	helper *helper.Helper,
 ) (string, discoveryv1.AddressType) {
+	ansibleHost := item.Vars["ansible_host"].(string)
 	// we go search for an IPSet
 	ipset := &infranetworkv1.IPSet{}
 	err := helper.GetClient().Get(context.Background(), *namespacedName, ipset)
 	if err != nil {
 		// No IPsets found, lets try to get the HostName as last resource
-		if isValidDomain(item.HostName) {
-			return item.HostName, discoveryv1.AddressTypeFQDN
+		if isValidDomain(ansibleHost) {
+			return ansibleHost, discoveryv1.AddressTypeFQDN
 		}
 		// No IP address or valid hostname found anywhere
 		helper.GetLogger().Info("Did not found a valid hostname or IP address")
@@ -837,21 +803,18 @@ func getAddressFromIPSet(
 	return getAddressFromAnsibleHost(item)
 }
 
-func getAddressFromAnsibleHost(item *dataplanev1.NodeSection) (string, discoveryv1.AddressType) {
+func getAddressFromAnsibleHost(item *ansible.Host) (string, discoveryv1.AddressType) {
+	ansibleHost := item.Vars["ansible_host"].(string)
 	// check if ansiblehost is an IP
-	addr := net.ParseIP(item.Ansible.AnsibleHost)
+	addr := net.ParseIP(ansibleHost)
 	if addr != nil {
 		// it is an ip
-		return item.Ansible.AnsibleHost, discoveryv1.AddressTypeIPv4
+		return ansibleHost, discoveryv1.AddressTypeIPv4
 	}
 	// it is not an ip, is it a valid hostname?
-	if isValidDomain(item.Ansible.AnsibleHost) {
+	if isValidDomain(ansibleHost) {
 		// it is an valid domain name
-		return item.Ansible.AnsibleHost, discoveryv1.AddressTypeFQDN
-	}
-	// if the reservations list is empty, we go find if HostName is a valid domain
-	if isValidDomain(item.HostName) {
-		return item.HostName, discoveryv1.AddressTypeFQDN
+		return ansibleHost, discoveryv1.AddressTypeFQDN
 	}
 	return "", ""
 }
@@ -917,6 +880,17 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}); err != nil {
 		return err
 	}
+	inventoryPredicator, err := predicate.LabelSelectorPredicate(
+		metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"openstack.org/operator-name": "dataplane",
+				"inventory":                   "true",
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
 	control, err := ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.MetricStorage{}).
 		Watches(&corev1.Service{},
@@ -925,6 +899,11 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
+		Watches(
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.nodeSetWatchFn),
+			builder.WithPredicates(inventoryPredicator),
 		).
 		Build(r)
 	r.Controller = control
@@ -962,4 +941,31 @@ func (r *MetricStorageReconciler) findObjectsForSrc(ctx context.Context, src cli
 	}
 
 	return requests
+}
+
+func (r *MetricStorageReconciler) nodeSetWatchFn(ctx context.Context, o client.Object) []reconcile.Request {
+	l := log.FromContext(context.Background()).WithName("Controllers").WithName("MetricStorage")
+	// Reconcile all metricstorages when a nodeset changes
+	result := []reconcile.Request{}
+
+	// get all MetricStorage CRs
+	metricstorages := &telemetryv1.MetricStorageList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(o.GetNamespace()),
+	}
+	if err := r.Client.List(ctx, metricstorages, listOpts...); err != nil {
+		l.Error(err, "Unable to retrieve MetricStorage CRs %v")
+		return nil
+	}
+	for _, cr := range metricstorages.Items {
+		name := client.ObjectKey{
+			Namespace: o.GetNamespace(),
+			Name:      cr.Name,
+		}
+		result = append(result, reconcile.Request{NamespacedName: name})
+	}
+	if len(result) > 0 {
+		return result
+	}
+	return nil
 }

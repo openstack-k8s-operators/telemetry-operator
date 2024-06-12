@@ -42,9 +42,6 @@ const (
 	// ScrapeConfigReadyCondition Status=True condition which indicates if the Node Exporter ScrapeConfig is configured and operational
 	ScrapeConfigReadyCondition condition.Type = "NodeExporterScrapeConfigReady"
 
-	// NodeSetReadyCondition Status=True condition which indicates if the NodeSet watch is operational
-	NodeSetReadyCondition condition.Type = "NodeSetWatchReady"
-
 	// PrometheusReadyCondition Status=True condition which indicates if the Prometheus watch is operational
 	PrometheusReadyCondition condition.Type = "PrometheusReady"
 
@@ -162,15 +159,6 @@ const (
 	ScrapeConfigUnableToOwnMessage = "Error occured when trying to own %s"
 
 	//
-	// NodeSetReady condition messages
-	//
-	// NodeSetReadyInitMessage
-	NodeSetReadyInitMessage = "NodeSet not watched"
-
-	// NodeSetUnableToWatchMessage
-	NodeSetUnableToWatchMessage = "Error occured when trying to watch %s"
-
-	//
 	// PrometheusReady condition messages
 	//
 	// PrometheusReadyInitMessage
@@ -202,15 +190,15 @@ const (
 
 	DashboardsNotEnabledMessage = "Dashboarding was not enabled, so no actions required"
 
-	DashboardPrometheusRuleReadyInitMessage = "Dashboard PrometheusRule not started"
+	DashboardPrometheusRuleReadyInitMessage   = "Dashboard PrometheusRule not started"
 	DashboardPrometheusRuleUnableToOwnMessage = "Error occured when trying to own %s"
 
 	DashboardPluginReadyInitMessage = "Dashboard Plugin not started"
-	DashboardPluginFailedMessage = "Error occured when trying to install the dashboard plugin: %s"
+	DashboardPluginFailedMessage    = "Error occured when trying to install the dashboard plugin: %s"
 
 	DashboardDatasourceReadyInitMessage = "Dashboard Datasource not started"
-	DashboardDatasourceFailedMessage = "Error occured when trying to install the dashboard datasource: %s"
+	DashboardDatasourceFailedMessage    = "Error occured when trying to install the dashboard datasource: %s"
 
 	DashboardDefinitionReadyInitMessage = "Dashboard Definition not started"
-	DashboardDefinitionFailedMessage = "Error occured when trying to install the dashboard definitions: %s"
+	DashboardDefinitionFailedMessage    = "Error occured when trying to install the dashboard definitions: %s"
 )

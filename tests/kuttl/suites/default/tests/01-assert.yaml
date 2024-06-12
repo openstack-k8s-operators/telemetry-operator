@@ -117,8 +117,6 @@ status:
       status: "True"
     - type: NodeExporterScrapeConfigReady
       status: "True"
-    - type: NodeSetWatchReady
-      status: "True"
     - type: PrometheusReady
       status: "True"
     - type: TLSInputReady
