@@ -23,8 +23,6 @@ import (
 	"reflect"
 	"regexp"
 
-	"golang.org/x/exp/slices"
-
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
@@ -713,7 +711,13 @@ func getNodeExporterTargets(
 			return []string{}, []string{}, err
 		}
 		nodeSetGroup := inventory.Groups[secret.Labels["openstackdataplanenodeset"]]
-		if !slices.Contains(nodeSetGroup.Vars["edpm_services"].([]string), "telemetry") {
+		containsTelemetry := false
+		for _, svc := range nodeSetGroup.Vars["edpm_services"].([]interface{}) {
+			if svc.(string) == "telemetry" {
+				containsTelemetry = true
+			}
+		}
+		if !containsTelemetry {
 			// Telemetry isn't deployed on this nodeset
 			// there is no reason to include these nodes
 			// for scraping by prometheus
