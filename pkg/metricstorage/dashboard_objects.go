@@ -18,7 +18,6 @@ package metricstorage
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +32,6 @@ import (
 const DashboardArtifactsNamespace = "openshift-config-managed"
 
 func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper) (ctrl.Result, error) {
-	fmt.Printf("%v %v %v", ctx, instance, helper)
 	promRule := &monv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
