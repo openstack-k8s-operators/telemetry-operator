@@ -553,20 +553,20 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	// ScrapeConfig for ceilometer monitoring
 	ceilometerRoute := fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
 	ceilometerTarget := []string{fmt.Sprintf("%s:%d", ceilometerRoute, ceilometer.CeilometerPrometheusPort)}
-	ceilometerServiceName := fmt.Sprintf("%s-ceilometer", telemetry.ServiceName)
+	ceilometerCfgName := fmt.Sprintf("%s-ceilometer", telemetry.ServiceName)
 	err = r.createServiceScrapeConfig(ctx, instance, eventHandler, helper, Log,
-		"Ceilometer", ceilometerServiceName, ceilometerTarget,
+		"Ceilometer", ceilometerCfgName, ceilometerTarget,
 		instance.Spec.PrometheusTLS.Enabled())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// ScrapeConfig for kube-state-metrics
-	ksmRoute := fmt.Sprintf("%s-internal.%s.svc", availability.KSMServiceName, instance.Namespace)
+	ksmRoute := fmt.Sprintf("%s.%s.svc", availability.KSMServiceName, instance.Namespace)
 	ksmTarget := []string{fmt.Sprintf("%s:%d", ksmRoute, availability.KSMMetricsPort)}
-	ksmServiceName := fmt.Sprintf("%s-ceilometer", availability.KSMServiceName)
+	ksmCfgName := fmt.Sprintf("%s-ksm", telemetry.ServiceName)
 	err = r.createServiceScrapeConfig(ctx, instance, eventHandler, helper, Log,
-		"kube-state-metrics", ksmServiceName, ksmTarget,
+		"kube-state-metrics", ksmCfgName, ksmTarget,
 		instance.Spec.PrometheusTLS.Enabled())
 	if err != nil {
 		return ctrl.Result{}, err
@@ -589,9 +589,9 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		rabbitServerName := fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)
 		rabbitTargets = append(rabbitTargets, fmt.Sprintf("%s:%d", rabbitServerName, metricstorage.RabbitMQPrometheusPort))
 	}
-	rabbitServiceName := fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName)
+	rabbitCfgName := fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName)
 	err = r.createServiceScrapeConfig(ctx, instance, eventHandler, helper, Log,
-		"RabbitMQ", rabbitServiceName, rabbitTargets,
+		"RabbitMQ", rabbitCfgName, rabbitTargets,
 		instance.Spec.PrometheusTLS.Enabled())
 	if err != nil {
 		return ctrl.Result{}, err

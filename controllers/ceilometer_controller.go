@@ -220,18 +220,18 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 const (
 	ceilometerPasswordSecretField     = ".spec.secret"
 	ceilometerCaBundleSecretNameField = ".spec.tls.caBundleSecretName"
-	ceilometerTlsField                = ".spec.tls.secretName"
+	ceilometerTLSField                = ".spec.tls.secretName"
 	ksmCaBundleSecretNameField        = ".spec.ksmTls.caBundleSecretName"
-	ksmTlsField                       = ".spec.ksmTls.secretName"
+	ksmTLSField                       = ".spec.ksmTls.secretName"
 )
 
 var (
 	ceilometerWatchFields = []string{
 		ceilometerPasswordSecretField,
 		ceilometerCaBundleSecretNameField,
-		ceilometerTlsField,
+		ceilometerTLSField,
 		ksmCaBundleSecretNameField,
-		ksmTlsField,
+		ksmTLSField,
 	}
 )
 
@@ -1096,8 +1096,8 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return err
 	}
 
-	// index ceilometerTlsField
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ceilometerTlsField, func(rawObj client.Object) []string {
+	// index ceilometerTLSField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ceilometerTLSField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
 		cr := rawObj.(*telemetryv1.Ceilometer)
 		if cr.Spec.TLS.SecretName == nil {
