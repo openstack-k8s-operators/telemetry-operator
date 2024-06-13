@@ -423,7 +423,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ServiceMonitorReadyCondition, condition.ReadyMessage)
 
-	endpointsNonTLS, endpointsTLS, err := getNodeExporterTargets(instance, helper)
+	endpointsNonTLS, endpointsTLS, _ := getNodeExporterTargets(instance, helper)
 
 	// scrapeConfig for non-tls nodes
 	err = r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", &monv1alpha1.ScrapeConfig{}, eventHandler)
