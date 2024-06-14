@@ -1,8 +1,7 @@
 ---
-pre_deploy:
-  - name: deploy_logging_dependencies
-    source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-logging-dependencies.yml"
-    type: playbook
+pre_deploy_deploy_logging_dependencies:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-logging-dependencies.yml"
+  type: playbook
 cifmw_edpm_prepare_kustomizations:
   - apiVersion: kustomize.config.k8s.io/v1beta1
     kind: Kustomization
