@@ -1,5 +1,5 @@
 ---
-post_ctlplane_deploy:
+pre_tests:
   - name: Check default telemetry
     source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/check-default-telemetry.yml"
     type: playbook
