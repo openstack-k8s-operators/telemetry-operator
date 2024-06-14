@@ -407,10 +407,10 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	// ServiceMonitors for RabbitMQ monitoring
 	rabbitList := &rabbitmqv1.RabbitmqClusterList{}
-	listOpts := &client.ListOptions{
-		Namespace: instance.Namespace,
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.GetNamespace()),
 	}
-	err = r.Client.List(ctx, rabbitList, listOpts)
+	err = r.Client.List(ctx, rabbitList, listOpts...)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -442,10 +442,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	// Check that RabbitMQ monitor's RabbitMQs still exist
 	// Delete the ServiceMonitors, which don't have a RabbitMQ anymore
 	svcMonitorList := &monv1.ServiceMonitorList{}
-	listOpts = &client.ListOptions{
-		Namespace: instance.Namespace,
-	}
-	err = r.Client.List(ctx, svcMonitorList, listOpts)
+	err = r.Client.List(ctx, svcMonitorList, listOpts...)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
