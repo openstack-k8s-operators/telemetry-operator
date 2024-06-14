@@ -21,7 +21,6 @@ import (
 
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
-	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,6 +30,7 @@ func ServiceMonitor(
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,
 	selector map[string]string,
+	serverName string,
 ) *monv1.ServiceMonitor {
 	var scrapeInterval monv1.Duration
 	if instance.Spec.MonitoringStack != nil && instance.Spec.MonitoringStack.ScrapeInterval != "" {
@@ -90,7 +90,7 @@ func ServiceMonitor(
 		serviceMonitor.Spec.Endpoints[0].TLSConfig = &monv1.TLSConfig{
 			CAFile: fmt.Sprintf("/etc/prometheus/secrets/%s/%s", instance.Spec.PrometheusTLS.CaBundleSecretName, tls.CABundleKey),
 			SafeTLSConfig: monv1.SafeTLSConfig{
-				ServerName: fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace),
+				ServerName: serverName,
 			},
 		}
 	}

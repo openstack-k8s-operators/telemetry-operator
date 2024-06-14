@@ -56,6 +56,7 @@ import (
 
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	availability "github.com/openstack-k8s-operators/telemetry-operator/pkg/availability"
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/dashboards"
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
@@ -214,6 +215,32 @@ func (r *MetricStorageReconciler) reconcileDelete(
 	return ctrl.Result{}, nil
 }
 
+// createServiceMonitor creates a ServiceMonitor CR for specified service
+func (r *MetricStorageReconciler) createServiceMonitor(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	serviceName string,
+	serviceLabels map[string]string,
+	serverName string,
+) (*monv1.ServiceMonitor, error) {
+	monitor := &monv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-%s", instance.Name, serviceName),
+			Namespace: instance.Namespace,
+		},
+	}
+	_, err := controllerutil.CreateOrPatch(ctx, r.Client, monitor, func() error {
+		labels := map[string]string{
+			common.AppSelector: serviceName,
+		}
+		desiredMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, labels, serverName)
+		desiredMonitor.Spec.DeepCopyInto(&monitor.Spec)
+		monitor.ObjectMeta.Labels = desiredMonitor.ObjectMeta.Labels
+		return controllerutil.SetControllerReference(instance, monitor, r.Scheme)
+	})
+	return monitor, err
+}
+
 func (r *MetricStorageReconciler) reconcileNormal(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
@@ -365,9 +392,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.MonitoringStackReadyCondition, condition.ReadyMessage)
 	}
 
-	// Deploy ServiceMonitor for ceilometer monitoring
+	// Deploy ServiceMonitor for ceilometer and kube-state-metrics monitoring
 	err = r.ensureWatches(ctx, "servicemonitors.monitoring.rhobs", &monv1.ServiceMonitor{}, eventHandler)
-
 	if err != nil {
 		instance.Status.Conditions.MarkFalse(telemetryv1.ServiceMonitorReadyCondition,
 			condition.Reason("Can't own ServiceMonitor resource"),
@@ -376,31 +402,26 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		Log.Info("Can't own ServiceMonitor resource")
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
-	ceilometerMonitor := &monv1.ServiceMonitor{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
-			Namespace: instance.Namespace,
-		},
-	}
-	op, err = controllerutil.CreateOrPatch(ctx, r.Client, ceilometerMonitor, func() error {
-		ceilometerLabels := map[string]string{
-			common.AppSelector: ceilometer.ServiceName,
-		}
-		desiredCeilometerMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, ceilometerLabels)
-		desiredCeilometerMonitor.Spec.DeepCopyInto(&ceilometerMonitor.Spec)
-		ceilometerMonitor.ObjectMeta.Labels = desiredCeilometerMonitor.ObjectMeta.Labels
-		err = controllerutil.SetControllerReference(instance, ceilometerMonitor, r.Scheme)
-		return err
-	})
+
+	ceilometerMonitor, err := r.createServiceMonitor(ctx, instance, ceilometer.ServiceName, serviceLabels,
+		fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("Ceilometer ServiceMonitor %s successfully changed - operation: %s", ceilometerMonitor.Name, string(op)))
 	}
+	ksmMonitor, err := r.createServiceMonitor(ctx, instance, availability.KSMServiceName, serviceLabels,
+		fmt.Sprintf("%s.%s.svc", availability.KSMServiceName, instance.Namespace))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("KSM ServiceMonitor %s successfully changed - operation: %s", ksmMonitor.Name, string(op)))
+	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ServiceMonitorReadyCondition, condition.ReadyMessage)
 
-	endpointsNonTLS, endpointsTLS, err := getNodeExporterTargets(instance, helper)
+	endpointsNonTLS, endpointsTLS, _ := getNodeExporterTargets(instance, helper)
 
 	// scrapeConfig for non-tls nodes
 	err = r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", &monv1alpha1.ScrapeConfig{}, eventHandler)
