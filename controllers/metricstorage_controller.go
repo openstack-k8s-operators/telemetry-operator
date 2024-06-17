@@ -526,7 +526,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	// =====
 	// uiPluginObj := &obsui.ObservabilityUIPlugin{
 	// 	ObjectMeta: metav1.ObjectMeta{
-	// 		Name:      "ui-dashboards",
+	// 		Name:      "dashboards",
 	// 	},
 	// }
 	// =====
@@ -541,7 +541,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		Version: "v1alpha1",
 		Kind:    "UIPlugin",
 	})
-	uiPluginObj.SetName("ui-dashboards")
+	uiPluginObj.SetName("dashboards")
 	// =====
 	op, err := controllerutil.CreateOrPatch(ctx, r.Client, uiPluginObj, func() error {
 		// uiPluginObj.Spec.Type = "Dashboards" // After we update to COO 0.2.0 as dependency
