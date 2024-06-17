@@ -99,6 +99,8 @@ github.com/prometheus/common v0.46.0 h1:doXzt5ybi1HBKpsZOL0sSkaNHJJqkyfEWZGGqqSc
 github.com/prometheus/common v0.46.0/go.mod h1:Tp0qkxpb9Jsg54QMe+EAmqXkSV7Evdy1BTn+g2pa/hQ=
 github.com/prometheus/procfs v0.12.0 h1:jluTpSng7V9hY0O2R9DzzJHYb2xULk9VTR1V1R/k6Bo=
 github.com/prometheus/procfs v0.12.0/go.mod h1:pcuDEFsWDnvcgNzo4EEweacyhjeA9Zk3cnaOZAZEfOo=
+github.com/rabbitmq/cluster-operator v1.14.0 h1:1/nMyd9v/8T5IHA1BVcWbV0nrzN31F+gLP+0Ges6Y5E=
+github.com/rabbitmq/cluster-operator v1.14.0/go.mod h1:7XVU6ngbVJSPDXld+uMVk6nu68GH7fM6yYYY2MdYKek=
 github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.69.0-rhobs1 h1:d6UamuHl8GaEXcQqM7VO8jMnnhzHmTA0f6h4dQTQsGk=
 github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.69.0-rhobs1/go.mod h1:SDL0R6499oleOOVL5ovIxHpyLOh2sR2g0rvBuuqHyQM=
 github.com/rhobs/observability-operator v0.0.28 h1:FFMBkmI1LWJVWyJKJqelYbV5iUc4u/wJClqowRJZRoU=

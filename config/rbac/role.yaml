@@ -259,6 +259,14 @@ rules:
   - patch
   - watch
 - apiGroups:
+  - rabbitmq.com
+  resources:
+  - rabbitmqclusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - rabbitmq.openstack.org
   resources:
   - transporturls

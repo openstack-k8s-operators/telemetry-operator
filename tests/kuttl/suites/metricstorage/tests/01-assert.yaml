@@ -35,7 +35,7 @@ kind: ServiceMonitor
 metadata:
   labels:
     service: metricStorage
-  name: telemetry-kuttl
+  name: telemetry-kuttl-ceilometer-internal.telemetry-kuttl-tests.svc
   ownerReferences:
   - kind: MetricStorage
     name: telemetry-kuttl
@@ -57,6 +57,34 @@ spec:
   selector:
     matchLabels:
       service: ceilometer
+---
+apiVersion: monitoring.rhobs/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry-kuttl-rabbitmq.telemetry-kuttl-tests.svc
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+spec:
+  endpoints:
+  - interval: 30s
+    metricRelabelings:
+    - action: labeldrop
+      regex: pod
+    - action: labeldrop
+      regex: namespace
+    - action: labeldrop
+      regex: instance
+    - action: labeldrop
+      regex: job
+    - action: labeldrop
+      regex: publisher
+  namespaceSelector: {}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
 ---
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
