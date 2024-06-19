@@ -53,7 +53,12 @@ func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricSto
 		return res, err
 	}
 
-	var dashboards = []string{"grafana-dashboard-openstack-cloud", "grafana-dashboard-openstack-node", "grafana-dashboard-openstack-vm"}
+	var dashboards = []string{
+		"grafana-dashboard-openstack-cloud",
+		"grafana-dashboard-openstack-node",
+		"grafana-dashboard-openstack-vm",
+		"grafana-dashboard-openstack-rabbitmq",
+	}
 	for _, name := range dashboards {
 		dashboardCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
