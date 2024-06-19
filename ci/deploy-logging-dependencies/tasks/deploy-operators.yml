@@ -1,3 +1,11 @@
+# WORKAROUND: Loki-operator is missing cluster credential operator in CRC
+# we can just apply the CRD to work around the issue. For proper fix
+# see: LOG-5431
+- name: WORKAROUND - Apply CCO CRD
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/0000_03_cloud-credential-operator_01_crd.yaml
+
 - name: Create the CLO subscription and loki-operator subscriptions
   ansible.builtin.shell:
     cmd: |
