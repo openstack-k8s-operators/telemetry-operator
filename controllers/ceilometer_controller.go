@@ -41,7 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	logr "github.com/go-logr/logr"
-	projects "github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
@@ -53,7 +52,6 @@ import (
 	statefulset "github.com/openstack-k8s-operators/lib-common/modules/common/statefulset"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
-	openstack "github.com/openstack-k8s-operators/lib-common/modules/openstack"
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
@@ -964,7 +962,7 @@ func (r *CeilometerReconciler) ensureSwiftRole(
 	}
 
 	// We are using the fixed domainID "default" because it is also fixed in ceilometer.conf
-	project, err := getProject(os, log, "service", "default")
+	project, err := os.GetProject(log, "service", "default")
 	if err != nil {
 		return err
 	}
@@ -980,31 +978,4 @@ func (r *CeilometerReconciler) ensureSwiftRole(
 	}
 
 	return nil
-}
-
-// getProject - gets project with projectName
-func getProject(
-	o *openstack.OpenStack,
-	log logr.Logger,
-	projectName string,
-	domainID string,
-) (*projects.Project, error) {
-	allPages, err := projects.List(o.GetOSClient(), projects.ListOpts{Name: projectName, DomainID: domainID}).AllPages()
-	if err != nil {
-		return nil, err
-	}
-	allProjects, err := projects.ExtractProjects(allPages)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(allProjects) == 0 {
-		log.Error(err, fmt.Sprintf("%s %s", projectName, "project not found"))
-		return nil, err
-	} else if len(allProjects) > 1 {
-		log.Error(err, fmt.Sprintf("multiple project named \"%s\" found", projectName))
-		return nil, err
-	}
-
-	return &allProjects[0], nil
 }
