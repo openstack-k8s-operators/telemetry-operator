@@ -1069,6 +1069,17 @@ spec:
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                 type: object
+              dashboardsEnabled:
+                default: false
+                description: DashboardsEnabled allows to enable or disable dashboards
+                  and related artifacts
+                type: boolean
+              dataplaneNetwork:
+                default: ctlplane
+                description: DataplaneNetwork defines the network that will be used
+                  to scrape dataplane node_exporter endpoints
+                pattern: ^[a-zA-Z0-9][a-zA-Z0-9\-_]*[a-zA-Z0-9]$
+                type: string
               monitoringStack:
                 description: MonitoringStack allows to define a metric storage with
                   options supported by Red Hat
@@ -1078,17 +1089,6 @@ spec:
                     default: true
                     description: AlertingEnabled allows to enable or disable alertmanager
                     type: boolean
-                  dashboardsEnabled:
-                    default: false
-                    description: DashboardsEnabled allows to enable or disable dashboards
-                      and related artifacts
-                    type: boolean
-                  dataplaneNetwork:
-                    default: ctlplane
-                    description: DataplaneNetwork defines the network that will be
-                      used to scrape dataplane node_exporter endpoints
-                    pattern: ^[a-zA-Z0-9][a-zA-Z0-9\-_]*[a-zA-Z0-9]$
-                    type: string
                   scrapeInterval:
                     default: 30s
                     description: ScrapeInterval sets the interval between scrapes
@@ -1175,8 +1175,6 @@ spec:
                         - persistent
                         type: string
                     type: object
-                required:
-                - dataplaneNetwork
                 type: object
               prometheusTls:
                 description: TLS - Parameters related to the TLS
@@ -1189,6 +1187,8 @@ spec:
                     description: SecretName - holding the cert, key for the service
                     type: string
                 type: object
+            required:
+            - dataplaneNetwork
             type: object
           status:
             description: MetricStorageStatus defines the observed state of MetricStorage

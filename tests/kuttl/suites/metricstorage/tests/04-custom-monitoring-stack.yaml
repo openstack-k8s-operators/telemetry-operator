@@ -1,0 +1,16 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: MetricStorage
+metadata:
+  name: telemetry-kuttl
+spec:
+  dashboardsEnabled: false
+  customMonitoringStack:
+    alertmanagerConfig:
+      disabled: false
+    prometheusConfig:
+      replicas: 1
+      scrapeInterval: 40s
+    resourceSelector:
+      matchLabels:
+        app: custom-monitoring-stack
+    retention: 1d

@@ -67,19 +67,10 @@ type MonitoringStack struct {
 	// +kubebuilder:default=true
 	AlertingEnabled bool `json:"alertingEnabled"`
 
-	// DashboardsEnabled allows to enable or disable dashboards and related artifacts
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
-	DashboardsEnabled bool `json:"dashboardsEnabled"`
-
 	// ScrapeInterval sets the interval between scrapes
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="30s"
 	ScrapeInterval string `json:"scrapeInterval"`
-
-	// DataplaneNetwork defines the network that will be used to scrape dataplane node_exporter endpoints
-	// +kubebuilder:default=ctlplane
-	DataplaneNetwork infranetworkv1.NetNameStr `json:"dataplaneNetwork"`
 
 	// Storage allows to define options for how to store metrics
 	// +kubebuilder:validation:Optional
@@ -89,6 +80,15 @@ type MonitoringStack struct {
 
 // MetricStorageSpec defines the desired state of MetricStorage
 type MetricStorageSpec struct {
+	// DashboardsEnabled allows to enable or disable dashboards and related artifacts
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	DashboardsEnabled bool `json:"dashboardsEnabled"`
+
+	// DataplaneNetwork defines the network that will be used to scrape dataplane node_exporter endpoints
+	// +kubebuilder:default=ctlplane
+	DataplaneNetwork infranetworkv1.NetNameStr `json:"dataplaneNetwork"`
+
 	// MonitoringStack allows to define a metric storage with
 	// options supported by Red Hat
 	// +kubebuilder:validation:Optional
