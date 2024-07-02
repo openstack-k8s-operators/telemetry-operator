@@ -55,6 +55,9 @@ func (spec *MetricStorageSpec) Default() {
 		// NOTE: If we want to enable dashboards in the future by default, set
 		//       it here like Alerting above
 	}
+	if spec.DataplaneNetwork == "" {
+		spec.DataplaneNetwork = "ctlplane"
+	}
 	if spec.MonitoringStack != nil {
 		spec.MonitoringStack.Default()
 	}
@@ -64,9 +67,6 @@ func (spec *MetricStorageSpec) Default() {
 func (ms *MonitoringStack) Default() {
 	if ms.ScrapeInterval == "" {
 		ms.ScrapeInterval = "30s"
-	}
-	if ms.DataplaneNetwork == "" {
-		ms.DataplaneNetwork = "ctlplane"
 	}
 	ms.Storage.Default()
 }
