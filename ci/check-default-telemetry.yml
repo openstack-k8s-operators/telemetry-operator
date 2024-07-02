@@ -73,12 +73,12 @@
     - name: "Enable MetricStorage"
       ansible.builtin.command:
         cmd: |
-          oc patch oscp/openstack-galera-network-isolation --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/metricStorage/enabled", "value":true}]'
+          oc patch oscp/controlplane --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/metricStorage/enabled", "value":true}]'
 
     - name: "Enable Autoscaling"
       ansible.builtin.command:
         cmd: |
-          oc patch oscp/openstack-galera-network-isolation --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/autoscaling/enabled", "value":true}]'
+          oc patch oscp/controlplane --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/autoscaling/enabled", "value":true}]'
 
     - name: "Wait until reconciliation finishes"
       # There isn't a convinient way to know when it finished. The status conditions will never get to a "Ready" state in this situation
