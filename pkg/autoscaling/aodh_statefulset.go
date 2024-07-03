@@ -83,13 +83,19 @@ func AodhStatefulSet(
 	notifierVolumeMounts := getVolumeMounts("aodh-notifier")
 	listenerVolumeMounts := getVolumeMounts("aodh-listener")
 
-	// add CA cert if defined
+	// add openstack CA cert if defined
 	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
 		volumes = append(volumes, instance.Spec.Aodh.TLS.CreateVolume())
 		apiVolumeMounts = append(apiVolumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
 		evaluatorVolumeMounts = append(evaluatorVolumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
 		notifierVolumeMounts = append(notifierVolumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
 		listenerVolumeMounts = append(listenerVolumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
+	}
+
+	// add prometheus CA cert if defined
+	if instance.Spec.PrometheusTLSCaCertSecret != nil {
+		volumes = append(volumes, getCustomPrometheusCaVolume(instance.Spec.PrometheusTLSCaCertSecret.LocalObjectReference.Name))
+		evaluatorVolumeMounts = append(evaluatorVolumeMounts, getCustomPrometheusCaVolumeMount(instance.Spec.PrometheusTLSCaCertSecret.Key))
 	}
 
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {

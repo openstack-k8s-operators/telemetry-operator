@@ -20,6 +20,7 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
@@ -155,9 +156,10 @@ type AutoscalingSpecBase struct {
 	// +kubebuilder:validation:Optional
 	PrometheusPort int32 `json:"prometheusPort,omitempty"`
 
-	// If TLS should be used for user deployed prometheus
+	// If defined, specifies which CA certificate to use for user deployed prometheus
 	// +kubebuilder:validation:Optional
-	PrometheusTLS *bool `json:"prometheusTLS,omitempty"`
+	// +nullable
+	PrometheusTLSCaCertSecret *corev1.SecretKeySelector `json:"prometheusTLSCaCertSecret,omitempty"`
 
 	// Heat instance name.
 	// +kubebuilder:default=heat

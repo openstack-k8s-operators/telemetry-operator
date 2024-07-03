@@ -361,9 +361,26 @@ spec:
                 maximum: 65535
                 minimum: 1
                 type: integer
-              prometheusTLS:
-                description: If TLS should be used for user deployed prometheus
-                type: boolean
+              prometheusTLSCaCertSecret:
+                description: If defined, specifies which CA certificate to use for
+                  user deployed prometheus
+                nullable: true
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a
+                      valid secret key.
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                type: object
+                x-kubernetes-map-type: atomic
             required:
             - heatInstance
             type: object
