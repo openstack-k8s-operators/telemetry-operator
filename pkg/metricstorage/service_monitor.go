@@ -36,7 +36,10 @@ func ServiceMonitor(
 	var scrapeInterval monv1.Duration
 	if instance.Spec.MonitoringStack != nil && instance.Spec.MonitoringStack.ScrapeInterval != "" {
 		scrapeInterval = monv1.Duration(instance.Spec.MonitoringStack.ScrapeInterval)
-	} else if instance.Spec.CustomMonitoringStack != nil && *instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval != monv1.Duration("") {
+	} else if instance.Spec.CustomMonitoringStack != nil &&
+		instance.Spec.CustomMonitoringStack.PrometheusConfig != nil &&
+		instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval != nil &&
+		*instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval != monv1.Duration("") {
 		scrapeInterval = *instance.Spec.CustomMonitoringStack.PrometheusConfig.ScrapeInterval
 	} else {
 		scrapeInterval = telemetryv1.DefaultScrapeInterval
