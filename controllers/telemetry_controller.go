@@ -409,10 +409,14 @@ func (r TelemetryReconciler) reconcileMetricStorage(ctx context.Context, instanc
 		if instance.Spec.MetricStorage.MetricStorageSpec.CustomMonitoringStack != nil {
 			metricStorageInstance.Spec.CustomMonitoringStack = &obov1.MonitoringStackSpec{}
 			instance.Spec.MetricStorage.MetricStorageSpec.CustomMonitoringStack.DeepCopyInto(metricStorageInstance.Spec.CustomMonitoringStack)
+		} else {
+			metricStorageInstance.Spec.CustomMonitoringStack = nil
 		}
 		if instance.Spec.MetricStorage.MetricStorageSpec.MonitoringStack != nil {
 			metricStorageInstance.Spec.MonitoringStack = &telemetryv1.MonitoringStack{}
 			instance.Spec.MetricStorage.MetricStorageSpec.MonitoringStack.DeepCopyInto(metricStorageInstance.Spec.MonitoringStack)
+		} else {
+			metricStorageInstance.Spec.MonitoringStack = nil
 		}
 		instance.Spec.MetricStorage.MetricStorageSpec.PrometheusTLS.DeepCopyInto(&metricStorageInstance.Spec.PrometheusTLS)
 		// TODO: Uncomment this line when implementing TLS for Alertmanager
