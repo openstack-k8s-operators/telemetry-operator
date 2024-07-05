@@ -13,6 +13,7 @@ rules:
   - create
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
@@ -151,6 +152,7 @@ rules:
   resources:
   - mariadbaccounts/finalizers
   verbs:
+  - patch
   - update
 - apiGroups:
   - mariadb.openstack.org
@@ -169,6 +171,7 @@ rules:
   resources:
   - mariadbdatabases/finalizers
   verbs:
+  - patch
   - update
 - apiGroups:
   - monitoring.rhobs
@@ -286,6 +289,7 @@ rules:
   - create
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
@@ -296,6 +300,7 @@ rules:
   - create
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
@@ -324,6 +329,7 @@ rules:
   - autoscalings/finalizers
   verbs:
   - delete
+  - patch
   - update
 - apiGroups:
   - telemetry.openstack.org
@@ -351,6 +357,7 @@ rules:
   - ceilometers/finalizers
   verbs:
   - delete
+  - patch
   - update
 - apiGroups:
   - telemetry.openstack.org
@@ -378,6 +385,7 @@ rules:
   - loggings/finalizers
   verbs:
   - delete
+  - patch
   - update
 - apiGroups:
   - telemetry.openstack.org
@@ -405,6 +413,7 @@ rules:
   - metricstorages/finalizers
   verbs:
   - delete
+  - patch
   - update
 - apiGroups:
   - telemetry.openstack.org
@@ -431,6 +440,7 @@ rules:
   resources:
   - telemetries/finalizers
   verbs:
+  - patch
   - update
 - apiGroups:
   - telemetry.openstack.org
