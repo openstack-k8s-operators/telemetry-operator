@@ -38,6 +38,9 @@ const (
 
 	// AodhAPIPort -
 	AodhAPIPort = 8042
+
+	// CustomPrometheusCaCertFolderPath -
+	CustomPrometheusCaCertFolderPath = "/etc/pki/ca-trust/extracted/pem/"
 )
 
 // PrometheusReplicas -

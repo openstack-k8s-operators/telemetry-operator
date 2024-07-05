@@ -393,7 +393,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	} else {
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
 	}
-	if instance.Spec.PrometheusTLS == nil {
+	if instance.Spec.PrometheusTLSCaCertSecret == nil {
 		metricStorage := &telemetryv1.MetricStorage{}
 		err := r.Client.Get(ctx, client.ObjectKey{
 			Namespace: instance.Namespace,
@@ -409,7 +409,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		}
 		instance.Status.PrometheusTLS = metricStorage.Spec.PrometheusTLS.Enabled()
 	} else {
-		instance.Status.PrometheusTLS = *instance.Spec.PrometheusTLS
+		instance.Status.PrometheusTLS = true
 	}
 
 	db, result, err := r.ensureDB(ctx, helper, instance)
@@ -560,10 +560,14 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	}
 
 	prometheusParams := map[string]interface{}{
-		"Host":   instance.Status.PrometheusHost,
-		"Port":   instance.Status.PrometheusPort,
-		"TLS":    instance.Status.PrometheusPort,
-		"CaCert": tls.DownstreamTLSCABundlePath,
+		"Host": instance.Status.PrometheusHost,
+		"Port": instance.Status.PrometheusPort,
+		"TLS":  instance.Status.PrometheusTLS,
+	}
+	if instance.Spec.PrometheusTLSCaCertSecret != nil {
+		prometheusParams["CaCert"] = autoscaling.CustomPrometheusCaCertFolderPath + instance.Spec.PrometheusTLSCaCertSecret.Key
+	} else {
+		prometheusParams["CaCert"] = tls.DownstreamTLSCABundlePath
 	}
 	templateParameters["Prometheus"] = prometheusParams
 
