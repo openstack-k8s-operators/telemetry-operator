@@ -3,9 +3,9 @@ kind: MetricStorage
 metadata:
   name: telemetry-kuttl
 spec:
+  dashboardsEnabled: false
   monitoringStack:
     alertingEnabled: true
-    dashboardsEnabled: false
     scrapeInterval: 30s
     storage:
       strategy: persistent
