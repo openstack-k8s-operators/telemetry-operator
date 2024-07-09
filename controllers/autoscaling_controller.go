@@ -393,7 +393,8 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	} else {
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
 	}
-	if instance.Spec.PrometheusTLSCaCertSecret == nil {
+	if instance.Spec.PrometheusHost == "" {
+		// We're using MetricStorage for Prometheus. Set TLS accordingly
 		metricStorage := &telemetryv1.MetricStorage{}
 		err := r.Client.Get(ctx, client.ObjectKey{
 			Namespace: instance.Namespace,
@@ -409,7 +410,8 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		}
 		instance.Status.PrometheusTLS = metricStorage.Spec.PrometheusTLS.Enabled()
 	} else {
-		instance.Status.PrometheusTLS = true
+		// We're using user-deployed Prometheus. Set TLS based on PrometheusTLSCaCertSecret
+		instance.Status.PrometheusTLS = instance.Spec.PrometheusTLSCaCertSecret != nil
 	}
 
 	db, result, err := r.ensureDB(ctx, helper, instance)
