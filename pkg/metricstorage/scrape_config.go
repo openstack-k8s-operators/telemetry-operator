@@ -17,7 +17,7 @@ limitations under the License.
 package metricstorage
 
 import (
-	"fmt"
+	"sort"
 
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
@@ -42,10 +42,13 @@ func ScrapeConfig(
 	} else {
 		scrapeInterval = telemetryv1.DefaultScrapeInterval
 	}
+
+	sort.Strings(targets)
 	var convertedTargets []monv1alpha1.Target
 	for _, t := range targets {
 		convertedTargets = append(convertedTargets, monv1alpha1.Target(t))
 	}
+
 	scrapeConfig := &monv1alpha1.ScrapeConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
@@ -53,6 +56,28 @@ func ScrapeConfig(
 			Labels:    labels,
 		},
 		Spec: monv1alpha1.ScrapeConfigSpec{
+			MetricRelabelConfigs: []*monv1.RelabelConfig{
+				{
+					Action:       "labeldrop",
+					Regex:        "pod",
+					SourceLabels: []monv1.LabelName{},
+				},
+				{
+					Action:       "labeldrop",
+					Regex:        "namespace",
+					SourceLabels: []monv1.LabelName{},
+				},
+				{
+					Action:       "labeldrop",
+					Regex:        "job",
+					SourceLabels: []monv1.LabelName{},
+				},
+				{
+					Action:       "labeldrop",
+					Regex:        "publisher",
+					SourceLabels: []monv1.LabelName{},
+				},
+			},
 			ScrapeInterval: &scrapeInterval,
 			StaticConfigs: []monv1alpha1.StaticConfig{
 				{
@@ -76,7 +101,6 @@ func ScrapeConfig(
 		scheme := "HTTPS"
 		scrapeConfig.Spec.Scheme = &scheme
 		scrapeConfig.Spec.TLSConfig = &tlsConfig
-		scrapeConfig.ObjectMeta.Name = fmt.Sprintf("%s-tls", instance.Name)
 	}
 
 	return scrapeConfig

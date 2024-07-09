@@ -103,8 +103,6 @@ status:
   conditions:
     - type: Ready
       status: "True"
-    - type: CeilometerServiceMonitorReady
-      status: "True"
     - type: DashboardDatasourceReady
       status: "True"
     - type: DashboardDefinitionReady
@@ -115,9 +113,9 @@ status:
       status: "True"
     - type: MonitoringStackReady
       status: "True"
-    - type: NodeExporterScrapeConfigReady
-      status: "True"
     - type: PrometheusReady
+      status: "True"
+    - type: ScrapeConfigReady
       status: "True"
     - type: TLSInputReady
       status: "True"
