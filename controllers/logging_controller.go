@@ -60,7 +60,7 @@ func (r *LoggingReconciler) GetLogger(ctx context.Context) logr.Logger {
 
 //+kubebuilder:rbac:groups=telemetry.openstack.org,resources=loggings,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=telemetry.openstack.org,resources=loggings/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=telemetry.openstack.org,resources=loggings/finalizers,verbs=update
+//+kubebuilder:rbac:groups=telemetry.openstack.org,resources=loggings/finalizers,verbs=update;patch
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
 
