@@ -1187,8 +1187,6 @@ spec:
                     description: SecretName - holding the cert, key for the service
                     type: string
                 type: object
-            required:
-            - dataplaneNetwork
             type: object
           status:
             description: MetricStorageStatus defines the observed state of MetricStorage
