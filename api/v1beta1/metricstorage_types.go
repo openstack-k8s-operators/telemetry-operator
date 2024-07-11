@@ -86,6 +86,7 @@ type MetricStorageSpec struct {
 	DashboardsEnabled bool `json:"dashboardsEnabled"`
 
 	// DataplaneNetwork defines the network that will be used to scrape dataplane node_exporter endpoints
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=ctlplane
 	DataplaneNetwork infranetworkv1.NetNameStr `json:"dataplaneNetwork"`
 
