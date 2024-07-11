@@ -211,7 +211,7 @@ func SetupDefaultsTelemetry() {
 		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
 		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
 		SgCoreContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
-		ProxyContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_CEILOMETER_PROXY_IMAGE_URL_DEFAULT", CeilometerProxyContainerImage),
+		ProxyContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", CeilometerProxyContainerImage),
 
 		// Autoscaling
 		AodhAPIContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
