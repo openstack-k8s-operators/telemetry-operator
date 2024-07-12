@@ -874,7 +874,7 @@ func getAddressFromIPSet(
 	if len(ipset.Status.Reservation) > 0 {
 		// search for the network specified in the Spec
 		for _, reservation := range ipset.Status.Reservation {
-			if reservation.Network == instance.Spec.DataplaneNetwork {
+			if reservation.Network == *instance.Spec.DataplaneNetwork {
 				return reservation.Address, discoveryv1.AddressTypeIPv4
 			}
 		}

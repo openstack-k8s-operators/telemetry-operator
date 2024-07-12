@@ -88,7 +88,7 @@ type MetricStorageSpec struct {
 	// DataplaneNetwork defines the network that will be used to scrape dataplane node_exporter endpoints
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=ctlplane
-	DataplaneNetwork infranetworkv1.NetNameStr `json:"dataplaneNetwork"`
+	DataplaneNetwork *infranetworkv1.NetNameStr `json:"dataplaneNetwork"`
 
 	// MonitoringStack allows to define a metric storage with
 	// options supported by Red Hat
