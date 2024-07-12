@@ -36,11 +36,8 @@ const (
 	// MonitoringStackReadyCondition Status=True condition which indicates if the MonitoringStack is configured and operational
 	MonitoringStackReadyCondition condition.Type = "MonitoringStackReady"
 
-	// ServiceMonitorReadyCondition Status=True condition which indicates if the Ceilometer ServiceMonitor is configured and operational
-	ServiceMonitorReadyCondition condition.Type = "CeilometerServiceMonitorReady"
-
-	// ScrapeConfigReadyCondition Status=True condition which indicates if the Node Exporter ScrapeConfig is configured and operational
-	ScrapeConfigReadyCondition condition.Type = "NodeExporterScrapeConfigReady"
+	// ScrapeConfigReadyCondition Status=True condition which indicates if the ScrapeConfigs are configured and operational
+	ScrapeConfigReadyCondition condition.Type = "ScrapeConfigReady"
 
 	// PrometheusReadyCondition Status=True condition which indicates if the Prometheus watch is operational
 	PrometheusReadyCondition condition.Type = "PrometheusReady"
@@ -139,15 +136,6 @@ const (
 
 	// MonitoringStackReadyMisconfiguredMessage
 	MonitoringStackReadyMisconfiguredMessage = "MonitoringStack isn't configured properly: %s"
-
-	//
-	// ServiceMonitorReady condition messages
-	//
-	// ServiceMonitorReadyInitMessage
-	ServiceMonitorReadyInitMessage = "ServiceMonitor not started"
-
-	// ServiceMonitorUnableToOwnMessage
-	ServiceMonitorUnableToOwnMessage = "Error occured when trying to own %s"
 
 	//
 	// ScrapeConfigReady condition messages

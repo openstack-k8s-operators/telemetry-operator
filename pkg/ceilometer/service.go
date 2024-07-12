@@ -48,6 +48,7 @@ func Service(
 		service.Labels = labels
 		service.Spec.Selector = labels
 		service.Spec.Ports = []corev1.ServicePort{{
+			Name:       "metrics",
 			Protocol:   "TCP",
 			Port:       int32(port),
 			TargetPort: intstr.FromInt(port),

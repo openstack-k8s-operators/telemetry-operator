@@ -40,6 +40,7 @@ func MonitoringStack(
 	if err != nil {
 		return nil, err
 	}
+
 	monitoringStack := &obov1.MonitoringStack{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
@@ -51,10 +52,8 @@ func MonitoringStack(
 				Disabled: !instance.Spec.MonitoringStack.AlertingEnabled,
 			},
 			PrometheusConfig: &obov1.PrometheusConfig{
-				Replicas: &telemetryv1.PrometheusReplicas,
-				// NOTE: unsupported before OBOv0.0.21, but we can set the value
-				//       in the ServiceMonitor, so this isn't a big deal.
-				//ScrapeInterval: instance.Spec.MonitoringStack.ScrapeInterval,
+				Replicas:              &telemetryv1.PrometheusReplicas,
+				ScrapeInterval:        &instance.Spec.MonitoringStack.ScrapeInterval,
 				PersistentVolumeClaim: pvc,
 			},
 			Retention: monv1.Duration(instance.Spec.MonitoringStack.Storage.Retention),

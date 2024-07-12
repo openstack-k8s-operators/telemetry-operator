@@ -22,6 +22,7 @@ import (
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 )
 
 // PersistentStorage defines storage options used for persistent storage
@@ -70,7 +71,7 @@ type MonitoringStack struct {
 	// ScrapeInterval sets the interval between scrapes
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="30s"
-	ScrapeInterval string `json:"scrapeInterval"`
+	ScrapeInterval monv1.Duration `json:"scrapeInterval"`
 
 	// Storage allows to define options for how to store metrics
 	// +kubebuilder:validation:Optional

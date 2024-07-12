@@ -232,18 +232,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.rhobs
-  resources:
-  - servicemonitors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - network.openstack.org
   resources:
   - ipsets

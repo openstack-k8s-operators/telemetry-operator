@@ -1643,6 +1643,7 @@ spec:
                       scrapeInterval:
                         default: 30s
                         description: ScrapeInterval sets the interval between scrapes
+                        pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                         type: string
                       storage:
                         default:
