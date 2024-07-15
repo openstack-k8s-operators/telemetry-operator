@@ -55,7 +55,8 @@ func (spec *MetricStorageSpec) Default() {
 		// NOTE: If we want to enable dashboards in the future by default, set
 		//       it here like Alerting above
 	}
-	if spec.DataplaneNetwork == nil || *spec.DataplaneNetwork == "" {
+
+	if *spec.DataplaneNetwork == "" {
 		*spec.DataplaneNetwork = "ctlplane"
 	}
 	if spec.MonitoringStack != nil {
