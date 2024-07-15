@@ -86,6 +86,56 @@ oc scale deploy/openstack-operator-controller-manager --replicas=0 -n openstack-
 oc apply -f config/samples/telemetry_v1beta1_telemetry.yaml
 ```
 
+## Run custom telemetry-operator bundle as part of openstack-operator
+There are times where deploying a dev environment with the existing telemetry-operator and then replace it is not enough. For example, when changing the API its always good to be able to check if the OpenStackControlPlane can still be applied or there is something wrong.
+
+For this, follow the procedure:
+
+1.- Create three repositories for telemetry-operator in your quay.io personal account: **telemetry-operator**, **telemetry-operator-bundle** and **telemetry-operator-index**. The three of them must be public.
+
+2.- Create three repositories for openstack-operator in your quay.io personal account: **openstack-operator**, **openstack-operator-bundle** and **openstack-operator-index**. The three of them must be public.
+
+3.- Commit your changes in telemetry-operator and push the commit to the fork in your personal repository.
+
+4.- Introduce a replace rule in openstack-operator/go.mod and openstack-operator/apis/go.mod like this:
+```
+replace github.com/openstack-k8s-operators/telemetry-operator/api => github.com/<github_user>/telemetry-operator/api <commit_id>
+```
+And run
+```
+make tidy
+```
+This would make the line look something like this:
+```
+replace github.com/openstack-k8s-operators/telemetry-operator/api => github.com/<github_user>/telemetry-operator/api v0.1.1-0.20240715084507-c8fd68f4cc2c
+```
+
+5.- Build telemetry-operator bundle, push it to your quay.io account and create a tag for the bundle with your commit id pointing to the version you have just built. This is used to find the exact sha of the image that is being to be used:
+```
+IMAGE_TAG_BASE=quay.io/<quay_user>/telemetry-operator VERSION=0.0.2 IMG=$IMAGE_TAG_BASE:v$VERSION make manifests build docker-build docker-push bundle bundle-build bundle-push catalog-build catalog-push
+
+podman tag quay.io/<quay_user>/telemetry-operator-bundle:v0.0.2 quay.io/<quay_user>/telemetry-operator-bundle:<commit_id>
+podman push quay.io/<quay_user>/telemetry-operator-bundle:<commit_id>
+```
+
+6.- Build openstack-operator bundle and push it to your quay.io account:
+```
+IMAGE_TAG_BASE=quay.io/<quay_user>/openstack-operator VERSION=0.0.2 IMG=$IMAGE_TAG_BASE:v$VERSION make manifests build docker-build docker-push bundle bundle-build bundle-push catalog-build catalog-push
+```
+
+7.- Deploy openstack with the recently build openstack-operator image and then deploy:
+```
+OPENSTACK_IMG=quay.io/<quay_user>/openstack-operator-index:v0.0.2 make openstack
+
+make openstack_deploy
+```
+
+> **_NOTE:_**
+This is if your quay.io account and your github account are identical. If you are using different names, you must use *IMAGENAMESPACE=<quay_user>* in the bundle building commands, both for telemetry and openstack, like this:
+```
+IMAGENAMESPACE=<quay_user> IMAGE_TAG_BASE=quay.io/<quay_user>/openstack-operator VERSION=0.0.2 IMG=$IMAGE_TAG_BASE:v$VERSION make manifests build docker-build docker-push bundle bundle-build bundle-push catalog-build catalog-push
+```
+
 ## Connect to Dataplane nodes
 You can connect directly to the compute nodes using password 12345678:
 ```
