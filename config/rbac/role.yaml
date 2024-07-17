@@ -236,13 +236,9 @@ rules:
   resources:
   - servicemonitors
   verbs:
-  - create
   - delete
   - get
   - list
-  - patch
-  - update
-  - watch
 - apiGroups:
   - network.openstack.org
   resources:

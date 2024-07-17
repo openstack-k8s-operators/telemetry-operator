@@ -52,6 +52,7 @@ import (
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
+	object "github.com/openstack-k8s-operators/lib-common/modules/common/object"
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
@@ -59,6 +60,7 @@ import (
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/dashboards"
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
+	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 	rabbitmqv1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
@@ -101,7 +103,7 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=telemetry.openstack.org,resources=metricstorages/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=telemetry.openstack.org,resources=metricstorages/finalizers,verbs=update;patch
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=monitoringstacks,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.rhobs,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.rhobs,resources=servicemonitors,verbs=get;list;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=scrapeconfigs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=prometheusrules,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=prometheuses,verbs=get;list;watch;update;patch;delete
@@ -173,7 +175,6 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	cl := condition.CreateList(
 		condition.UnknownCondition(condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.MonitoringStackReadyCondition, condition.InitReason, telemetryv1.MonitoringStackReadyInitMessage),
-		condition.UnknownCondition(telemetryv1.ServiceMonitorReadyCondition, condition.InitReason, telemetryv1.ServiceMonitorReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.ScrapeConfigReadyCondition, condition.InitReason, telemetryv1.ScrapeConfigReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.InitReason, telemetryv1.DashboardPrometheusRuleReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardPluginReadyCondition, condition.InitReason, telemetryv1.DashboardPluginReadyInitMessage),
@@ -217,6 +218,54 @@ func (r *MetricStorageReconciler) reconcileDelete(
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", instance.Name))
 
 	return ctrl.Result{}, nil
+}
+
+// TODO: call the function appropriately
+//
+//nolint:all
+func (r *MetricStorageReconciler) reconcileUpdate(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+) (ctrl.Result, error) {
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service update")
+
+	err := r.deleteOldServiceMonitors(ctx, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	Log.Info(fmt.Sprintf("Reconciled Service '%s' update successfully", instance.Name))
+
+	return ctrl.Result{}, nil
+}
+
+// Delete old ServiceMonitors
+// ServiceMonitors were used when deploying with RHOSO 18 GA telemetry-operator.
+//
+//nolint:all
+func (r *MetricStorageReconciler) deleteOldServiceMonitors(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+) error {
+	monitorList := &monv1.ServiceMonitorList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.GetNamespace()),
+	}
+	err := r.Client.List(ctx, monitorList, listOpts...)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return err
+	}
+	for _, monitor := range monitorList.Items {
+		if object.CheckOwnerRefExist(instance.ObjectMeta.UID, monitor.ObjectMeta.OwnerReferences) {
+			err = r.Client.Delete(ctx, monitor)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (r *MetricStorageReconciler) reconcileNormal(
@@ -366,161 +415,10 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.MonitoringStackReadyCondition, condition.ReadyMessage)
 	}
 
-	// Deploy ServiceMonitors
-	err = r.ensureWatches(ctx, "servicemonitors.monitoring.rhobs", &monv1.ServiceMonitor{}, eventHandler)
-
-	if err != nil {
-		instance.Status.Conditions.MarkFalse(telemetryv1.ServiceMonitorReadyCondition,
-			condition.Reason("Can't own ServiceMonitor resource"),
-			condition.SeverityError,
-			telemetryv1.ServiceMonitorUnableToOwnMessage, err)
-		Log.Info("Can't own ServiceMonitor resource")
-		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	// Deploy ScrapeConfigs
+	if res, err := r.createScrapeConfigs(ctx, instance, eventHandler, helper); err != nil {
+		return res, err
 	}
-
-	// ServiceMonitor for ceilometer monitoring
-	ceilometerServerName := fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
-	ceilometerMonitor := &monv1.ServiceMonitor{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", instance.Name, ceilometerServerName),
-			Namespace: instance.Namespace,
-		},
-	}
-	op, err = controllerutil.CreateOrPatch(ctx, r.Client, ceilometerMonitor, func() error {
-		ceilometerLabels := map[string]string{
-			common.AppSelector: ceilometer.ServiceName,
-		}
-		desiredCeilometerMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, ceilometerLabels, ceilometerServerName, "")
-		desiredCeilometerMonitor.Spec.DeepCopyInto(&ceilometerMonitor.Spec)
-		ceilometerMonitor.ObjectMeta.Labels = desiredCeilometerMonitor.ObjectMeta.Labels
-		err = controllerutil.SetControllerReference(instance, ceilometerMonitor, r.Scheme)
-		return err
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("Ceilometer ServiceMonitor %s successfully changed - operation: %s", ceilometerMonitor.Name, string(op)))
-	}
-	// ServiceMonitors for RabbitMQ monitoring
-	rabbitList := &rabbitmqv1.RabbitmqClusterList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(instance.GetNamespace()),
-	}
-	err = r.Client.List(ctx, rabbitList, listOpts...)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	for _, rabbit := range rabbitList.Items {
-		rabbitServerName := fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)
-		rabbitMonitor := &monv1.ServiceMonitor{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-%s", instance.Name, rabbitServerName),
-				Namespace: instance.Namespace,
-			},
-		}
-		op, err = controllerutil.CreateOrPatch(ctx, r.Client, rabbitMonitor, func() error {
-			rabbitLabels := map[string]string{
-				"app.kubernetes.io/name": rabbit.Name,
-			}
-			desiredRabbitMonitor := metricstorage.ServiceMonitor(instance, serviceLabels, rabbitLabels, rabbitServerName, "prometheus-tls")
-			desiredRabbitMonitor.Spec.DeepCopyInto(&rabbitMonitor.Spec)
-			rabbitMonitor.ObjectMeta.Labels = desiredRabbitMonitor.ObjectMeta.Labels
-			err = controllerutil.SetControllerReference(instance, rabbitMonitor, r.Scheme)
-			return err
-		})
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		if op != controllerutil.OperationResultNone {
-			Log.Info(fmt.Sprintf("Rabbit ServiceMonitor %s successfully changed - operation: %s", rabbitMonitor.Name, string(op)))
-		}
-	}
-	// Check that RabbitMQ monitor's RabbitMQs still exist
-	// Delete the ServiceMonitors, which don't have a RabbitMQ anymore
-	svcMonitorList := &monv1.ServiceMonitorList{}
-	err = r.Client.List(ctx, svcMonitorList, listOpts...)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	for _, svcMonitor := range svcMonitorList.Items {
-		if svcMonitor.OwnerReferences == nil ||
-			len(svcMonitor.OwnerReferences) < 1 ||
-			svcMonitor.OwnerReferences[0].Name != instance.Name {
-			continue
-		}
-		if svcMonitor.Name == fmt.Sprintf("%s-ceilometer-internal.%s.svc", instance.Name, instance.Namespace) {
-			continue
-		}
-		rabbitmqExists := false
-		for _, rabbit := range rabbitList.Items {
-			if svcMonitor.Name == fmt.Sprintf("%s-%s.%s.svc", instance.Name, rabbit.Name, instance.Namespace) {
-				rabbitmqExists = true
-			}
-		}
-		if !rabbitmqExists {
-			err = r.Client.Delete(ctx, svcMonitor)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			Log.Info(fmt.Sprintf("Deleted ServiceMonitor: %s because its RabbitMQ doesn't exist", svcMonitor.Name))
-		}
-	}
-	instance.Status.Conditions.MarkTrue(telemetryv1.ServiceMonitorReadyCondition, condition.ReadyMessage)
-
-	endpointsNonTLS, endpointsTLS, err := getNodeExporterTargets(instance, helper)
-
-	// scrapeConfig for non-tls nodes
-	err = r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", &monv1alpha1.ScrapeConfig{}, eventHandler)
-
-	if err != nil {
-		instance.Status.Conditions.MarkFalse(telemetryv1.ScrapeConfigReadyCondition,
-			condition.Reason("Can't own ScrapeConfig resource"),
-			condition.SeverityError,
-			telemetryv1.ScrapeConfigUnableToOwnMessage, err)
-		Log.Info("Can't own ScrapeConfig resource")
-		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
-	}
-	scrapeConfig := &monv1alpha1.ScrapeConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
-			Namespace: instance.Namespace,
-		},
-	}
-	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfig, func() error {
-		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, endpointsNonTLS, false)
-		desiredScrapeConfig.Spec.DeepCopyInto(&scrapeConfig.Spec)
-		scrapeConfig.ObjectMeta.Labels = desiredScrapeConfig.ObjectMeta.Labels
-		err = controllerutil.SetControllerReference(instance, scrapeConfig, r.Scheme)
-		return err
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("Node Exporter ScrapeConfig %s successfully changed - operation: %s", scrapeConfig.GetName(), string(op)))
-	}
-
-	scrapeConfigTLS := &monv1alpha1.ScrapeConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-tls", instance.Name),
-			Namespace: instance.Namespace,
-		},
-	}
-	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfigTLS, func() error {
-		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, endpointsTLS, true)
-		desiredScrapeConfig.Spec.DeepCopyInto(&scrapeConfigTLS.Spec)
-		scrapeConfigTLS.ObjectMeta.Labels = desiredScrapeConfig.ObjectMeta.Labels
-		err = controllerutil.SetControllerReference(instance, scrapeConfigTLS, r.Scheme)
-		return err
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("Node Exporter ScrapeConfig %s successfully changed - operation: %s", scrapeConfig.GetName(), string(op)))
-	}
-	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 
 	if !instance.Spec.DashboardsEnabled {
 		if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
@@ -586,6 +484,132 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
+}
+
+func (r *MetricStorageReconciler) createScrapeConfigs(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	eventHandler handler.EventHandler,
+	helper *helper.Helper,
+) (ctrl.Result, error) {
+	Log := r.GetLogger(ctx)
+	err := r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", &monv1alpha1.ScrapeConfig{}, eventHandler)
+	if err != nil {
+		instance.Status.Conditions.MarkFalse(telemetryv1.ScrapeConfigReadyCondition,
+			condition.Reason("Can't own ScrapeConfig resource"),
+			condition.SeverityError,
+			telemetryv1.ScrapeConfigUnableToOwnMessage, err)
+		Log.Info("Can't own ScrapeConfig resource")
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	}
+
+	// ScrapeConfig for ceilometer monitoring
+	ceilometerServerName := fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
+	ceilometerScrapeConfig := &monv1alpha1.ScrapeConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-ceilometer", telemetry.ServiceName),
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err := controllerutil.CreateOrPatch(ctx, r.Client, ceilometerScrapeConfig, func() error {
+		desiredCeilometerScrapeConfig := metricstorage.ScrapeConfig(instance,
+			serviceLabels,
+			[]string{fmt.Sprintf("%s:%d", ceilometerServerName, ceilometer.CeilometerPrometheusPort)},
+			instance.Spec.PrometheusTLS.Enabled())
+		desiredCeilometerScrapeConfig.Spec.DeepCopyInto(&ceilometerScrapeConfig.Spec)
+		ceilometerScrapeConfig.ObjectMeta.Labels = desiredCeilometerScrapeConfig.ObjectMeta.Labels
+		err = controllerutil.SetControllerReference(instance, ceilometerScrapeConfig, r.Scheme)
+		return err
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("Ceilometer ScrapeConfig %s successfully changed - operation: %s", ceilometerScrapeConfig.Name, string(op)))
+	}
+	// ScrapeConfigs for RabbitMQ monitoring
+	// NOTE: We're watching Rabbits and reconciling with each of their change
+	//       that should keep the targets inside the ScrapeConfig always
+	//       up to date.
+	rabbitTargets := []string{}
+	rabbitList := &rabbitmqv1.RabbitmqClusterList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.GetNamespace()),
+	}
+	err = r.Client.List(ctx, rabbitList, listOpts...)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	for _, rabbit := range rabbitList.Items {
+		rabbitServerName := fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)
+		rabbitTargets = append(rabbitTargets, fmt.Sprintf("%s:%d", rabbitServerName, metricstorage.RabbitMQPrometheusPort))
+	}
+	rabbitScrapeConfig := &monv1alpha1.ScrapeConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName),
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, rabbitScrapeConfig, func() error {
+		desiredRabbitScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, rabbitTargets, instance.Spec.PrometheusTLS.Enabled())
+		desiredRabbitScrapeConfig.Spec.DeepCopyInto(&rabbitScrapeConfig.Spec)
+		rabbitScrapeConfig.ObjectMeta.Labels = desiredRabbitScrapeConfig.ObjectMeta.Labels
+		err = controllerutil.SetControllerReference(instance, rabbitScrapeConfig, r.Scheme)
+		return err
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("Rabbit ScrapeConfig %s successfully changed - operation: %s", rabbitScrapeConfig.Name, string(op)))
+	}
+
+	// ScrapeConfigs for NodeExporters
+	endpointsNonTLS, endpointsTLS, err := getNodeExporterTargets(instance, helper)
+
+	// ScrapeConfig for non-tls nodes
+	scrapeConfig := &monv1alpha1.ScrapeConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      telemetry.ServiceName,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfig, func() error {
+		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, endpointsNonTLS, false)
+		desiredScrapeConfig.Spec.DeepCopyInto(&scrapeConfig.Spec)
+		scrapeConfig.ObjectMeta.Labels = desiredScrapeConfig.ObjectMeta.Labels
+		err = controllerutil.SetControllerReference(instance, scrapeConfig, r.Scheme)
+		return err
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("Node Exporter ScrapeConfig %s successfully changed - operation: %s", scrapeConfig.GetName(), string(op)))
+	}
+
+	// ScrapeConfig for tls nodes
+	scrapeConfigTLS := &monv1alpha1.ScrapeConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-tls", telemetry.ServiceName),
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfigTLS, func() error {
+		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, endpointsTLS, true)
+		desiredScrapeConfig.Spec.DeepCopyInto(&scrapeConfigTLS.Spec)
+		scrapeConfigTLS.ObjectMeta.Labels = desiredScrapeConfig.ObjectMeta.Labels
+		err = controllerutil.SetControllerReference(instance, scrapeConfigTLS, r.Scheme)
+		return err
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("Node Exporter ScrapeConfig %s successfully changed - operation: %s", scrapeConfig.GetName(), string(op)))
+	}
+	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
+	return ctrl.Result{}, err
 }
 
 func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, eventHandler handler.EventHandler) (ctrl.Result, error) {

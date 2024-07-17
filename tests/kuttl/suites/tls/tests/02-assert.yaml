@@ -272,27 +272,12 @@ spec:
   secrets:
   - combined-ca-bundle
 ---
-apiVersion: monitoring.rhobs/v1
-kind: ServiceMonitor
-metadata:
-  labels:
-    service: metricStorage
-  name: telemetry-kuttl-metricstorage-ceilometer-internal.telemetry-kuttl-tests.svc
-  ownerReferences:
-  - kind: MetricStorage
-    name: telemetry-kuttl-metricstorage
-spec:
-  endpoints:
-  - scheme: https
-    tlsConfig:
-      caFile: /etc/prometheus/secrets/combined-ca-bundle/tls-ca-bundle.pem
----
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
-  name: telemetry-kuttl-metricstorage-tls
+  name: telemetry-ceilometer
   ownerReferences:
   - kind: MetricStorage
     name: telemetry-kuttl-metricstorage
@@ -309,7 +294,24 @@ kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
-  name: telemetry-kuttl-metricstorage
+  name: telemetry-tls
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl-metricstorage
+spec:
+  scheme: HTTPS
+  tlsConfig:
+    ca:
+      secret:
+        key: tls-ca-bundle.pem
+        name: combined-ca-bundle
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry
   ownerReferences:
   - kind: MetricStorage
     name: telemetry-kuttl-metricstorage

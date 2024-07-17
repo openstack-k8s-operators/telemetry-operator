@@ -41,68 +41,54 @@ spec:
     protocol: TCP
     targetPort: 9090
 ---
-apiVersion: monitoring.rhobs/v1
-kind: ServiceMonitor
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
-  name: telemetry-kuttl-ceilometer-internal.telemetry-kuttl-tests.svc
+  name: telemetry-ceilometer
   ownerReferences:
   - kind: MetricStorage
     name: telemetry-kuttl
 spec:
-  endpoints:
-  - interval: 40s
-    metricRelabelings:
-    - action: labeldrop
-      regex: pod
-    - action: labeldrop
-      regex: namespace
-    - action: labeldrop
-      regex: instance
-    - action: labeldrop
-      regex: job
-    - action: labeldrop
-      regex: publisher
-  namespaceSelector: {}
-  selector:
-    matchLabels:
-      service: ceilometer
----
-apiVersion: monitoring.rhobs/v1
-kind: ServiceMonitor
-metadata:
-  labels:
-    service: metricStorage
-  name: telemetry-kuttl-rabbitmq.telemetry-kuttl-tests.svc
-  ownerReferences:
-  - kind: MetricStorage
-    name: telemetry-kuttl
-spec:
-  endpoints:
-  - interval: 40s
-    metricRelabelings:
-    - action: labeldrop
-      regex: pod
-    - action: labeldrop
-      regex: namespace
-    - action: labeldrop
-      regex: instance
-    - action: labeldrop
-      regex: job
-    - action: labeldrop
-      regex: publisher
-  namespaceSelector: {}
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: rabbitmq
+  scrapeInterval: 40s
+  metricRelabelings:
+  - action: labeldrop
+    regex: pod
+  - action: labeldrop
+    regex: namespace
+  - action: labeldrop
+    regex: job
+  - action: labeldrop
+    regex: publisher
 ---
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
-  name: telemetry-kuttl
+  name: telemetry-rabbitmq
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+spec:
+  scrapeInterval: 40s
+  metricRelabelings:
+  - action: labeldrop
+    regex: pod
+  - action: labeldrop
+    regex: namespace
+  - action: labeldrop
+    regex: job
+  - action: labeldrop
+    regex: publisher
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry
   ownerReferences:
   - kind: MetricStorage
     name: telemetry-kuttl
