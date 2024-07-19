@@ -113,6 +113,11 @@ type AodhCore struct {
 	// PreserveJobs - do not delete jobs after they finished e.g. to check logs
 	PreserveJobs bool `json:"preserveJobs"`
 
+	// Memcached instance name.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=memcached
+	MemcachedInstance string `json:"memcachedInstance"`
+
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
@@ -131,7 +136,7 @@ type AutoscalingSpec struct {
 	AutoscalingSpecBase `json:",inline"`
 
 	// Aodh spec
-	// +kubebuilder:default={rabbitMqClusterName: rabbitmq, databaseAccount: aodh, passwordSelector: {aodhService: AodhPassword}, serviceUser: aodh, apiImage: "", evaluatorImage: "", notifierImage: "", listenerImage: "", databaseInstance: "openstack", secret: "osp-secret"}
+	// +kubebuilder:default={rabbitMqClusterName: rabbitmq, databaseAccount: aodh, passwordSelector: {aodhService: AodhPassword}, serviceUser: aodh, apiImage: "", evaluatorImage: "", notifierImage: "", listenerImage: "", databaseInstance: "openstack", secret: "osp-secret", memcachedInstance: "memcached"}
 	Aodh Aodh `json:"aodh,omitempty"`
 }
 
@@ -140,7 +145,7 @@ type AutoscalingSpecCore struct {
 	AutoscalingSpecBase `json:",inline"`
 
 	// Aodh spec
-	// +kubebuilder:default={rabbitMqClusterName: rabbitmq, databaseAccount: aodh, passwordSelector: {aodhService: AodhPassword}, serviceUser: aodh, databaseInstance: "openstack", secret: "osp-secret"}
+	// +kubebuilder:default={rabbitMqClusterName: rabbitmq, databaseAccount: aodh, passwordSelector: {aodhService: AodhPassword}, serviceUser: aodh, databaseInstance: "openstack", secret: "osp-secret", memcachedInstance: "memcached"}
 	Aodh AodhCore `json:"aodh,omitempty"`
 }
 

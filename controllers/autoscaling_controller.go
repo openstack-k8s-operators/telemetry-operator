@@ -53,6 +53,7 @@ import (
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
@@ -90,6 +91,7 @@ func (r *AutoscalingReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups=mariadb.openstack.org,resources=mariadbdatabases/finalizers,verbs=update;patch
 // +kubebuilder:rbac:groups=mariadb.openstack.org,resources=mariadbaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=mariadb.openstack.org,resources=mariadbaccounts/finalizers,verbs=update;patch
+// +kubebuilder:rbac:groups=memcached.openstack.org,resources=memcacheds,verbs=get;list;watch;
 // +kubebuilder:rbac:groups=heat.openstack.org,resources=heats,verbs=get;list;watch;
 // service account, role, rolebinding
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch
@@ -167,6 +169,7 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
 		// Prometheus, Aodh, Heat conditions
 		condition.UnknownCondition(telemetryv1.HeatReadyCondition, condition.InitReason, telemetryv1.HeatReadyInitMessage),
+		condition.UnknownCondition(condition.MemcachedReadyCondition, condition.InitReason, condition.MemcachedReadyInitMessage),
 		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 		condition.UnknownCondition(condition.DBReadyCondition, condition.InitReason, condition.DBReadyInitMessage),
 		condition.UnknownCondition(condition.DBSyncReadyCondition, condition.InitReason, condition.DBSyncReadyInitMessage),
@@ -336,6 +339,41 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// run check OpenStack secret - end
 
 	//
+	// Check for required memcached used for caching
+	//
+	memcached, err := memcachedv1.GetMemcachedByName(ctx, helper, instance.Spec.Aodh.MemcachedInstance, instance.Namespace)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.MemcachedReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				condition.MemcachedReadyWaitingMessage))
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s not found", instance.Spec.Aodh.MemcachedInstance)
+		}
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.MemcachedReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.MemcachedReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	if !memcached.IsReady() {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.MemcachedReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.MemcachedReadyWaitingMessage))
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s is not ready", memcached.Name)
+	}
+	// Mark the Memcached Service as Ready if we get to this point with no errors
+	instance.Status.Conditions.MarkTrue(
+		condition.MemcachedReadyCondition, condition.MemcachedReadyMessage)
+	// run check memcached - end
+
+	//
 	// Check for required heat used for autoscaling
 	//
 	heat, err := r.getAutoscalingHeat(ctx, helper, instance)
@@ -426,7 +464,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
 	// - %-config configmap holding minimal autoscaling config required to get the service up, user can add additional files to be added to the service
 	//
-	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars, db)
+	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars, memcached, db)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -507,6 +545,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	h *helper.Helper,
 	instance *telemetryv1.Autoscaling,
 	envVars *map[string]env.Setter,
+	mc *memcachedv1.Memcached,
 	db *mariadbv1.Database,
 ) error {
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(autoscaling.ServiceName), map[string]string{})
@@ -548,12 +587,14 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	databaseSecret := db.GetSecret()
 
 	templateParameters := map[string]interface{}{
-		"AodhUser":            instance.Spec.Aodh.ServiceUser,
-		"AodhPassword":        string(ospSecret.Data[instance.Spec.Aodh.PasswordSelectors.AodhService]),
-		"KeystoneInternalURL": keystoneInternalURL,
-		"TransportURL":        string(transportURLSecret.Data["transport_url"]),
-		"PrometheusHost":      instance.Status.PrometheusHost,
-		"PrometheusPort":      instance.Status.PrometheusPort,
+		"AodhUser":                 instance.Spec.Aodh.ServiceUser,
+		"AodhPassword":             string(ospSecret.Data[instance.Spec.Aodh.PasswordSelectors.AodhService]),
+		"KeystoneInternalURL":      keystoneInternalURL,
+		"TransportURL":             string(transportURLSecret.Data["transport_url"]),
+		"PrometheusHost":           instance.Status.PrometheusHost,
+		"PrometheusPort":           instance.Status.PrometheusPort,
+		"MemcachedServers":         mc.GetMemcachedServerListString(),
+		"MemcachedServersWithInet": mc.GetMemcachedServerListWithInetString(),
 		"DatabaseConnection": fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
 			databaseAccount.Spec.UserName,
 			string(databaseSecret.Data[mariadbv1.DatabasePasswordSelector]),
@@ -720,6 +761,34 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		}
 		return nil
 	}
+	memcachedFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+		result := []reconcile.Request{}
+
+		// get all autoscaling CRs
+		autoscalings := &telemetryv1.AutoscalingList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(o.GetNamespace()),
+		}
+		if err := r.Client.List(context.Background(), autoscalings, listOpts...); err != nil {
+			Log.Error(err, "Unable to retrieve Autoscaling CRs %w")
+			return nil
+		}
+
+		for _, cr := range autoscalings.Items {
+			if o.GetName() == cr.Spec.Aodh.MemcachedInstance {
+				name := client.ObjectKey{
+					Namespace: o.GetNamespace(),
+					Name:      cr.Name,
+				}
+				Log.Info(fmt.Sprintf("Memcached %s is used by Autoscaling CR %s", o.GetName(), cr.Name))
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
 	// index autoscalingCaBundleSecretNameField
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingCaBundleSecretNameField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
@@ -773,6 +842,8 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		// Watch for TransportURL Secrets which belong to any TransportURLs created by Autoscaling CRs
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
+		Watches(&memcachedv1.Memcached{},
+			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
 		Watches(
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),

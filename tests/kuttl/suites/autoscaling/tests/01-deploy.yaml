@@ -12,4 +12,5 @@ spec:
     passwordSelectors:
     databaseAccount: aodh
     databaseInstance: openstack
+    memcachedInstance: memcached
   heatInstance: heat
