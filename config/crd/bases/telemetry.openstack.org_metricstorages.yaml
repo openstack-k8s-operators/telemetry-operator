@@ -91,11 +91,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                           - key
                           - operator
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                       matchLabels:
                         additionalProperties:
                           type: string
@@ -112,6 +114,11 @@ spec:
                       replicas: 2
                     description: Define prometheus config
                     properties:
+                      enableOtlpHttpReceiver:
+                        description: Enable Prometheus to accept OpenTelemetry Metrics
+                          via the otlp/http protocol. Defaults to the value of `false`.
+                          The resulting endpoint is /api/v1/otlp/v1/metrics.
+                        type: boolean
                       enableRemoteWriteReceiver:
                         description: Enable Prometheus to be used as a receiver for
                           the Prometheus remote write protocol. Defaults to the value
@@ -131,6 +138,7 @@ spec:
                             items:
                               type: string
                             type: array
+                            x-kubernetes-list-type: atomic
                           dataSource:
                             description: 'dataSource field can be used to specify
                               either: * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot)
@@ -225,30 +233,6 @@ spec:
                               must still be higher than capacity recorded in the status
                               field of the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources'
                             properties:
-                              claims:
-                                description: "Claims lists the names of resources,
-                                  defined in spec.resourceClaims, that are used by
-                                  this container. \n This is an alpha field and requires
-                                  enabling the DynamicResourceAllocation feature gate.
-                                  \n This field is immutable. It can only be set for
-                                  containers."
-                                items:
-                                  description: ResourceClaim references one entry
-                                    in PodSpec.ResourceClaims.
-                                  properties:
-                                    name:
-                                      description: Name must match the name of one
-                                        entry in pod.spec.resourceClaims of the Pod
-                                        where this field is used. It makes that resource
-                                        available inside a container.
-                                      type: string
-                                  required:
-                                  - name
-                                  type: object
-                                type: array
-                                x-kubernetes-list-map-keys:
-                                - name
-                                x-kubernetes-list-type: map
                               limits:
                                 additionalProperties:
                                   anyOf:
@@ -305,11 +289,13 @@ spec:
                                       items:
                                         type: string
                                       type: array
+                                      x-kubernetes-list-type: atomic
                                   required:
                                   - key
                                   - operator
                                   type: object
                                 type: array
+                                x-kubernetes-list-type: atomic
                               matchLabels:
                                 additionalProperties:
                                   type: string
@@ -324,6 +310,26 @@ spec:
                           storageClassName:
                             description: 'storageClassName is the name of the StorageClass
                               required by the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1'
+                            type: string
+                          volumeAttributesClassName:
+                            description: 'volumeAttributesClassName may be used to
+                              set the VolumeAttributesClass used by this claim. If
+                              specified, the CSI driver will create or update the
+                              volume with the attributes defined in the corresponding
+                              VolumeAttributesClass. This has a different purpose
+                              than storageClassName, it can be changed after the claim
+                              is created. An empty string value means that no VolumeAttributesClass
+                              will be applied to the claim but it''s not allowed to
+                              reset this field to empty string once it is set. If
+                              unspecified and the PersistentVolumeClaim is unbound,
+                              the default VolumeAttributesClass will be set by the
+                              persistentvolume controller if it exists. If the resource
+                              referred to by volumeAttributesClass does not exist,
+                              this PersistentVolumeClaim will be set to a Pending
+                              state, as reflected by the modifyVolumeStatus field,
+                              until such as a resource exists. More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
+                              (Alpha) Using this field requires the VolumeAttributesClass
+                              feature gate to be enabled.'
                             type: string
                           volumeMode:
                             description: volumeMode defines what type of volume is
@@ -356,10 +362,16 @@ spec:
                                         from.  Must be a valid secret key.
                                       type: string
                                     name:
-                                      description: 'Name of the referent. More info:
+                                      default: ""
+                                      description: 'Name of the referent. This field
+                                        is effectively required, but due to backwards
+                                        compatibility is allowed to be empty. Instances
+                                        of this type with an empty value here are
+                                        almost certainly wrong. TODO: Add other useful
+                                        fields. apiVersion, kind, uid? More info:
                                         https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                        TODO: Add other useful fields. apiVersion,
-                                        kind, uid?'
+                                        TODO: Drop `kubebuilder:default` when controller-gen
+                                        doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                       type: string
                                     optional:
                                       description: Specify whether the Secret or its
@@ -394,7 +406,8 @@ spec:
                                   type: string
                                 managedIdentity:
                                   description: ManagedIdentity defines the Azure User-assigned
-                                    Managed identity.
+                                    Managed identity. Cannot be set at the same time
+                                    as `oauth` or `sdk`.
                                   properties:
                                     clientId:
                                       description: The client id
@@ -402,8 +415,73 @@ spec:
                                   required:
                                   - clientId
                                   type: object
-                              required:
-                              - managedIdentity
+                                oauth:
+                                  description: "OAuth defines the oauth config that
+                                    is being used to authenticate. Cannot be set at
+                                    the same time as `managedIdentity` or `sdk`. \n
+                                    It requires Prometheus >= v2.48.0."
+                                  properties:
+                                    clientId:
+                                      description: '`clientID` is the clientId of
+                                        the Azure Active Directory application that
+                                        is being used to authenticate.'
+                                      minLength: 1
+                                      type: string
+                                    clientSecret:
+                                      description: '`clientSecret` specifies a key
+                                        of a Secret containing the client secret of
+                                        the Azure Active Directory application that
+                                        is being used to authenticate.'
+                                      properties:
+                                        key:
+                                          description: The key of the secret to select
+                                            from.  Must be a valid secret key.
+                                          type: string
+                                        name:
+                                          default: ""
+                                          description: 'Name of the referent. This
+                                            field is effectively required, but due
+                                            to backwards compatibility is allowed
+                                            to be empty. Instances of this type with
+                                            an empty value here are almost certainly
+                                            wrong. TODO: Add other useful fields.
+                                            apiVersion, kind, uid? More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                            TODO: Drop `kubebuilder:default` when
+                                            controller-gen doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
+                                          type: string
+                                        optional:
+                                          description: Specify whether the Secret
+                                            or its key must be defined
+                                          type: boolean
+                                      required:
+                                      - key
+                                      type: object
+                                      x-kubernetes-map-type: atomic
+                                    tenantId:
+                                      description: '`tenantId` is the tenant ID of
+                                        the Azure Active Directory application that
+                                        is being used to authenticate.'
+                                      minLength: 1
+                                      pattern: ^[0-9a-zA-Z-.]+$
+                                      type: string
+                                  required:
+                                  - clientId
+                                  - clientSecret
+                                  - tenantId
+                                  type: object
+                                sdk:
+                                  description: "SDK defines the Azure SDK config that
+                                    is being used to authenticate. See https://learn.microsoft.com/en-us/azure/developer/go/azure-sdk-authentication
+                                    Cannot be set at the same time as `oauth` or `managedIdentity`.
+                                    \n It requires Prometheus >= 2.52.0."
+                                  properties:
+                                    tenantId:
+                                      description: '`tenantId` is the tenant ID of
+                                        the azure active directory application that
+                                        is being used to authenticate.'
+                                      pattern: ^[0-9a-zA-Z-.]+$
+                                      type: string
+                                  type: object
                               type: object
                             basicAuth:
                               description: "BasicAuth configuration for the URL. \n
@@ -411,18 +489,24 @@ spec:
                                 `oauth2`, or `azureAd`."
                               properties:
                                 password:
-                                  description: The secret in the service monitor namespace
-                                    that contains the password for authentication.
+                                  description: '`password` specifies a key of a Secret
+                                    containing the password for authentication.'
                                   properties:
                                     key:
                                       description: The key of the secret to select
                                         from.  Must be a valid secret key.
                                       type: string
                                     name:
-                                      description: 'Name of the referent. More info:
+                                      default: ""
+                                      description: 'Name of the referent. This field
+                                        is effectively required, but due to backwards
+                                        compatibility is allowed to be empty. Instances
+                                        of this type with an empty value here are
+                                        almost certainly wrong. TODO: Add other useful
+                                        fields. apiVersion, kind, uid? More info:
                                         https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                        TODO: Add other useful fields. apiVersion,
-                                        kind, uid?'
+                                        TODO: Drop `kubebuilder:default` when controller-gen
+                                        doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                       type: string
                                     optional:
                                       description: Specify whether the Secret or its
@@ -433,18 +517,24 @@ spec:
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 username:
-                                  description: The secret in the service monitor namespace
-                                    that contains the username for authentication.
+                                  description: '`username` specifies a key of a Secret
+                                    containing the username for authentication.'
                                   properties:
                                     key:
                                       description: The key of the secret to select
                                         from.  Must be a valid secret key.
                                       type: string
                                     name:
-                                      description: 'Name of the referent. More info:
+                                      default: ""
+                                      description: 'Name of the referent. This field
+                                        is effectively required, but due to backwards
+                                        compatibility is allowed to be empty. Instances
+                                        of this type with an empty value here are
+                                        almost certainly wrong. TODO: Add other useful
+                                        fields. apiVersion, kind, uid? More info:
                                         https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                        TODO: Add other useful fields. apiVersion,
-                                        kind, uid?'
+                                        TODO: Drop `kubebuilder:default` when controller-gen
+                                        doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                       type: string
                                     optional:
                                       description: Specify whether the Secret or its
@@ -458,14 +548,17 @@ spec:
                             bearerToken:
                               description: "*Warning: this field shouldn't be used
                                 because the token value appears in clear-text. Prefer
-                                using `authorization`.* \n *Deprecated: this will
-                                be removed in a future release.*"
+                                using `authorization`.* \n Deprecated: this will be
+                                removed in a future release."
                               type: string
                             bearerTokenFile:
                               description: "File from which to read bearer token for
-                                the URL. \n *Deprecated: this will be removed in a
-                                future release. Prefer using `authorization`.*"
+                                the URL. \n Deprecated: this will be removed in a
+                                future release. Prefer using `authorization`."
                               type: string
+                            enableHTTP2:
+                              description: Whether to enable HTTP2.
+                              type: boolean
                             headers:
                               additionalProperties:
                                 type: string
@@ -501,8 +594,8 @@ spec:
                                 or `azureAd`."
                               properties:
                                 clientId:
-                                  description: The secret or configmap containing
-                                    the OAuth2 client id
+                                  description: '`clientId` specifies a key of a Secret
+                                    or ConfigMap containing the OAuth2 client''s ID.'
                                   properties:
                                     configMap:
                                       description: ConfigMap containing data to use
@@ -512,10 +605,16 @@ spec:
                                           description: The key to select.
                                           type: string
                                         name:
-                                          description: 'Name of the referent. More
-                                            info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                            TODO: Add other useful fields. apiVersion,
-                                            kind, uid?'
+                                          default: ""
+                                          description: 'Name of the referent. This
+                                            field is effectively required, but due
+                                            to backwards compatibility is allowed
+                                            to be empty. Instances of this type with
+                                            an empty value here are almost certainly
+                                            wrong. TODO: Add other useful fields.
+                                            apiVersion, kind, uid? More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                            TODO: Drop `kubebuilder:default` when
+                                            controller-gen doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                           type: string
                                         optional:
                                           description: Specify whether the ConfigMap
@@ -534,10 +633,16 @@ spec:
                                             from.  Must be a valid secret key.
                                           type: string
                                         name:
-                                          description: 'Name of the referent. More
-                                            info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                            TODO: Add other useful fields. apiVersion,
-                                            kind, uid?'
+                                          default: ""
+                                          description: 'Name of the referent. This
+                                            field is effectively required, but due
+                                            to backwards compatibility is allowed
+                                            to be empty. Instances of this type with
+                                            an empty value here are almost certainly
+                                            wrong. TODO: Add other useful fields.
+                                            apiVersion, kind, uid? More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                            TODO: Drop `kubebuilder:default` when
+                                            controller-gen doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                           type: string
                                         optional:
                                           description: Specify whether the Secret
@@ -549,18 +654,24 @@ spec:
                                       x-kubernetes-map-type: atomic
                                   type: object
                                 clientSecret:
-                                  description: The secret containing the OAuth2 client
-                                    secret
+                                  description: '`clientSecret` specifies a key of
+                                    a Secret containing the OAuth2 client''s secret.'
                                   properties:
                                     key:
                                       description: The key of the secret to select
                                         from.  Must be a valid secret key.
                                       type: string
                                     name:
-                                      description: 'Name of the referent. More info:
+                                      default: ""
+                                      description: 'Name of the referent. This field
+                                        is effectively required, but due to backwards
+                                        compatibility is allowed to be empty. Instances
+                                        of this type with an empty value here are
+                                        almost certainly wrong. TODO: Add other useful
+                                        fields. apiVersion, kind, uid? More info:
                                         https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                        TODO: Add other useful fields. apiVersion,
-                                        kind, uid?'
+                                        TODO: Drop `kubebuilder:default` when controller-gen
+                                        doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                       type: string
                                     optional:
                                       description: Specify whether the Secret or its
@@ -573,15 +684,18 @@ spec:
                                 endpointParams:
                                   additionalProperties:
                                     type: string
-                                  description: Parameters to append to the token URL
+                                  description: '`endpointParams` configures the HTTP
+                                    parameters to append to the token URL.'
                                   type: object
                                 scopes:
-                                  description: OAuth2 scopes used for the token request
+                                  description: '`scopes` defines the OAuth2 scopes
+                                    used for the token request.'
                                   items:
                                     type: string
                                   type: array
                                 tokenUrl:
-                                  description: The URL to fetch the token from
+                                  description: '`tokenURL` configures the URL to fetch
+                                    the token from.'
                                   minLength: 1
                                   type: string
                               required:
@@ -599,6 +713,7 @@ spec:
                                 batchSendDeadline:
                                   description: BatchSendDeadline is the maximum time
                                     a sample will wait in buffer.
+                                  pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                                   type: string
                                 capacity:
                                   description: Capacity is the number of samples to
@@ -606,6 +721,7 @@ spec:
                                   type: integer
                                 maxBackoff:
                                   description: MaxBackoff is the maximum retry delay.
+                                  pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                                   type: string
                                 maxRetries:
                                   description: MaxRetries is the maximum number of
@@ -622,16 +738,23 @@ spec:
                                 minBackoff:
                                   description: MinBackoff is the initial retry delay.
                                     Gets doubled for every retry.
+                                  pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                                   type: string
                                 minShards:
                                   description: MinShards is the minimum number of
                                     shards, i.e. amount of concurrency.
                                   type: integer
                                 retryOnRateLimit:
-                                  description: Retry upon receiving a 429 status code
-                                    from the remote-write storage. This is experimental
-                                    feature and might change in the future.
+                                  description: "Retry upon receiving a 429 status
+                                    code from the remote-write storage. \n This is
+                                    an *experimental feature*, it may change in any
+                                    upcoming release in a breaking way."
                                   type: boolean
+                                sampleAgeLimit:
+                                  description: SampleAgeLimit drops samples older
+                                    than the limit. It requires Prometheus >= v2.50.0.
+                                  pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                                  type: string
                               type: object
                             remoteTimeout:
                               description: Timeout for requests to the remote write
@@ -666,10 +789,16 @@ spec:
                                         from.  Must be a valid secret key.
                                       type: string
                                     name:
-                                      description: 'Name of the referent. More info:
+                                      default: ""
+                                      description: 'Name of the referent. This field
+                                        is effectively required, but due to backwards
+                                        compatibility is allowed to be empty. Instances
+                                        of this type with an empty value here are
+                                        almost certainly wrong. TODO: Add other useful
+                                        fields. apiVersion, kind, uid? More info:
                                         https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                        TODO: Add other useful fields. apiVersion,
-                                        kind, uid?'
+                                        TODO: Drop `kubebuilder:default` when controller-gen
+                                        doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                       type: string
                                     optional:
                                       description: Specify whether the Secret or its
@@ -702,10 +831,16 @@ spec:
                                         from.  Must be a valid secret key.
                                       type: string
                                     name:
-                                      description: 'Name of the referent. More info:
+                                      default: ""
+                                      description: 'Name of the referent. This field
+                                        is effectively required, but due to backwards
+                                        compatibility is allowed to be empty. Instances
+                                        of this type with an empty value here are
+                                        almost certainly wrong. TODO: Add other useful
+                                        fields. apiVersion, kind, uid? More info:
                                         https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                        TODO: Add other useful fields. apiVersion,
-                                        kind, uid?'
+                                        TODO: Drop `kubebuilder:default` when controller-gen
+                                        doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                       type: string
                                     optional:
                                       description: Specify whether the Secret or its
@@ -731,10 +866,16 @@ spec:
                                           description: The key to select.
                                           type: string
                                         name:
-                                          description: 'Name of the referent. More
-                                            info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                            TODO: Add other useful fields. apiVersion,
-                                            kind, uid?'
+                                          default: ""
+                                          description: 'Name of the referent. This
+                                            field is effectively required, but due
+                                            to backwards compatibility is allowed
+                                            to be empty. Instances of this type with
+                                            an empty value here are almost certainly
+                                            wrong. TODO: Add other useful fields.
+                                            apiVersion, kind, uid? More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                            TODO: Drop `kubebuilder:default` when
+                                            controller-gen doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                           type: string
                                         optional:
                                           description: Specify whether the ConfigMap
@@ -753,10 +894,16 @@ spec:
                                             from.  Must be a valid secret key.
                                           type: string
                                         name:
-                                          description: 'Name of the referent. More
-                                            info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                            TODO: Add other useful fields. apiVersion,
-                                            kind, uid?'
+                                          default: ""
+                                          description: 'Name of the referent. This
+                                            field is effectively required, but due
+                                            to backwards compatibility is allowed
+                                            to be empty. Instances of this type with
+                                            an empty value here are almost certainly
+                                            wrong. TODO: Add other useful fields.
+                                            apiVersion, kind, uid? More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                            TODO: Drop `kubebuilder:default` when
+                                            controller-gen doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                           type: string
                                         optional:
                                           description: Specify whether the Secret
@@ -783,10 +930,16 @@ spec:
                                           description: The key to select.
                                           type: string
                                         name:
-                                          description: 'Name of the referent. More
-                                            info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                            TODO: Add other useful fields. apiVersion,
-                                            kind, uid?'
+                                          default: ""
+                                          description: 'Name of the referent. This
+                                            field is effectively required, but due
+                                            to backwards compatibility is allowed
+                                            to be empty. Instances of this type with
+                                            an empty value here are almost certainly
+                                            wrong. TODO: Add other useful fields.
+                                            apiVersion, kind, uid? More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                            TODO: Drop `kubebuilder:default` when
+                                            controller-gen doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                           type: string
                                         optional:
                                           description: Specify whether the ConfigMap
@@ -805,10 +958,16 @@ spec:
                                             from.  Must be a valid secret key.
                                           type: string
                                         name:
-                                          description: 'Name of the referent. More
-                                            info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                            TODO: Add other useful fields. apiVersion,
-                                            kind, uid?'
+                                          default: ""
+                                          description: 'Name of the referent. This
+                                            field is effectively required, but due
+                                            to backwards compatibility is allowed
+                                            to be empty. Instances of this type with
+                                            an empty value here are almost certainly
+                                            wrong. TODO: Add other useful fields.
+                                            apiVersion, kind, uid? More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                            TODO: Drop `kubebuilder:default` when
+                                            controller-gen doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                           type: string
                                         optional:
                                           description: Specify whether the Secret
@@ -839,10 +998,16 @@ spec:
                                         from.  Must be a valid secret key.
                                       type: string
                                     name:
-                                      description: 'Name of the referent. More info:
+                                      default: ""
+                                      description: 'Name of the referent. This field
+                                        is effectively required, but due to backwards
+                                        compatibility is allowed to be empty. Instances
+                                        of this type with an empty value here are
+                                        almost certainly wrong. TODO: Add other useful
+                                        fields. apiVersion, kind, uid? More info:
                                         https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                        TODO: Add other useful fields. apiVersion,
-                                        kind, uid?'
+                                        TODO: Drop `kubebuilder:default` when controller-gen
+                                        doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
                                       type: string
                                     optional:
                                       description: Specify whether the Secret or its
@@ -988,11 +1153,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                           - key
                           - operator
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                       matchLabels:
                         additionalProperties:
                           type: string
@@ -1146,11 +1313,13 @@ spec:
                                       items:
                                         type: string
                                       type: array
+                                      x-kubernetes-list-type: atomic
                                   required:
                                   - key
                                   - operator
                                   type: object
                                 type: array
+                                x-kubernetes-list-type: atomic
                               matchLabels:
                                 additionalProperties:
                                   type: string
