@@ -342,7 +342,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	//
 	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
 	//
-	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.Secret, &configMapVars)
+	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.Secret, instance.Spec.PasswordSelectors.CeilometerService, &configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -351,7 +351,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	//
 	// check for required TransportURL secret holding transport URL string
 	//
-	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Status.TransportURLSecret, &configMapVars)
+	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Status.TransportURLSecret, "transport_url", &configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -558,29 +558,24 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 }
 
 // getSecret - get the specified secret, and add its hash to envVars
-func (r *CeilometerReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.Ceilometer, secretName string, envVars *map[string]env.Setter) (ctrl.Result, error) {
-	secret, hash, err := secret.GetSecret(ctx, h, secretName, instance.Namespace)
+func (r *CeilometerReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.Ceilometer, secretName string, expectedField string, envVars *map[string]env.Setter) (ctrl.Result, error) {
+	secretHash, result, err := ensureSecret(
+		ctx,
+		types.NamespacedName{Namespace: instance.Namespace, Name: secretName},
+		[]string{
+			expectedField,
+		},
+		h.GetClient(),
+		&instance.Status.Conditions,
+		time.Duration(10)*time.Second,
+	)
 	if err != nil {
-		if k8s_errors.IsNotFound(err) {
-			instance.Status.Conditions.Set(condition.FalseCondition(
-				condition.InputReadyCondition,
-				condition.RequestedReason,
-				condition.SeverityInfo,
-				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("secret %s not found", secretName)
-		}
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.InputReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.InputReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
+		return result, err
 	}
 
 	// Add a prefix to the var name to avoid accidental collision with other non-secret
 	// vars. The secret names themselves will be unique.
-	(*envVars)["secret-"+secret.Name] = env.SetValue(hash)
+	(*envVars)["secret-"+secretName] = env.SetValue(secretHash)
 
 	return ctrl.Result{}, nil
 }
