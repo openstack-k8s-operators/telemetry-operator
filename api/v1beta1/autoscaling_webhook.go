@@ -75,6 +75,9 @@ func (spec *AutoscalingSpec) Default() {
 	if spec.Aodh.ListenerImage == "" {
 		spec.Aodh.ListenerImage = autoscalingDefaults.AodhListenerContainerImageURL
 	}
+	if spec.Aodh.MemcachedInstance == "" {
+		spec.Aodh.MemcachedInstance = "memcached"
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

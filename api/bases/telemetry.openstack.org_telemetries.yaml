@@ -45,6 +45,7 @@ spec:
                       databaseInstance: openstack
                       evaluatorImage: ""
                       listenerImage: ""
+                      memcachedInstance: memcached
                       notifierImage: ""
                       passwordSelector:
                         aodhService: AodhPassword
@@ -85,6 +86,10 @@ spec:
                       evaluatorImage:
                         type: string
                       listenerImage:
+                        type: string
+                      memcachedInstance:
+                        default: memcached
+                        description: Memcached instance name.
                         type: string
                       networkAttachmentDefinitions:
                         description: NetworkAttachmentDefinitions list of network
@@ -358,6 +363,7 @@ spec:
                     - databaseInstance
                     - evaluatorImage
                     - listenerImage
+                    - memcachedInstance
                     - notifierImage
                     - secret
                     type: object
