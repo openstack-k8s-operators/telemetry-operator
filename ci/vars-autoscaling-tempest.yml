@@ -16,7 +16,7 @@ cifmw_tempest_tempestconf_config:
       telemetry.prometheus_service_url "https://metric-storage-prometheus.openstack.svc.cluster.local:9090"
       telemetry.ceilometer_polling_interval 120
       telemetry.prometheus_scrape_interval 30
-      telemetry.alarm_threshold 60000000000
+      telemetry.alarm_threshold 50000000000
 cifmw_test_operator_tempest_include_list: |
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh
