@@ -50,8 +50,6 @@
             required-projects:
               - name: openstack-k8s-operators/ci-framework
                 override-checkout: main
-              - name: openstack-k8s-operators/dataplane-operator
-                override-checkout: main
               - name: openstack-k8s-operators/install_yamls
                 override-checkout: main
               - name: openstack-k8s-operators/infra-operator
