@@ -13,7 +13,7 @@ require (
 	github.com/openstack-k8s-operators/keystone-operator/api v0.4.1-0.20240729093119-474d32f45d19
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.4.1-0.20240730142703-7fd3da600c9d
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.4.1-0.20240730142703-7fd3da600c9d
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.4.1-0.20240730141130-cb64983240ea
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.4.1-0.20240730222151-2d771bf1a024
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240529090522-c780bd90b147
 	github.com/rabbitmq/cluster-operator v1.14.0
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.69.0-rhobs1
