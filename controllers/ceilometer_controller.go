@@ -237,7 +237,8 @@ func (r *CeilometerReconciler) reconcileInit(
 	_, _, err := secret.GetSecret(ctx, helper, instance.Spec.Secret, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
+			Log.Info(fmt.Sprintf("OpenStack secret %s not found", instance.Spec.Secret))
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 		}
 		return ctrl.Result{}, err
 	}
