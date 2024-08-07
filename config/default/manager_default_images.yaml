@@ -21,8 +21,8 @@ spec:
           value: quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified
         - name: RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT
           value: quay.io/infrawatch/sg-core:v5.2.0-nextgen
-        - name: RELATED_IMAGE_CEILOMETER_PROXY_IMAGE_URL_DEFAULT
-          value: quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified
+        - name: RELATED_IMAGE_APACHE_IMAGE_URL_DEFAULT
+          value: registry.redhat.io/ubi9/httpd-24:latest
         - name: RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified
         - name: RELATED_IMAGE_AODH_EVALUATOR_IMAGE_URL_DEFAULT
