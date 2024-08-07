@@ -344,12 +344,13 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	memcached, err := memcachedv1.GetMemcachedByName(ctx, helper, instance.Spec.Aodh.MemcachedInstance, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
+			Log.Info(fmt.Sprintf("memcached %s not found", instance.Spec.Aodh.MemcachedInstance))
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				condition.MemcachedReadyCondition,
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				condition.MemcachedReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s not found", instance.Spec.Aodh.MemcachedInstance)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.MemcachedReadyCondition,
@@ -361,12 +362,13 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	}
 
 	if !memcached.IsReady() {
+		Log.Info(fmt.Sprintf("memcached %s is not ready", memcached.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.MemcachedReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			condition.MemcachedReadyWaitingMessage))
-		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s is not ready", memcached.Name)
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 	// Mark the Memcached Service as Ready if we get to this point with no errors
 	instance.Status.Conditions.MarkTrue(
@@ -379,12 +381,13 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	heat, err := r.getAutoscalingHeat(ctx, helper, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
+			Log.Info(fmt.Sprintf("heat %s not found", instance.Spec.HeatInstance))
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				telemetryv1.HeatReadyCondition,
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				telemetryv1.HeatReadyNotFoundMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("heat %s not found", instance.Spec.HeatInstance)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.HeatReadyCondition,
@@ -396,12 +399,13 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	}
 
 	if !heat.IsReady() {
+		Log.Info(fmt.Sprintf("heat %s is not ready", heat.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.HeatReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			telemetryv1.HeatReadyUnreadyMessage))
-		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("heat %s is not ready", heat.Name)
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 	// Mark the Heat Service as Ready if we get to this point with no errors
 	instance.Status.Conditions.MarkTrue(
