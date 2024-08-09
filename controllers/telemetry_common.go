@@ -23,7 +23,6 @@ import (
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
-	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,15 +48,6 @@ func ensureSecret(
 
 	hash, res, err := secret.VerifySecret(ctx, secretName, expectedFields, reader, requeueTimeout)
 	if err != nil {
-		if k8s_errors.IsNotFound(err) {
-			log.FromContext(ctx).Info(fmt.Sprintf("OpenStack secret %s not found", secretName))
-			conditionUpdater.Set(condition.FalseCondition(
-				condition.InputReadyCondition,
-				condition.RequestedReason,
-				condition.SeverityInfo,
-				condition.InputReadyWaitingMessage))
-			return "", ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
-		}
 		conditionUpdater.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
 			condition.ErrorReason,
@@ -65,6 +55,15 @@ func ensureSecret(
 			condition.InputReadyErrorMessage,
 			err.Error()))
 		return "", res, err
+	} else if (res != ctrl.Result{}) {
+		log.FromContext(ctx).Info(fmt.Sprintf("OpenStack secret %s not found", secretName))
+		conditionUpdater.Set(condition.FalseCondition(
+			condition.InputReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.InputReadyWaitingMessage))
+		return "", res, nil
 	}
+
 	return hash, ctrl.Result{}, nil
 }
