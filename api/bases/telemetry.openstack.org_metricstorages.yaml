@@ -1169,10 +1169,11 @@ spec:
                         type: string
                       strategy:
                         default: persistent
-                        description: Strategy to use for storage. Can be "persistent"
-                          or empty, in which case a COO default is used
+                        description: Strategy to use for storage. Can be "persistent",
+                          "ephemeral" or empty, in which case a COO default is used
                         enum:
                         - persistent
+                        - ephemeral
                         type: string
                     type: object
                 type: object
