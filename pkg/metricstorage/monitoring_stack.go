@@ -40,6 +40,7 @@ func MonitoringStack(
 	if err != nil {
 		return nil, err
 	}
+	scrapeInterval := monv1.Duration(instance.Spec.MonitoringStack.ScrapeInterval)
 	monitoringStack := &obov1.MonitoringStack{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
@@ -51,10 +52,8 @@ func MonitoringStack(
 				Disabled: !instance.Spec.MonitoringStack.AlertingEnabled,
 			},
 			PrometheusConfig: &obov1.PrometheusConfig{
-				Replicas: &telemetryv1.PrometheusReplicas,
-				// NOTE: unsupported before OBOv0.0.21, but we can set the value
-				//       in the ServiceMonitor, so this isn't a big deal.
-				//ScrapeInterval: instance.Spec.MonitoringStack.ScrapeInterval,
+				Replicas:              &telemetryv1.PrometheusReplicas,
+				ScrapeInterval:        &scrapeInterval,
 				PersistentVolumeClaim: pvc,
 			},
 			Retention: monv1.Duration(instance.Spec.MonitoringStack.Storage.Retention),
@@ -68,7 +67,10 @@ func MonitoringStack(
 
 func getPVCSpec(instance *telemetryv1.MetricStorage) (*corev1.PersistentVolumeClaimSpec, error) {
 	if instance.Spec.MonitoringStack.Storage.Strategy == "persistent" {
-		persistentSpec := &instance.Spec.MonitoringStack.Storage.Persistent
+		persistentSpec := instance.Spec.MonitoringStack.Storage.Persistent
+		if persistentSpec == nil {
+			return nil, fmt.Errorf("Received a nil value in persistent storage config")
+		}
 		pvc := corev1.PersistentVolumeClaimSpec{}
 		if !reflect.DeepEqual(persistentSpec.PvcStorageSelector, metav1.LabelSelector{}) {
 			pvc.Selector = &persistentSpec.PvcStorageSelector
