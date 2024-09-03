@@ -37,7 +37,6 @@ import (
 	ceilometer "github.com/openstack-k8s-operators/telemetry-operator/pkg/ceilometer"
 	logging "github.com/openstack-k8s-operators/telemetry-operator/pkg/logging"
 	utils "github.com/openstack-k8s-operators/telemetry-operator/pkg/utils"
-	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 )
 
 // TelemetryReconciler reconciles a Telemetry object
@@ -406,21 +405,7 @@ func (r TelemetryReconciler) reconcileMetricStorage(ctx context.Context, instanc
 
 	helper.GetLogger().Info("Reconciling MetricStorage", metricStorageNamespaceLabel, instance.Namespace, metricStorageNameLabel, telemetryv1.DefaultServiceName)
 	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), metricStorageInstance, func() error {
-		if instance.Spec.MetricStorage.MetricStorageSpec.CustomMonitoringStack != nil {
-			metricStorageInstance.Spec.CustomMonitoringStack = &obov1.MonitoringStackSpec{}
-			instance.Spec.MetricStorage.MetricStorageSpec.CustomMonitoringStack.DeepCopyInto(metricStorageInstance.Spec.CustomMonitoringStack)
-		} else {
-			metricStorageInstance.Spec.CustomMonitoringStack = nil
-		}
-		if instance.Spec.MetricStorage.MetricStorageSpec.MonitoringStack != nil {
-			metricStorageInstance.Spec.MonitoringStack = &telemetryv1.MonitoringStack{}
-			instance.Spec.MetricStorage.MetricStorageSpec.MonitoringStack.DeepCopyInto(metricStorageInstance.Spec.MonitoringStack)
-		} else {
-			metricStorageInstance.Spec.MonitoringStack = nil
-		}
-		instance.Spec.MetricStorage.MetricStorageSpec.PrometheusTLS.DeepCopyInto(&metricStorageInstance.Spec.PrometheusTLS)
-		// TODO: Uncomment this line when implementing TLS for Alertmanager
-		//instance.Spec.MetricStorage.MetricStorageSpec.AlertmanagerTLS.DeepCopyInto(&metricStorageInstance.Spec.AlertmanagerTLS)
+		instance.Spec.MetricStorage.MetricStorageSpec.DeepCopyInto(&metricStorageInstance.Spec)
 
 		err := controllerutil.SetControllerReference(helper.GetBeforeObject(), metricStorageInstance, helper.GetScheme())
 		if err != nil {
