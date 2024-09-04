@@ -502,8 +502,6 @@ func (r *MetricStorageReconciler) reconcileNormal(
 func (r *MetricStorageReconciler) createServiceScrapeConfig(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
-	eventHandler handler.EventHandler,
-	helper *helper.Helper,
 	log logr.Logger,
 	description string,
 	serviceName string,
@@ -554,9 +552,8 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	ceilometerRoute := fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
 	ceilometerTarget := []string{fmt.Sprintf("%s:%d", ceilometerRoute, ceilometer.CeilometerPrometheusPort)}
 	ceilometerCfgName := fmt.Sprintf("%s-ceilometer", telemetry.ServiceName)
-	err = r.createServiceScrapeConfig(ctx, instance, eventHandler, helper, Log,
-		"Ceilometer", ceilometerCfgName, ceilometerTarget,
-		instance.Spec.PrometheusTLS.Enabled())
+	err = r.createServiceScrapeConfig(ctx, instance, Log, "Ceilometer",
+		ceilometerCfgName, ceilometerTarget, instance.Spec.PrometheusTLS.Enabled())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -565,9 +562,8 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	ksmRoute := fmt.Sprintf("%s.%s.svc", availability.KSMServiceName, instance.Namespace)
 	ksmTarget := []string{fmt.Sprintf("%s:%d", ksmRoute, availability.KSMMetricsPort)}
 	ksmCfgName := fmt.Sprintf("%s-ksm", telemetry.ServiceName)
-	err = r.createServiceScrapeConfig(ctx, instance, eventHandler, helper, Log,
-		"kube-state-metrics", ksmCfgName, ksmTarget,
-		instance.Spec.PrometheusTLS.Enabled())
+	err = r.createServiceScrapeConfig(ctx, instance, Log, "kube-state-metrics",
+		ksmCfgName, ksmTarget, instance.Spec.PrometheusTLS.Enabled())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -590,9 +586,8 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		rabbitTargets = append(rabbitTargets, fmt.Sprintf("%s:%d", rabbitServerName, metricstorage.RabbitMQPrometheusPort))
 	}
 	rabbitCfgName := fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName)
-	err = r.createServiceScrapeConfig(ctx, instance, eventHandler, helper, Log,
-		"RabbitMQ", rabbitCfgName, rabbitTargets,
-		instance.Spec.PrometheusTLS.Enabled())
+	err = r.createServiceScrapeConfig(ctx, instance, Log, "RabbitMQ",
+		rabbitCfgName, rabbitTargets, instance.Spec.PrometheusTLS.Enabled())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -604,18 +599,16 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// ScrapeConfig for non-tls nodes
-	err = r.createServiceScrapeConfig(ctx, instance, eventHandler, helper, Log,
-		"Node Exporter", telemetry.ServiceName, endpointsNonTLS,
-		false)
+	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
+		telemetry.ServiceName, endpointsNonTLS, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// ScrapeConfig for tls nodes
 	neServiceName := fmt.Sprintf("%s-tls", telemetry.ServiceName)
-	err = r.createServiceScrapeConfig(ctx, instance, eventHandler, helper, Log,
-		"Node Exporter", neServiceName, endpointsTLS,
-		true)
+	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
+		neServiceName, endpointsTLS, true)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
