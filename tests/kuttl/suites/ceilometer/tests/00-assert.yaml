@@ -135,8 +135,6 @@ spec:
       name: telemetry
       protocol: TCP
   hostname: kube-state-metrics-0
-  serviceAccount: kube-state-metrics
-  serviceAccountName: kube-state-metrics
 status:
   containerStatuses:
   - name: kube-state-metrics

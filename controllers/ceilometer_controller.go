@@ -48,9 +48,7 @@ import (
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
-	rolebinding "github.com/openstack-k8s-operators/lib-common/modules/common/rolebinding"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
-	serviceaccount "github.com/openstack-k8s-operators/lib-common/modules/common/serviceaccount"
 	statefulset "github.com/openstack-k8s-operators/lib-common/modules/common/statefulset"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
@@ -195,10 +193,7 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 		condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
-		// service account, role, rolebinding conditions
-		condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
-		condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
-		condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
+		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 	)
 	instance.KSMStatus.Conditions.Init(&cl)
 	instance.KSMStatus.ObservedGeneration = instance.Generation
@@ -326,6 +321,28 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
 
+	// Service account, role, binding
+	rbacRules := []rbacv1.PolicyRule{
+		{
+			APIGroups:     []string{"security.openshift.io"},
+			ResourceNames: []string{"anyuid"},
+			Resources:     []string{"securitycontextconstraints"},
+			Verbs:         []string{"use"},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"pods"},
+			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
+		},
+	}
+
+	rbacResult, err := common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
+	if err != nil {
+		return rbacResult, err
+	} else if (rbacResult != ctrl.Result{}) {
+		return rbacResult, nil
+	}
+
 	ksmRes, err := r.reconcileKSM(ctx, instance, helper, &configMapVars)
 	if err != nil {
 		return ksmRes, err
@@ -347,27 +364,6 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, ceilometer.ServiceName))
-
-	// Service account, role, binding
-	rbacRules := []rbacv1.PolicyRule{
-		{
-			APIGroups:     []string{"security.openshift.io"},
-			ResourceNames: []string{"anyuid"},
-			Resources:     []string{"securitycontextconstraints"},
-			Verbs:         []string{"use"},
-		},
-		{
-			APIGroups: []string{""},
-			Resources: []string{"pods"},
-			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
-		},
-	}
-	rbacResult, err := common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
-	if err != nil {
-		return rbacResult, err
-	} else if (rbacResult != ctrl.Result{}) {
-		return rbacResult, nil
-	}
 
 	//
 	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
@@ -644,57 +640,6 @@ func (r *CeilometerReconciler) reconcileKSM(
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, availability.KSMServiceName))
 
-	// create service account and role binding for the KSM service
-	sa, rb := availability.KSMServiceAccount(instance)
-
-	svcacc := serviceaccount.NewServiceAccount(sa, time.Duration(5)*time.Second)
-	ctrlResult, err := svcacc.CreateOrPatch(ctx, helper)
-	if err != nil {
-		instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-			condition.ServiceAccountReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.ServiceAccountReadyErrorMessage,
-			err.Error()))
-		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
-		instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-			condition.ServiceAccountReadyCondition,
-			condition.RequestedReason,
-			condition.SeverityInfo,
-			condition.ServiceAccountReadyMessage))
-		return ctrlResult, nil
-	}
-
-	err = controllerutil.SetControllerReference(instance, sa, r.Scheme)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	roleBind := rolebinding.NewRoleBinding(rb, time.Duration(5)*time.Second)
-	ctrlResult, err = roleBind.CreateOrPatch(ctx, helper)
-	if err != nil {
-		instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-			condition.RoleBindingReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.ServiceAccountReadyErrorMessage,
-			err.Error()))
-		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
-		instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-			condition.RoleBindingReadyCondition,
-			condition.RequestedReason,
-			condition.SeverityInfo,
-			condition.RoleBindingReadyMessage))
-		return ctrlResult, nil
-	}
-
-	err = controllerutil.SetControllerReference(instance, rb, r.Scheme)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	serviceLabels := map[string]string{
 		common.AppSelector: availability.KSMServiceName,
 	}
@@ -726,8 +671,9 @@ func (r *CeilometerReconciler) reconcileKSM(
 		}
 	}
 
-	// Validate metadata service cert secret
+	tlsConfName := ""
 	if instance.Spec.KSMTLS.Enabled() {
+		// Validate metadata service cert secret
 		hash, ctrlResult, err := instance.Spec.KSMTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {
 			instance.KSMStatus.Conditions.Set(condition.FalseCondition(
@@ -741,10 +687,8 @@ func (r *CeilometerReconciler) reconcileKSM(
 			return ctrlResult, nil
 		}
 		(*configMapVars)[fmt.Sprintf("ksm-%s", tls.TLSHashName)] = env.SetValue(hash)
-	}
 
-	tlsConfName := ""
-	if instance.Spec.KSMTLS.Enabled() {
+		// Create TLS conf for the service
 		tlsConfDef := availability.KSMTLSConfig(instance, serviceLabels, true)
 		tlsConfName = tlsConfDef.Name
 
@@ -758,6 +702,8 @@ func (r *CeilometerReconciler) reconcileKSM(
 		(*configMapVars)[tlsConfDef.Name] = env.SetValue(hash)
 	}
 
+	instance.KSMStatus.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
+
 	// create the service
 	ssDef, err := availability.KSMStatefulSet(instance, tlsConfName, serviceLabels)
 	if err != nil {
@@ -765,7 +711,7 @@ func (r *CeilometerReconciler) reconcileKSM(
 	}
 
 	ss := statefulset.NewStatefulSet(ssDef, time.Duration(5)*time.Second)
-	ctrlResult, err = ss.CreateOrPatch(ctx, helper)
+	ctrlResult, err := ss.CreateOrPatch(ctx, helper)
 	if err != nil {
 		instance.KSMStatus.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
