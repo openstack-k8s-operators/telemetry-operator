@@ -164,7 +164,7 @@ func KSMStatefulSet(
 				},
 				Spec: corev1.PodSpec{
 					AutomountServiceAccountToken: ptr.To(true),
-					ServiceAccountName:           KSMServiceName,
+					ServiceAccountName:           instance.RbacResourceName(),
 					Containers:                   []corev1.Container{container},
 					Volumes:                      volumes,
 				},
