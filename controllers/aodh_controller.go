@@ -501,7 +501,7 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 	//
 	// Validate the CA cert secret if provided
 	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
-		hash, ctrlResult, err := tls.ValidateCACertSecret(
+		hash, err := tls.ValidateCACertSecret(
 			ctx,
 			helper.GetClient(),
 			types.NamespacedName{
@@ -510,15 +510,21 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 			},
 		)
 		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.TLSInputReadyCondition,
+					condition.RequestedReason,
+					condition.SeverityInfo,
+					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.Aodh.TLS.CaBundleSecretName)))
+				return ctrl.Result{}, nil
+			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				condition.TLSInputReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.TLSInputErrorMessage,
 				err.Error()))
-			return ctrlResult, err
-		} else if (ctrlResult != ctrl.Result{}) {
-			return ctrlResult, nil
+			return ctrl.Result{}, err
 		}
 
 		if hash != "" {
@@ -526,17 +532,23 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		}
 
 		// Validate API service certs secrets
-		certsHash, ctrlResult, err := instance.Spec.Aodh.TLS.API.ValidateCertSecrets(ctx, helper, instance.Namespace)
+		certsHash, err := instance.Spec.Aodh.TLS.API.ValidateCertSecrets(ctx, helper, instance.Namespace)
 		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.TLSInputReadyCondition,
+					condition.RequestedReason,
+					condition.SeverityInfo,
+					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, err.Error())))
+				return ctrl.Result{}, nil
+			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				condition.TLSInputReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.TLSInputErrorMessage,
 				err.Error()))
-			return ctrlResult, err
-		} else if (ctrlResult != ctrl.Result{}) {
-			return ctrlResult, nil
+			return ctrl.Result{}, err
 		}
 
 		configVars[tls.TLSHashName] = env.SetValue(certsHash)
