@@ -103,7 +103,7 @@ metadata:
   name: kube-state-metrics
   ownerReferences:
   - kind: Ceilometer
-    name: ceilometer
+    name: telemetry-kuttl
 spec:
   ports:
   - name: http-metrics
@@ -149,7 +149,7 @@ metadata:
   name: kube-state-metrics
   ownerReferences:
   - kind: Ceilometer
-    name: kube-state-metrics
+    name: telemetry-kuttl
 spec:
   replicas: 1
   selector:

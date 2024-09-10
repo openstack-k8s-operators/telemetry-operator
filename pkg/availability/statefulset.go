@@ -154,13 +154,13 @@ func KSMStatefulSet(
 		Spec: appsv1.StatefulSetSpec{
 			Replicas: &KSMReplicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app.kubernetes.io/name": labels["app.kubernetes.io/name"],
-				},
+				MatchLabels: labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Name:      KSMServiceName,
+					Namespace: instance.Namespace,
+					Labels:    labels,
 				},
 				Spec: corev1.PodSpec{
 					AutomountServiceAccountToken: ptr.To(true),
