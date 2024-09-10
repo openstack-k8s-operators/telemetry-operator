@@ -646,7 +646,7 @@ func (r *CeilometerReconciler) reconcileKSM(
 
 	// Validate the CA cert secret if provided
 	if instance.Spec.KSMTLS.CaBundleSecretName != "" {
-		hash, ctrlResult, err := tls.ValidateCACertSecret(
+		hash, err := tls.ValidateCACertSecret(
 			ctx,
 			helper.GetClient(),
 			types.NamespacedName{
@@ -655,15 +655,21 @@ func (r *CeilometerReconciler) reconcileKSM(
 			},
 		)
 		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				instance.KSMStatus.Conditions.Set(condition.FalseCondition(
+					condition.TLSInputReadyCondition,
+					condition.RequestedReason,
+					condition.SeverityInfo,
+					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.KSMTLS.CaBundleSecretName)))
+				return ctrl.Result{}, nil
+			}
 			instance.KSMStatus.Conditions.Set(condition.FalseCondition(
 				condition.TLSInputReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.TLSInputErrorMessage,
 				err.Error()))
-			return ctrlResult, err
-		} else if (ctrlResult != ctrl.Result{}) {
-			return ctrlResult, nil
+			return ctrl.Result{}, err
 		}
 
 		if hash != "" {
@@ -674,7 +680,7 @@ func (r *CeilometerReconciler) reconcileKSM(
 	tlsConfName := ""
 	if instance.Spec.KSMTLS.Enabled() {
 		// Validate metadata service cert secret
-		hash, ctrlResult, err := instance.Spec.KSMTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
+		hash, err := instance.Spec.KSMTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {
 			instance.KSMStatus.Conditions.Set(condition.FalseCondition(
 				condition.TLSInputReadyCondition,
@@ -683,8 +689,6 @@ func (r *CeilometerReconciler) reconcileKSM(
 				condition.TLSInputErrorMessage,
 				err.Error()))
 			return ctrl.Result{}, err
-		} else if (ctrlResult != ctrl.Result{}) {
-			return ctrlResult, nil
 		}
 		(*configMapVars)[fmt.Sprintf("ksm-%s", tls.TLSHashName)] = env.SetValue(hash)
 

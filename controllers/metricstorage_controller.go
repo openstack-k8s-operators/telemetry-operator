@@ -615,12 +615,14 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 	// kepler scrape endpoints
 	_, keplerEndpoints, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultKeplerPort)
+	if err != nil {
+		Log.Info(fmt.Sprintf("Cannot get Kepler targets. Scrape configs not created. Error: %s", err))
+	}
 
 	// Kepler ScrapeConfig for non-tls nodes
 	keplerServiceName := fmt.Sprintf("%s-kepler", telemetry.ServiceName)
-	err = r.createServiceScrapeConfig(ctx, instance, eventHandler, helper, Log,
-		"Kepler", keplerServiceName, keplerEndpoints,
-		false) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
+	err = r.createServiceScrapeConfig(ctx, instance, Log, "Kepler",
+		keplerServiceName, keplerEndpoints, false) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
 	if err != nil {
 		return ctrl.Result{}, err
 	}
