@@ -336,7 +336,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 
 	if instance.Spec.PrometheusTLS.Enabled() {
 		// Patch Prometheus to add TLS
-		prometheusWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+		prometheusWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
 			name := client.ObjectKey{
 				Namespace: o.GetNamespace(),
 				Name:      o.GetName(),
@@ -952,7 +952,7 @@ func isValidDomain(domain string) bool {
 // SetupWithManager sets up the controller with the Manager.
 func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	Log := r.GetLogger(ctx)
-	prometheusServiceWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+	prometheusServiceWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all metricstorage CRs
@@ -981,7 +981,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		return nil
 	}
 
-	rabbitmqWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+	rabbitmqWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all metricstorage CRs

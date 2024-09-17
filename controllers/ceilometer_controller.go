@@ -977,7 +977,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	//
 	// TODO: We also need a watch func to monitor for changes to the secret referenced by Ceilometer.Spec.Secret
 	Log := r.GetLogger(ctx)
-	transportURLSecretFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+	transportURLSecretFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all Ceilometer CRs
@@ -1012,7 +1012,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	}
 
 	// Reconcile every time a keystoneendpoint is modified
-	keystoneEndpointsWatchFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+	keystoneEndpointsWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 		name := client.ObjectKey{
 			Namespace: o.GetNamespace(),
