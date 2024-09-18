@@ -76,7 +76,7 @@ kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
-  name: telemetry
+  name: telemetry-node-exporter
   ownerReferences:
   - kind: MetricStorage
     name: telemetry-kuttl
