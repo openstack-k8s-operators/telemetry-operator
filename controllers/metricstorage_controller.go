@@ -582,7 +582,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	// ScrapeConfig for non-tls nodes
 	scrapeConfig := &monv1alpha1.ScrapeConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      telemetry.ServiceName,
+			Name:      fmt.Sprintf("%s-node-exporter", telemetry.ServiceName),
 			Namespace: instance.Namespace,
 		},
 	}
@@ -603,7 +603,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	// ScrapeConfig for tls nodes
 	scrapeConfigTLS := &monv1alpha1.ScrapeConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-tls", telemetry.ServiceName),
+			Name:      fmt.Sprintf("%s-node-exporter-tls", telemetry.ServiceName),
 			Namespace: instance.Namespace,
 		},
 	}
