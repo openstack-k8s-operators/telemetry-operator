@@ -81,7 +81,10 @@ func (storage *Storage) Default() {
 		storage.Retention = "24h"
 	}
 	if storage.Strategy == "persistent" {
+		storage.Persistent = &PersistentStorage{}
 		storage.Persistent.Default()
+	} else {
+		storage.Persistent = nil
 	}
 }
 
