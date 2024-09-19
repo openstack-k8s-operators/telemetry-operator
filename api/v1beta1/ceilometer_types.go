@@ -37,7 +37,7 @@ const (
 	CeilometerIpmiContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
 	// CeilometerProxyContainerImage - default fall-back image for proxy container
 	// CeilometerProxyContainerImage = "registry.redhat.io/ubi9/httpd-24:latest"
-	CeilometerProxyContainerImage = "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
+	CeilometerProxyContainerImage = "registry.redhat.io/ubi9/httpd-24:latest"
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
