@@ -1,0 +1,12 @@
+# Kuttl test doesn't seem to wait correctly for the metric
+# storage to reconcile in the next test step when switching
+# to CustomMonitoringStack (in the output of the test I
+# can see it applyes the resource and fails a second later).
+# Deleting it here and than recreating it in the next step
+# should ensure kuttl waits long enough.
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+- apiVersion: telemetry.openstack.org/v1beta1
+  kind: MetricStorage
+  name: telemetry-kuttl

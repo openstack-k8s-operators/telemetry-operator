@@ -522,7 +522,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 
-	if !instance.Spec.MonitoringStack.DashboardsEnabled {
+	if !instance.Spec.DashboardsEnabled {
 		if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
 			return res, err
 		}
@@ -874,7 +874,7 @@ func getAddressFromIPSet(
 	if len(ipset.Status.Reservation) > 0 {
 		// search for the network specified in the Spec
 		for _, reservation := range ipset.Status.Reservation {
-			if reservation.Network == instance.Spec.MonitoringStack.DataplaneNetwork {
+			if reservation.Network == instance.Spec.DataplaneNetwork {
 				return reservation.Address, discoveryv1.AddressTypeIPv4
 			}
 		}
