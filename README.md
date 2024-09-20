@@ -156,6 +156,72 @@ DATAPLANE_RUNNER_IMG=<url_to_custom_image> ANSIBLEEE_IMAGE_URL_DEFAULT=<url_to_c
 
 3.- During deployment `dataplane-deployment-*` pods would get spawned with the custom image.
 
+## Testing edpm-ansible changes using a volume mount backed by NFS server (tested)
+
+The following procedure is to be performed after the
+
+1.- Follow all these [steps](https://openstack-k8s-operators.github.io/edpm-ansible/testing_with_ansibleee.html#provide-nfs-access-to-your-edpm-ansible-directory) to add a PVC to OpenStackDataPlaneNodeSet’s CR.
+
+2.- Deploy a debug pod with the PVC to it to verify whether your local repository was mounted into it
+```
+oc apply -f - <<EOF
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+  labels:
+    app: debug
+spec:
+  containers:
+    - name: debug-container
+      image: busybox  # Replace with your preferred image for debugging
+      command: ["/bin/sh", "-c", "sleep 3600"]  # Keeps the pod alive for an hour
+      volumeMounts:
+        - mountPath: /mnt
+          name: pvc-volume
+  volumes:
+    - name: pvc-volume
+      persistentVolumeClaim:
+        claimName: edpm-ansible-dev  # Name of the PVC
+  restartPolicy: Never  # Ensures the pod doesn't restart automatically
+EOF
+```
+
+Verify whether repository exists
+```
+$ oc exec -it debug-pod sh -- ls /mnt
+CHANGELOG.md               OWNERS_ALIASES             contribute                 molecule                   plugins                    tests
+LICENSE                    README.md                  docs                       molecule-requirements.txt  requirements.yml           zuul.d
+Makefile                   app-root                   galaxy.yml                 openstack_ansibleee        roles
+OWNERS                     bindep.txt                 meta                       playbooks                  scripts
+```
+
+Delete the pod once verified
+
+3.- Once the [step](https://openstack-k8s-operators.github.io/edpm-ansible/testing_with_ansibleee.html#add-extramount-to-your-openstackdataplanenodeset-cr) to add `extraMount` to `OpenStackDataPlaneNodeSet CR` is executed, the deployment is reported as `Deployment not started` which is expected.
+
+4.- Create a new EDPM deployment using the existing `nodeSets`
+```
+oc apply -f - <<EOF
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneDeployment
+metadata:
+  name: edpm-deployment-debug
+spec:
+  nodeSets:
+    - openstack-edpm-ipam
+EOF
+```
+
+Deployment progresses using the `edpm-ansible` repository from the NFS mount
+```
+oc get osdpns
+NAME                  STATUS   MESSAGE
+openstack-edpm-ipam   False    Deployment in progress
+```
+
+
 ## Running kuttl tests locally
 
 For the default suite, simply run `make kuttl-test`.
