@@ -577,7 +577,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// ScrapeConfigs for NodeExporters
-	endpointsNonTLS, endpointsTLS, err := getNodeExporterTargets(instance, helper)
+	endpointsNonTLS, endpointsTLS, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultNodeExporterPort)
 
 	// ScrapeConfig for non-tls nodes
 	scrapeConfig := &monv1alpha1.ScrapeConfig{
@@ -620,6 +620,34 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("Node Exporter ScrapeConfig %s successfully changed - operation: %s", scrapeConfig.GetName(), string(op)))
 	}
+
+	// kepler scrape endpoints
+	_, keplerEndpoints, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultKeplerPort)
+
+	// Kepler ScrapeConfig for non-tls nodes
+	keplerScrapeConfig := &monv1alpha1.ScrapeConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-kepler", telemetry.ServiceName),
+			Namespace: instance.Namespace,
+		},
+	}
+
+	// Currently Kepler doesn't support TLS so tlsEnabled is set to false
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, keplerScrapeConfig, func() error {
+		desiredScrapeConfig := metricstorage.ScrapeConfig(instance, serviceLabels, keplerEndpoints, false)
+		desiredScrapeConfig.Spec.DeepCopyInto(&keplerScrapeConfig.Spec)
+		keplerScrapeConfig.ObjectMeta.Labels = desiredScrapeConfig.ObjectMeta.Labels
+		err = controllerutil.SetControllerReference(instance, keplerScrapeConfig, r.Scheme)
+		return err
+	})
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("Kepler ScrapeConfig %s successfully changed - operation: %s", keplerScrapeConfig.GetName(), string(op)))
+	}
+
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 	return ctrl.Result{}, err
 }
@@ -802,9 +830,10 @@ func (r *MetricStorageReconciler) ensureWatches(
 	return err
 }
 
-func getNodeExporterTargets(
+func getMetricExporterTargets(
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
+	defaultMetricExporterPort int32,
 ) ([]string, []string, error) {
 	ipSetList, err := getIPSetList(instance, helper)
 	if err != nil {
@@ -855,9 +884,9 @@ func getNodeExporterTargets(
 				return addressesNonTLS, addressesTLS, nil
 			}
 			if TLSEnabled, ok := nodeSetGroup.Vars["edpm_tls_certs_enabled"].(bool); ok && TLSEnabled {
-				addressesTLS = append(addressesTLS, fmt.Sprintf("%s:%d", address, telemetryv1.DefaultNodeExporterPort))
+				addressesTLS = append(addressesTLS, fmt.Sprintf("%s:%d", address, defaultMetricExporterPort))
 			} else {
-				addressesNonTLS = append(addressesNonTLS, fmt.Sprintf("%s:%d", address, telemetryv1.DefaultNodeExporterPort))
+				addressesNonTLS = append(addressesNonTLS, fmt.Sprintf("%s:%d", address, defaultMetricExporterPort))
 			}
 		}
 	}
