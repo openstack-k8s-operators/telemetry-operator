@@ -439,6 +439,19 @@ spec:
                     type: boolean
                   ipmiImage:
                     type: string
+                  ksmImage:
+                    type: string
+                  ksmTls:
+                    description: KSMTLS - Parameters related to the TLS for kube-state-metrics
+                    properties:
+                      caBundleSecretName:
+                        description: CaBundleSecretName - holding the CA certs in
+                          a pre-created bundle file
+                        type: string
+                      secretName:
+                        description: SecretName - holding the cert, key for the service
+                        type: string
+                    type: object
                   networkAttachmentDefinitions:
                     description: NetworkAttachmentDefinitions list of network attachment
                       definitions the service pod gets attached to
@@ -498,6 +511,7 @@ spec:
                 - centralImage
                 - computeImage
                 - ipmiImage
+                - ksmImage
                 - notificationImage
                 - proxyImage
                 - secret

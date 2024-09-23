@@ -55,6 +55,9 @@ const (
 	DashboardDatasourceReadyCondition condition.Type = "DashboardDatasourceReady"
 
 	DashboardDefinitionReadyCondition condition.Type = "DashboardDefinitionReady"
+
+	// KSMReadyCondition Status=True condition which indicates if the KSM is configured and operational
+	KSMReadyCondition condition.Type = "KSMReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -189,4 +192,19 @@ const (
 
 	DashboardDefinitionReadyInitMessage = "Dashboard Definition not started"
 	DashboardDefinitionFailedMessage    = "Error occured when trying to install the dashboard definitions: %s"
+
+	//
+	// KSMReady condition messages
+	//
+	// KSMReadyInitMessage
+	KSMReadyInitMessage = "KSM not started"
+
+	// KSMReadyMessage
+	KSMReadyMessage = "KSM completed"
+
+	// KSMReadyErrorMessage
+	KSMReadyErrorMessage = "KSM error occured %s"
+
+	// KSMReadyRunningMessage
+	KSMReadyRunningMessage = "KSM in progress"
 )
