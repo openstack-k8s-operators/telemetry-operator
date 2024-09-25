@@ -727,7 +727,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	//
 	// TODO: We also need a watch func to monitor for changes to the secret referenced by Autoscaling.Spec.Secret
 	Log := r.GetLogger(ctx)
-	transportURLSecretFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+	transportURLSecretFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all Autoscaling CRs
@@ -760,7 +760,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		}
 		return nil
 	}
-	memcachedFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+	memcachedFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all autoscaling CRs
