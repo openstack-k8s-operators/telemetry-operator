@@ -49,6 +49,7 @@ import (
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
+	obsuiv1 "github.com/rhobs/observability-operator/pkg/apis/uiplugin/v1alpha1"
 
 	telemetryv1beta1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/controllers"
@@ -67,6 +68,7 @@ func init() {
 	utilruntime.Must(rabbitmqv1.AddToScheme(scheme))
 	utilruntime.Must(telemetryv1beta1.AddToScheme(scheme))
 	utilruntime.Must(obov1.AddToScheme(scheme))
+	utilruntime.Must(obsuiv1.AddToScheme(scheme))
 	utilruntime.Must(monv1.AddToScheme(scheme))
 	utilruntime.Must(monv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1beta1.AddToScheme(scheme))

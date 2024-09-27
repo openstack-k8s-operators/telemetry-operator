@@ -66,6 +66,7 @@ import (
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
+	obsui "github.com/rhobs/observability-operator/pkg/apis/uiplugin/v1alpha1"
 )
 
 // fields to index to reconcile when change
@@ -633,30 +634,13 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, eventHandler handler.EventHandler) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
-	// Deploy dashboard UI plugin from OBO
-	// TODO: Use the following instead of Unstructured{} after COO 0.2.0
-	// =====
-	// uiPluginObj := &obsui.ObservabilityUIPlugin{
-	// 	ObjectMeta: metav1.ObjectMeta{
-	// 		Name:      "dashboards",
-	// 	},
-	// }
-	// =====
-	uiPluginObj := &unstructured.Unstructured{}
-	uiPluginObj.SetUnstructuredContent(map[string]interface{}{
-		"spec": map[string]interface{}{
-			"type": "Dashboards",
+	uiPluginObj := &obsui.UIPlugin{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dashboards",
 		},
-	})
-	uiPluginObj.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "observability.openshift.io",
-		Version: "v1alpha1",
-		Kind:    "UIPlugin",
-	})
-	uiPluginObj.SetName("dashboards")
-	// =====
+	}
 	op, err := controllerutil.CreateOrPatch(ctx, r.Client, uiPluginObj, func() error {
-		// uiPluginObj.Spec.Type = "Dashboards" // After we update to COO 0.2.0 as dependency
+		uiPluginObj.Spec.Type = "Dashboards"
 		return nil
 	})
 	if err != nil {
