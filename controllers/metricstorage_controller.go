@@ -599,14 +599,15 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// ScrapeConfig for non-tls nodes
+	neServiceName := fmt.Sprintf("%s-node-exporter", telemetry.ServiceName)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
-		telemetry.ServiceName, endpointsNonTLS, false)
+		neServiceName, endpointsNonTLS, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// ScrapeConfig for tls nodes
-	neServiceName := fmt.Sprintf("%s-tls", telemetry.ServiceName)
+	neServiceName = fmt.Sprintf("%s-node-exporter-tls", telemetry.ServiceName)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
 		neServiceName, endpointsTLS, true)
 	if err != nil {
