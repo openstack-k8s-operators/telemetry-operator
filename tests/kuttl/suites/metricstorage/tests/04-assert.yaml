@@ -95,3 +95,16 @@ metadata:
 spec:
   staticConfigs:
     - {}
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry-kepler
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+spec:
+  staticConfigs:
+    - {}
