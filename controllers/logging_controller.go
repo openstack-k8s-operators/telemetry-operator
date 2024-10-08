@@ -202,24 +202,8 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 	}
 
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
-
 	// Secret
 	secretVars := make(map[string]env.Setter)
-
-	//
-	// create Secret required for logging-compute input
-	// - %-config secret holding minimal logging config required to get the service up, user can add additional files to be added to the service
-	//
-	err = r.generateComputeServiceConfig(ctx, helper, instance, &secretVars)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.ServiceConfigReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
 
 	//
 	// create hash over all the different input resources to identify if any those changed
@@ -248,7 +232,7 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 		common.AppSelector: logging.ServiceName,
 	}
 
-	_, _, err = logging.Service(instance, helper, serviceLabels)
+	svc, _, err := logging.Service(instance, helper, serviceLabels)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.MarkFalse(telemetryv1.LoggingCLONamespaceReadyCondition,
@@ -261,6 +245,21 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 		return ctrl.Result{}, err
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.LoggingCLONamespaceReadyCondition, condition.ReadyMessage)
+
+	//
+	// create Secret required for logging-compute input
+	// - %-config secret holding minimal logging config required to get the service up, user can add additional files to be added to the service
+	//
+	err = r.generateComputeServiceConfig(ctx, helper, instance, &secretVars, svc)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
 
 	// Operators cannot own objects in different namespaces
 	/*err := controllerutil.SetControllerReference(instance, service, r.Scheme)
@@ -281,6 +280,7 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 	h *helper.Helper,
 	instance *telemetryv1.Logging,
 	envVars *map[string]env.Setter,
+	service *corev1.Service,
 ) error {
 
 	secretLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
@@ -290,7 +290,7 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 	}
 
 	templateParameters := map[string]interface{}{
-		"RsyslogAddress":   instance.Spec.IPAddr,
+		"RsyslogAddress":   service.Annotations["metallb.universe.tf/loadBalancerIPs"],
 		"RsyslogPort":      instance.Spec.Port,
 		"RsyslogRetries":   instance.Spec.RsyslogRetries,
 		"RsyslogQueueType": instance.Spec.RsyslogQueueType,

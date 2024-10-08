@@ -3,6 +3,5 @@ kind: Logging
 metadata:
   name: telemetry-kuttl-logging
 spec:
-    ipaddr: 172.17.0.80
     port: 10514
     cloNamespace: telemetry-kuttl-tests
