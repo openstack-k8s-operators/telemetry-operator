@@ -203,7 +203,12 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// If we're not deleting this and the service object doesn't have our finalizer, add it.
-	if !instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) || isNewInstance {
+	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) || isNewInstance {
+		return ctrl.Result{}, nil
+	}
+
+	// Handle service delete
+	if !instance.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, instance, helper)
 	}
 
