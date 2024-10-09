@@ -818,8 +818,15 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		return err
 	}
 
-	transportURLSecret, _, _ := secret.GetSecret(ctx, h, instance.CeilometerStatus.TransportURLSecret, instance.Namespace)
-	ceilometerPasswordSecret, _, _ := secret.GetSecret(ctx, h, instance.Spec.Secret, instance.Namespace)
+	transportURLSecret, _, err := secret.GetSecret(ctx, h, instance.CeilometerStatus.TransportURLSecret, instance.Namespace)
+	if err != nil {
+		return err
+	}
+
+	ceilometerPasswordSecret, _, err := secret.GetSecret(ctx, h, instance.Spec.Secret, instance.Namespace)
+	if err != nil {
+		return err
+	}
 
 	templateParameters := map[string]interface{}{
 		"KeystoneInternalURL": keystoneInternalURL,
@@ -891,8 +898,15 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		return err
 	}
 
-	transportURLSecret, _, _ := secret.GetSecret(ctx, h, instance.CeilometerStatus.TransportURLSecret, instance.Namespace)
-	ceilometerPasswordSecret, _, _ := secret.GetSecret(ctx, h, instance.Spec.Secret, instance.Namespace)
+	transportURLSecret, _, err := secret.GetSecret(ctx, h, instance.CeilometerStatus.TransportURLSecret, instance.Namespace)
+	if err != nil {
+		return err
+	}
+
+	ceilometerPasswordSecret, _, err := secret.GetSecret(ctx, h, instance.Spec.Secret, instance.Namespace)
+	if err != nil {
+		return err
+	}
 
 	templateParameters := map[string]interface{}{
 		"KeystoneInternalURL":      keystoneInternalURL,
