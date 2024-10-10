@@ -27,6 +27,5 @@ spec:
     secret: osp-secret
   logging:
     enabled: false
-    ipaddr: 172.17.0.80
     port: 10514
     cloNamespace: openshift-logging

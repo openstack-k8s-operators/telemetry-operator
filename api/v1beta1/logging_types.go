@@ -25,10 +25,6 @@ import (
 
 // LoggingSpec defines the desired state of Logging
 type LoggingSpec struct {
-	// IPAddr is the address where the service will listen on
-	// +kubebuilder:validation:Required
-	IPAddr string `json:"ipaddr"`
-
 	// Port is the port where the service will listen on
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=10514
