@@ -42,10 +42,10 @@ type PersistentStorage struct {
 
 // Storage defines the options used for storage of metrics
 type Storage struct {
-	// Strategy to use for storage. Can be "persistent"
+	// Strategy to use for storage. Can be "persistent", "ephemeral"
 	// or empty, in which case a COO default is used
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Enum=persistent
+	// +kubebuilder:validation:Enum=persistent;ephemeral
 	// +kubebuilder:default=persistent
 	Strategy string `json:"strategy"`
 
@@ -57,7 +57,7 @@ type Storage struct {
 	// Used to specify the options of persistent storage when
 	// strategy = "persistent"
 	// +kubebuilder:validation:Optional
-	Persistent PersistentStorage `json:"persistent"`
+	Persistent *PersistentStorage `json:"persistent,omitempty"`
 }
 
 // MonitoringStack defines the options for a Red Hat supported metric storage
