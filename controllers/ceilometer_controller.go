@@ -1077,6 +1077,30 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return err
 	}
 
+	// index ksmCaBundleSecretNameField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ksmCaBundleSecretNameField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Ceilometer)
+		if cr.Spec.KSMTLS.CaBundleSecretName == "" {
+			return nil
+		}
+		return []string{cr.Spec.KSMTLS.CaBundleSecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index ksmTLSField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ksmTLSField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Ceilometer)
+		if cr.Spec.KSMTLS.SecretName == nil {
+			return nil
+		}
+		return []string{*cr.Spec.KSMTLS.SecretName}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Ceilometer{}).
 		Owns(&keystonev1.KeystoneService{}).
@@ -1115,7 +1139,8 @@ func (r *CeilometerReconciler) findObjectsForSrc(ctx context.Context, src client
 		}
 		err := r.Client.List(ctx, crList, listOps)
 		if err != nil {
-			return []reconcile.Request{}
+			l.Error(err, fmt.Sprintf("listing %s for field: %s - %s", crList.GroupVersionKind().Kind, field, src.GetNamespace()))
+			return requests
 		}
 
 		for _, item := range crList.Items {
