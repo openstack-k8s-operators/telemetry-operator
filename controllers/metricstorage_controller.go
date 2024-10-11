@@ -299,10 +299,10 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	err := r.ensureWatches(ctx, "monitoringstacks.monitoring.rhobs", &obov1.MonitoringStack{}, eventHandler)
 	if err != nil {
 		instance.Status.Conditions.MarkFalse(telemetryv1.MonitoringStackReadyCondition,
-			condition.Reason("Can't own MonitoringStack resource"),
+			condition.Reason("Can't own MonitoringStack resource. The Cluster Observability Operator probably isn't installed"),
 			condition.SeverityError,
 			telemetryv1.MonitoringStackUnableToOwnMessage, err)
-		Log.Info("Can't own MonitoringStack resource")
+		Log.Info("Can't own MonitoringStack resource. The Cluster Observability Operator probably isn't installed")
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 
@@ -347,10 +347,10 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		err = r.ensureWatches(ctx, "prometheuses.monitoring.rhobs", &monv1.Prometheus{}, handler.EnqueueRequestsFromMapFunc(prometheusWatchFn))
 		if err != nil {
 			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
-				condition.Reason("Can't watch prometheus resource"),
+				condition.Reason("Can't watch prometheus resource. The Cluster Observability Operator probably isn't installed"),
 				condition.SeverityError,
 				telemetryv1.PrometheusUnableToWatchMessage, err)
-			Log.Info("Can't watch Prometheus resource")
+			Log.Info("Can't watch Prometheus resource. The Cluster Observability Operator probably isn't installed")
 			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 		}
 		prometheusTLSPatch := metricstorage.PrometheusTLS(instance)
@@ -542,10 +542,10 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	err := r.ensureWatches(ctx, "scrapeconfigs.monitoring.rhobs", &monv1alpha1.ScrapeConfig{}, eventHandler)
 	if err != nil {
 		instance.Status.Conditions.MarkFalse(telemetryv1.ScrapeConfigReadyCondition,
-			condition.Reason("Can't own ScrapeConfig resource"),
+			condition.Reason("Can't own ScrapeConfig resource. The Cluster Observability Operator probably isn't installed"),
 			condition.SeverityError,
 			telemetryv1.ScrapeConfigUnableToOwnMessage, err)
-		Log.Info("Can't own ScrapeConfig resource")
+		Log.Info("Can't own ScrapeConfig resource. The Cluster Observability Operator probably isn't installed")
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 
@@ -661,10 +661,10 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	err = r.ensureWatches(ctx, "prometheusrules.monitoring.rhobs", &monv1.PrometheusRule{}, eventHandler)
 	if err != nil {
 		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardPrometheusRuleReadyCondition,
-			condition.Reason("Can't own PrometheusRule resource"),
+			condition.Reason("Can't own PrometheusRule resource. The Cluster Observability Operator probably isn't installed"),
 			condition.SeverityError,
 			telemetryv1.DashboardPrometheusRuleUnableToOwnMessage, err)
-		Log.Info("Can't own PrometheusRule resource")
+		Log.Info("Can't own PrometheusRule resource. The Cluster Observability Operator probably isn't installed")
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 	prometheusRule := &monv1.PrometheusRule{
