@@ -52,9 +52,6 @@ spec:
                 description: CLONamespace points to the namespace where the cluster-logging-operator
                   is deployed
                 type: string
-              ipaddr:
-                description: IPAddr is the address where the service will listen on
-                type: string
               port:
                 default: 10514
                 description: Port is the port where the service will listen on
@@ -80,7 +77,6 @@ spec:
                   is listening
                 type: integer
             required:
-            - ipaddr
             - rsyslogQueueType
             type: object
           status:
