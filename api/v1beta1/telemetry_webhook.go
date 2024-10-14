@@ -35,6 +35,7 @@ type TelemetryDefaults struct {
 	SgCoreContainerImageURL        string
 	ProxyContainerImageURL         string
 	IpmiContainerImageURL          string
+	KsmContainerImageURL           string
 	AodhAPIContainerImageURL       string
 	AodhEvaluatorContainerImageURL string
 	AodhNotifierContainerImageURL  string
@@ -89,6 +90,9 @@ func (spec *TelemetrySpec) Default() {
 	}
 	if spec.Ceilometer.CeilometerSpec.ProxyImage == "" {
 		spec.Ceilometer.CeilometerSpec.ProxyImage = telemetryDefaults.ProxyContainerImageURL
+	}
+	if spec.Ceilometer.CeilometerSpec.KSMImage == "" {
+		spec.Ceilometer.CeilometerSpec.KSMImage = telemetryDefaults.KsmContainerImageURL
 	}
 	if spec.Autoscaling.AutoscalingSpec.Aodh.APIImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.APIImage = telemetryDefaults.AodhAPIContainerImageURL
