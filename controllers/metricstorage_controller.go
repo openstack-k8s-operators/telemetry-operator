@@ -842,11 +842,11 @@ func getMetricExporterTargets(
 				address, _ = getAddressFromAnsibleHost(&item)
 			} else {
 				// we were unable to find an IP or HostName for a node, so we do not go further
-				return addressesNonTLS, addressesTLS, nil
+				return addressesNonTLS, addressesTLS, fmt.Errorf("failed to find an IP or HostName for node %s", name)
 			}
 			if address == "" {
 				// we were unable to find an IP or HostName for a node, so we do not go further
-				return addressesNonTLS, addressesTLS, nil
+				return addressesNonTLS, addressesTLS, fmt.Errorf("failed to find an IP or HostName for node %s", name)
 			}
 			if TLSEnabled, ok := nodeSetGroup.Vars["edpm_tls_certs_enabled"].(bool); ok && TLSEnabled {
 				addressesTLS = append(addressesTLS, fmt.Sprintf("%s:%d", address, defaultMetricExporterPort))
