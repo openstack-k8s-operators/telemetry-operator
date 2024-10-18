@@ -17,7 +17,16 @@ spec:
     singular: logging
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: Status
+      jsonPath: .status.conditions[0].status
+      name: Status
+      type: string
+    - description: Message
+      jsonPath: .status.conditions[0].message
+      name: Message
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: Logging is the Schema for the loggings API
