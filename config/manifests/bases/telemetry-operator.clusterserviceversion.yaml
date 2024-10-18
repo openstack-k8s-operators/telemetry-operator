@@ -34,6 +34,9 @@ spec:
       kind: Ceilometer
       name: ceilometers.telemetry.openstack.org
       specDescriptors:
+      - description: KSMTLS - Parameters related to the TLS for kube-state-metrics
+        displayName: KSMTLS
+        path: ksmTls
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: tls
@@ -72,6 +75,9 @@ spec:
         path: ceilometer.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: KSMTLS - Parameters related to the TLS for kube-state-metrics
+        displayName: KSMTLS
+        path: ceilometer.ksmTls
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: ceilometer.tls
