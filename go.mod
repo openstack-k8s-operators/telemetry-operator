@@ -8,12 +8,12 @@ require (
 	github.com/go-logr/logr v1.4.2
 	github.com/onsi/ginkgo/v2 v2.20.1
 	github.com/onsi/gomega v1.34.1
-	github.com/openstack-k8s-operators/heat-operator/api v0.4.1-0.20241015160530-1074e03de4f9
-	github.com/openstack-k8s-operators/infra-operator/apis v0.4.1-0.20241015142911-4fc474b2f29c
-	github.com/openstack-k8s-operators/keystone-operator/api v0.4.1-0.20241013092400-3f9337945472
+	github.com/openstack-k8s-operators/heat-operator/api v0.4.1-0.20241020223113-47c3e085f908
+	github.com/openstack-k8s-operators/infra-operator/apis v0.4.1-0.20241018085734-6534d4914f87
+	github.com/openstack-k8s-operators/keystone-operator/api v0.4.1-0.20241018180515-61e711f07467
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.4.1-0.20241014140317-e5c35d28f3af
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.4.1-0.20241014140317-e5c35d28f3af
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.4.1-0.20241015090956-b0954ab72dcd
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.4.1-0.20241017063825-352c57936a86
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240529090522-c780bd90b147
 	github.com/rabbitmq/cluster-operator v1.14.0
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.71.0-rhobs1
