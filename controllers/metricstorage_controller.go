@@ -595,6 +595,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 	// ScrapeConfigs for NodeExporters
 	endpointsNonTLS, endpointsTLS, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultNodeExporterPort)
+	Log.Info(fmt.Sprintf("metricStorage nodeExporter endpoints: endpointsNonTLS=%s endpointsTLS=%s", endpointsNonTLS, endpointsTLS))
 	if err != nil {
 		Log.Info(fmt.Sprintf("Cannot get node exporter targets. Scrape configs not created. Error: %s", err))
 	}
@@ -616,7 +617,8 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// kepler scrape endpoints
-	_, keplerEndpoints, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultKeplerPort)
+	keplerNonTLS, keplerEndpoints, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultKeplerPort)
+	Log.Info(fmt.Sprintf("metricStorage Kepler endpoints: keplerEndpoints=%s keplerNonTLS=%s", keplerEndpoints, keplerNonTLS))
 	if err != nil {
 		Log.Info(fmt.Sprintf("Cannot get Kepler targets. Scrape configs not created. Error: %s", err))
 	}
