@@ -120,8 +120,8 @@ type MetricStorageSpec struct {
 
 // MetricStorageStatus defines the observed state of MetricStorage
 type MetricStorageStatus struct {
-	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
-	PrometheusTLSPatched bool `json:"prometheusTLSPatched,omitempty" optional:"true"`
+	Conditions           condition.Conditions `json:"conditions,omitempty" optional:"true"`
+	PrometheusTLSPatched bool                 `json:"prometheusTLSPatched,omitempty" optional:"true"`
 	// ObservedGeneration - the most recent generation observed for this
 	// service. If the observed generation is less than the spec generation,
 	// then the controller has not processed the latest changes injected by
@@ -131,6 +131,8 @@ type MetricStorageStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[0].status",description="Status"
+//+kubebuilder:printcolumn:name="Message",type="string",JSONPath=".status.conditions[0].message",description="Message"
 
 // MetricStorage is the Schema for the metricstorages API
 type MetricStorage struct {
