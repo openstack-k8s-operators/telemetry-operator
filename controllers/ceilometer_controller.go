@@ -888,6 +888,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 	envVars *map[string]env.Setter,
 ) error {
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
+	ipmiLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.IpmiServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
 		customData[key] = data
@@ -922,7 +923,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 	}
 
 	cms := []util.Template{
-		// ScriptsConfigMap
+		// CeilometerCompute ScriptsConfigMap
 		{
 			Name:               fmt.Sprintf("%s-scripts", ceilometer.ComputeServiceName),
 			Namespace:          instance.Namespace,
@@ -931,7 +932,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
 			Labels:             cmLabels,
 		},
-		// ConfigMap
+		// CeilometerCompute ConfigMap
 		{
 			Name:          fmt.Sprintf("%s-config-data", ceilometer.ComputeServiceName),
 			Namespace:     instance.Namespace,
@@ -940,6 +941,25 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 			CustomData:    customData,
 			ConfigOptions: templateParameters,
 			Labels:        cmLabels,
+		},
+		// CeilometerIpmi ScriptsConfigMap
+		{
+			Name:               fmt.Sprintf("%s-scripts", ceilometer.IpmiServiceName),
+			Namespace:          instance.Namespace,
+			Type:               util.TemplateTypeScripts,
+			InstanceType:       "ceilometeripmi",
+			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
+			Labels:             ipmiLabels,
+		},
+		// CeilometerIpmi ConfigMap
+		{
+			Name:          fmt.Sprintf("%s-config-data", ceilometer.IpmiServiceName),
+			Namespace:     instance.Namespace,
+			Type:          util.TemplateTypeConfig,
+			InstanceType:  "ceilometeripmi",
+			CustomData:    customData,
+			ConfigOptions: templateParameters,
+			Labels:        ipmiLabels,
 		},
 	}
 	return secret.EnsureSecrets(ctx, h, instance, cms, envVars)
