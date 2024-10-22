@@ -1,0 +1,6 @@
+---
+sources:
+    - name: pollsters
+      interval: 120
+      meters:
+        - hardware.*
