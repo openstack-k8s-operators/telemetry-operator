@@ -594,7 +594,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// ScrapeConfigs for NodeExporters
-	endpointsNonTLS, endpointsTLS, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultNodeExporterPort)
+	endpointsNonTLS, endpointsTLS, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultNodeExporterPort, telemetry.ServiceName)
 	if err != nil {
 		Log.Info(fmt.Sprintf("Cannot get node exporter targets. Scrape configs not created. Error: %s", err))
 	}
@@ -616,17 +616,21 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// kepler scrape endpoints
-	_, keplerEndpoints, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultKeplerPort)
+	_, keplerEndpoints, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultKeplerPort, fmt.Sprintf("%s-power-monitoring", telemetry.ServiceName))
+
 	if err != nil {
 		Log.Info(fmt.Sprintf("Cannot get Kepler targets. Scrape configs not created. Error: %s", err))
 	}
 
-	// Kepler ScrapeConfig for non-tls nodes
-	keplerServiceName := fmt.Sprintf("%s-kepler", telemetry.ServiceName)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, "Kepler",
-		keplerServiceName, keplerEndpoints, false) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
-	if err != nil {
-		return ctrl.Result{}, err
+	// keplerEndpoint is reported as empty slice when telemetry-power-monitoring service is not enabled
+	if len(keplerEndpoints) > 0 {
+		// Kepler ScrapeConfig for non-tls nodes
+		keplerServiceName := fmt.Sprintf("%s-kepler", telemetry.ServiceName)
+		err = r.createServiceScrapeConfig(ctx, instance, Log, "Kepler",
+			keplerServiceName, keplerEndpoints, false) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
@@ -799,6 +803,7 @@ func getMetricExporterTargets(
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
 	defaultMetricExporterPort int32,
+	telemetryServiceName string,
 ) ([]string, []string, error) {
 	ipSetList, err := getIPSetList(instance, helper)
 	if err != nil {
@@ -817,16 +822,16 @@ func getMetricExporterTargets(
 			return []string{}, []string{}, err
 		}
 		nodeSetGroup := inventory.Groups[secret.Labels["openstackdataplanenodeset"]]
-		containsTelemetry := false
+		containsTargetService := false
 		for _, svc := range nodeSetGroup.Vars["edpm_services"].([]interface{}) {
-			if svc.(string) == "telemetry" {
-				containsTelemetry = true
+			if svc.(string) == telemetryServiceName {
+				containsTargetService = true
 			}
 		}
-		if !containsTelemetry {
-			// Telemetry isn't deployed on this nodeset
-			// there is no reason to include these nodes
-			// for scraping by prometheus
+		if !containsTargetService {
+			// If Telemetry|TelemetryPowerMonitoring isn't
+			// deployed on this nodeset there is no reason
+			// to include these nodes for scraping by prometheus
 			continue
 		}
 		for name, item := range nodeSetGroup.Hosts {
