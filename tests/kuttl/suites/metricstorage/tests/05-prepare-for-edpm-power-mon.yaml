@@ -1,0 +1,91 @@
+# Kuttl test doesn't seem to wait correctly for the metric
+# storage to reconcile in the next test step when switching
+# to CustomMonitoringStack (in the output of the test I
+# can see it applyes the resource and fails a second later).
+# Deleting it here and than recreating it in the next step
+# should ensure kuttl waits long enough.
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - apiVersion: telemetry.openstack.org/v1beta1
+    kind: MetricStorage
+    name: telemetry-kuttl
+commands:
+  - script: |
+      oc apply -f ../deps/rhobs.yaml
+      until oc api-resources | grep -q rhobs; do sleep 1; done
+  - script: |
+      oc apply -n telemetry-kuttl-tests -f ../deps/dnsmasq.yaml
+      until oc get dnsmasq -n telemetry-kuttl-tests | grep True; do sleep 1; done
+  - script: oc apply -n telemetry-kuttl-tests -f https://raw.githubusercontent.com/openstack-k8s-operators/infra-operator/main/config/samples/network_v1beta1_netconfig.yaml
+  - script: |
+      oc create secret generic dataplanenodeset-openstack-edpm-ipam \
+        --save-config \
+        --dry-run=client \
+        --from-file=../deps/inventory \
+        -n telemetry-kuttl-tests \
+        -o yaml | oc apply -f -
+      oc label -n telemetry-kuttl-tests secret dataplanenodeset-openstack-edpm-ipam inventory="true" openstack.org/operator-name=dataplane openstackdataplanenodeset=openstack-edpm-ipam
+---
+apiVersion: network.openstack.org/v1beta1
+kind: IPSet
+metadata:
+  name: edpm-compute-0
+spec:
+  immutable: false
+  networks:
+  - defaultRoute: true
+    name: ctlplane
+    subnetName: subnet1
+  - name: internalapi
+    subnetName: subnet1
+  - name: storage
+    subnetName: subnet1
+  - name: tenant
+    subnetName: subnet1
+status:
+  conditions:
+  - message: Setup complete
+    reason: Ready
+    status: "True"
+    type: Ready
+  - message: Input data complete
+    reason: Ready
+    status: "True"
+    type: InputReady
+  - message: Reservation successful
+    reason: Ready
+    status: "True"
+    type: ReservationReady
+  reservations:
+  - address: 192.168.122.100
+    cidr: 192.168.122.0/24
+    dnsDomain: ctlplane.example.com
+    gateway: 192.168.122.1
+    mtu: 1500
+    network: ctlplane
+    routes:
+    - destination: 0.0.0.0/0
+      nexthop: 192.168.122.1
+    subnet: subnet1
+  - address: 172.17.0.100
+    cidr: 172.17.0.0/24
+    dnsDomain: internalapi.example.com
+    mtu: 1500
+    network: internalapi
+    subnet: subnet1
+    vlan: 20
+  - address: 172.18.0.100
+    cidr: 172.18.0.0/24
+    dnsDomain: storage.example.com
+    mtu: 1500
+    network: storage
+    subnet: subnet1
+    vlan: 21
+  - address: 172.19.0.100
+    cidr: 172.19.0.0/24
+    dnsDomain: tenant.example.com
+    mtu: 1500
+    network: tenant
+    subnet: subnet1
+    vlan: 22

@@ -438,7 +438,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
-		if res, err := r.createDashboardObjects(ctx, instance, eventHandler); err != nil {
+		if res, err := r.createDashboardObjects(ctx, instance, helper, eventHandler); err != nil {
 			return res, err
 		}
 	}
@@ -600,7 +600,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
-	connectionInfo, err := getComputeNodesConnectionInfo(instance, helper)
+	connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetry.ServiceName)
 	if err != nil {
 		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Scrape configs not created. Error: %s", err))
 	}
@@ -623,18 +623,26 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
+	connectionInfo, err = getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
+	if err != nil {
+		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Scrape configs not created. Error: %s", err))
+	}
+
 	// kepler scrape endpoints
 	keplerEndpoints, _ := getKeplerTargets(connectionInfo)
 	if err != nil {
 		Log.Info(fmt.Sprintf("Cannot get Kepler targets. Scrape configs not created. Error: %s", err))
 	}
 
-	// Kepler ScrapeConfig for non-tls nodes
-	keplerServiceName := fmt.Sprintf("%s-kepler", telemetry.ServiceName)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, "Kepler",
-		keplerServiceName, keplerEndpoints, false) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
-	if err != nil {
-		return ctrl.Result{}, err
+	// keplerEndpoint is reported as empty slice when telemetry-power-monitoring service is not enabled
+	if len(keplerEndpoints) > 0 {
+		// Kepler ScrapeConfig for non-tls nodes
+		keplerServiceName := fmt.Sprintf("%s-kepler", telemetry.ServiceName)
+		err = r.createServiceScrapeConfig(ctx, instance, Log, "Kepler",
+			keplerServiceName, keplerEndpoints, false) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
@@ -672,7 +680,7 @@ func getKeplerTargets(nodes []ConnectionInfo) ([]string, []string) {
 	return tls, nonTLS
 }
 
-func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, eventHandler handler.EventHandler) (ctrl.Result, error) {
+func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	uiPluginObj := &obsui.UIPlugin{
 		ObjectMeta: metav1.ObjectMeta{
@@ -765,7 +773,14 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			"grafana-dashboard-openstack-node":     dashboards.OpenstackNode(datasourceName),
 			"grafana-dashboard-openstack-vm":       dashboards.OpenstackVM(datasourceName),
 			"grafana-dashboard-openstack-rabbitmq": dashboards.OpenstackRabbitmq(datasourceName),
-			"grafana-dashboard-openstack-kepler":   dashboards.OpenstackKepler(datasourceName),
+		}
+
+		// atleast one nodeset must have "telemetry-power-monitoring" service enabled for kepler dashboard to be created
+		connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
+		if err != nil {
+			Log.Info(fmt.Sprintf("Cannot get compute node connection info. Power monitoring dashboard not created. Error: %s", err))
+		} else if len(connectionInfo) > 0 {
+			dashboardCMs["grafana-dashboard-openstack-kepler"] = dashboards.OpenstackKepler(datasourceName)
 		}
 
 		for dashboardName, desiredCM := range dashboardCMs {
@@ -837,6 +852,7 @@ func (r *MetricStorageReconciler) ensureWatches(
 func getComputeNodesConnectionInfo(
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
+	telemetryServiceName string,
 ) ([]ConnectionInfo, error) {
 	ipSetList, err := getIPSetList(instance, helper)
 	if err != nil {
@@ -854,16 +870,16 @@ func getComputeNodesConnectionInfo(
 			return []ConnectionInfo{}, err
 		}
 		nodeSetGroup := inventory.Groups[secret.Labels["openstackdataplanenodeset"]]
-		containsTelemetry := false
+		containsTargetService := false
 		for _, svc := range nodeSetGroup.Vars["edpm_services"].([]interface{}) {
-			if svc.(string) == "telemetry" {
-				containsTelemetry = true
+			if svc.(string) == telemetryServiceName {
+				containsTargetService = true
 			}
 		}
-		if !containsTelemetry {
-			// Telemetry isn't deployed on this nodeset
-			// there is no reason to include these nodes
-			// for scraping by prometheus
+		if !containsTargetService {
+			// If Telemetry|TelemetryPowerMonitoring isn't
+			// deployed on this nodeset there is no reason
+			// to include these nodes for scraping by prometheus
 			continue
 		}
 		for name, item := range nodeSetGroup.Hosts {
@@ -871,7 +887,6 @@ func getComputeNodesConnectionInfo(
 				Name:      name,
 				Namespace: instance.GetNamespace(),
 			}
-
 			if len(ipSetList.Items) > 0 {
 				// if we have IPSets, lets go to search for the IPs there
 				address, _ = getAddressFromIPSet(instance, &item, namespacedName, helper)

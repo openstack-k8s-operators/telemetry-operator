@@ -36,9 +36,3 @@ kind: ConfigMap
 metadata:
   name: grafana-dashboard-openstack-rabbitmq
   namespace: openshift-config-managed
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-openstack-kepler
-  namespace: openshift-config-managed

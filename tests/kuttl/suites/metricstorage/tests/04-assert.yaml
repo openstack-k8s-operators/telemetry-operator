@@ -106,16 +106,3 @@ metadata:
     name: telemetry-kuttl
 spec:
   scrapeInterval: 40s
----
-apiVersion: monitoring.rhobs/v1alpha1
-kind: ScrapeConfig
-metadata:
-  labels:
-    service: metricStorage
-  name: telemetry-kepler
-  ownerReferences:
-  - kind: MetricStorage
-    name: telemetry-kuttl
-spec:
-  staticConfigs:
-    - {}
