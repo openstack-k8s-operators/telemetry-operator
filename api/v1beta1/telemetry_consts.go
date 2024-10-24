@@ -32,6 +32,8 @@ const (
 	PauseBetweenWatchAttempts = time.Duration(60) * time.Second
 	// DefaultKeplerPort -
 	DefaultKeplerPort = 8888
+	// Dataplane power monitoring service name
+	TelemetryPowerMonitoring = "telemetry-power-monitoring"
 )
 
 // PrometheusReplicas -
