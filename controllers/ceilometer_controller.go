@@ -756,10 +756,10 @@ func (r *CeilometerReconciler) reconcileKSM(
 		svc, op, err := availability.KSMService(instance, helper, serviceLabels)
 		if err != nil {
 			instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-				condition.ExposeServiceReadyCondition,
+				condition.CreateServiceReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
-				condition.ExposeServiceReadyErrorMessage,
+				condition.CreateServiceReadyErrorMessage,
 				err.Error()))
 
 			return ctrl.Result{}, err
