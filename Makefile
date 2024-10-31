@@ -341,19 +341,18 @@ operator-lint: $(LOCALBIN) gowork ## Runs operator-lint
 	go vet -vettool=$(LOCALBIN)/operator-lint ./... ./api/...
 
 # Used for webhook testing
-# Please ensure the telemetry-controller-manager deployment and
-# webhook definitions are removed from the csv before running
-# this. Also, cleanup the webhook configuration for local testing
-# before deplying with olm again.
-# $oc delete -n openstack validatingwebhookconfiguration/vtelemetry.kb.io
-# $oc delete -n openstack mutatingwebhookconfiguration/mtelemetry.kb.io
+# The configure_local_webhook.sh script below will remove any OLM webhooks
+# for the operator and also scale its deployment replicas down to 0 so that
+# the operator can run locally.
+# We will attempt to catch SIGINT/SIGTERM and clean up the local webhooks,
+# but it may be necessary to manually run ./hack/clean_local_webhook.sh
+# before deploying with OLM again for other untrappable signals.
 SKIP_CERT ?=false
 .PHONY: run-with-webhook
 run-with-webhook: export METRICS_PORT?=8080
 run-with-webhook: export HEALTH_PORT?=8081
 run-with-webhook: manifests generate fmt vet ## Run a controller from your host.
-	/bin/bash hack/configure_local_webhook.sh
-	go run ./main.go -metrics-bind-address ":$(METRICS_PORT)" -health-probe-bind-address ":$(HEALTH_PORT)"
+	/bin/bash hack/run_with_local_webhook.sh
 
 .PHONY: kuttl-install
 kuttl-install:
