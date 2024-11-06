@@ -1,4 +1,5 @@
 ---
+cifmw_run_tests: true
 cifmw_run_test_role: test_operator
 cifmw_test_operator_tempest_namespace: podified-antelope-centos9
 cifmw_test_operator_tempest_container: openstack-tempest-all
