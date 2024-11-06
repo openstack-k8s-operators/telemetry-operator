@@ -1,4 +1,5 @@
 ---
+cifmw_run_tests: false
 pre_deploy_deploy_logging_dependencies:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-logging-dependencies.yml"
   type: playbook
