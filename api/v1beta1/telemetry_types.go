@@ -71,6 +71,10 @@ type TelemetrySpecBase struct {
 	// +kubebuilder:validation:Optional
 	// Logging - Parameters related to the logging
 	Logging LoggingSection `json:"logging,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// NodeSelector to target subset of worker nodes running this service
+	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // CeilometerSection defines the desired state of the ceilometer service

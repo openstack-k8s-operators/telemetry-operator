@@ -106,6 +106,12 @@ spec:
                         items:
                           type: string
                         type: array
+                      nodeSelector:
+                        additionalProperties:
+                          type: string
+                        description: NodeSelector to target subset of worker nodes
+                          running this service
+                        type: object
                       notifierImage:
                         type: string
                       override:
@@ -467,6 +473,12 @@ spec:
                     items:
                       type: string
                     type: array
+                  nodeSelector:
+                    additionalProperties:
+                      type: string
+                    description: NodeSelector to target subset of worker nodes running
+                      this service
+                    type: object
                   notificationImage:
                     type: string
                   passwordSelector:
@@ -1822,6 +1834,12 @@ spec:
                         description: SecretName - holding the cert, key for the service
                         type: string
                     type: object
+                type: object
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: NodeSelector to target subset of worker nodes running
+                  this service
                 type: object
             type: object
           status:

@@ -170,5 +170,9 @@ func KSMStatefulSet(
 		},
 	}
 
+	if instance.Spec.NodeSelector != nil {
+		ss.Spec.Template.Spec.NodeSelector = *instance.Spec.NodeSelector
+	}
+
 	return ss, nil
 }

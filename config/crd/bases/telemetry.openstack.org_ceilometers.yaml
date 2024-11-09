@@ -149,6 +149,12 @@ spec:
                 items:
                   type: string
                 type: array
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: NodeSelector to target subset of worker nodes running
+                  this service
+                type: object
               notificationImage:
                 type: string
               passwordSelector:
