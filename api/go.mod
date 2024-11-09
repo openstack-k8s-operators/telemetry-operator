@@ -5,8 +5,8 @@ go 1.21
 require (
 	github.com/onsi/ginkgo/v2 v2.20.1
 	github.com/onsi/gomega v1.34.1
-	github.com/openstack-k8s-operators/infra-operator/apis v0.4.1-0.20241018085734-6534d4914f87
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.5.1-0.20241029151503-4878b3fa3333
+	github.com/openstack-k8s-operators/infra-operator/apis v0.5.1-0.20241106062833-6ba8f6c612c7
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.5.1-0.20241104140916-71a0e9d9766d
 	github.com/rhobs/observability-operator v0.3.1
 	k8s.io/api v0.29.10
 	k8s.io/apimachinery v0.29.10
@@ -19,7 +19,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.11.2 // indirect
-	github.com/evanphx/json-patch v5.7.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
