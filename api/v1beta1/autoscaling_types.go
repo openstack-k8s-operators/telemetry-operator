@@ -58,6 +58,12 @@ type Aodh struct {
 
 // Aodh defines the aodh component spec
 type AodhCore struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=60
+	// +kubebuilder:Default=60
+	// APITimeout for Route and Apache
+	APITimeout int `json:"apiTimeout,omitempty"`
+
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Aodh
 	// +kubebuilder:default=rabbitmq
