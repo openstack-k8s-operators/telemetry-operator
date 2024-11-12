@@ -108,6 +108,11 @@ spec:
           spec:
             description: CeilometerSpec defines the desired state of Ceilometer
             properties:
+              apiTimeout:
+                default: 60
+                description: APITimeout for Apache
+                minimum: 60
+                type: integer
               centralImage:
                 type: string
               computeImage:
