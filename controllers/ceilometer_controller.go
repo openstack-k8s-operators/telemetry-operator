@@ -839,6 +839,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		"CeilometerPassword":  string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
 		"TLS":                 false, // Default to false. Change to true later if TLS enabled
 		"SwiftRole":           false, //
+		"Timeout":             instance.Spec.APITimeout,
 	}
 
 	// create httpd  vhost template parameters
