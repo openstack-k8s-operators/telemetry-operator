@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -78,6 +79,33 @@ func (spec *AutoscalingSpec) Default() {
 	if spec.Aodh.MemcachedInstance == "" {
 		spec.Aodh.MemcachedInstance = "memcached"
 	}
+}
+
+// SetDefaultRouteAnnotations sets HAProxy timeout values of the route
+// NOTE: it is used by ctlplane webhook on openstack-operator
+func (spec *AutoscalingSpecCore) SetDefaultRouteAnnotations(annotations map[string]string) {
+	const haProxyAnno = "haproxy.router.openshift.io/timeout"
+	// Use a custom annotation to flag when the operator has set the default HAProxy timeout
+	// With the annotation func determines when to overwrite existing HAProxy timeout with the APITimeout
+	const aodhAnno = "api.aodh.openstack.org/timeout"
+
+	valAodh, okAodh := annotations[aodhAnno]
+	valHAProxy, okHAProxy := annotations[haProxyAnno]
+
+	// Human operator set the HAProxy timeout manually
+	if !okAodh && okHAProxy {
+		return
+	}
+
+	// Human operator modified the HAProxy timeout manually without removing the Aodh flag
+	if okAodh && okHAProxy && valAodh != valHAProxy {
+		delete(annotations, aodhAnno)
+		return
+	}
+
+	timeout := fmt.Sprintf("%ds", spec.Aodh.APITimeout)
+	annotations[aodhAnno] = timeout
+	annotations[haProxyAnno] = timeout
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

@@ -604,6 +604,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 			string(databaseSecret.Data[mariadbv1.DatabasePasswordSelector]),
 			instance.Status.DatabaseHostname,
 			autoscaling.DatabaseName),
+		"Timeout": instance.Spec.Aodh.APITimeout,
 	}
 
 	prometheusParams := map[string]interface{}{
