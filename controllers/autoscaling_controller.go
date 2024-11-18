@@ -788,6 +788,35 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		}
 		return nil
 	}
+	metricStorageFn := func(_ context.Context, o client.Object) []reconcile.Request {
+		result := []reconcile.Request{}
+
+		// get all autoscaling CRs
+		autoscalings := &telemetryv1.AutoscalingList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(o.GetNamespace()),
+		}
+		if err := r.Client.List(context.Background(), autoscalings, listOpts...); err != nil {
+			Log.Error(err, "Unable to retrieve Autoscaling CRs %w")
+			return nil
+		}
+
+		for _, cr := range autoscalings.Items {
+			if cr.Spec.PrometheusHost == "" {
+				// the autoscaling is using MetricStorage for metrics
+				name := client.ObjectKey{
+					Namespace: o.GetNamespace(),
+					Name:      cr.Name,
+				}
+				Log.Info(fmt.Sprintf("MetricStorage %s is used by Autoscaling CR %s", o.GetName(), cr.Name))
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
 	// index autoscalingCaBundleSecretNameField
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingCaBundleSecretNameField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
@@ -846,6 +875,11 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		Watches(
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
+		Watches(
+			&telemetryv1.MetricStorage{},
+			handler.EnqueueRequestsFromMapFunc(metricStorageFn),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Complete(r)
