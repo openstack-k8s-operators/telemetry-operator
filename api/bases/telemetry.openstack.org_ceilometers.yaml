@@ -111,7 +111,6 @@ spec:
               apiTimeout:
                 default: 60
                 description: APITimeout for Apache
-                minimum: 60
                 type: integer
               centralImage:
                 type: string

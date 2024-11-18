@@ -65,7 +65,6 @@ spec:
                   apiTimeout:
                     default: 60
                     description: APITimeout for Route and Apache
-                    minimum: 60
                     type: integer
                   customServiceConfig:
                     default: '# add your customization here'
