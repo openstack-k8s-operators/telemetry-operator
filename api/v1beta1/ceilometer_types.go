@@ -64,7 +64,7 @@ type CeilometerSpec struct {
 	// +kubebuilder:validation:Required
 	ProxyImage string `json:"proxyImage"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	KSMImage string `json:"ksmImage"`
 }
 

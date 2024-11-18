@@ -520,7 +520,6 @@ spec:
                 - centralImage
                 - computeImage
                 - ipmiImage
-                - ksmImage
                 - notificationImage
                 - proxyImage
                 - secret
