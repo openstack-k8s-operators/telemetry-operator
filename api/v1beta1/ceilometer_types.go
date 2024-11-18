@@ -70,6 +70,12 @@ type CeilometerSpec struct {
 
 // CeilometerSpecCore defines the desired state of Ceilometer. This version is used by the OpenStackControlplane (no image parameters)
 type CeilometerSpecCore struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=60
+	// +kubebuilder:validation:Minimum=60
+	// APITimeout for Apache
+	APITimeout int `json:"apiTimeout"`
+
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Telemetry
 	// +kubebuilder:default=rabbitmq

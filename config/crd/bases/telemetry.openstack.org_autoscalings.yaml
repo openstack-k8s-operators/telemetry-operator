@@ -62,6 +62,10 @@ spec:
                 properties:
                   apiImage:
                     type: string
+                  apiTimeout:
+                    description: APITimeout for Route and Apache
+                    minimum: 60
+                    type: integer
                   customServiceConfig:
                     default: '# add your customization here'
                     description: CustomServiceConfig - customize the service config

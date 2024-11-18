@@ -65,6 +65,10 @@ spec:
                     properties:
                       apiImage:
                         type: string
+                      apiTimeout:
+                        description: APITimeout for Route and Apache
+                        minimum: 60
+                        type: integer
                       customServiceConfig:
                         default: '# add your customization here'
                         description: CustomServiceConfig - customize the service config
@@ -421,6 +425,11 @@ spec:
               ceilometer:
                 description: Ceilometer - Parameters related to the ceilometer service
                 properties:
+                  apiTimeout:
+                    default: 60
+                    description: APITimeout for Apache
+                    minimum: 60
+                    type: integer
                   centralImage:
                     type: string
                   computeImage:
