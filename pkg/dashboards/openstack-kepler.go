@@ -102,11 +102,11 @@ func OpenstackKepler(dsName string) *corev1.ConfigMap {
 								"seriesOverrides": [],
 								"spaceLength": 10,
 								"span": 6,
-								"stack": true,
+								"stack": false,
 								"steppedLine": false,
 								"targets": [
 									{
-									"expr": "sum(rate(kepler_vm_platform_joules_total[1m])) by (vm_id,instance) + on(instance) group_left(exported_instance) (0*sum(kepler_node_platform_joules_total{exported_instance=\"$compute\"}) by (instance,exported_instance))",
+									"expr": "sum(rate(kepler_vm_platform_joules_total{fqdn=\"$compute\"}[1m])) by (vm_id,fqdn)",
 									"legendFormat": "{{ vm_id }}",
 									"refId": "A"
 									}
@@ -193,11 +193,11 @@ func OpenstackKepler(dsName string) *corev1.ConfigMap {
 								"seriesOverrides": [],
 								"spaceLength": 10,
 								"span": 6,
-								"stack": true,
+								"stack": false,
 								"steppedLine": false,
 								"targets": [
 								{
-									"expr": "sum by (vm_id, instance) (increase(kepler_vm_platform_joules_total[24h:1m])) * 0.000000277777777777778 + on(instance) group_left(exported_instance) (0*sum(kepler_node_platform_joules_total{exported_instance=\"$compute\"}) by (instance, exported_instance))",
+									"expr": "sum by (vm_id, fqdn) (increase(kepler_vm_platform_joules_total{fqdn=\"$compute\"}[24h:1m])) * 0.000000277777777777778",
 									"legendFormat": "{{ vm_id }}",
 									"refId": "A"
 								}
@@ -300,8 +300,8 @@ func OpenstackKepler(dsName string) *corev1.ConfigMap {
 								"steppedLine": false,
 								"targets": [
 									{
-									"expr": "sum by (exported_instance) (rate(kepler_node_platform_joules_total{exported_instance=\"$compute\"}[1m])) ",
-									"legendFormat": "{{ exported_instance }}",
+									"expr": "sum by (fqdn) (rate(kepler_node_platform_joules_total{fqdn=\"$compute\"}[1m]))",
+									"legendFormat": "{{ fqdn }}",
 									"refId": "A"
 									}
 								],
@@ -391,8 +391,8 @@ func OpenstackKepler(dsName string) *corev1.ConfigMap {
 								"steppedLine": false,
 								"targets": [
 								{
-									"expr": "sum by (exported_instance) (increase((kepler_node_platform_joules_total{exported_instance=\"$compute\"}[24h:1m]))) * 0.000000277777777777778",
-									"legendFormat": "{{ exported_instance }}",
+									"expr": "sum by (fqdn) (increase((kepler_node_platform_joules_total{fqdn=\"$compute\"}[24h:1m]))) * 0.000000277777777777778",
+									"legendFormat": "{{ fqdn }}",
 									"refId": "A"
 								}
 								],
@@ -491,7 +491,7 @@ func OpenstackKepler(dsName string) *corev1.ConfigMap {
 								"steppedLine": false,
 								"targets": [
 									{
-									"expr": "sum(rate(kepler_process_joules_total{vm_id=\"\",container_id=\"system_processes\",command=~\"virt.+|ovn.+|nova.+|ceil.+|neut.+|node.+|ovs.+|kepler|multi.+|haproxy|ceph.+|swift.+|chronyd\"}[1m])) by (command,instance) + on(instance) group_left(exported_instance) (0*sum(kepler_node_platform_joules_total{exported_instance=\"$compute\"}) by (instance, exported_instance))",
+									"expr": "sum(rate(kepler_process_joules_total{vm_id=\"\",container_id=\"system_processes\",command=~\"virt.+|ovn.+|nova.+|ceil.+|neut.+|node.+|ovs.+|kepler|multi.+|haproxy|ceph.+|swift.+|chronyd\", fqdn=\"$compute\"}[1m])) by (command,fqdn)",
 									"legendFormat": "{{ command }}",
 									"refId": "A"
 									}
@@ -588,11 +588,11 @@ func OpenstackKepler(dsName string) *corev1.ConfigMap {
 								"seriesOverrides": [],
 								"spaceLength": 10,
 								"span": 6,
-								"stack": true,
+								"stack": false,
 								"steppedLine": false,
 								"targets": [
 									{
-									"expr": "sum by (container_namespace,instance) (rate(kepler_container_joules_total{}[1m])) + on(instance) group_left(exported_instance) (0*sum(kepler_node_platform_joules_total{exported_instance=\"$compute\"}) by (instance, exported_instance))",
+									"expr": "sum by (container_namespace,fqdn) (rate(kepler_container_joules_total{fqdn=\"$compute\"}[1m]))",
 									"legendFormat": "{{ container_namespace }}",
 									"refId": "A"
 									}
@@ -655,10 +655,10 @@ func OpenstackKepler(dsName string) *corev1.ConfigMap {
 						"value": ""
 						},
 						"datasource": { "name": "` + dsName + `", "type": "prometheus" },
-						"definition": "label_values(kepler_node_platform_joules_total, exported_instance)",
+						"definition": "label_values(kepler_node_info, fqdn)",
 						"hide": 0,
 						"includeAll": false,
-						"label": "Compute",
+						"label": null,
 						"multi": false,
 						"name": "compute",
 						"options": [
@@ -668,7 +668,7 @@ func OpenstackKepler(dsName string) *corev1.ConfigMap {
 							"value": ""
 						}
 						],
-						"query": "label_values(kepler_node_platform_joules_total, exported_instance)",
+						"query": "label_values(kepler_node_info, fqdn)",
 						"refresh": 0,
 						"regex": "",
 						"skipUrlSync": false,
