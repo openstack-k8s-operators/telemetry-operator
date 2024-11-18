@@ -667,11 +667,14 @@ func getNodeExporterTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarg
 	return tls, nonTLS
 }
 
-func getKeplerTargets(nodes []ConnectionInfo) ([]string, []string) {
-	tls := []string{}
-	nonTLS := []string{}
+func getKeplerTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarget, []metricstorage.LabeledTarget) {
+	tls := []metricstorage.LabeledTarget{}
+	nonTLS := []metricstorage.LabeledTarget{}
 	for _, node := range nodes {
-		target := fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultKeplerPort)
+		target := metricstorage.LabeledTarget{
+			IP:   fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultKeplerPort),
+			FQDN: node.FQDN,
+		}
 		if node.TLS {
 			tls = append(tls, target)
 		} else {
