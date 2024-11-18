@@ -59,7 +59,6 @@ type Aodh struct {
 // Aodh defines the aodh component spec
 type AodhCore struct {
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=60
 	// +kubebuilder:default=60
 	// APITimeout for Route and Apache
 	APITimeout int `json:"apiTimeout"`
