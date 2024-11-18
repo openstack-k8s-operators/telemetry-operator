@@ -72,7 +72,6 @@ type CeilometerSpec struct {
 type CeilometerSpecCore struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=60
-	// +kubebuilder:validation:Minimum=60
 	// APITimeout for Apache
 	APITimeout int `json:"apiTimeout"`
 
