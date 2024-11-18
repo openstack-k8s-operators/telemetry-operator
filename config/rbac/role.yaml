@@ -138,6 +138,14 @@ rules:
 - apiGroups:
   - mariadb.openstack.org
   resources:
+  - galeras
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - mariadb.openstack.org
+  resources:
   - mariadbaccounts
   verbs:
   - create

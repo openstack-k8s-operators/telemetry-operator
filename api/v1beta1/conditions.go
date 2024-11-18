@@ -207,4 +207,10 @@ const (
 
 	// KSMReadyRunningMessage
 	KSMReadyRunningMessage = "KSM in progress"
+
+	//
+	// mysqld_exporter condition messages
+	//
+	// MysqldExporterDisabledMessage
+	MysqldExporterDisabledMessage = "mysqld_exporter is disabled"
 )
