@@ -28,8 +28,8 @@ import (
 )
 
 type LabeledTarget struct {
-	IP       string
-	Hostname string
+	IP   string
+	FQDN string
 }
 
 // ScrapeConfig creates a ScrapeConfig CR
@@ -69,7 +69,7 @@ func ScrapeConfig(
 			staticConfigs = append(staticConfigs, monv1alpha1.StaticConfig{
 				Targets: []monv1alpha1.Target{monv1alpha1.Target(t.IP)},
 				Labels: map[monv1.LabelName]string{
-					"hostname": t.Hostname,
+					"fqdn": t.FQDN,
 				},
 			})
 		}
