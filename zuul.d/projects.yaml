@@ -73,5 +73,8 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
-        - telemetry-operator-multinode-autoscaling-tempest
+        - telemetry-operator-multinode-autoscaling-tempest:
+            required-projects:
+              - name: openstack/telemetry-tempest-plugin
+                override-checkout: master
 
