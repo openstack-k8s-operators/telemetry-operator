@@ -372,7 +372,6 @@ spec:
                     - databaseInstance
                     - evaluatorImage
                     - listenerImage
-                    - memcachedInstance
                     - notifierImage
                     - secret
                     type: object
