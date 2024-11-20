@@ -25,6 +25,4 @@ external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
 change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
   #cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + external_plugin, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
 cifmw_test_operator_tempest_external_plugin:
-  - { 'repository': 'https://opendev.org/openstack/telemetry-tempest-plugin.git', 'changeRepository': 'https://review.opendev.org/c/openstack/telemetry-tempest-plugin', 'changeRefspec': 'refs/changes/03/935603/8' }
-
-
+  - { 'repository': 'https://opendev.org/openstack/telemetry-tempest-plugin.git', 'changeRepository': 'https://review.opendev.org/openstack/telemetry-tempest-plugin', 'changeRefspec': 'refs/changes/31/935831/1' }
