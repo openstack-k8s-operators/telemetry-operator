@@ -101,6 +101,7 @@ type ConnectionInfo struct {
 	IP       string
 	Hostname string
 	TLS      bool
+	FQDN     string
 }
 
 // GetLogger returns a logger object with a prefix of "conroller.name" and aditional controller context fields
@@ -646,8 +647,8 @@ func getNodeExporterTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarg
 	nonTLS := []metricstorage.LabeledTarget{}
 	for _, node := range nodes {
 		target := metricstorage.LabeledTarget{
-			IP:       fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultNodeExporterPort),
-			Hostname: node.Hostname,
+			IP:   fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultNodeExporterPort),
+			FQDN: node.FQDN,
 		}
 		if node.TLS {
 			tls = append(tls, target)
@@ -885,17 +886,22 @@ func getComputeNodesConnectionInfo(
 				// we were unable to find an IP or HostName for a node, so we do not go further
 				return connectionInfo, fmt.Errorf("failed to find an IP or HostName for node %s", name)
 			}
+
+			fqdn, _ := getCanonicalHostname(&item)
+
 			if TLSEnabled, ok := nodeSetGroup.Vars["edpm_tls_certs_enabled"].(bool); ok && TLSEnabled {
 				connectionInfo = append(connectionInfo, ConnectionInfo{
 					IP:       address,
 					Hostname: name,
 					TLS:      true,
+					FQDN:     fqdn,
 				})
 			} else {
 				connectionInfo = append(connectionInfo, ConnectionInfo{
 					IP:       address,
 					Hostname: name,
 					TLS:      false,
+					FQDN:     fqdn,
 				})
 			}
 		}
@@ -970,6 +976,16 @@ func getAddressFromAnsibleHost(item *ansible.Host) (string, discoveryv1.AddressT
 	if isValidDomain(ansibleHost) {
 		// it is an valid domain name
 		return ansibleHost, discoveryv1.AddressTypeFQDN
+	}
+	return "", ""
+}
+
+func getCanonicalHostname(item *ansible.Host) (string, discoveryv1.AddressType) {
+	canonicalHostname := item.Vars["canonical_hostname"].(string)
+	// is it a valid hostname?
+	if isValidDomain(canonicalHostname) {
+		// it is an valid domain name
+		return canonicalHostname, discoveryv1.AddressTypeFQDN
 	}
 	return "", ""
 }
