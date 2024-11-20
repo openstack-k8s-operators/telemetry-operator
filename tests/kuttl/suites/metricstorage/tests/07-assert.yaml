@@ -22,7 +22,9 @@ spec:
   - action: labeldrop
     regex: publisher
   staticConfigs:
-  - targets:
+  - labels:
+      fqdn: edpm-compute-0.ctlplane.example.com
+    targets:
     - 192.168.122.100:8888
 ---
 apiVersion: v1
