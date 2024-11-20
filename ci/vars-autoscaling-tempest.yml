@@ -21,8 +21,10 @@ cifmw_tempest_tempestconf_config:
 cifmw_test_operator_tempest_include_list: |
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh
-cifmw_test_operator_tempest_exclude_list: |
-  telemetry_tempest_plugin.scenario.test_telemetry_integration_prometheus.PrometheusGabbiTest.test_autoscaling
 external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
 change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
-cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + external_plugin, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
+  #cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + external_plugin, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
+cifmw_test_operator_tempest_external_plugin:
+  - { 'repository': 'https://opendev.org/openstack/telemetry-tempest-plugin.git', 'changeRepository': 'https://review.opendev.org/c/openstack/telemetry-tempest-plugin', 'changeRefspec': 'refs/changes/03/935603/8' }
+
+
