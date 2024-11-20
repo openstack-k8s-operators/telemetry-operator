@@ -119,7 +119,7 @@ type AodhCore struct {
 	PreserveJobs bool `json:"preserveJobs"`
 
 	// Memcached instance name.
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=memcached
 	MemcachedInstance string `json:"memcachedInstance"`
 

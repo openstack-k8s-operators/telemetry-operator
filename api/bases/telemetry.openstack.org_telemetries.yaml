@@ -376,7 +376,6 @@ spec:
                     - databaseInstance
                     - evaluatorImage
                     - listenerImage
-                    - memcachedInstance
                     - notifierImage
                     - secret
                     type: object
@@ -528,7 +527,6 @@ spec:
                 - centralImage
                 - computeImage
                 - ipmiImage
-                - ksmImage
                 - notificationImage
                 - proxyImage
                 - secret
