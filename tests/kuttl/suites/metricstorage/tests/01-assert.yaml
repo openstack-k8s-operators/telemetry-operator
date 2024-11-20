@@ -95,19 +95,6 @@ metadata:
 spec:
   scrapeInterval: 30s
 ---
-apiVersion: monitoring.rhobs/v1alpha1
-kind: ScrapeConfig
-metadata:
-  labels:
-    service: metricStorage
-  name: telemetry-kepler
-  ownerReferences:
-  - kind: MetricStorage
-    name: telemetry-kuttl
-spec:
-  staticConfigs:
-    - {}
----
 apiVersion: observability.openshift.io/v1alpha1
 kind: UIPlugin
 metadata:
@@ -158,10 +145,4 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboard-openstack-rabbitmq
-  namespace: openshift-config-managed
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-openstack-kepler
   namespace: openshift-config-managed
