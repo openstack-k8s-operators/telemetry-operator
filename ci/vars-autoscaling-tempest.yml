@@ -19,6 +19,7 @@ cifmw_tempest_tempestconf_config:
       telemetry.prometheus_scrape_interval 30
       telemetry.alarm_threshold 50000000000
       heat_plugin.disable_ssl_certificate_validation true
+      identity.disable_ssl_certificate_validation true
 cifmw_test_operator_tempest_include_list: |
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh
