@@ -117,6 +117,10 @@ type CeilometerSpecCore struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// KSMTLS - Parameters related to the TLS for kube-state-metrics
 	KSMTLS tls.SimpleService `json:"ksmTls,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// NodeSelector to target subset of worker nodes running this service
+	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer
