@@ -28,3 +28,17 @@ testDirs:
   - tests/kuttl/suites/tls/
 suppress:
   - events                     # Remove spammy event logs
+commands:
+  - script: |
+      if [ ! -f ansibleee-ssh-key-id_rsa ]; then
+          ssh-keygen -f ansibleee-ssh-key-id_rsa -N "" -t rsa -b 4096
+      fi
+      oc create secret generic dataplane-ansible-ssh-private-key-secret \
+      --save-config \
+      --dry-run=client \
+      --from-file=authorized_keys=ansibleee-ssh-key-id_rsa.pub \
+      --from-file=ssh-privatekey=ansibleee-ssh-key-id_rsa \
+      --from-file=ssh-publickey=ansibleee-ssh-key-id_rsa.pub \
+      -n telemetry-kuttl-tests \
+      -o yaml | \
+      oc apply -f -
