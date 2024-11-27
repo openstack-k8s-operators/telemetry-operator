@@ -647,7 +647,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
 func getNodeExporterTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarget, []metricstorage.LabeledTarget) {
