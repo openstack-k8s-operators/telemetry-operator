@@ -72,8 +72,8 @@ github.com/onsi/ginkgo/v2 v2.20.1 h1:YlVIbqct+ZmnEph770q9Q7NVAz4wwIiVNahee6JyUzo
 github.com/onsi/ginkgo/v2 v2.20.1/go.mod h1:lG9ey2Z29hR41WMVthyJBGUBcBhGOtoPF2VFMvBXFCI=
 github.com/onsi/gomega v1.34.1 h1:EUMJIKUjM8sKjYbtxQI9A4z2o+rruxnzNvpknOXie6k=
 github.com/onsi/gomega v1.34.1/go.mod h1:kU1QgUvBDLXBJq618Xvm2LUX6rSAfRaFRTcdOeDLwwY=
-github.com/openstack-k8s-operators/infra-operator/apis v0.5.1-0.20241114093759-47b4c2e6639e h1:IzKbAe3kIWXi9ZyBtMLOrQY5UTytf7RrA+bFQCdoKDc=
-github.com/openstack-k8s-operators/infra-operator/apis v0.5.1-0.20241114093759-47b4c2e6639e/go.mod h1:6x5zgJJBjrOhsTtNALYrM2ecUH92kIoZbZ6w1fKHPfs=
+github.com/openstack-k8s-operators/infra-operator/apis v0.5.1-0.20241122093230-6821e16a4f22 h1:gLJVIS2RErfHxrkzok0IjtULijlwZxWHIPVZlDjhSO0=
+github.com/openstack-k8s-operators/infra-operator/apis v0.5.1-0.20241122093230-6821e16a4f22/go.mod h1:6x5zgJJBjrOhsTtNALYrM2ecUH92kIoZbZ6w1fKHPfs=
 github.com/openstack-k8s-operators/lib-common/modules/common v0.5.1-0.20241114091812-6dc9fd0961dc h1:Ufa/q/nC9wmKblvsc0kJppsXHOJoY4fbUamb3ItWCOk=
 github.com/openstack-k8s-operators/lib-common/modules/common v0.5.1-0.20241114091812-6dc9fd0961dc/go.mod h1:YpNTuJhDWhbXM50O3qBkhO7M+OOyRmWkNVmJ4y3cyFs=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
