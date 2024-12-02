@@ -21,6 +21,7 @@ import (
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/clusterdns"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -29,6 +30,7 @@ func DashboardDatasourceData(ctx context.Context, c client.Client, instance *tel
 
 	scheme := "http"
 	certText := ""
+	dnsDomain := clusterdns.GetDNSClusterDomain()
 	if instance.Spec.PrometheusTLS.Enabled() {
 		scheme = "https"
 		namespacedName := types.NamespacedName{
@@ -55,6 +57,6 @@ spec:
     plugin:
         kind: "PrometheusDatasource"
         spec:
-            direct_url: "` + scheme + `://metric-storage-prometheus.` + instance.Namespace + `.svc.cluster.local:9090"
+            direct_url: "` + scheme + `://metric-storage-prometheus.` + instance.Namespace + `.svc.` + dnsDomain + `":9090"
 `}, nil
 }
