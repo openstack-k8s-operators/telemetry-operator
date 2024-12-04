@@ -727,6 +727,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			"grafana-dashboard-openstack-vm":       dashboards.OpenstackVM(datasourceName),
 			"grafana-dashboard-openstack-rabbitmq": dashboards.OpenstackRabbitmq(datasourceName),
 			"grafana-dashboard-openstack-kepler":   dashboards.OpenstackKepler(datasourceName),
+			"grafana-dashboard-openstack-vm-network-traffic":   dashboards.OpenstackNetworkTraffic(datasourceName),
 		}
 
 		for dashboardName, desiredCM := range dashboardCMs {
