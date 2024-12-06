@@ -56,345 +56,6 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 				  "links": [],
 				  "panels": [
 					{
-					  "collapsed": true,
-					  "gridPos": {
-						"h": 1,
-						"w": 24,
-						"x": 0,
-						"y": 0
-					  },
-					  "id": 15,
-					  "panels": [
-						{
-						  "aliasColors": {},
-						  "bars": false,
-						  "dashLength": 10,
-						  "dashes": false,
-						  "datasource": {
-							"type": "prometheus",
-							"uid": "ce37wzjdfegw0e"
-						  },
-						  "fieldConfig": {
-							"defaults": {
-							  "links": []
-							},
-							"overrides": []
-						  },
-						  "fill": 10,
-						  "fillGradient": 0,
-						  "gridPos": {
-							"h": 8,
-							"w": 12,
-							"x": 0,
-							"y": 1
-						  },
-						  "hiddenSeries": false,
-						  "id": 6,
-						  "legend": {
-							"avg": false,
-							"current": false,
-							"max": false,
-							"min": false,
-							"show": true,
-							"total": false,
-							"values": false
-						  },
-						  "lines": true,
-						  "linewidth": 1,
-						  "nullPointMode": "null",
-						  "options": {
-							"alertThreshold": true
-						  },
-						  "percentage": false,
-						  "pluginVersion": "10.4.3",
-						  "pointradius": 2,
-						  "points": false,
-						  "renderer": "flot",
-						  "seriesOverrides": [],
-						  "spaceLength": 10,
-						  "stack": false,
-						  "steppedLine": false,
-						  "targets": [
-							{
-							  "datasource": {
-								"type": "prometheus",
-								"uid": "ce37wzjdfegw0e"
-							  },
-							  "editorMode": "code",
-							  "expr": "vm:ceilometer_network_incoming_bytes:rate1m{resource_name=~\"$VM.*\", project=~\"$project\"} / 1000000",
-							  "hide": false,
-							  "interval": "",
-							  "legendFormat": "__auto",
-							  "range": true,
-							  "refId": "A"
-							}
-						  ],
-						  "thresholds": [],
-						  "timeRegions": [],
-						  "title": "Network Incoming Packets",
-						  "tooltip": {
-							"shared": true,
-							"sort": 0,
-							"value_type": "individual"
-						  },
-						  "type": "graph",
-						  "xaxis": {
-							"mode": "time",
-							"show": true,
-							"values": []
-						  },
-						  "yaxes": [
-							{
-							  "format": "bytes",
-							  "logBase": 1,
-							  "show": true
-							},
-							{
-							  "format": "short",
-							  "logBase": 1,
-							  "show": true
-							}
-						  ],
-						  "yaxis": {
-							"align": false
-						  }
-						},
-						{
-						  "datasource": {
-							"type": "prometheus",
-							"uid": "ce37wzjdfegw0e"
-						  },
-						  "fieldConfig": {
-							"defaults": {
-							  "color": {
-								"mode": "palette-classic"
-							  },
-							  "custom": {
-								"axisBorderShow": false,
-								"axisCenteredZero": false,
-								"axisColorMode": "text",
-								"axisLabel": "",
-								"axisPlacement": "auto",
-								"barAlignment": 0,
-								"drawStyle": "line",
-								"fillOpacity": 100,
-								"gradientMode": "none",
-								"hideFrom": {
-								  "legend": false,
-								  "tooltip": false,
-								  "viz": false
-								},
-								"insertNulls": false,
-								"lineInterpolation": "linear",
-								"lineWidth": 1,
-								"pointSize": 5,
-								"scaleDistribution": {
-								  "type": "linear"
-								},
-								"showPoints": "never",
-								"spanNulls": false,
-								"stacking": {
-								  "group": "A",
-								  "mode": "none"
-								},
-								"thresholdsStyle": {
-								  "mode": "off"
-								}
-							  },
-							  "links": [],
-							  "mappings": [],
-							  "thresholds": {
-								"mode": "absolute",
-								"steps": [
-								  {
-									"color": "green",
-									"value": null
-								  },
-								  {
-									"color": "red",
-									"value": 80
-								  }
-								]
-							  },
-							  "unit": "percentunit"
-							},
-							"overrides": [
-							  {
-								"__systemRef": "hideSeriesFrom",
-								"matcher": {
-								  "id": "byNames",
-								  "options": {
-									"mode": "exclude",
-									"names": [
-									  "{__name__=\"vm:ceilometer_network_incoming_packets_drop:rate1m\", counter=\"network.incoming.packets.drop\", device=\"tap0cb7726a-da\", instance=\"ceilometer-internal.openstack.svc:3000\", network=\"packets\", project=\"539c3dc2361f4fd191aaa21c14360e35\", resource=\"instance-00000002-618ba30a-64d4-4795-9f6e-b85192d9305e-tap0cb7726a-da\", resource_name=\"vm1:tap0cb7726a-da\", unit=\"packet\", user=\"da73d63ddab141ab9fefbe03881fb6cd\", vm_instance=\"ee80218bf7db3248e7dd153f3340014d116f7af438ddeb08420677e9\", vm_name=\"vm1\"}"
-									],
-									"prefix": "All except:",
-									"readOnly": true
-								  }
-								},
-								"properties": [
-								  {
-									"id": "custom.hideFrom",
-									"value": {
-									  "legend": false,
-									  "tooltip": false,
-									  "viz": true
-									}
-								  }
-								]
-							  }
-							]
-						  },
-						  "gridPos": {
-							"h": 9,
-							"w": 12,
-							"x": 12,
-							"y": 1
-						  },
-						  "id": 2,
-						  "options": {
-							"legend": {
-							  "calcs": [],
-							  "displayMode": "list",
-							  "placement": "bottom",
-							  "showLegend": true
-							},
-							"tooltip": {
-							  "mode": "multi",
-							  "sort": "none"
-							}
-						  },
-						  "pluginVersion": "10.4.3",
-						  "targets": [
-							{
-							  "datasource": {
-								"type": "prometheus",
-								"uid": "ce37wzjdfegw0e"
-							  },
-							  "editorMode": "code",
-							  "expr": "vm:ceilometer_network_incoming_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\"}",
-							  "hide": false,
-							  "interval": "",
-							  "legendFormat": "__auto",
-							  "range": true,
-							  "refId": "A"
-							}
-						  ],
-						  "title": "Incoming Dropped Packets",
-						  "type": "timeseries"
-						},
-						{
-						  "aliasColors": {},
-						  "bars": false,
-						  "dashLength": 10,
-						  "dashes": false,
-						  "datasource": {
-							"type": "prometheus",
-							"uid": "ce37wzjdfegw0e"
-						  },
-						  "fieldConfig": {
-							"defaults": {
-							  "links": []
-							},
-							"overrides": []
-						  },
-						  "fill": 10,
-						  "fillGradient": 0,
-						  "gridPos": {
-							"h": 9,
-							"w": 12,
-							"x": 0,
-							"y": 9
-						  },
-						  "hiddenSeries": false,
-						  "id": 12,
-						  "legend": {
-							"avg": false,
-							"current": false,
-							"max": false,
-							"min": false,
-							"show": true,
-							"total": false,
-							"values": false
-						  },
-						  "lines": true,
-						  "linewidth": 1,
-						  "nullPointMode": "null",
-						  "options": {
-							"alertThreshold": true
-						  },
-						  "percentage": false,
-						  "pluginVersion": "10.4.3",
-						  "pointradius": 2,
-						  "points": false,
-						  "renderer": "flot",
-						  "seriesOverrides": [],
-						  "spaceLength": 10,
-						  "stack": false,
-						  "steppedLine": false,
-						  "targets": [
-							{
-							  "datasource": {
-								"type": "prometheus",
-								"uid": "ce37wzjdfegw0e"
-							  },
-							  "editorMode": "code",
-							  "expr": "(rate(ceilometer_network_incoming_packets_drop{project=~\"$project\", resource_name=~\"$VM.*\"}[1m]) / rate(ceilometer_network_incoming_packets{project=~\"$project\", resource_name=~\"$VM.*\"}[1m])) * 100\n",
-							  "hide": false,
-							  "interval": "",
-							  "legendFormat": "__auto",
-							  "range": true,
-							  "refId": "A"
-							}
-						  ],
-						  "thresholds": [],
-						  "timeRegions": [],
-						  "title": "Incoming Packet Loss (%)",
-						  "tooltip": {
-							"shared": true,
-							"sort": 0,
-							"value_type": "individual"
-						  },
-						  "type": "graph",
-						  "xaxis": {
-							"mode": "time",
-							"show": true,
-							"values": []
-						  },
-						  "yaxes": [
-							{
-							  "format": "bytes",
-							  "logBase": 1,
-							  "show": true
-							},
-							{
-							  "format": "short",
-							  "logBase": 1,
-							  "show": true
-							}
-						  ],
-						  "yaxis": {
-							"align": false
-						  }
-						}
-					  ],
-					  "title": "Incoming Traffic",
-					  "type": "row"
-					},
-					{
-					  "collapsed": false,
-					  "gridPos": {
-						"h": 1,
-						"w": 24,
-						"x": 0,
-						"y": 1
-					  },
-					  "id": 14,
-					  "panels": [],
-					  "title": "Outgoing Traffic",
-					  "type": "row"
-					},
-					{
 					  "aliasColors": {},
 					  "bars": false,
 					  "dashLength": 10,
@@ -415,10 +76,10 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"h": 8,
 						"w": 12,
 						"x": 0,
-						"y": 2
+						"y": 0
 					  },
 					  "hiddenSeries": false,
-					  "id": 11,
+					  "id": 10,
 					  "legend": {
 						"avg": false,
 						"current": false,
@@ -449,18 +110,27 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 							"type": "prometheus",
 							"uid": "ce37wzjdfegw0e"
 						  },
-						  "editorMode": "code",
-						  "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{resource_name=~\"$VM.*\", project=~\"$project\"} / 1000000",
+						  "expr": "vm:ceilometer_network_incoming_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
 						  "hide": false,
 						  "interval": "",
-						  "legendFormat": "__auto",
-						  "range": true,
+						  "legendFormat": "{{vm_name}} in ({{device}})",
+						  "refId": "B"
+						},
+						{
+						  "datasource": {
+							"type": "prometheus",
+							"uid": "ce37wzjdfegw0e"
+						  },
+						  "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
+						  "hide": false,
+						  "interval": "",
+						  "legendFormat": "{{vm_name}} out ({{device}})",
 						  "refId": "A"
 						}
 					  ],
 					  "thresholds": [],
 					  "timeRegions": [],
-					  "title": "Network Outgoing Packets",
+					  "title": "Network Adapter",
 					  "tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -474,7 +144,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  },
 					  "yaxes": [
 						{
-						  "format": "bytes",
+						  "format": "Bps",
 						  "logBase": 1,
 						  "show": true
 						},
@@ -489,6 +159,19 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  }
 					},
 					{
+					  "collapsed": false,
+					  "gridPos": {
+						"h": 1,
+						"w": 24,
+						"x": 0,
+						"y": 8
+					  },
+					  "id": 15,
+					  "panels": [],
+					  "title": "Inbound Traffic",
+					  "type": "row"
+					},
+					{
 					  "aliasColors": {},
 					  "bars": false,
 					  "dashLength": 10,
@@ -499,20 +182,21 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  },
 					  "fieldConfig": {
 						"defaults": {
-						  "links": []
+						  "links": [],
+						  "unit": "p"
 						},
 						"overrides": []
 					  },
 					  "fill": 10,
 					  "fillGradient": 0,
 					  "gridPos": {
-						"h": 9,
+						"h": 8,
 						"w": 12,
-						"x": 12,
-						"y": 2
+						"x": 0,
+						"y": 9
 					  },
 					  "hiddenSeries": false,
-					  "id": 4,
+					  "id": 6,
 					  "legend": {
 						"avg": false,
 						"current": false,
@@ -544,7 +228,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 							"uid": "ce37wzjdfegw0e"
 						  },
 						  "editorMode": "code",
-						  "expr": "vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
+						  "expr": "vm:ceilometer_network_incoming_bytes:rate1m{resource_name=~\"$VM:$In_adapter\", project=~\"$project\" } / 1000000",
 						  "hide": false,
 						  "interval": "",
 						  "legendFormat": "__auto",
@@ -554,7 +238,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  ],
 					  "thresholds": [],
 					  "timeRegions": [],
-					  "title": "Outgoing Dropped Packets",
+					  "title": "Network Incoming Packets",
 					  "tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -568,11 +252,13 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  },
 					  "yaxes": [
 						{
-						  "format": "bytes",
+						  "$$hashKey": "object:892",
+						  "format": "p",
 						  "logBase": 1,
 						  "show": true
 						},
 						{
+						  "$$hashKey": "object:893",
 						  "format": "short",
 						  "logBase": 1,
 						  "show": true
@@ -581,6 +267,130 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  "yaxis": {
 						"align": false
 					  }
+					},
+					{
+					  "datasource": {
+						"type": "prometheus",
+						"uid": "ce37wzjdfegw0e"
+					  },
+					  "fieldConfig": {
+						"defaults": {
+						  "color": {
+							"mode": "palette-classic"
+						  },
+						  "custom": {
+							"axisBorderShow": false,
+							"axisCenteredZero": false,
+							"axisColorMode": "text",
+							"axisGridShow": true,
+							"axisLabel": "",
+							"axisPlacement": "auto",
+							"barAlignment": 0,
+							"drawStyle": "line",
+							"fillOpacity": 100,
+							"gradientMode": "none",
+							"hideFrom": {
+							  "legend": false,
+							  "tooltip": false,
+							  "viz": false
+							},
+							"insertNulls": false,
+							"lineInterpolation": "linear",
+							"lineWidth": 1,
+							"pointSize": 5,
+							"scaleDistribution": {
+							  "type": "linear"
+							},
+							"showPoints": "never",
+							"spanNulls": false,
+							"stacking": {
+							  "group": "A",
+							  "mode": "none"
+							},
+							"thresholdsStyle": {
+							  "mode": "off"
+							}
+						  },
+						  "links": [],
+						  "mappings": [],
+						  "thresholds": {
+							"mode": "absolute",
+							"steps": [
+							  {
+								"color": "green",
+								"value": null
+							  }
+							]
+						  },
+						  "unit": "p"
+						},
+						"overrides": [
+						  {
+							"__systemRef": "hideSeriesFrom",
+							"matcher": {
+							  "id": "byNames",
+							  "options": {
+								"mode": "exclude",
+								"names": [
+								  "{__name__=\"vm:ceilometer_network_incoming_packets_drop:rate1m\", counter=\"network.incoming.packets.drop\", device=\"tap0cb7726a-da\", instance=\"ceilometer-internal.openstack.svc:3000\", network=\"packets\", project=\"539c3dc2361f4fd191aaa21c14360e35\", resource=\"instance-00000002-618ba30a-64d4-4795-9f6e-b85192d9305e-tap0cb7726a-da\", resource_name=\"vm1:tap0cb7726a-da\", unit=\"packet\", user=\"da73d63ddab141ab9fefbe03881fb6cd\", vm_instance=\"ee80218bf7db3248e7dd153f3340014d116f7af438ddeb08420677e9\", vm_name=\"vm1\"}"
+								],
+								"prefix": "All except:",
+								"readOnly": true
+							  }
+							},
+							"properties": [
+							  {
+								"id": "custom.hideFrom",
+								"value": {
+								  "legend": false,
+								  "tooltip": false,
+								  "viz": true
+								}
+							  }
+							]
+						  }
+						]
+					  },
+					  "gridPos": {
+						"h": 9,
+						"w": 12,
+						"x": 12,
+						"y": 9
+					  },
+					  "id": 2,
+					  "options": {
+						"legend": {
+						  "calcs": [],
+						  "displayMode": "table",
+						  "placement": "bottom",
+						  "showLegend": true
+						},
+						"timezone": [
+						  ""
+						],
+						"tooltip": {
+						  "mode": "multi",
+						  "sort": "none"
+						}
+					  },
+					  "pluginVersion": "10.4.3",
+					  "targets": [
+						{
+						  "datasource": {
+							"type": "prometheus",
+							"uid": "ce37wzjdfegw0e"
+						  },
+						  "editorMode": "code",
+						  "expr": "vm:ceilometer_network_incoming_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" }",
+						  "hide": false,
+						  "interval": "",
+						  "legendFormat": "__auto",
+						  "range": true,
+						  "refId": "A"
+						}
+					  ],
+					  "title": "Incoming Dropped Packets",
+					  "type": "timeseries"
 					},
 					{
 					  "aliasColors": {},
@@ -593,7 +403,8 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  },
 					  "fieldConfig": {
 						"defaults": {
-						  "links": []
+						  "links": [],
+						  "unit": "percentunit"
 						},
 						"overrides": []
 					  },
@@ -603,10 +414,10 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"h": 9,
 						"w": 12,
 						"x": 0,
-						"y": 10
+						"y": 17
 					  },
 					  "hiddenSeries": false,
-					  "id": 13,
+					  "id": 12,
 					  "legend": {
 						"avg": false,
 						"current": false,
@@ -638,7 +449,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 							"uid": "ce37wzjdfegw0e"
 						  },
 						  "editorMode": "code",
-						  "expr": "(rate(ceilometer_network_outgoing_packets_drop{project=~\"$project\", resource_name=~\"$VM.*\"}[1m]) / rate(ceilometer_network_outgoing_packets{project=~\"$project\", resource_name=~\"$VM.*\"}[1m])) * 100\n",
+						  "expr": "(rate(ceilometer_network_incoming_packets_drop{project=~\"$project\", resource_name=~\"$VM:$In_adapter\"}[1m]) / rate(ceilometer_network_incoming_packets{project=~\"$project\", resource_name=~\"$VM:In_adapter\"}[1m])) * 100\n",
 						  "hide": false,
 						  "interval": "",
 						  "legendFormat": "__auto",
@@ -646,9 +457,19 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						  "refId": "A"
 						}
 					  ],
-					  "thresholds": [],
+					  "thresholds": [
+						{
+						  "$$hashKey": "object:151",
+						  "colorMode": "critical",
+						  "fill": true,
+						  "line": true,
+						  "op": "gt",
+						  "value": 30,
+						  "yaxis": "left"
+						}
+					  ],
 					  "timeRegions": [],
-					  "title": "Ountgoing Packet Loss (%)",
+					  "title": "Incoming Packet Loss (%)",
 					  "tooltip": {
 						"shared": true,
 						"sort": 0,
@@ -662,11 +483,13 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  },
 					  "yaxes": [
 						{
-						  "format": "bytes",
+						  "$$hashKey": "object:946",
+						  "format": "percentunit",
 						  "logBase": 1,
 						  "show": true
 						},
 						{
+						  "$$hashKey": "object:947",
 						  "format": "short",
 						  "logBase": 1,
 						  "show": true
@@ -675,6 +498,542 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  "yaxis": {
 						"align": false
 					  }
+					},
+					{
+					  "datasource": {
+						"type": "prometheus",
+						"uid": "ce37wzjdfegw0e"
+					  },
+					  "fieldConfig": {
+						"defaults": {
+						  "color": {
+							"mode": "palette-classic"
+						  },
+						  "custom": {
+							"axisBorderShow": false,
+							"axisCenteredZero": false,
+							"axisColorMode": "text",
+							"axisGridShow": true,
+							"axisLabel": "",
+							"axisPlacement": "auto",
+							"barAlignment": 0,
+							"drawStyle": "line",
+							"fillOpacity": 100,
+							"gradientMode": "none",
+							"hideFrom": {
+							  "legend": false,
+							  "tooltip": false,
+							  "viz": false
+							},
+							"insertNulls": false,
+							"lineInterpolation": "linear",
+							"lineWidth": 1,
+							"pointSize": 5,
+							"scaleDistribution": {
+							  "type": "linear"
+							},
+							"showPoints": "never",
+							"spanNulls": false,
+							"stacking": {
+							  "group": "A",
+							  "mode": "none"
+							},
+							"thresholdsStyle": {
+							  "mode": "off"
+							}
+						  },
+						  "links": [],
+						  "mappings": [],
+						  "thresholds": {
+							"mode": "absolute",
+							"steps": [
+							  {
+								"color": "green",
+								"value": null
+							  }
+							]
+						  },
+						  "unit": "p"
+						},
+						"overrides": [
+						  {
+							"__systemRef": "hideSeriesFrom",
+							"matcher": {
+							  "id": "byNames",
+							  "options": {
+								"mode": "exclude",
+								"names": [
+								  "{__name__=\"vm:ceilometer_network_incoming_packets_error:rate1m\", counter=\"network.incoming.packets.error\", device=\"tap0cb7726a-da\", instance=\"ceilometer-internal.openstack.svc:3000\", network=\"packets\", project=\"539c3dc2361f4fd191aaa21c14360e35\", resource=\"instance-00000002-618ba30a-64d4-4795-9f6e-b85192d9305e-tap0cb7726a-da\", resource_name=\"vm1:tap0cb7726a-da\", unit=\"packet\", user=\"da73d63ddab141ab9fefbe03881fb6cd\", vm_instance=\"ee80218bf7db3248e7dd153f3340014d116f7af438ddeb08420677e9\", vm_name=\"vm1\"}"
+								],
+								"prefix": "All except:",
+								"readOnly": true
+							  }
+							},
+							"properties": [
+							  {
+								"id": "custom.hideFrom",
+								"value": {
+								  "legend": false,
+								  "tooltip": false,
+								  "viz": true
+								}
+							  }
+							]
+						  }
+						]
+					  },
+					  "gridPos": {
+						"h": 9,
+						"w": 12,
+						"x": 12,
+						"y": 18
+					  },
+					  "id": 16,
+					  "options": {
+						"legend": {
+						  "calcs": [],
+						  "displayMode": "table",
+						  "placement": "bottom",
+						  "showLegend": true
+						},
+						"timezone": [
+						  ""
+						],
+						"tooltip": {
+						  "mode": "multi",
+						  "sort": "none"
+						}
+					  },
+					  "pluginVersion": "10.4.3",
+					  "targets": [
+						{
+						  "datasource": {
+							"type": "prometheus",
+							"uid": "ce37wzjdfegw0e"
+						  },
+						  "editorMode": "code",
+						  "expr": "vm:ceilometer_network_incoming_packets_error:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\"}",
+						  "hide": false,
+						  "interval": "",
+						  "legendFormat": "__auto",
+						  "range": true,
+						  "refId": "A"
+						}
+					  ],
+					  "title": "Incoming Packets Error",
+					  "type": "timeseries"
+					},
+					{
+					  "collapsed": true,
+					  "gridPos": {
+						"h": 1,
+						"w": 24,
+						"x": 0,
+						"y": 27
+					  },
+					  "id": 14,
+					  "panels": [
+						{
+						  "aliasColors": {},
+						  "bars": false,
+						  "dashLength": 10,
+						  "dashes": false,
+						  "datasource": {
+							"type": "prometheus",
+							"uid": "ce37wzjdfegw0e"
+						  },
+						  "fieldConfig": {
+							"defaults": {
+							  "links": [],
+							  "unit": "p"
+							},
+							"overrides": []
+						  },
+						  "fill": 10,
+						  "fillGradient": 0,
+						  "gridPos": {
+							"h": 8,
+							"w": 12,
+							"x": 0,
+							"y": 28
+						  },
+						  "hiddenSeries": false,
+						  "id": 11,
+						  "legend": {
+							"avg": false,
+							"current": false,
+							"max": false,
+							"min": false,
+							"show": true,
+							"total": false,
+							"values": false
+						  },
+						  "lines": true,
+						  "linewidth": 1,
+						  "nullPointMode": "null",
+						  "options": {
+							"alertThreshold": true
+						  },
+						  "percentage": false,
+						  "pluginVersion": "10.4.3",
+						  "pointradius": 2,
+						  "points": false,
+						  "renderer": "flot",
+						  "seriesOverrides": [],
+						  "spaceLength": 10,
+						  "stack": false,
+						  "steppedLine": false,
+						  "targets": [
+							{
+							  "datasource": {
+								"type": "prometheus",
+								"uid": "ce37wzjdfegw0e"
+							  },
+							  "editorMode": "code",
+							  "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{resource_name=~\"$VM:$out_adapter\", project=~\"$project\"} / 1000000",
+							  "hide": false,
+							  "interval": "",
+							  "legendFormat": "__auto",
+							  "range": true,
+							  "refId": "A"
+							}
+						  ],
+						  "thresholds": [],
+						  "timeRegions": [],
+						  "title": "Network Outgoing Packets",
+						  "tooltip": {
+							"shared": true,
+							"sort": 0,
+							"value_type": "individual"
+						  },
+						  "type": "graph",
+						  "xaxis": {
+							"mode": "time",
+							"show": true,
+							"values": []
+						  },
+						  "yaxes": [
+							{
+							  "$$hashKey": "object:1127",
+							  "format": "p",
+							  "logBase": 1,
+							  "show": true
+							},
+							{
+							  "$$hashKey": "object:1128",
+							  "format": "short",
+							  "logBase": 1,
+							  "show": true
+							}
+						  ],
+						  "yaxis": {
+							"align": false
+						  }
+						},
+						{
+						  "aliasColors": {},
+						  "bars": false,
+						  "dashLength": 10,
+						  "dashes": false,
+						  "datasource": {
+							"type": "prometheus",
+							"uid": "ce37wzjdfegw0e"
+						  },
+						  "fieldConfig": {
+							"defaults": {
+							  "links": [],
+							  "unit": "p"
+							},
+							"overrides": []
+						  },
+						  "fill": 10,
+						  "fillGradient": 0,
+						  "gridPos": {
+							"h": 9,
+							"w": 12,
+							"x": 12,
+							"y": 28
+						  },
+						  "hiddenSeries": false,
+						  "id": 4,
+						  "legend": {
+							"avg": false,
+							"current": false,
+							"max": false,
+							"min": false,
+							"show": true,
+							"total": false,
+							"values": false
+						  },
+						  "lines": true,
+						  "linewidth": 1,
+						  "nullPointMode": "null",
+						  "options": {
+							"alertThreshold": true
+						  },
+						  "percentage": false,
+						  "pluginVersion": "10.4.3",
+						  "pointradius": 2,
+						  "points": false,
+						  "renderer": "flot",
+						  "seriesOverrides": [],
+						  "spaceLength": 10,
+						  "stack": false,
+						  "steppedLine": false,
+						  "targets": [
+							{
+							  "datasource": {
+								"type": "prometheus",
+								"uid": "ce37wzjdfegw0e"
+							  },
+							  "editorMode": "code",
+							  "expr": "vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\", vm_name =~ \"$VM\", device=~\"$out_adapter\"}",
+							  "hide": false,
+							  "interval": "",
+							  "legendFormat": "__auto",
+							  "range": true,
+							  "refId": "A"
+							}
+						  ],
+						  "thresholds": [],
+						  "timeRegions": [],
+						  "title": "Outgoing Dropped Packets",
+						  "tooltip": {
+							"shared": true,
+							"sort": 0,
+							"value_type": "individual"
+						  },
+						  "type": "graph",
+						  "xaxis": {
+							"mode": "time",
+							"show": true,
+							"values": []
+						  },
+						  "yaxes": [
+							{
+							  "$$hashKey": "object:764",
+							  "format": "p",
+							  "logBase": 1,
+							  "show": true
+							},
+							{
+							  "$$hashKey": "object:765",
+							  "format": "short",
+							  "logBase": 1,
+							  "show": true
+							}
+						  ],
+						  "yaxis": {
+							"align": false
+						  }
+						},
+						{
+						  "aliasColors": {},
+						  "bars": false,
+						  "dashLength": 10,
+						  "dashes": false,
+						  "datasource": {
+							"type": "prometheus",
+							"uid": "ce37wzjdfegw0e"
+						  },
+						  "fieldConfig": {
+							"defaults": {
+							  "links": [],
+							  "unit": "percentunit"
+							},
+							"overrides": []
+						  },
+						  "fill": 10,
+						  "fillGradient": 0,
+						  "gridPos": {
+							"h": 9,
+							"w": 12,
+							"x": 0,
+							"y": 36
+						  },
+						  "hiddenSeries": false,
+						  "id": 13,
+						  "legend": {
+							"avg": false,
+							"current": false,
+							"max": false,
+							"min": false,
+							"show": true,
+							"total": false,
+							"values": false
+						  },
+						  "lines": true,
+						  "linewidth": 1,
+						  "nullPointMode": "null",
+						  "options": {
+							"alertThreshold": true
+						  },
+						  "percentage": false,
+						  "pluginVersion": "10.4.3",
+						  "pointradius": 2,
+						  "points": false,
+						  "renderer": "flot",
+						  "seriesOverrides": [],
+						  "spaceLength": 10,
+						  "stack": false,
+						  "steppedLine": false,
+						  "targets": [
+							{
+							  "datasource": {
+								"type": "prometheus",
+								"uid": "ce37wzjdfegw0e"
+							  },
+							  "editorMode": "code",
+							  "expr": "(rate(ceilometer_network_outgoing_packets_drop{project=~\"$project\", resource_name=~\"$VM:$out_adapter\"}[1m]) / rate(ceilometer_network_outgoing_packets{project=~\"$project\", resource_name=~\"$VM:$out_adapter\"}[1m])) * 100\n",
+							  "hide": false,
+							  "interval": "",
+							  "legendFormat": "__auto",
+							  "range": true,
+							  "refId": "A"
+							}
+						  ],
+						  "thresholds": [
+							{
+							  "$$hashKey": "object:216",
+							  "colorMode": "critical",
+							  "fill": true,
+							  "line": true,
+							  "op": "gt",
+							  "value": 80,
+							  "yaxis": "left"
+							}
+						  ],
+						  "timeRegions": [],
+						  "title": "Ountgoing Packet Loss (%)",
+						  "tooltip": {
+							"shared": true,
+							"sort": 0,
+							"value_type": "individual"
+						  },
+						  "type": "graph",
+						  "xaxis": {
+							"mode": "time",
+							"show": true,
+							"values": []
+						  },
+						  "yaxes": [
+							{
+							  "$$hashKey": "object:1253",
+							  "format": "percentunit",
+							  "logBase": 1,
+							  "show": true
+							},
+							{
+							  "$$hashKey": "object:1254",
+							  "format": "short",
+							  "logBase": 1,
+							  "show": true
+							}
+						  ],
+						  "yaxis": {
+							"align": false
+						  }
+						},
+						{
+						  "aliasColors": {},
+						  "bars": false,
+						  "dashLength": 10,
+						  "dashes": false,
+						  "datasource": {
+							"type": "prometheus",
+							"uid": "ce37wzjdfegw0e"
+						  },
+						  "fieldConfig": {
+							"defaults": {
+							  "links": [],
+							  "unit": "p"
+							},
+							"overrides": []
+						  },
+						  "fill": 10,
+						  "fillGradient": 0,
+						  "gridPos": {
+							"h": 9,
+							"w": 12,
+							"x": 12,
+							"y": 37
+						  },
+						  "hiddenSeries": false,
+						  "id": 17,
+						  "legend": {
+							"avg": false,
+							"current": false,
+							"max": false,
+							"min": false,
+							"show": true,
+							"total": false,
+							"values": false
+						  },
+						  "lines": true,
+						  "linewidth": 1,
+						  "nullPointMode": "null",
+						  "options": {
+							"alertThreshold": true
+						  },
+						  "percentage": false,
+						  "pluginVersion": "10.4.3",
+						  "pointradius": 2,
+						  "points": false,
+						  "renderer": "flot",
+						  "seriesOverrides": [],
+						  "spaceLength": 10,
+						  "stack": false,
+						  "steppedLine": false,
+						  "targets": [
+							{
+							  "datasource": {
+								"type": "prometheus",
+								"uid": "ce37wzjdfegw0e"
+							  },
+							  "editorMode": "code",
+							  "expr": "vm:ceilometer_network_outgoing_packets_error:rate1m{project =~ \"$project\", vm_name =~ \"$VM\", device=~\"$out_adapter\"}",
+							  "hide": false,
+							  "interval": "",
+							  "legendFormat": "__auto",
+							  "range": true,
+							  "refId": "A"
+							}
+						  ],
+						  "thresholds": [],
+						  "timeRegions": [],
+						  "title": "Outgoing Packets Error",
+						  "tooltip": {
+							"shared": true,
+							"sort": 0,
+							"value_type": "individual"
+						  },
+						  "type": "graph",
+						  "xaxis": {
+							"mode": "time",
+							"show": true,
+							"values": []
+						  },
+						  "yaxes": [
+							{
+							  "$$hashKey": "object:764",
+							  "format": "p",
+							  "logBase": 1,
+							  "show": true
+							},
+							{
+							  "$$hashKey": "object:765",
+							  "format": "short",
+							  "logBase": 1,
+							  "show": true
+							}
+						  ],
+						  "yaxis": {
+							"align": false
+						  }
+						}
+					  ],
+					  "title": "Outbound Traffic",
+					  "type": "row"
 					}
 				  ],
 				  "refresh": "10s",
@@ -694,6 +1053,10 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						  "value": [
 							"ee80218bf7db3248e7dd153f3340014d116f7af438ddeb08420677e9"
 						  ]
+						},
+						"datasource": {
+						  "type": "prometheus",
+						  "uid": "ce37wzjdfegw0e"
 						},
 						"definition": "label_values(vm:ceilometer_network_incoming_bytes:rate1m,vm_instance)",
 						"hide": 0,
@@ -783,10 +1146,10 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"current": {
 						  "selected": true,
 						  "text": [
-							"tap0cb7726a-da"
+							"All"
 						  ],
 						  "value": [
-							"tap0cb7726a-da"
+							"$__all"
 						  ]
 						},
 						"datasource": {
@@ -820,6 +1183,10 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						  "value": [
 							"tap0cb7726a-da"
 						  ]
+						},
+						"datasource": {
+						  "type": "prometheus",
+						  "uid": "ce37wzjdfegw0e"
 						},
 						"definition": "label_values(vm:ceilometer_network_outgoing_bytes:rate1m{vm_name=~\"$VM\"},device)",
 						"hide": 0,
@@ -860,8 +1227,9 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 				  },
 				  "timezone": "",
 				  "title": "OpenStack / VMs Network Traffic",
-				  "version": 25,
+				  "version": 34,
 				  "weekStart": ""
+
 			}`,
 		},
 	}
