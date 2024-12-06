@@ -168,7 +168,14 @@ type CeilometerStatus struct {
 	// the openstack-operator in the top-level CR (e.g. the ContainerImage)
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	MysqldExporterStatus MysqldExporterStatus `json:"mysqldExporterStatus,omitempty"`
+	// ReadyCount of mysqld_exporter instances
+	MysqldExporterReadyCount int32 `json:"mysqldExporterReadyCount,omitempty"`
+
+	// Map of hashes to track e.g. job status
+	MysqldExporterHash map[string]string `json:"mysqldExporterHash,omitempty"`
+
+	// List of galera CRs, which are being exported with mysqld_exporter
+	MysqldExporterExportedGaleras []string `json:"mysqldExporterExportedGaleras,omitempty"`
 }
 
 // KSMStatus defines the observed state of kube-state-metrics
@@ -187,21 +194,6 @@ type KSMStatus struct {
 	// then the controller has not processed the latest changes injected by
 	// the openstack-operator in the top-level CR (e.g. the ContainerImage)
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-}
-
-// MysqldExporterStatus defines the observed state of mysqld_exporter
-type MysqldExporterStatus struct {
-	// ReadyCount of mysqld_exporter instances
-	ReadyCount int32 `json:"readyCount,omitempty"`
-
-	// Map of hashes to track e.g. job status
-	Hash map[string]string `json:"hash,omitempty"`
-
-	// Conditions
-	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
-
-	// List of galera CRs, which are being exported with mysqld_exporter
-	ExportedGaleras []string `json:"exportedGaleras,omitempty"`
 }
 
 //+kubebuilder:object:root=true

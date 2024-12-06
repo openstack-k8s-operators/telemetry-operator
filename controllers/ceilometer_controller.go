@@ -138,18 +138,15 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// initialize status if Conditions is nil, but do not reset if it already
 	// exists
 	isNewInstance := instance.CeilometerStatus.Conditions == nil &&
-		instance.KSMStatus.Conditions == nil &&
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions == nil
+		instance.KSMStatus.Conditions == nil
 	if isNewInstance {
 		instance.CeilometerStatus.Conditions = condition.Conditions{}
 		instance.KSMStatus.Conditions = condition.Conditions{}
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions = condition.Conditions{}
 	}
 
 	// Save a copy of the conditions so that we can restore the LastTransitionTime
 	// when a condition's state doesn't change.
 	savedConditions := instance.CeilometerStatus.Conditions.DeepCopy()
-	savedMysqldExporterConditions := instance.CeilometerStatus.MysqldExporterStatus.Conditions.DeepCopy()
 
 	// Always patch the instance status when exiting this function so we can
 	// persist any changes.
@@ -175,19 +172,6 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				instance.KSMStatus.Conditions.Mirror(condition.ReadyCondition))
 		}
 
-		// MysqldExporter
-		condition.RestoreLastTransitionTimes(
-			&instance.CeilometerStatus.MysqldExporterStatus.Conditions, savedMysqldExporterConditions)
-		if instance.CeilometerStatus.MysqldExporterStatus.Conditions.IsUnknown(condition.ReadyCondition) {
-			instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(
-				instance.CeilometerStatus.MysqldExporterStatus.Conditions.Mirror(condition.ReadyCondition))
-		}
-
-		// Aggregate exporter conditions into .status.conditions.Ready
-		if instance.CeilometerStatus.Conditions.IsTrue(condition.ReadyCondition) && !instance.CeilometerStatus.MysqldExporterStatus.Conditions.IsTrue(condition.ReadyCondition) {
-			instance.CeilometerStatus.Conditions.Set(instance.CeilometerStatus.MysqldExporterStatus.Conditions.Mirror(condition.ReadyCondition))
-		}
-
 		err := helper.PatchInstance(ctx, instance)
 		if err != nil {
 			_err = err
@@ -208,6 +192,13 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		// right now we have no dedicated KeystoneServiceReadyInitMessage
 		condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
 		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
+
+		// MysqldExporter conditions
+		condition.UnknownCondition(telemetryv1.MysqldExporterDBReadyCondition, condition.InitReason, condition.DBReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.MysqldExporterDeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.MysqldExporterMariaDBAccountReadyCondition, condition.InitReason, mariadbv1.MariaDBAccountReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.MysqldExporterServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.MysqldExporterTLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 	)
 	instance.CeilometerStatus.Conditions.Init(&cl)
 	instance.CeilometerStatus.ObservedGeneration = instance.Generation
@@ -230,18 +221,8 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		instance.KSMStatus.Hash = map[string]string{}
 	}
 
-	cl = condition.CreateList(
-		condition.UnknownCondition(condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage),
-		condition.UnknownCondition(condition.DBReadyCondition, condition.InitReason, condition.DBReadyInitMessage),
-		condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
-		condition.UnknownCondition(mariadbv1.MariaDBAccountReadyCondition, condition.InitReason, mariadbv1.MariaDBAccountReadyInitMessage),
-		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
-	)
-	instance.CeilometerStatus.MysqldExporterStatus.Conditions.Init(&cl)
-
-	if instance.CeilometerStatus.MysqldExporterStatus.Hash == nil {
-		instance.CeilometerStatus.MysqldExporterStatus.Hash = map[string]string{}
+	if instance.CeilometerStatus.MysqldExporterHash == nil {
+		instance.CeilometerStatus.MysqldExporterHash = map[string]string{}
 	}
 
 	// If we're not deleting this and the service object doesn't have our finalizer, add it.
@@ -306,7 +287,7 @@ func (r *CeilometerReconciler) mysqldExporterDeleteDBResources(ctx context.Conte
 
 func (r *CeilometerReconciler) reconcileDeleteMysqldExporter(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
 	// NOTE: We need to delete all created resources explicitly to make the `.spec.mysqldExporterEnabled = false` work.
-	for _, galera := range instance.CeilometerStatus.MysqldExporterStatus.ExportedGaleras {
+	for _, galera := range instance.CeilometerStatus.MysqldExporterExportedGaleras {
 		if res, err := r.mysqldExporterDeleteDBResources(ctx, instance, helper, galera); err != nil {
 			return res, err
 		}
@@ -340,14 +321,19 @@ func (r *CeilometerReconciler) reconcileDeleteMysqldExporter(ctx context.Context
 		return res, err
 	}
 
-	instance.CeilometerStatus.MysqldExporterStatus.Conditions = condition.Conditions{}
-	cl := condition.CreateList(
-		condition.TrueCondition(condition.ReadyCondition, telemetryv1.MysqldExporterDisabledMessage),
-	)
-	instance.CeilometerStatus.MysqldExporterStatus.Conditions.Init(&cl)
+	instance.CeilometerStatus.Conditions.MarkTrue(telemetryv1.MysqldExporterDBReadyCondition, telemetryv1.MysqldExporterDisabledMessage)
+	instance.CeilometerStatus.Conditions.MarkTrue(telemetryv1.MysqldExporterDeploymentReadyCondition, telemetryv1.MysqldExporterDisabledMessage)
+	instance.CeilometerStatus.Conditions.MarkTrue(telemetryv1.MysqldExporterMariaDBAccountReadyCondition, telemetryv1.MysqldExporterDisabledMessage)
+	instance.CeilometerStatus.Conditions.MarkTrue(telemetryv1.MysqldExporterServiceConfigReadyCondition, telemetryv1.MysqldExporterDisabledMessage)
+	instance.CeilometerStatus.Conditions.MarkTrue(telemetryv1.MysqldExporterTLSInputReadyCondition, telemetryv1.MysqldExporterDisabledMessage)
 
-	instance.CeilometerStatus.MysqldExporterStatus.ExportedGaleras = []string{}
-	instance.CeilometerStatus.MysqldExporterStatus.ReadyCount = 0
+	if instance.CeilometerStatus.Conditions.AllSubConditionIsTrue() {
+		instance.CeilometerStatus.Conditions.MarkTrue(
+			condition.ReadyCondition, condition.ReadyMessage)
+	}
+
+	instance.CeilometerStatus.MysqldExporterExportedGaleras = []string{}
+	instance.CeilometerStatus.MysqldExporterReadyCount = 0
 	return ctrl.Result{}, nil
 
 }
@@ -435,8 +421,8 @@ func (r *CeilometerReconciler) reconcileInit(
 		instance.CeilometerStatus.Hash = map[string]string{}
 	}
 
-	if instance.CeilometerStatus.MysqldExporterStatus.Hash == nil {
-		instance.CeilometerStatus.MysqldExporterStatus.Hash = map[string]string{}
+	if instance.CeilometerStatus.MysqldExporterHash == nil {
+		instance.CeilometerStatus.MysqldExporterHash = map[string]string{}
 	}
 
 	if instance.KSMStatus.Hash == nil {
@@ -794,15 +780,15 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
-				instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-					condition.TLSInputReadyCondition,
+				instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+					telemetryv1.MysqldExporterTLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
 					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.MysqldExporterTLS.CaBundleSecretName)))
 				return ctrl.Result{}, nil
 			}
-			instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-				condition.TLSInputReadyCondition,
+			instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+				telemetryv1.MysqldExporterTLSInputReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.TLSInputErrorMessage,
@@ -820,15 +806,15 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		hash, err := instance.Spec.MysqldExporterTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
-				instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-					condition.TLSInputReadyCondition,
+				instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+					telemetryv1.MysqldExporterTLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
 					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, err.Error())))
 				return ctrl.Result{}, nil
 			}
-			instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-				condition.TLSInputReadyCondition,
+			instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+				telemetryv1.MysqldExporterTLSInputReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.TLSInputErrorMessage,
@@ -838,7 +824,7 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		configMapVars[tls.TLSHashName] = env.SetValue(hash)
 	}
 	// all cert input checks out so report InputReady
-	instance.CeilometerStatus.MysqldExporterStatus.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
+	instance.CeilometerStatus.Conditions.MarkTrue(telemetryv1.MysqldExporterTLSInputReadyCondition, condition.InputReadyMessage)
 
 	//
 	// create Configmap required for mysqld_exporter input
@@ -846,8 +832,8 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 	//
 	result, err := r.generateMysqldExporterServiceConfig(ctx, helper, instance, &configMapVars)
 	if err != nil {
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterServiceConfigReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.ServiceConfigReadyErrorMessage,
@@ -861,10 +847,10 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
 	//
-	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, &instance.CeilometerStatus.MysqldExporterStatus.Hash, configMapVars)
+	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, &instance.CeilometerStatus.MysqldExporterHash, configMapVars)
 	if err != nil {
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterServiceConfigReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.ServiceConfigReadyErrorMessage,
@@ -876,9 +862,9 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		return ctrl.Result{}, nil
 	}
 
-	instance.CeilometerStatus.MysqldExporterStatus.Hash[common.InputHashName] = inputHash
+	instance.CeilometerStatus.MysqldExporterHash[common.InputHashName] = inputHash
 
-	instance.CeilometerStatus.MysqldExporterStatus.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
+	instance.CeilometerStatus.Conditions.MarkTrue(telemetryv1.MysqldExporterServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
 		common.AppSelector:   mysqldexporter.ServiceName,
@@ -897,16 +883,16 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 
 	ctrlResult, err := sfset.CreateOrPatch(ctx, helper)
 	if err != nil {
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-			condition.DeploymentReadyCondition,
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterDeploymentReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.DeploymentReadyErrorMessage,
 			err.Error()))
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-			condition.DeploymentReadyCondition,
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterDeploymentReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			condition.DeploymentReadyRunningMessage))
@@ -920,7 +906,7 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 	// Evaluate the last part of the reconciliation only if we see the last
 	// version of the CR
 	if sfset.GetStatefulSet().Generation == sfset.GetStatefulSet().Status.ObservedGeneration {
-		instance.CeilometerStatus.MysqldExporterStatus.ReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
+		instance.CeilometerStatus.MysqldExporterReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
 		svc, op, err := mysqldexporter.Service(instance, helper, serviceLabels)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -928,15 +914,16 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		if op != controllerutil.OperationResultNone {
 			Log.Info(fmt.Sprintf(msgOperation, svc.Name, string(op)))
 		}
-		if instance.CeilometerStatus.MysqldExporterStatus.ReadyCount > 0 {
-			instance.CeilometerStatus.MysqldExporterStatus.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+		if instance.CeilometerStatus.MysqldExporterReadyCount > 0 {
+			instance.CeilometerStatus.Conditions.MarkTrue(telemetryv1.MysqldExporterDeploymentReadyCondition, condition.DeploymentReadyMessage)
 		}
-		if instance.CeilometerStatus.MysqldExporterStatus.Conditions.AllSubConditionIsTrue() {
-			instance.CeilometerStatus.MysqldExporterStatus.Conditions.MarkTrue(
+		if instance.CeilometerStatus.Conditions.AllSubConditionIsTrue() {
+			instance.CeilometerStatus.Conditions.MarkTrue(
 				condition.ReadyCondition, condition.ReadyMessage)
 		}
 		Log.Info(fmt.Sprintf(msgReconcileSuccess, mysqldexporter.ServiceName))
 	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -1292,8 +1279,8 @@ func (r *CeilometerReconciler) mysqldExporterEnsureDB(
 	)
 
 	if err != nil {
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-			mariadbv1.MariaDBAccountReadyCondition,
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterMariaDBAccountReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			mariadbv1.MariaDBAccountNotReadyMessage,
@@ -1301,8 +1288,8 @@ func (r *CeilometerReconciler) mysqldExporterEnsureDB(
 
 		return nil, nil, ctrl.Result{}, err
 	}
-	instance.CeilometerStatus.MysqldExporterStatus.Conditions.MarkTrue(
-		mariadbv1.MariaDBAccountReadyCondition,
+	instance.CeilometerStatus.Conditions.MarkTrue(
+		telemetryv1.MysqldExporterMariaDBAccountReadyCondition,
 		mariadbv1.MariaDBAccountReadyMessage)
 
 	// Create a DB for the account
@@ -1322,8 +1309,8 @@ func (r *CeilometerReconciler) mysqldExporterEnsureDB(
 	ctrlResult, err := db.CreateOrPatchAll(ctx, h)
 
 	if err != nil {
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-			condition.DBReadyCondition,
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterDBReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.DBReadyErrorMessage,
@@ -1331,8 +1318,8 @@ func (r *CeilometerReconciler) mysqldExporterEnsureDB(
 		return nil, nil, ctrl.Result{}, err
 	}
 	if (ctrlResult != ctrl.Result{}) {
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-			condition.DBReadyCondition,
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterDBReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			condition.DBReadyRunningMessage))
@@ -1342,8 +1329,8 @@ func (r *CeilometerReconciler) mysqldExporterEnsureDB(
 	// wait for the DB to be setup
 	ctrlResult, err = db.WaitForDBCreated(ctx, h)
 	if err != nil {
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-			condition.DBReadyCondition,
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterDBReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.DBReadyErrorMessage,
@@ -1351,8 +1338,8 @@ func (r *CeilometerReconciler) mysqldExporterEnsureDB(
 		return nil, nil, ctrlResult, err
 	}
 	if (ctrlResult != ctrl.Result{}) {
-		instance.CeilometerStatus.MysqldExporterStatus.Conditions.Set(condition.FalseCondition(
-			condition.DBReadyCondition,
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterDBReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			condition.DBReadyRunningMessage))
@@ -1386,7 +1373,7 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 		return galeras.Items[i].GetName() < galeras.Items[j].GetName()
 	})
 
-	instance.CeilometerStatus.MysqldExporterStatus.ExportedGaleras = []string{}
+	instance.CeilometerStatus.MysqldExporterExportedGaleras = []string{}
 
 	databases := []map[string]interface{}{}
 	for _, galera := range galeras.Items {
@@ -1423,13 +1410,13 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 		}
 		databases = append(databases, databaseParameters)
 
-		instance.CeilometerStatus.MysqldExporterStatus.ExportedGaleras = append(
-			instance.CeilometerStatus.MysqldExporterStatus.ExportedGaleras,
+		instance.CeilometerStatus.MysqldExporterExportedGaleras = append(
+			instance.CeilometerStatus.MysqldExporterExportedGaleras,
 			galeraName,
 		)
 	}
 
-	instance.CeilometerStatus.MysqldExporterStatus.Conditions.MarkTrue(condition.DBReadyCondition, condition.DBReadyMessage)
+	instance.CeilometerStatus.Conditions.MarkTrue(telemetryv1.MysqldExporterDBReadyCondition, condition.DBReadyMessage)
 
 	if len(databases) > 0 {
 		// There needs to be a section called "client" in the config
@@ -1585,7 +1572,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 				Namespace: o.GetNamespace(),
 				Name:      cr.Name,
 			}
-			if !slices.Contains(cr.CeilometerStatus.MysqldExporterStatus.ExportedGaleras, o.GetName()) {
+			if !slices.Contains(cr.CeilometerStatus.MysqldExporterExportedGaleras, o.GetName()) {
 				Log.Info(fmt.Sprintf("There is a galera %s, which isn't exported by a ceilometer %s's mysqld_exporter yet.", o.GetName(), cr.Name))
 				result = append(result, reconcile.Request{NamespacedName: name})
 			} else if !o.GetDeletionTimestamp().IsZero() {
