@@ -200,6 +200,10 @@ func AodhStatefulSet(
 		},
 	}
 
+	if instance.Spec.Aodh.NodeSelector != nil {
+		pod.Spec.NodeSelector = *instance.Spec.Aodh.NodeSelector
+	}
+
 	statefulset := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ServiceName,

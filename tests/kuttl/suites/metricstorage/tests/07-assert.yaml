@@ -1,0 +1,36 @@
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry-kepler
+  namespace: telemetry-kuttl-tests
+  ownerReferences:
+  - apiVersion: telemetry.openstack.org/v1beta1
+    blockOwnerDeletion: true
+    controller: true
+    kind: MetricStorage
+    name: telemetry-kuttl
+spec:
+  metricRelabelings:
+  - action: labeldrop
+    regex: pod
+  - action: labeldrop
+    regex: namespace
+  - action: labeldrop
+    regex: job
+  - action: labeldrop
+    regex: publisher
+  staticConfigs:
+  - labels:
+      fqdn: edpm-compute-0.ctlplane.example.com
+    targets:
+    - 192.168.122.100:8888
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    console.openshift.io/dashboard: "true"
+  name: grafana-dashboard-openstack-kepler
+  namespace: openshift-config-managed

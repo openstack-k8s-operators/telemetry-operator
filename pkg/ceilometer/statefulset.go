@@ -183,6 +183,10 @@ func StatefulSet(
 		},
 	}
 
+	if instance.Spec.NodeSelector != nil {
+		pod.Spec.NodeSelector = *instance.Spec.NodeSelector
+	}
+
 	statefulset := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ServiceName,

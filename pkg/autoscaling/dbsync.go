@@ -92,5 +92,9 @@ func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]strin
 		},
 	}
 
+	if instance.Spec.Aodh.NodeSelector != nil {
+		job.Spec.Template.Spec.NodeSelector = *instance.Spec.Aodh.NodeSelector
+	}
+
 	return job
 }

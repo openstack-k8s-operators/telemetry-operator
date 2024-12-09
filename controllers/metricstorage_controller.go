@@ -96,6 +96,14 @@ type MetricStorageReconciler struct {
 	Cache      cache.Cache
 }
 
+// ConnectionInfo holds information about connection to a compute node
+type ConnectionInfo struct {
+	IP       string
+	Hostname string
+	TLS      bool
+	FQDN     string
+}
+
 // GetLogger returns a logger object with a prefix of "conroller.name" and aditional controller context fields
 func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 	return log.FromContext(ctx).WithName("Controllers").WithName("MetricStorage")
@@ -431,7 +439,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
-		if res, err := r.createDashboardObjects(ctx, instance, eventHandler); err != nil {
+		if res, err := r.createDashboardObjects(ctx, instance, helper, eventHandler); err != nil {
 			return res, err
 		}
 	}
@@ -506,7 +514,7 @@ func (r *MetricStorageReconciler) createServiceScrapeConfig(
 	log logr.Logger,
 	description string,
 	serviceName string,
-	targets []string,
+	targets interface{},
 	tlsEnabled bool,
 ) error {
 	scrapeConfig := &monv1alpha1.ScrapeConfig{
@@ -593,16 +601,17 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
-	// ScrapeConfigs for NodeExporters
-	endpointsNonTLS, endpointsTLS, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultNodeExporterPort)
+	connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetry.ServiceName)
 	if err != nil {
-		Log.Info(fmt.Sprintf("Cannot get node exporter targets. Scrape configs not created. Error: %s", err))
+		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Scrape configs not created. Error: %s", err))
 	}
 
+	// ScrapeConfigs for NodeExporters
+	neTargetsTLS, neTargetsNonTLS := getNodeExporterTargets(connectionInfo)
 	// ScrapeConfig for non-tls nodes
 	neServiceName := fmt.Sprintf("%s-node-exporter", telemetry.ServiceName)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
-		neServiceName, endpointsNonTLS, false)
+		neServiceName, neTargetsNonTLS, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -610,30 +619,72 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	// ScrapeConfig for tls nodes
 	neServiceName = fmt.Sprintf("%s-node-exporter-tls", telemetry.ServiceName)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
-		neServiceName, endpointsTLS, true)
+		neServiceName, neTargetsTLS, true)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
+	connectionInfo, err = getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
+	if err != nil {
+		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Scrape configs not created. Error: %s", err))
+	}
+
 	// kepler scrape endpoints
-	_, keplerEndpoints, err := getMetricExporterTargets(instance, helper, telemetryv1.DefaultKeplerPort)
+	keplerEndpoints, _ := getKeplerTargets(connectionInfo)
 	if err != nil {
 		Log.Info(fmt.Sprintf("Cannot get Kepler targets. Scrape configs not created. Error: %s", err))
 	}
 
-	// Kepler ScrapeConfig for non-tls nodes
-	keplerServiceName := fmt.Sprintf("%s-kepler", telemetry.ServiceName)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, "Kepler",
-		keplerServiceName, keplerEndpoints, false) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
-	if err != nil {
-		return ctrl.Result{}, err
+	// keplerEndpoint is reported as empty slice when telemetry-power-monitoring service is not enabled
+	if len(keplerEndpoints) > 0 {
+		// Kepler ScrapeConfig for non-tls nodes
+		keplerServiceName := fmt.Sprintf("%s-kepler", telemetry.ServiceName)
+		err = r.createServiceScrapeConfig(ctx, instance, Log, "Kepler",
+			keplerServiceName, keplerEndpoints, false) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
-func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, eventHandler handler.EventHandler) (ctrl.Result, error) {
+func getNodeExporterTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarget, []metricstorage.LabeledTarget) {
+	tls := []metricstorage.LabeledTarget{}
+	nonTLS := []metricstorage.LabeledTarget{}
+	for _, node := range nodes {
+		target := metricstorage.LabeledTarget{
+			IP:   fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultNodeExporterPort),
+			FQDN: node.FQDN,
+		}
+		if node.TLS {
+			tls = append(tls, target)
+		} else {
+			nonTLS = append(nonTLS, target)
+		}
+	}
+	return tls, nonTLS
+}
+
+func getKeplerTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarget, []metricstorage.LabeledTarget) {
+	tls := []metricstorage.LabeledTarget{}
+	nonTLS := []metricstorage.LabeledTarget{}
+	for _, node := range nodes {
+		target := metricstorage.LabeledTarget{
+			IP:   fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultKeplerPort),
+			FQDN: node.FQDN,
+		}
+		if node.TLS {
+			tls = append(tls, target)
+		} else {
+			nonTLS = append(nonTLS, target)
+		}
+	}
+	return tls, nonTLS
+}
+
+func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	uiPluginObj := &obsui.UIPlugin{
 		ObjectMeta: metav1.ObjectMeta{
@@ -730,6 +781,14 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			"grafana-dashboard-openstack-network-traffic":   dashboards.OpenstackNetworkTraffic(datasourceName),
 		}
 
+		// atleast one nodeset must have "telemetry-power-monitoring" service enabled for kepler dashboard to be created
+		connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
+		if err != nil {
+			Log.Info(fmt.Sprintf("Cannot get compute node connection info. Power monitoring dashboard not created. Error: %s", err))
+		} else if len(connectionInfo) > 0 {
+			dashboardCMs["grafana-dashboard-openstack-kepler"] = dashboards.OpenstackKepler(datasourceName)
+		}
+
 		for dashboardName, desiredCM := range dashboardCMs {
 			dashboardCM := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -796,38 +855,37 @@ func (r *MetricStorageReconciler) ensureWatches(
 	return err
 }
 
-func getMetricExporterTargets(
+func getComputeNodesConnectionInfo(
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
-	defaultMetricExporterPort int32,
-) ([]string, []string, error) {
+	telemetryServiceName string,
+) ([]ConnectionInfo, error) {
 	ipSetList, err := getIPSetList(instance, helper)
 	if err != nil {
-		return []string{}, []string{}, err
+		return []ConnectionInfo{}, err
 	}
 	inventorySecretList, err := getInventorySecretList(instance, helper)
 	if err != nil {
-		return []string{}, []string{}, err
+		return []ConnectionInfo{}, err
 	}
 	var address string
-	addressesNonTLS := []string{}
-	addressesTLS := []string{}
+	connectionInfo := []ConnectionInfo{}
 	for _, secret := range inventorySecretList.Items {
 		inventory, err := ansible.UnmarshalYAML(secret.Data["inventory"])
 		if err != nil {
-			return []string{}, []string{}, err
+			return []ConnectionInfo{}, err
 		}
 		nodeSetGroup := inventory.Groups[secret.Labels["openstackdataplanenodeset"]]
-		containsTelemetry := false
+		containsTargetService := false
 		for _, svc := range nodeSetGroup.Vars["edpm_services"].([]interface{}) {
-			if svc.(string) == "telemetry" {
-				containsTelemetry = true
+			if svc.(string) == telemetryServiceName {
+				containsTargetService = true
 			}
 		}
-		if !containsTelemetry {
-			// Telemetry isn't deployed on this nodeset
-			// there is no reason to include these nodes
-			// for scraping by prometheus
+		if !containsTargetService {
+			// If Telemetry|TelemetryPowerMonitoring isn't
+			// deployed on this nodeset there is no reason
+			// to include these nodes for scraping by prometheus
 			continue
 		}
 		for name, item := range nodeSetGroup.Hosts {
@@ -835,7 +893,6 @@ func getMetricExporterTargets(
 				Name:      name,
 				Namespace: instance.GetNamespace(),
 			}
-
 			if len(ipSetList.Items) > 0 {
 				// if we have IPSets, lets go to search for the IPs there
 				address, _ = getAddressFromIPSet(instance, &item, namespacedName, helper)
@@ -843,20 +900,33 @@ func getMetricExporterTargets(
 				address, _ = getAddressFromAnsibleHost(&item)
 			} else {
 				// we were unable to find an IP or HostName for a node, so we do not go further
-				return addressesNonTLS, addressesTLS, fmt.Errorf("failed to find an IP or HostName for node %s", name)
+				return connectionInfo, fmt.Errorf("failed to find an IP or HostName for node %s", name)
 			}
 			if address == "" {
 				// we were unable to find an IP or HostName for a node, so we do not go further
-				return addressesNonTLS, addressesTLS, fmt.Errorf("failed to find an IP or HostName for node %s", name)
+				return connectionInfo, fmt.Errorf("failed to find an IP or HostName for node %s", name)
 			}
+
+			fqdn, _ := getCanonicalHostname(&item)
+
 			if TLSEnabled, ok := nodeSetGroup.Vars["edpm_tls_certs_enabled"].(bool); ok && TLSEnabled {
-				addressesTLS = append(addressesTLS, fmt.Sprintf("%s:%d", address, defaultMetricExporterPort))
+				connectionInfo = append(connectionInfo, ConnectionInfo{
+					IP:       address,
+					Hostname: name,
+					TLS:      true,
+					FQDN:     fqdn,
+				})
 			} else {
-				addressesNonTLS = append(addressesNonTLS, fmt.Sprintf("%s:%d", address, defaultMetricExporterPort))
+				connectionInfo = append(connectionInfo, ConnectionInfo{
+					IP:       address,
+					Hostname: name,
+					TLS:      false,
+					FQDN:     fqdn,
+				})
 			}
 		}
 	}
-	return addressesNonTLS, addressesTLS, nil
+	return connectionInfo, nil
 }
 
 func getIPSetList(instance *telemetryv1.MetricStorage, helper *helper.Helper) (*infranetworkv1.IPSetList, error) {
@@ -926,6 +996,16 @@ func getAddressFromAnsibleHost(item *ansible.Host) (string, discoveryv1.AddressT
 	if isValidDomain(ansibleHost) {
 		// it is an valid domain name
 		return ansibleHost, discoveryv1.AddressTypeFQDN
+	}
+	return "", ""
+}
+
+func getCanonicalHostname(item *ansible.Host) (string, discoveryv1.AddressType) {
+	canonicalHostname := item.Vars["canonical_hostname"].(string)
+	// is it a valid hostname?
+	if isValidDomain(canonicalHostname) {
+		// it is an valid domain name
+		return canonicalHostname, discoveryv1.AddressTypeFQDN
 	}
 	return "", ""
 }

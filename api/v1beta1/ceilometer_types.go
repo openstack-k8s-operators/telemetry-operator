@@ -64,12 +64,17 @@ type CeilometerSpec struct {
 	// +kubebuilder:validation:Required
 	ProxyImage string `json:"proxyImage"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	KSMImage string `json:"ksmImage"`
 }
 
 // CeilometerSpecCore defines the desired state of Ceilometer. This version is used by the OpenStackControlplane (no image parameters)
 type CeilometerSpecCore struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=60
+	// APITimeout for Apache
+	APITimeout int `json:"apiTimeout"`
+
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Telemetry
 	// +kubebuilder:default=rabbitmq
@@ -112,6 +117,10 @@ type CeilometerSpecCore struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// KSMTLS - Parameters related to the TLS for kube-state-metrics
 	KSMTLS tls.SimpleService `json:"ksmTls,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// NodeSelector to target subset of worker nodes running this service
+	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer

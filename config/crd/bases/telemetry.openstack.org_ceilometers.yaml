@@ -108,6 +108,10 @@ spec:
           spec:
             description: CeilometerSpec defines the desired state of Ceilometer
             properties:
+              apiTimeout:
+                default: 60
+                description: APITimeout for Apache
+                type: integer
               centralImage:
                 type: string
               computeImage:
@@ -149,6 +153,12 @@ spec:
                 items:
                   type: string
                 type: array
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: NodeSelector to target subset of worker nodes running
+                  this service
+                type: object
               notificationImage:
                 type: string
               passwordSelector:
@@ -202,7 +212,6 @@ spec:
             - centralImage
             - computeImage
             - ipmiImage
-            - ksmImage
             - notificationImage
             - proxyImage
             - secret

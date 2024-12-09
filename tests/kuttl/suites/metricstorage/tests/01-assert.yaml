@@ -81,21 +81,19 @@ metadata:
   - kind: MetricStorage
     name: telemetry-kuttl
 spec:
-  staticConfigs:
-    - {}
+  scrapeInterval: 30s
 ---
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
-  name: telemetry-kepler
+  name: telemetry-node-exporter-tls
   ownerReferences:
   - kind: MetricStorage
     name: telemetry-kuttl
 spec:
-  staticConfigs:
-    - {}
+  scrapeInterval: 30s
 ---
 apiVersion: observability.openshift.io/v1alpha1
 kind: UIPlugin

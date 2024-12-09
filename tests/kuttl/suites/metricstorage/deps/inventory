@@ -1,0 +1,119 @@
+openstack-edpm-ipam:
+    vars:
+        edpm_network_config_template: |
+            ---
+            {% set mtu_list = [ctlplane_mtu] %}
+            {% for network in nodeset_networks %}
+            {{ mtu_list.append(lookup('vars', networks_lower[network] ~ '_mtu')) }}
+            {%- endfor %}
+            {% set min_viable_mtu = mtu_list | max %}
+            network_config:
+            - type: interface
+              name: nic1
+              use_dhcp: false
+            - type: interface
+              name: nic2
+              use_dhcp: false
+              addresses:
+              - ip_netmask: {{ ctlplane_ip }}/{{ ctlplane_cidr }}
+              routes:
+              - default: true
+                next_hop: {{ ctlplane_gateway_ip }}
+
+            - type: linux_bond
+              name: bond_api
+              use_dhcp: false
+              bonding_options: "mode=active-backup"
+              dns_servers: {{ ctlplane_dns_nameservers }}
+              members:
+              - type: interface
+                name: nic3
+
+            - type: vlan
+              vlan_id: {{ lookup('vars', networks_lower['internalapi'] ~ '_vlan_id') }}
+              device: bond_api
+              addresses:
+              - ip_netmask: {{ lookup('vars', networks_lower['internalapi'] ~ '_ip') }}/{{ lookup('vars', networks_lower['internalapi'] ~ '_cidr') }}
+
+            - type: vlan
+              vlan_id: {{ lookup('vars', networks_lower['storage'] ~ '_vlan_id') }}
+              device: bond_api
+              addresses:
+              - ip_netmask: {{ lookup('vars', networks_lower['storage'] ~ '_ip') }}/{{ lookup('vars', networks_lower['storage'] ~ '_cidr') }}
+        edpm_service_types:
+            - bootstrap
+            - download-cache
+            - reboot-os
+            - configure-ovs-dpdk
+            - configure-network
+            - validate-network
+            - install-os
+            - configure-os
+            - ssh-known-hosts
+            - run-os
+            - install-certs
+            - ovn
+            - neutron-ovn
+            - neutron-metadata
+            - neutron-sriov
+            - libvirt
+            - nova
+            - telemetry
+            - telemetry-power-monitoring
+        edpm_services:
+            - bootstrap
+            - download-cache
+            - reboot-os
+            - configure-ovs-dpdk
+            - configure-network
+            - validate-network
+            - install-os
+            - configure-os
+            - ssh-known-hosts
+            - run-os
+            - install-certs
+            - ovn
+            - neutron-ovn-igmp
+            - neutron-metadata
+            - neutron-sriov
+            - libvirt
+            - nova
+            - telemetry
+            - telemetry-power-monitoring
+        edpm_tls_certs_enabled: true
+    hosts:
+        edpm-compute-0:
+            ansible_host: edpm-compute-0
+            canonical_hostname: edpm-compute-0.ctlplane.example.com
+            ctlplane_cidr: 24
+            ctlplane_dns_nameservers:
+                - 192.168.122.80
+            ctlplane_gateway_ip: 192.168.122.1
+            ctlplane_host_routes:
+                - destination: 0.0.0.0/0
+                  nexthop: 192.168.122.1
+            ctlplane_ip: 192.168.122.100
+            ctlplane_mtu: 1500
+            dns_search_domains:
+                - ctlplane.example.com
+                - internalapi.example.com
+                - storage.example.com
+                - tenant.example.com
+            internalapi_cidr: 24
+            internalapi_gateway_ip: null
+            internalapi_host_routes: []
+            internalapi_ip: 172.17.0.100
+            internalapi_mtu: 1496
+            internalapi_vlan_id: 52
+            storage_cidr: 24
+            storage_gateway_ip: null
+            storage_host_routes: []
+            storage_ip: 172.18.0.100
+            storage_mtu: 1496
+            storage_vlan_id: 53
+            tenant_cidr: 24
+            tenant_gateway_ip: null
+            tenant_host_routes: []
+            tenant_ip: 172.19.0.100
+            tenant_mtu: 1496
+            tenant_vlan_id: 54

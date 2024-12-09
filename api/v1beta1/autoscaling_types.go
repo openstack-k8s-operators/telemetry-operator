@@ -58,6 +58,11 @@ type Aodh struct {
 
 // Aodh defines the aodh component spec
 type AodhCore struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=60
+	// APITimeout for Route and Apache
+	APITimeout int `json:"apiTimeout"`
+
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Aodh
 	// +kubebuilder:default=rabbitmq
@@ -114,7 +119,7 @@ type AodhCore struct {
 	PreserveJobs bool `json:"preserveJobs"`
 
 	// Memcached instance name.
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=memcached
 	MemcachedInstance string `json:"memcachedInstance"`
 
@@ -122,6 +127,10 @@ type AodhCore struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
 	TLS tls.API `json:"tls,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// NodeSelector to target subset of worker nodes running this service
+	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // APIOverrideSpec to override the generated manifest of several child resources.

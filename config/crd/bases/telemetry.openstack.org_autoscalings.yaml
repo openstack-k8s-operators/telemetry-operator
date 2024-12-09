@@ -62,6 +62,10 @@ spec:
                 properties:
                   apiImage:
                     type: string
+                  apiTimeout:
+                    default: 60
+                    description: APITimeout for Route and Apache
+                    type: integer
                   customServiceConfig:
                     default: '# add your customization here'
                     description: CustomServiceConfig - customize the service config
@@ -103,6 +107,12 @@ spec:
                     items:
                       type: string
                     type: array
+                  nodeSelector:
+                    additionalProperties:
+                      type: string
+                    description: NodeSelector to target subset of worker nodes running
+                      this service
+                    type: object
                   notifierImage:
                     type: string
                   override:
@@ -359,7 +369,6 @@ spec:
                 - databaseInstance
                 - evaluatorImage
                 - listenerImage
-                - memcachedInstance
                 - notifierImage
                 - secret
                 type: object

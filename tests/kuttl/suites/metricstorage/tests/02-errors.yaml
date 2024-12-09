@@ -36,6 +36,7 @@ kind: ConfigMap
 metadata:
   name: grafana-dashboard-openstack-rabbitmq
   namespace: openshift-config-managed
+<<<<<<< HEAD
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -48,3 +49,5 @@ kind: ConfigMap
 metadata:
   name: grafana-dashboard-openstack-network-traffic
   namespace: openshift-config-managed
+=======
+>>>>>>> upstream/main
