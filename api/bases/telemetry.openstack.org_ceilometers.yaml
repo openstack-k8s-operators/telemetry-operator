@@ -298,6 +298,7 @@ spec:
                 items:
                   type: string
                 type: array
+                x-kubernetes-list-type: atomic
               mysqldExporterHash:
                 additionalProperties:
                   type: string

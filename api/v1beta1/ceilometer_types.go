@@ -175,6 +175,7 @@ type CeilometerStatus struct {
 	MysqldExporterHash map[string]string `json:"mysqldExporterHash,omitempty"`
 
 	// List of galera CRs, which are being exported with mysqld_exporter
+	// +listType=atomic
 	MysqldExporterExportedGaleras []string `json:"mysqldExporterExportedGaleras,omitempty"`
 }
 
