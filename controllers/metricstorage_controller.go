@@ -777,6 +777,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			"grafana-dashboard-openstack-node":     dashboards.OpenstackNode(datasourceName),
 			"grafana-dashboard-openstack-vm":       dashboards.OpenstackVM(datasourceName),
 			"grafana-dashboard-openstack-rabbitmq": dashboards.OpenstackRabbitmq(datasourceName),
+			"grafana-dashboard-openstack-network-traffic":   dashboards.OpenstackNetworkTraffic(datasourceName),
 		}
 
 		// atleast one nodeset must have "telemetry-power-monitoring" service enabled for kepler dashboard to be created
