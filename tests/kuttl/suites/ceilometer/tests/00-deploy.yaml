@@ -4,3 +4,4 @@ metadata:
   name: telemetry-kuttl
 spec:
   secret: osp-secret
+  mysqldExporterEnabled: true
