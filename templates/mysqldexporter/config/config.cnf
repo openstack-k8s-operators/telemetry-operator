@@ -1,0 +1,12 @@
+{{ range $db := .Databases }}
+[{{ $db.Name }}]
+host = {{ $db.Host }}
+user = {{ $db.User }}
+password = {{ $db.Password }}
+{{ if $db.TLSEnabled }}
+tls = true
+ssl-ca = {{ $.TLS.Ca }}
+{{ else }}
+tls = skip-verify
+{{ end }}
+{{ end }}
