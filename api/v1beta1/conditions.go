@@ -24,6 +24,18 @@ const (
 	// CeilometerReadyCondition Status=True condition which indicates if the Ceilometer is configured and operational
 	CeilometerReadyCondition condition.Type = "CeilometerReady"
 
+	// CeilometerTLSInputReadyCondition Status=True condition when required TLS sources are ready
+	CeilometerTLSInputReadyCondition condition.Type = "CeilometerTLSInputReady"
+
+	// CeilometerInputReadyCondition Status=True condition which indicates if all required input sources are available for Ceilometer
+	CeilometerInputReadyCondition condition.Type = "CeilometerInputReady"
+
+	// CeilometerServiceConfigReadyCondition Status=True Condition which indicates that all service config got rendered ok from the templates and stored in the ConfigMap
+	CeilometerServiceConfigReadyCondition condition.Type = "CeilometerServiceConfigReady"
+
+	// CeilometerDeploymentReadyCondition Status=True condition when service deployment/statefulset created ok
+	CeilometerDeploymentReadyCondition condition.Type = "CeilometerDeploymentReady"
+
 	// AutoscalingReadyCondition Status=True condition which indicates if the Autoscaling is configured and operational
 	AutoscalingReadyCondition condition.Type = "AutoscalingReady"
 
@@ -58,6 +70,18 @@ const (
 
 	// KSMReadyCondition Status=True condition which indicates if the KSM is configured and operational
 	KSMReadyCondition condition.Type = "KSMReady"
+
+	// KSMTLSInputReadyCondition Status=True condition when required TLS sources are ready for KSM
+	KSMTLSInputReadyCondition condition.Type = "KSMTLSInputReady"
+
+	// KSMDeploymentReadyCondition Status=True condition when KSM statefulset created ok
+	KSMDeploymentReadyCondition condition.Type = "KSMDeploymentReady"
+
+	// KSMServiceConfigReadyCondition Status=True Condition which indicates that all service config got rendered ok
+	KSMServiceConfigReadyCondition condition.Type = "KSMServiceConfigReady"
+
+	// KSMCreateServiceReadyCondition Status=True condition when k8s service for the KSM created ok
+	KSMCreateServiceReadyCondition condition.Type = "KSMCreateServiceReady"
 )
 
 // Telemetry Reasons used by API objects.

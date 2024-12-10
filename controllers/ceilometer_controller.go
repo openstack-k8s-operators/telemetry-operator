@@ -127,37 +127,23 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// initialize status if Conditions is nil, but do not reset if it already
 	// exists
-	isNewInstance := instance.CeilometerStatus.Conditions == nil && instance.KSMStatus.Conditions == nil
+	isNewInstance := instance.Status.Conditions == nil
 	if isNewInstance {
-		instance.CeilometerStatus.Conditions = condition.Conditions{}
-		instance.KSMStatus.Conditions = condition.Conditions{}
+		instance.Status.Conditions = condition.Conditions{}
 	}
 
 	// Save a copy of the conditions so that we can restore the LastTransitionTime
 	// when a condition's state doesn't change.
-	savedConditions := instance.CeilometerStatus.Conditions.DeepCopy()
+	savedConditions := instance.Status.Conditions.DeepCopy()
 
 	// Always patch the instance status when exiting this function so we can
 	// persist any changes.
 	defer func() {
 		condition.RestoreLastTransitionTimes(
-			&instance.CeilometerStatus.Conditions, savedConditions)
-		if instance.CeilometerStatus.Conditions.IsUnknown(condition.ReadyCondition) {
-			instance.CeilometerStatus.Conditions.Set(
-				instance.CeilometerStatus.Conditions.Mirror(condition.ReadyCondition))
-		}
-
-		// update the Ready condition based on the sub conditions
-		if instance.KSMStatus.Conditions.AllSubConditionIsTrue() {
-			instance.KSMStatus.Conditions.MarkTrue(
-				condition.ReadyCondition, condition.ReadyMessage)
-		} else {
-			// something is not ready so reset the Ready condition
-			instance.KSMStatus.Conditions.MarkUnknown(
-				condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage)
-			// and recalculate it based on the state of the rest of the conditions
-			instance.KSMStatus.Conditions.Set(
-				instance.KSMStatus.Conditions.Mirror(condition.ReadyCondition))
+			&instance.Status.Conditions, savedConditions)
+		if instance.Status.Conditions.IsUnknown(condition.ReadyCondition) {
+			instance.Status.Conditions.Set(
+				instance.Status.Conditions.Mirror(condition.ReadyCondition))
 		}
 
 		err := helper.PatchInstance(ctx, instance)
@@ -173,33 +159,29 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	//
 	// initialize conditions used later as Status=Unknown
 	cl := condition.CreateList(
-		condition.UnknownCondition(condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage),
-		condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
-		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-		condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
-		// right now we have no dedicated KeystoneServiceReadyInitMessage
-		condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
-		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
-	)
-	instance.CeilometerStatus.Conditions.Init(&cl)
-	instance.CeilometerStatus.ObservedGeneration = instance.Generation
+		// Ceilometer conditions
+		condition.UnknownCondition(telemetryv1.CeilometerReadyCondition, condition.InitReason, condition.ReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.CeilometerTLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.CeilometerInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.CeilometerServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.CeilometerDeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+		// KSM conditions
+		condition.UnknownCondition(telemetryv1.KSMReadyCondition, condition.InitReason, condition.ReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.KSMTLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.KSMDeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.KSMCreateServiceReadyCondition, condition.InitReason, condition.CreateServiceReadyInitMessage),
+		// Misc. conditions
+		condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""), // right now we have no dedicated KeystoneServiceReadyInitMessage
 
-	if instance.CeilometerStatus.Hash == nil {
-		instance.CeilometerStatus.Hash = map[string]string{}
+	)
+	instance.Status.Conditions.Init(&cl)
+	instance.Status.ObservedGeneration = instance.Generation
+
+	if instance.Status.CeilometerHash == nil {
+		instance.Status.CeilometerHash = map[string]string{}
 	}
-
-	cl = condition.CreateList(
-		condition.UnknownCondition(condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage),
-		condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
-		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
-		condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
-		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
-	)
-	instance.KSMStatus.Conditions.Init(&cl)
-	instance.KSMStatus.ObservedGeneration = instance.Generation
-
-	if instance.KSMStatus.Hash == nil {
-		instance.KSMStatus.Hash = map[string]string{}
+	if instance.Status.KSMHash == nil {
+		instance.Status.KSMHash = map[string]string{}
 	}
 
 	// If we're not deleting this and the service object doesn't have our finalizer, add it.
@@ -303,19 +285,18 @@ func (r *CeilometerReconciler) reconcileInit(
 	// into a local condition with the type condition.KeystoneServiceReadyCondition
 	c := ksSvc.GetConditions().Mirror(condition.KeystoneServiceReadyCondition)
 	if c != nil {
-		instance.CeilometerStatus.Conditions.Set(c)
+		instance.Status.Conditions.Set(c)
 	}
 
 	if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
 
-	if instance.CeilometerStatus.Hash == nil {
-		instance.CeilometerStatus.Hash = map[string]string{}
+	if instance.Status.CeilometerHash == nil {
+		instance.Status.CeilometerHash = map[string]string{}
 	}
-
-	if instance.KSMStatus.Hash == nil {
-		instance.KSMStatus.Hash = map[string]string{}
+	if instance.Status.KSMHash == nil {
+		instance.Status.KSMHash = map[string]string{}
 	}
 
 	Log.Info("Reconciled Service init successfully")
@@ -323,9 +304,6 @@ func (r *CeilometerReconciler) reconcileInit(
 }
 
 func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.Ceilometer, helper *helper.Helper) (ctrl.Result, error) {
-	// ConfigMap
-	configMapVars := make(map[string]env.Setter)
-
 	// Service account, role, binding
 	rbacRules := []rbacv1.PolicyRule{
 		{
@@ -348,12 +326,12 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		return rbacResult, nil
 	}
 
-	ksmRes, err := r.reconcileKSM(ctx, instance, helper, &configMapVars)
+	ksmRes, err := r.reconcileKSM(ctx, instance, helper)
 	if err != nil {
 		return ksmRes, err
 	}
 
-	ceilRes, err := r.reconcileCeilometer(ctx, instance, helper, &configMapVars)
+	ceilRes, err := r.reconcileCeilometer(ctx, instance, helper)
 	if err != nil {
 		return ceilRes, err
 	}
@@ -365,10 +343,11 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
-	configMapVars *map[string]env.Setter,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, ceilometer.ServiceName))
+
+	configMapVars := make(map[string]env.Setter)
 
 	//
 	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
@@ -376,7 +355,7 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	transportURL, op, err := r.transportURLCreateOrUpdate(instance)
 	if err != nil {
 		Log.Info("Error getting transportURL. Setting error condition on status and returning")
-		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.RabbitMqTransportURLReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
@@ -389,11 +368,11 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
 	}
 
-	instance.CeilometerStatus.TransportURLSecret = transportURL.Status.SecretName
+	instance.Status.TransportURLSecret = transportURL.Status.SecretName
 
-	if instance.CeilometerStatus.TransportURLSecret == "" {
+	if instance.Status.TransportURLSecret == "" {
 		Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
-		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.RabbitMqTransportURLReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
@@ -401,13 +380,13 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 
-	instance.CeilometerStatus.Conditions.MarkTrue(condition.RabbitMqTransportURLReadyCondition, condition.RabbitMqTransportURLReadyMessage)
+	instance.Status.Conditions.MarkTrue(condition.RabbitMqTransportURLReadyCondition, condition.RabbitMqTransportURLReadyMessage)
 	// end transportURL
 
 	//
 	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
 	//
-	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.Secret, instance.Spec.PasswordSelectors.CeilometerService, configMapVars)
+	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.Secret, instance.Spec.PasswordSelectors.CeilometerService, &configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -416,13 +395,13 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	//
 	// check for required TransportURL secret holding transport URL string
 	//
-	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.CeilometerStatus.TransportURLSecret, "transport_url", configMapVars)
+	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Status.TransportURLSecret, "transport_url", &configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}
 	// run check TransportURL secret - end
 
-	instance.CeilometerStatus.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
+	instance.Status.Conditions.MarkTrue(telemetryv1.CeilometerInputReadyCondition, condition.InputReadyMessage)
 
 	//
 	// TLS input validation
@@ -439,15 +418,15 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
-				instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
-					condition.TLSInputReadyCondition,
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					telemetryv1.CeilometerTLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
 					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.TLS.CaBundleSecretName)))
 				return ctrl.Result{}, nil
 			}
-			instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
-				condition.TLSInputReadyCondition,
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.CeilometerTLSInputReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.TLSInputErrorMessage,
@@ -456,7 +435,7 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		}
 
 		if hash != "" {
-			(*configMapVars)[tls.CABundleKey] = env.SetValue(hash)
+			configMapVars[tls.CABundleKey] = env.SetValue(hash)
 		}
 	}
 
@@ -465,25 +444,25 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		hash, err := instance.Spec.TLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
-				instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
-					condition.TLSInputReadyCondition,
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					telemetryv1.CeilometerTLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
 					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, err.Error())))
 				return ctrl.Result{}, nil
 			}
-			instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
-				condition.TLSInputReadyCondition,
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.CeilometerTLSInputReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.TLSInputErrorMessage,
 				err.Error()))
 			return ctrl.Result{}, err
 		}
-		(*configMapVars)[tls.TLSHashName] = env.SetValue(hash)
+		configMapVars[tls.TLSHashName] = env.SetValue(hash)
 	}
 	// all cert input checks out so report InputReady
-	instance.CeilometerStatus.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
+	instance.Status.Conditions.MarkTrue(telemetryv1.CeilometerTLSInputReadyCondition, condition.InputReadyMessage)
 
 	//
 	// create Configmap required for ceilometer input
@@ -491,10 +470,10 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	// - %-config configmap holding minimal ceilometer config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
-	err = r.generateServiceConfig(ctx, helper, instance, configMapVars)
+	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars)
 	if err != nil {
-		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CeilometerServiceConfigReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.ServiceConfigReadyErrorMessage,
@@ -508,10 +487,10 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	// - %-config configmap holding minimal ceilometer-compute config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
-	err = r.generateComputeServiceConfig(ctx, helper, instance, configMapVars)
+	err = r.generateComputeServiceConfig(ctx, helper, instance, &configMapVars)
 	if err != nil {
-		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CeilometerServiceConfigReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.ServiceConfigReadyErrorMessage,
@@ -542,16 +521,16 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	(*configMapVars)["endpointurls"] = env.SetValue(hash)
+	configMapVars["endpointurls"] = env.SetValue(hash)
 
 	//
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
 	//
-	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, *configMapVars)
+	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, &instance.Status.CeilometerHash, configMapVars)
 	if err != nil {
-		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
-			condition.ServiceConfigReadyCondition,
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CeilometerServiceConfigReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.ServiceConfigReadyErrorMessage,
@@ -563,9 +542,9 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		return ctrl.Result{}, nil
 	}
 
-	instance.CeilometerStatus.Hash[common.InputHashName] = inputHash
+	instance.Status.CeilometerHash[common.InputHashName] = inputHash
 
-	instance.CeilometerStatus.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
+	instance.Status.Conditions.MarkTrue(telemetryv1.CeilometerServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
 	serviceLabels := map[string]string{
 		common.AppSelector:   ceilometer.ServiceName,
@@ -592,16 +571,16 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 
 	ctrlResult, err = sfset.CreateOrPatch(ctx, helper)
 	if err != nil {
-		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
-			condition.DeploymentReadyCondition,
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CeilometerDeploymentReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.DeploymentReadyErrorMessage,
 			err.Error()))
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
-		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
-			condition.DeploymentReadyCondition,
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CeilometerDeploymentReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			condition.DeploymentReadyRunningMessage))
@@ -615,8 +594,8 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	// Evaluate the last part of the reconciliation only if we see the last
 	// version of the CR
 	if sfset.GetStatefulSet().Generation == sfset.GetStatefulSet().Status.ObservedGeneration {
-		instance.CeilometerStatus.ReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
-		instance.CeilometerStatus.Networks = instance.Spec.NetworkAttachmentDefinitions
+		instance.Status.CeilometerReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
+		instance.Status.Networks = instance.Spec.NetworkAttachmentDefinitions
 		svc, op, err := ceilometer.Service(instance, helper, ceilometer.CeilometerPrometheusPort, serviceLabels)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -624,11 +603,11 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		if op != controllerutil.OperationResultNone {
 			Log.Info(fmt.Sprintf(msgOperation, svc.Name, string(op)))
 		}
-		if instance.CeilometerStatus.ReadyCount > 0 {
-			instance.CeilometerStatus.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+		if instance.Status.CeilometerReadyCount > 0 {
+			instance.Status.Conditions.MarkTrue(telemetryv1.CeilometerDeploymentReadyCondition, condition.DeploymentReadyMessage)
 		}
-		if instance.CeilometerStatus.Conditions.AllSubConditionIsTrue() {
-			instance.CeilometerStatus.Conditions.MarkTrue(
+		if instance.Status.Conditions.AllSubConditionIsTrue() {
+			instance.Status.Conditions.MarkTrue(
 				condition.ReadyCondition, condition.ReadyMessage)
 		}
 		Log.Info(fmt.Sprintf(msgReconcileSuccess, ceilometer.ServiceName))
@@ -640,10 +619,11 @@ func (r *CeilometerReconciler) reconcileKSM(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
-	configMapVars *map[string]env.Setter,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, availability.KSMServiceName))
+
+	configMapVars := make(map[string]env.Setter)
 
 	serviceLabels := map[string]string{
 		common.AppSelector: availability.KSMServiceName,
@@ -661,15 +641,15 @@ func (r *CeilometerReconciler) reconcileKSM(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
-				instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-					condition.TLSInputReadyCondition,
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					telemetryv1.KSMTLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
 					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.KSMTLS.CaBundleSecretName)))
 				return ctrl.Result{}, nil
 			}
-			instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-				condition.TLSInputReadyCondition,
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.KSMTLSInputReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.TLSInputErrorMessage,
@@ -678,7 +658,7 @@ func (r *CeilometerReconciler) reconcileKSM(
 		}
 
 		if hash != "" {
-			(*configMapVars)[fmt.Sprintf("ksm-%s", tls.CABundleKey)] = env.SetValue(hash)
+			configMapVars[tls.CABundleKey] = env.SetValue(hash)
 		}
 	}
 
@@ -687,15 +667,15 @@ func (r *CeilometerReconciler) reconcileKSM(
 		// Validate metadata service cert secret
 		hash, err := instance.Spec.KSMTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {
-			instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-				condition.TLSInputReadyCondition,
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.KSMTLSInputReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.TLSInputErrorMessage,
 				err.Error()))
 			return ctrl.Result{}, err
 		}
-		(*configMapVars)[fmt.Sprintf("ksm-%s", tls.TLSHashName)] = env.SetValue(hash)
+		configMapVars[tls.TLSHashName] = env.SetValue(hash)
 
 		// Create TLS conf for the service
 		tlsConfDef := availability.KSMTLSConfig(instance, serviceLabels, true)
@@ -708,10 +688,31 @@ func (r *CeilometerReconciler) reconcileKSM(
 		if op != controllerutil.OperationResultNone {
 			Log.Info(fmt.Sprintf("KSM TLS config %s successfully changed - operation: %s", tlsConfDef.Name, string(op)))
 		}
-		(*configMapVars)[tlsConfDef.Name] = env.SetValue(hash)
+		configMapVars[tlsConfDef.Name] = env.SetValue(hash)
 	}
 
-	instance.KSMStatus.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
+	//
+	// create hash over all the different input resources to identify if any those changed
+	// and a restart/recreate is required.
+	//
+	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, &instance.Status.KSMHash, configMapVars)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.KSMServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	} else if hashChanged {
+		// Hash changed and instance status should be updated (which will be done by main defer func),
+		// so we need to return and reconcile again
+		return ctrl.Result{}, nil
+	}
+
+	instance.Status.KSMHash[common.InputHashName] = inputHash
+
+	instance.Status.Conditions.MarkTrue(telemetryv1.KSMServiceConfigReadyCondition, condition.InputReadyMessage)
 
 	// create the service
 	ssDef, err := availability.KSMStatefulSet(instance, tlsConfName, serviceLabels)
@@ -722,16 +723,16 @@ func (r *CeilometerReconciler) reconcileKSM(
 	ss := statefulset.NewStatefulSet(ssDef, time.Duration(5)*time.Second)
 	ctrlResult, err := ss.CreateOrPatch(ctx, helper)
 	if err != nil {
-		instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-			condition.DeploymentReadyCondition,
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.KSMDeploymentReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
 			condition.DeploymentReadyErrorMessage,
 			err.Error()))
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
-		instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-			condition.DeploymentReadyCondition,
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.KSMDeploymentReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			condition.DeploymentReadyRunningMessage))
@@ -747,30 +748,27 @@ func (r *CeilometerReconciler) reconcileKSM(
 	// version of the CR
 	ssobj := ss.GetStatefulSet()
 	if ssobj.Generation == ssobj.Status.ObservedGeneration {
-		instance.KSMStatus.ReadyCount = ss.GetStatefulSet().Status.ReadyReplicas
-		if instance.KSMStatus.ReadyCount > 0 {
-			instance.KSMStatus.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+		instance.Status.KSMReadyCount = ss.GetStatefulSet().Status.ReadyReplicas
+		if instance.Status.KSMReadyCount > 0 {
+			instance.Status.Conditions.MarkTrue(telemetryv1.KSMDeploymentReadyCondition, condition.DeploymentReadyMessage)
 		}
 
 		// Create the service
 		svc, op, err := availability.KSMService(instance, helper, serviceLabels)
 		if err != nil {
-			instance.KSMStatus.Conditions.Set(condition.FalseCondition(
-				condition.CreateServiceReadyCondition,
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.KSMCreateServiceReadyCondition,
 				condition.ErrorReason,
 				condition.SeverityWarning,
 				condition.CreateServiceReadyErrorMessage,
 				err.Error()))
-
 			return ctrl.Result{}, err
 		}
 		if op != controllerutil.OperationResultNone {
 			Log.Info(fmt.Sprintf(msgOperation, svc.Name, string(op)))
 		}
-
-		if instance.CeilometerStatus.Conditions.AllSubConditionIsTrue() {
-			instance.CeilometerStatus.Conditions.MarkTrue(
-				condition.ReadyCondition, condition.ReadyMessage)
+		if op == controllerutil.OperationResultCreated || op == controllerutil.OperationResultUpdated {
+			instance.Status.Conditions.MarkTrue(telemetryv1.KSMCreateServiceReadyCondition, condition.CreateServiceReadyMessage)
 		}
 		Log.Info(fmt.Sprintf(msgReconcileSuccess, availability.KSMServiceName))
 	}
@@ -787,7 +785,7 @@ func (r *CeilometerReconciler) getSecret(ctx context.Context, h *helper.Helper, 
 			expectedField,
 		},
 		h.GetClient(),
-		&instance.CeilometerStatus.Conditions,
+		&instance.Status.Conditions,
 		time.Duration(10)*time.Second,
 	)
 	if err != nil {
@@ -823,7 +821,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		return err
 	}
 
-	transportURLSecret, _, err := secret.GetSecret(ctx, h, instance.CeilometerStatus.TransportURLSecret, instance.Namespace)
+	transportURLSecret, _, err := secret.GetSecret(ctx, h, instance.Status.TransportURLSecret, instance.Namespace)
 	if err != nil {
 		return err
 	}
@@ -905,7 +903,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		return err
 	}
 
-	transportURLSecret, _, err := secret.GetSecret(ctx, h, instance.CeilometerStatus.TransportURLSecret, instance.Namespace)
+	transportURLSecret, _, err := secret.GetSecret(ctx, h, instance.Status.TransportURLSecret, instance.Namespace)
 	if err != nil {
 		return err
 	}
@@ -972,7 +970,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 // returns the hash, whether the hash changed (as a bool) and any error
 func (r *CeilometerReconciler) createHashOfInputHashes(
 	ctx context.Context,
-	instance *telemetryv1.Ceilometer,
+	theHash *map[string]string,
 	envVars map[string]env.Setter,
 ) (string, bool, error) {
 	Log := r.GetLogger(ctx)
@@ -981,8 +979,9 @@ func (r *CeilometerReconciler) createHashOfInputHashes(
 	if err != nil {
 		return hash, changed, err
 	}
-	if hashMap, changed := util.SetHash(instance.CeilometerStatus.Hash, common.InputHashName, hash); changed {
-		instance.CeilometerStatus.Hash = hashMap
+
+	if hashMap, changed := util.SetHash(*theHash, common.InputHashName, hash); changed {
+		(*theHash) = hashMap
 		Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
 	}
 	return hash, changed, nil
