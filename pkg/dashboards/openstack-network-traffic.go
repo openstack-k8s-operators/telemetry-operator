@@ -37,10 +37,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 				  "list": [
 					{
 					  "builtIn": 1,
-					  "datasource": {
-						"type": "datasource",
-						"uid": "grafana"
-					  },
+					  "datasource": "-- Grafana --",
 					  "enable": true,
 					  "hide": true,
 					  "iconColor": "rgba(0, 211, 255, 1)",
@@ -50,137 +47,135 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 				  ]
 				},
 				"editable": true,
-				"fiscalYearStartMonth": 0,
 				"graphTooltip": 0,
 				"id": 1,
 				"links": [],
 				"rows": [
 				  {
+					"collapse": false,
 					"collapsed": false,
-					"gridPos": {
-					  "h": 1,
-					  "w": 24,
-					  "x": 0,
-					  "y": 0
-					},
-					"id": 18,
-					"panels": [],
+					"repeat": null,
+					"repeatIteration": null,
+					"repeatRowId": null,
+					"showTitle": true,
 					"title": "Overview",
-					"type": "row"
+					"titleSize": "h6",
+					"type": "row",
+					"panels": [
+							{
+								"aliasColors": {},
+								"bars": false,
+								"dashLength": 10,
+								"dashes": false,
+								"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
+								"fieldConfig": {
+								"defaults": {
+									"links": []
+								},
+								"overrides": []
+								},
+								"fill": 10,
+								"fillGradient": 0,
+								"gridPos": {
+								"h": 8,
+								"w": 12,
+								"x": 0,
+								"y": 1
+								},
+								"hiddenSeries": false,
+								"id": 10,
+								"legend": {
+								"avg": false,
+								"current": false,
+								"max": false,
+								"min": false,
+								"show": true,
+								"total": false,
+								"values": false
+								},
+								"lines": true,
+								"linewidth": 1,
+								"nullPointMode": "null",
+								"options": {
+								"alertThreshold": true
+								},
+								"percentage": false,
+								"pluginVersion": "10.4.3",
+								"pointradius": 2,
+								"points": false,
+								"renderer": "flot",
+								"seriesOverrides": [],
+								"spaceLength": 10,
+								"stack": false,
+								"steppedLine": false,
+								"targets": [
+								{
+									"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
+									"expr": "vm:ceilometer_network_incoming_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
+									"hide": false,
+									"interval": "",
+									"legendFormat": "{{vm_name}} in ({{device}})",
+									"refId": "B"
+								},
+								{
+									"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
+									"expr": "vm:ceilometer_network_outgoing_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
+									"hide": false,
+									"interval": "",
+									"legendFormat": "{{vm_name}} out ({{device}})",
+									"refId": "A"
+								}
+								],
+								"thresholds": [],
+								"timeRegions": [],
+								"title": "Network Adapter",
+								"tooltip": {
+								"shared": true,
+								"sort": 0,
+								"value_type": "individual"
+								},
+								"type": "graph",
+								"xaxis": {
+								"mode": "time",
+								"show": true,
+								"values": []
+								},
+								"yaxes": [
+								{
+									"format": "Bps",
+									"logBase": 1,
+									"show": true
+								},
+								{
+									"format": "short",
+									"logBase": 1,
+									"show": true
+								}
+								],
+								"yaxis": {
+								"align": false
+								}
+
+					   }
+					]
 				  },
 				  {
-					"aliasColors": {},
-					"bars": false,
-					"dashLength": 10,
-					"dashes": false,
-					"datasource": { "name": "` + dsName + `", "type": "prometheus" },
-					"fieldConfig": {
-					  "defaults": {
-						"links": []
-					  },
-					  "overrides": []
-					},
-					"fill": 10,
-					"fillGradient": 0,
-					"gridPos": {
-					  "h": 8,
-					  "w": 12,
-					  "x": 0,
-					  "y": 1
-					},
-					"hiddenSeries": false,
-					"id": 10,
-					"legend": {
-					  "avg": false,
-					  "current": false,
-					  "max": false,
-					  "min": false,
-					  "show": true,
-					  "total": false,
-					  "values": false
-					},
-					"lines": true,
-					"linewidth": 1,
-					"nullPointMode": "null",
-					"options": {
-					  "alertThreshold": true
-					},
-					"percentage": false,
-					"pluginVersion": "10.4.3",
-					"pointradius": 2,
-					"points": false,
-					"renderer": "flot",
-					"seriesOverrides": [],
-					"spaceLength": 10,
-					"stack": false,
-					"steppedLine": false,
-					"targets": [
-					  {
-						"datasource": { "name": "` + dsName + `", "type": "prometheus" },						,
-						"expr": "vm:ceilometer_network_incoming_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
-						"hide": false,
-						"interval": "",
-						"legendFormat": "{{vm_name}} in ({{device}})",
-						"refId": "B"
-					  },
-					  {
-						"datasource": {
-						  "type": "prometheus",
-						  "uid": "ce37wzjdfegw0e"
-						},
-						"expr": "vm:ceilometer_network_outgoing_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
-						"hide": false,
-						"interval": "",
-						"legendFormat": "{{vm_name}} out ({{device}})",
-						"refId": "A"
-					  }
-					],
-					"thresholds": [],
-					"timeRegions": [],
-					"title": "Network Adapter",
-					"tooltip": {
-					  "shared": true,
-					  "sort": 0,
-					  "value_type": "individual"
-					},
-					"type": "graph",
-					"xaxis": {
-					  "mode": "time",
-					  "show": true,
-					  "values": []
-					},
-					"yaxes": [
-					  {
-						"format": "Bps",
-						"logBase": 1,
-						"show": true
-					  },
-					  {
-						"format": "short",
-						"logBase": 1,
-						"show": true
-					  }
-					],
-					"yaxis": {
-					  "align": false
-					}
-				  },
-				  {
-					"collapsed": true,
-					"gridPos": {
-					  "h": 1,
-					  "w": 24,
-					  "x": 0,
-					  "y": 9
-					},
-					"id": 15,
+					"collapse": false,
+					"collapsed": false,
+					"repeat": null,
+					"repeatIteration": null,
+					"repeatRowId": null,
+					"showTitle": true,
+					"title": "Inbound Traffic",
+					"titleSize": "h6",
+					"type": "row",
 					"panels": [
 					  {
 						"aliasColors": {},
 						"bars": false,
 						"dashLength": 10,
 						"dashes": false,
-						"datasource": { "name": "` + dsName + `", "type": "prometheus" },						,
+						"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 						"fieldConfig": {
 						  "defaults": {
 							"links": [],
@@ -224,7 +219,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						  {
-							"datasource": { "name": "` + dsName + `", "type": "prometheus" },							,
+							"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 							"editorMode": "code",
 							"expr": "vm:ceilometer_network_incoming_bytes:rate1m{resource_name=~\"$VM:$In_adapter\", project=~\"$project\" } / 1000000",
 							"hide": false,
@@ -266,8 +261,9 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						  "align": false
 						}
 					  },
+
 					  {
-						"datasource": { "name": "` + dsName + `", "type": "prometheus" },						,
+						"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 						"fieldConfig": {
 						  "defaults": {
 							"color": {
@@ -370,7 +366,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "10.4.3",
 						"targets": [
 						  {
-							"datasource": { "name": "` + dsName + `", "type": "prometheus" },							,
+							"datasource": { "name": "` + dsName + `", "type": "prometheus" },
 							"editorMode": "code",
 							"expr": "vm:ceilometer_network_incoming_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" }",
 							"hide": false,
@@ -383,12 +379,16 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"title": "Incoming Dropped Packets",
 						"type": "timeseries"
 					  },
+
 					  {
 						"aliasColors": {},
 						"bars": false,
 						"dashLength": 10,
 						"dashes": false,
-						"datasource": { "name": "` + dsName + `", "type": "prometheus" },						,
+						"datasource": {
+						  "type": "prometheus",
+						  "uid": "ce37wzjdfegw0e"
+						},
 						"fieldConfig": {
 						  "defaults": {
 							"links": [],
@@ -432,7 +432,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						  {
-							"datasource": { "name": "` + dsName + `", "type": "prometheus" },							,
+							"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 							"editorMode": "code",
 							"expr": "(rate(ceilometer_network_incoming_packets_drop{project=~\"$project\", resource_name=~\"$VM:$In_adapter\"}[1m]) / rate(ceilometer_network_incoming_packets{project=~\"$project\", resource_name=~\"$VM:In_adapter\"}[1m])) * 100\n",
 							"hide": false,
@@ -484,8 +484,9 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						  "align": false
 						}
 					  },
+
 					  {
-						"datasource": { "name": "` + dsName + `", "type": "prometheus" },						,
+						"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 						"fieldConfig": {
 						  "defaults": {
 							"color": {
@@ -588,7 +589,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "10.4.3",
 						"targets": [
 						  {
-							"datasource": { "name": "` + dsName + `", "type": "prometheus" },							,
+							"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 							"editorMode": "code",
 							"expr": "vm:ceilometer_network_incoming_packets_error:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\"}",
 							"hide": false,
@@ -601,29 +602,26 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"title": "Incoming Packets Error",
 						"type": "timeseries"
 					  }
-					],
-					"title": "Inbound Traffic",
-					"type": "row"
+					]
 				  },
+
 				  {
-					"collapsed": true,
-					"gridPos": {
-					  "h": 1,
-					  "w": 24,
-					  "x": 0,
-					  "y": 10
-					},
-					"id": 14,
+					"collapse": false,
+					"collapsed": false,
+					"repeat": null,
+					"repeatIteration": null,
+					"repeatRowId": null,
+					"showTitle": true,
+					"title": "Outbound Traffic",
+					"titleSize": "h6",
+					"type": "row",
 					"panels": [
 					  {
 						"aliasColors": {},
 						"bars": false,
 						"dashLength": 10,
 						"dashes": false,
-						"datasource": {
-						  "type": "prometheus",
-						  "uid": "ce37wzjdfegw0e"
-						},
+						"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 						"fieldConfig": {
 						  "defaults": {
 							"links": [],
@@ -669,7 +667,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						  {
-							"datasource": { "name": "` + dsName + `", "type": "prometheus" },							,
+							"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 							"editorMode": "code",
 							"expr": "vm:ceilometer_network_outgoing_bytes:rate1m{resource_name=~\"$VM:$out_adapter\", project=~\"$project\"} / 1000000",
 							"hide": false,
@@ -716,7 +714,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"bars": false,
 						"dashLength": 10,
 						"dashes": false,
-						"datasource": { "name": "` + dsName + `", "type": "prometheus" },						,
+						"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 						"fieldConfig": {
 						  "defaults": {
 							"links": [],
@@ -760,7 +758,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						  {
-							"datasource": { "name": "` + dsName + `", "type": "prometheus" },							,
+							"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 							"editorMode": "code",
 							"expr": "vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\", vm_name =~ \"$VM\", device=~\"$out_adapter\"}",
 							"hide": false,
@@ -807,7 +805,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"bars": false,
 						"dashLength": 10,
 						"dashes": false,
-						"datasource": { "name": "` + dsName + `", "type": "prometheus" },						,
+						"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 						"fieldConfig": {
 						  "defaults": {
 							"links": [],
@@ -851,7 +849,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						  {
-							"datasource": { "name": "` + dsName + `", "type": "prometheus" },							,
+							"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 							"editorMode": "code",
 							"expr": "(rate(ceilometer_network_outgoing_packets_drop{project=~\"$project\", resource_name=~\"$VM:$out_adapter\"}[1m]) / rate(ceilometer_network_outgoing_packets{project=~\"$project\", resource_name=~\"$VM:$out_adapter\"}[1m])) * 100\n",
 							"hide": false,
@@ -908,7 +906,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"bars": false,
 						"dashLength": 10,
 						"dashes": false,
-						"datasource": { "name": "` + dsName + `", "type": "prometheus" },						,
+						"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 						"fieldConfig": {
 						  "defaults": {
 							"links": [],
@@ -952,7 +950,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						  {
-							"datasource": { "name": "` + dsName + `", "type": "prometheus" },							,
+							"datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 							"editorMode": "code",
 							"expr": "vm:ceilometer_network_outgoing_packets_error:rate1m{project =~ \"$project\", vm_name =~ \"$VM\", device=~\"$out_adapter\"}",
 							"hide": false,
@@ -994,11 +992,11 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						  "align": false
 						}
 					  }
-					],
-					"title": "Outbound Traffic",
-					"type": "row"
+					]
 				  }
 				],
+
+
 				"refresh": "10s",
 				"schemaVersion": 39,
 				"tags": [
@@ -1010,10 +1008,10 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 					  "allValue": ".*",
 					  "current": {
 						"selected": false,
-						"text": "ee80218bf7db3248e7dd153f3340014d116f7af438ddeb08420677e9",
-						"value": "ee80218bf7db3248e7dd153f3340014d116f7af438ddeb08420677e9"
+						"text": "",
+						"value": ""
 					  },
-					  "datasource": { "name": "` + dsName + `", "type": "prometheus" },					  ,
+					  "datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 					  "definition": "label_values(vm:ceilometer_network_incoming_bytes:rate1m,vm_instance)",
 					  "hide": 0,
 					  "includeAll": true,
@@ -1042,7 +1040,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						  "$__all"
 						]
 					  },
-					  "datasource":{ "name": "` + dsName + `", "type": "prometheus" },					  ,
+					  "datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 					  "definition": "label_values(ceilometer_cpu{vm_instance=~\"$compute_node\"},project)",
 					  "hide": 0,
 					  "includeAll": true,
@@ -1074,7 +1072,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						  "$__all"
 						]
 					  },
-					  "datasource": { "name": "` + dsName + `", "type": "prometheus" },					  ,
+					  "datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 					  "definition": "label_values(ceilometer_cpu{project =~ \"$project\"}, vm_instance)",
 					  "hide": 0,
 					  "includeAll": true,
@@ -1102,7 +1100,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						  "$__all"
 						]
 					  },
-					  "datasource": { "name": "` + dsName + `", "type": "prometheus" },					  ,
+					  "datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 					  "definition": "label_values(vm:ceilometer_network_incoming_bytes:rate1m{vm_name=~\"$VM\"},device)",
 					  "hide": 0,
 					  "includeAll": true,
@@ -1127,7 +1125,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 						"text": "tap0cb7726a-da",
 						"value": "tap0cb7726a-da"
 					  },
-					  "datasource": { "name": "` + dsName + `", "type": "prometheus" },					  ,
+					  "datasource":  { "name": "` + dsName + `", "type": "prometheus" },
 					  "definition": "label_values(vm:ceilometer_network_outgoing_bytes:rate1m{vm_name=~\"$VM\"},device)",
 					  "hide": 0,
 					  "includeAll": true,
