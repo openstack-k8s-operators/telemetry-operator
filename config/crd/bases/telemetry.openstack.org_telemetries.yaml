@@ -448,11 +448,11 @@ spec:
                     type: object
                   mysqldExporterDatabaseAccountPrefix:
                     default: mysqld-exporter
-                    description: MysqldExporterDatabaseAccountPrefix - Database account
-                      prefix for the mysqld-exporter. A mariadbaccount CR named "<mysqldExporterDatabaseAccountPrefix>-<galera
-                      CR name>" for each galera instance needs to be either created
-                      by the user or if it's missing, it'll be created by the telemetry-operator
-                      automatically.
+                    description: |-
+                      MysqldExporterDatabaseAccountPrefix - Database account prefix for the mysqld-exporter.
+                      A mariadbaccount CR named "<mysqldExporterDatabaseAccountPrefix>-<galera CR name>" for each
+                      galera instance needs to be either created by the user or if it's missing, it'll be
+                      created by the telemetry-operator automatically.
                     type: string
                   mysqldExporterEnabled:
                     description: Whether mysqld_exporter should be deployed
