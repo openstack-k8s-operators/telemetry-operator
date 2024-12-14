@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.4.2
 	github.com/onsi/ginkgo/v2 v2.20.1
 	github.com/onsi/gomega v1.34.1
-	github.com/openstack-k8s-operators/heat-operator/api v0.5.1-0.20241213092825-97980dfb35b8
+	github.com/openstack-k8s-operators/heat-operator/api v0.5.1-0.20241213111254-469de7116d51
 	github.com/openstack-k8s-operators/infra-operator/apis v0.5.1-0.20241213080025-18e54a028c8b
 	github.com/openstack-k8s-operators/keystone-operator/api v0.5.1-0.20241212135809-dc78e7221d12
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.5.1-0.20241212101436-41a4a627e1a6
