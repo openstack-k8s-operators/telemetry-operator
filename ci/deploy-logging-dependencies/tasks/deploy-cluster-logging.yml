@@ -1,3 +1,8 @@
+- name: Deploy UIPlugin to enable Console view
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/ui_plugin.yaml -n openshift-logging
+      
 - name: Create cluster log forwarder
   ansible.builtin.shell:
     cmd: |
