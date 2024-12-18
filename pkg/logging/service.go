@@ -45,9 +45,9 @@ func Service(
 			TargetPort: intstr.FromInt(instance.Spec.TargetPort),
 		}}
 		service.Spec.Selector = map[string]string{
-			"app.kubernetes.io/instance": "collector",
-			"component":                  "collector",
-			"provider":                   "openshift",
+			"app.kubernetes.io/component": "collector",
+			"app.kubernetes.io/name":      "vector",
+			"app.kubernetes.io/part-of":   "cluster-logging",
 		}
 		service.Annotations = instance.Spec.Annotations
 		service.Labels = labels
