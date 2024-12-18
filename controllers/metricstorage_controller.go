@@ -779,12 +779,13 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			"grafana-dashboard-openstack-rabbitmq": dashboards.OpenstackRabbitmq(datasourceName),
 		}
 
-		// atleast one nodeset must have "telemetry-power-monitoring" service enabled for kepler dashboard to be created
+		// atleast one nodeset must have "telemetry-power-monitoring" service enabled for kepler and ipmi dashboard to be created
 		connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
 		if err != nil {
 			Log.Info(fmt.Sprintf("Cannot get compute node connection info. Power monitoring dashboard not created. Error: %s", err))
 		} else if len(connectionInfo) > 0 {
 			dashboardCMs["grafana-dashboard-openstack-kepler"] = dashboards.OpenstackKepler(datasourceName)
+			dashboardCMs["grafana-dashboard-openstack-ceilometer-ipmi"] = dashboards.OpenstackCeilometerIpmi(datasourceName)
 		}
 
 		for dashboardName, desiredCM := range dashboardCMs {
