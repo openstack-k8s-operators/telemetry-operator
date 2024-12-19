@@ -90,6 +90,11 @@ type MetricStorageSpec struct {
 	// +kubebuilder:default=ctlplane
 	DataplaneNetwork *infranetworkv1.NetNameStr `json:"dataplaneNetwork"`
 
+	// NetworkAttachments is a list of NetworkAttachment resource names to expose the services to the given network
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=["ctlplane"]
+	NetworkAttachments []string `json:"networkAttachments"`
+
 	// MonitoringStack allows to define a metric storage with
 	// options supported by Red Hat
 	// +kubebuilder:validation:Optional
@@ -127,10 +132,13 @@ type MetricStorageStatus struct {
 	// then the controller has not processed the latest changes injected by
 	// the openstack-operator in the top-level CR (e.g. the ContainerImage)
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	// Networks in addition to the cluster network, the service is attached to
+	NetworkAttachments []string `json:"networkAttachments,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="NetworkAttachments",type="string",JSONPath=".status.networkAttachments",description="NetworkAttachments"
 //+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[0].status",description="Status"
 //+kubebuilder:printcolumn:name="Message",type="string",JSONPath=".status.conditions[0].message",description="Message"
 
