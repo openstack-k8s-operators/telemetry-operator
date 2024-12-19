@@ -6,7 +6,7 @@
 - name: Wait for cluster log forwarder to be created
   ansible.builtin.command:
     cmd:
-      oc get clusterlogforwarder --namespace=openshift-logging instance
+      oc get clusterlogforwarder --namespace=openshift-logging collector
   delay: 10
   retries: 20
   register: output
@@ -15,4 +15,4 @@
 - name: Wait for the cluster log forwarder to be ready
   ansible.builtin.command:
     cmd: |
-      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder instance
+      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder collector
