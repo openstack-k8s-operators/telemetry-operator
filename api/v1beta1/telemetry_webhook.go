@@ -29,17 +29,18 @@ import (
 
 // TelemetryDefaults -
 type TelemetryDefaults struct {
-	CentralContainerImageURL       string
-	ComputeContainerImageURL       string
-	NotificationContainerImageURL  string
-	SgCoreContainerImageURL        string
-	ProxyContainerImageURL         string
-	IpmiContainerImageURL          string
-	KsmContainerImageURL           string
-	AodhAPIContainerImageURL       string
-	AodhEvaluatorContainerImageURL string
-	AodhNotifierContainerImageURL  string
-	AodhListenerContainerImageURL  string
+	CentralContainerImageURL        string
+	ComputeContainerImageURL        string
+	NotificationContainerImageURL   string
+	SgCoreContainerImageURL         string
+	ProxyContainerImageURL          string
+	IpmiContainerImageURL           string
+	KsmContainerImageURL            string
+	MysqldExporterContainerImageURL string
+	AodhAPIContainerImageURL        string
+	AodhEvaluatorContainerImageURL  string
+	AodhNotifierContainerImageURL   string
+	AodhListenerContainerImageURL   string
 }
 
 var telemetryDefaults TelemetryDefaults
@@ -93,6 +94,9 @@ func (spec *TelemetrySpec) Default() {
 	}
 	if spec.Ceilometer.CeilometerSpec.KSMImage == "" {
 		spec.Ceilometer.CeilometerSpec.KSMImage = telemetryDefaults.KsmContainerImageURL
+	}
+	if spec.Ceilometer.CeilometerSpec.MysqldExporterImage == "" {
+		spec.Ceilometer.CeilometerSpec.MysqldExporterImage = telemetryDefaults.MysqldExporterContainerImageURL
 	}
 	if spec.Autoscaling.AutoscalingSpec.Aodh.APIImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.APIImage = telemetryDefaults.AodhAPIContainerImageURL
