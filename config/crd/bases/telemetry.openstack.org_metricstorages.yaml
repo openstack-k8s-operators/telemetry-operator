@@ -15,6 +15,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - description: NetworkAttachments
+      jsonPath: .status.networkAttachments
+      name: NetworkAttachments
+      type: string
     - description: Status
       jsonPath: .status.conditions[0].status
       name: Status
@@ -1299,6 +1303,13 @@ spec:
                         type: string
                     type: object
                 type: object
+              networkAttachments:
+                default: '["ctlplane"]'
+                description: NetworkAttachments is a list of NetworkAttachment resource
+                  names to expose the services to the given network
+                items:
+                  type: string
+                type: array
               prometheusTls:
                 description: TLS - Parameters related to the TLS
                 properties:
@@ -1356,6 +1367,12 @@ spec:
                   - status
                   - type
                   type: object
+                type: array
+              networkAttachments:
+                description: Networks in addition to the cluster network, the service
+                  is attached to
+                items:
+                  type: string
                 type: array
               observedGeneration:
                 description: |-

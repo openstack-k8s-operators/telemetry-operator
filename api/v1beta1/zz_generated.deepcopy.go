@@ -775,6 +775,11 @@ func (in *MetricStorageSpec) DeepCopyInto(out *MetricStorageSpec) {
 		*out = new(networkv1beta1.NetNameStr)
 		**out = **in
 	}
+	if in.NetworkAttachments != nil {
+		in, out := &in.NetworkAttachments, &out.NetworkAttachments
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.MonitoringStack != nil {
 		in, out := &in.MonitoringStack, &out.MonitoringStack
 		*out = new(MonitoringStack)
@@ -807,6 +812,11 @@ func (in *MetricStorageStatus) DeepCopyInto(out *MetricStorageStatus) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.NetworkAttachments != nil {
+		in, out := &in.NetworkAttachments, &out.NetworkAttachments
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 }
 
