@@ -76,7 +76,7 @@
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
         - functional-tests-on-osp18: &fvt_jobs_config
-            voting: false
+            voting: true
             required-projects:
               - name: infrawatch/feature-verification-tests
                 override-checkout: master
