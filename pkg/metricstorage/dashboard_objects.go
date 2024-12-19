@@ -60,6 +60,7 @@ func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricSto
 		"grafana-dashboard-openstack-rabbitmq",
 		"grafana-dashboard-openstack-kepler",
 		"grafana-dashboard-openstack-network-traffic",
+		"grafana-dashboard-openstack-ceilometer-ipmi",
 	}
 	for _, name := range dashboards {
 		dashboardCM := &corev1.ConfigMap{

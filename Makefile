@@ -197,7 +197,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
-CONTROLLER_TOOLS_VERSION ?= v0.11.1
+CONTROLLER_TOOLS_VERSION ?= v0.14.0
 GOTOOLCHAIN_VERSION ?= go1.21.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -401,7 +401,7 @@ kuttl-test-cleanup:
 	fi
 
 CRD_SCHEMA_CHECKER_VERSION ?= release-4.16
-BRANCH=main
+BRANCH ?= main
 
 PHONY: crd-schema-check
 crd-schema-check: manifests

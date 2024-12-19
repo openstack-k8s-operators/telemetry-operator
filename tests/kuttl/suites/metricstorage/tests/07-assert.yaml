@@ -34,3 +34,11 @@ metadata:
     console.openshift.io/dashboard: "true"
   name: grafana-dashboard-openstack-kepler
   namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    console.openshift.io/dashboard: "true"
+  name: grafana-dashboard-openstack-ceilometer-ipmi
+  namespace: openshift-config-managed

@@ -40,6 +40,8 @@ const (
 	CeilometerProxyContainerImage = "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
 	// KubeStateMetricsImage - default fall-back image for KSM
 	KubeStateMetricsImage = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0"
+	// MysqldExporterImage - default fall-back image for mysqld_exporter
+	MysqldExporterContainerImage = "quay.io/prometheus/mysqld-exporter:v0.16.0"
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
@@ -66,6 +68,9 @@ type CeilometerSpec struct {
 
 	// +kubebuilder:validation:Optional
 	KSMImage string `json:"ksmImage"`
+
+	// +kubebuilder:validation:Optional
+	MysqldExporterImage string `json:"mysqldExporterImage"`
 }
 
 // CeilometerSpecCore defines the desired state of Ceilometer. This version is used by the OpenStackControlplane (no image parameters)
@@ -108,6 +113,18 @@ type CeilometerSpecCore struct {
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
 
+	// Whether mysqld_exporter should be deployed
+	// +kubebuilder:validation:optional
+	MysqldExporterEnabled *bool `json:"mysqldExporterEnabled,omitempty"`
+
+	// MysqldExporterDatabaseAccountPrefix - Database account prefix for the mysqld-exporter.
+	// A mariadbaccount CR named "<mysqldExporterDatabaseAccountPrefix>-<galera CR name>" for each
+	// galera instance needs to be either created by the user or if it's missing, it'll be
+	// created by the telemetry-operator automatically.
+	// +kubebuilder:validation:optional
+	// +kubebuilder:default=mysqld-exporter
+	MysqldExporterDatabaseAccountPrefix string `json:"mysqldExporterDatabaseAccountPrefix,omitempty"`
+
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
@@ -117,6 +134,11 @@ type CeilometerSpecCore struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// KSMTLS - Parameters related to the TLS for kube-state-metrics
 	KSMTLS tls.SimpleService `json:"ksmTls,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// MysqldExporterTLS - Parameters related to the TLS for mysqld_exporter
+	MysqldExporterTLS tls.SimpleService `json:"mysqldExporterTLS,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// NodeSelector to target subset of worker nodes running this service
@@ -145,6 +167,16 @@ type CeilometerStatus struct {
 	// then the controller has not processed the latest changes injected by
 	// the openstack-operator in the top-level CR (e.g. the ContainerImage)
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// ReadyCount of mysqld_exporter instances
+	MysqldExporterReadyCount int32 `json:"mysqldExporterReadyCount,omitempty"`
+
+	// Map of hashes to track e.g. job status
+	MysqldExporterHash map[string]string `json:"mysqldExporterHash,omitempty"`
+
+	// List of galera CRs, which are being exported with mysqld_exporter
+	// +listType=atomic
+	MysqldExporterExportedGaleras []string `json:"mysqldExporterExportedGaleras,omitempty"`
 }
 
 // KSMStatus defines the observed state of kube-state-metrics
@@ -218,13 +250,14 @@ func (instance Ceilometer) RbacResourceName() string {
 func SetupDefaultsCeilometer() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	ceilometerDefaults := CeilometerDefaults{
-		CentralContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
-		SgCoreContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
-		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
-		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
-		IpmiContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
-		ProxyContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_APACHE_IMAGE_URL_DEFAULT", CeilometerProxyContainerImage),
-		KSMContainerImageURL:          util.GetEnvVar("RELATED_IMAGE_KSM_IMAGE_URL_DEFAULT", KubeStateMetricsImage),
+		CentralContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
+		SgCoreContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
+		NotificationContainerImageURL:   util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
+		ComputeContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
+		IpmiContainerImageURL:           util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
+		ProxyContainerImageURL:          util.GetEnvVar("RELATED_IMAGE_APACHE_IMAGE_URL_DEFAULT", CeilometerProxyContainerImage),
+		KSMContainerImageURL:            util.GetEnvVar("RELATED_IMAGE_KSM_IMAGE_URL_DEFAULT", KubeStateMetricsImage),
+		MysqldExporterContainerImageURL: util.GetEnvVar("RELATED_IMAGE_MYSQLD_EXPORTER_IMAGE_URL_DEFAULT", MysqldExporterContainerImage),
 	}
 
 	SetupCeilometerDefaults(ceilometerDefaults)

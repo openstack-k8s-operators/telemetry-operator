@@ -12,9 +12,9 @@ spec:
     protocol: TCP
     targetPort: 10514
   selector:
-    app.kubernetes.io/instance: collector
-    component: collector
-    provider: openshift
+    app.kubernetes.io/component: collector
+    app.kubernetes.io/name: vector
+    app.kubernetes.io/part-of: cluster-logging
   type: LoadBalancer
 
 ---
