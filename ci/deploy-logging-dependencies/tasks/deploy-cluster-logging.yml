@@ -1,3 +1,12 @@
+- name: Create the SA and apply the right permissions
+  ansible.builtin.shell:
+    cmd: |
+      oc create sa collector -n openshift-logging
+      oc adm policy add-cluster-role-to-user logging-collector-logs-writer -z collector -n openshift-logging
+      oc adm policy add-cluster-role-to-user collect-application-logs -z collector -n openshift-logging
+      oc adm policy add-cluster-role-to-user collect-audit-logs -z collector -n openshift-logging
+      oc adm policy add-cluster-role-to-user collect-infrastructure-logs -z collector -n openshift-logging
+
 - name: Create cluster log forwarder
   ansible.builtin.shell:
     cmd: |
