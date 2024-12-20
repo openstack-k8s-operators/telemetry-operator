@@ -59,6 +59,9 @@ func (spec *MetricStorageSpec) Default() {
 	if *spec.DataplaneNetwork == "" {
 		*spec.DataplaneNetwork = "ctlplane"
 	}
+	if len(spec.NetworkAttachments) == 0 {
+		spec.NetworkAttachments = []string{"ctlplane"}
+	}
 	if spec.MonitoringStack != nil {
 		spec.MonitoringStack.Default()
 	}
