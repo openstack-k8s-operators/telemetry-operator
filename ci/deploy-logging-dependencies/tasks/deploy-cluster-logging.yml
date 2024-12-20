@@ -1,3 +1,12 @@
+- name: Create the SA and apply the right permissions
+  ansible.builtin.shell:
+    cmd: |
+      oc create sa collector -n openshift-logging
+      oc adm policy add-cluster-role-to-user logging-collector-logs-writer -z collector -n openshift-logging
+      oc adm policy add-cluster-role-to-user collect-application-logs -z collector -n openshift-logging
+      oc adm policy add-cluster-role-to-user collect-audit-logs -z collector -n openshift-logging
+      oc adm policy add-cluster-role-to-user collect-infrastructure-logs -z collector -n openshift-logging
+
 - name: Create cluster log forwarder
   ansible.builtin.shell:
     cmd: |
@@ -6,7 +15,7 @@
 - name: Wait for cluster log forwarder to be created
   ansible.builtin.command:
     cmd:
-      oc get clusterlogforwarder --namespace=openshift-logging instance
+      oc get clusterlogforwarder --namespace=openshift-logging collector
   delay: 10
   retries: 20
   register: output
@@ -15,4 +24,4 @@
 - name: Wait for the cluster log forwarder to be ready
   ansible.builtin.command:
     cmd: |
-      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder instance
+      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder collector
