@@ -22,6 +22,7 @@ import (
 	"net"
 	"reflect"
 	"regexp"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
@@ -889,13 +890,9 @@ func getComputeNodesConnectionInfo(
 			continue
 		}
 		for name, item := range nodeSetGroup.Hosts {
-			namespacedName := &types.NamespacedName{
-				Name:      name,
-				Namespace: instance.GetNamespace(),
-			}
 			if len(ipSetList.Items) > 0 {
 				// if we have IPSets, lets go to search for the IPs there
-				address, _ = getAddressFromIPSet(instance, &item, namespacedName, helper)
+				address, _ = getAddressFromIPSet(instance, &item, helper)
 			} else if _, ok := item.Vars["ansible_host"]; ok {
 				address, _ = getAddressFromAnsibleHost(&item)
 			} else {
@@ -955,21 +952,44 @@ func getInventorySecretList(instance *telemetryv1.MetricStorage, helper *helper.
 func getAddressFromIPSet(
 	instance *telemetryv1.MetricStorage,
 	item *ansible.Host,
-	namespacedName *types.NamespacedName,
 	helper *helper.Helper,
 ) (string, discoveryv1.AddressType) {
 	ansibleHost := item.Vars["ansible_host"].(string)
+	canonicalHostname, _ := getCanonicalHostname(item)
+	ctlplaneDNSDomain := ""
+
+	domains, ok := item.Vars["dns_search_domains"].([]interface{})
+	if ok {
+		for _, domain := range domains {
+			domainString, ok := domain.(string)
+			if ok && domainString[0:8] == "ctlplane" {
+				ctlplaneDNSDomain = domainString
+			}
+		}
+	}
 	// we go search for an IPSet
+	namespacedName := &types.NamespacedName{
+		Name:      canonicalHostname,
+		Namespace: instance.GetNamespace(),
+	}
 	ipset := &infranetworkv1.IPSet{}
 	err := helper.GetClient().Get(context.Background(), *namespacedName, ipset)
 	if err != nil {
-		// No IPsets found, lets try to get the HostName as last resource
-		if isValidDomain(ansibleHost) {
-			return ansibleHost, discoveryv1.AddressTypeFQDN
+		// No IPsets found, lets try the shorter version of the IPSet name
+		namespacedName := &types.NamespacedName{
+			Name:      strings.TrimSuffix(canonicalHostname, "."+ctlplaneDNSDomain),
+			Namespace: instance.GetNamespace(),
 		}
-		// No IP address or valid hostname found anywhere
-		helper.GetLogger().Info("Did not found a valid hostname or IP address")
-		return "", ""
+		err = helper.GetClient().Get(context.Background(), *namespacedName, ipset)
+		if err != nil {
+			// No IPsets found, lets try to get the HostName as last resource
+			if isValidDomain(ansibleHost) {
+				return ansibleHost, discoveryv1.AddressTypeFQDN
+			}
+			// No IP address or valid hostname found anywhere
+			helper.GetLogger().Info("Did not found a valid hostname or IP address")
+			return "", ""
+		}
 	}
 	// check that the reservations list is not empty
 	if len(ipset.Status.Reservation) > 0 {
@@ -1001,9 +1021,9 @@ func getAddressFromAnsibleHost(item *ansible.Host) (string, discoveryv1.AddressT
 }
 
 func getCanonicalHostname(item *ansible.Host) (string, discoveryv1.AddressType) {
-	canonicalHostname := item.Vars["canonical_hostname"].(string)
+	canonicalHostname, ok := item.Vars["canonical_hostname"].(string)
 	// is it a valid hostname?
-	if isValidDomain(canonicalHostname) {
+	if ok && isValidDomain(canonicalHostname) {
 		// it is an valid domain name
 		return canonicalHostname, discoveryv1.AddressTypeFQDN
 	}
