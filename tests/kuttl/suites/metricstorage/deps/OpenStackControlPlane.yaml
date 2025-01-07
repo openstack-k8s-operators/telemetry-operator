@@ -31,9 +31,3 @@ spec:
     templates:
       memcached:
         replicas: 1
-  telemetry:
-    enabled: true
-    templates:
-      ceilometer:
-        enabled: true
-        mysqldExporterEnabled: true

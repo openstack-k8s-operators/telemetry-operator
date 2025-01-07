@@ -122,7 +122,6 @@ spec:
     - __param_target
     targetLabel: instance
   - action: Replace
-    replacement: mysqld-exporter.telemetry-kuttl-metricstorage.svc:9104
     targetLabel: __address__
   scrapeInterval: 30s
 ---
