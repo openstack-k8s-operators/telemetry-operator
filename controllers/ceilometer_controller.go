@@ -764,6 +764,15 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		return r.reconcileDeleteMysqldExporter(ctx, instance, helper)
 	}
 
+	if instance.Spec.MysqldExporterImage == "" {
+		instance.CeilometerStatus.Conditions.Set(condition.FalseCondition(
+			telemetryv1.MysqldExporterDeploymentReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			"mysqld_exporter container image isn't set"))
+		return ctrl.Result{}, nil
+	}
+
 	configMapVars := make(map[string]env.Setter)
 	//
 	// TLS input validation
