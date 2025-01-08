@@ -1866,8 +1866,6 @@ spec:
                         type: object
                     type: object
                   networkAttachments:
-                    default:
-                    - ctlplane
                     description: NetworkAttachments is a list of NetworkAttachment
                       resource names to expose the services to the given network
                     items:
