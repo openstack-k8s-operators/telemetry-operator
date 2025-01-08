@@ -63,6 +63,7 @@ import (
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/dashboards"
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
+	utils "github.com/openstack-k8s-operators/telemetry-operator/pkg/utils"
 	rabbitmqv1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
@@ -515,8 +516,7 @@ func (r *MetricStorageReconciler) createServiceScrapeConfig(
 	log logr.Logger,
 	description string,
 	serviceName string,
-	targets interface{},
-	tlsEnabled bool,
+	desiredScrapeConfig *monv1alpha1.ScrapeConfig,
 ) error {
 	scrapeConfig := &monv1alpha1.ScrapeConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -525,10 +525,6 @@ func (r *MetricStorageReconciler) createServiceScrapeConfig(
 		},
 	}
 	op, err := controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfig, func() error {
-		desiredScrapeConfig := metricstorage.ScrapeConfig(instance,
-			serviceLabels,
-			targets,
-			tlsEnabled)
 		desiredScrapeConfig.Spec.DeepCopyInto(&scrapeConfig.Spec)
 		scrapeConfig.ObjectMeta.Labels = desiredScrapeConfig.ObjectMeta.Labels
 		err := controllerutil.SetControllerReference(instance, scrapeConfig, r.Scheme)
@@ -562,8 +558,14 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	ceilometerRoute := fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
 	ceilometerTarget := []string{fmt.Sprintf("%s:%d", ceilometerRoute, ceilometer.CeilometerPrometheusPort)}
 	ceilometerCfgName := fmt.Sprintf("%s-ceilometer", telemetry.ServiceName)
+	desiredScrapeConfig := metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		ceilometerTarget,
+		instance.Spec.PrometheusTLS.Enabled(),
+	)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "Ceilometer",
-		ceilometerCfgName, ceilometerTarget, instance.Spec.PrometheusTLS.Enabled())
+		ceilometerCfgName, desiredScrapeConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -572,8 +574,14 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	ksmRoute := fmt.Sprintf("%s.%s.svc", availability.KSMServiceName, instance.Namespace)
 	ksmTarget := []string{fmt.Sprintf("%s:%d", ksmRoute, availability.KSMMetricsPort)}
 	ksmCfgName := fmt.Sprintf("%s-ksm", telemetry.ServiceName)
+	desiredScrapeConfig = metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		ksmTarget,
+		instance.Spec.PrometheusTLS.Enabled(),
+	)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "kube-state-metrics",
-		ksmCfgName, ksmTarget, instance.Spec.PrometheusTLS.Enabled())
+		ksmCfgName, desiredScrapeConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -596,8 +604,14 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		rabbitTargets = append(rabbitTargets, fmt.Sprintf("%s:%d", rabbitServerName, metricstorage.RabbitMQPrometheusPort))
 	}
 	rabbitCfgName := fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName)
+	desiredScrapeConfig = metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		rabbitTargets,
+		instance.Spec.PrometheusTLS.Enabled(),
+	)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "RabbitMQ",
-		rabbitCfgName, rabbitTargets, instance.Spec.PrometheusTLS.Enabled())
+		rabbitCfgName, desiredScrapeConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -611,16 +625,28 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	neTargetsTLS, neTargetsNonTLS := getNodeExporterTargets(connectionInfo)
 	// ScrapeConfig for non-tls nodes
 	neServiceName := fmt.Sprintf("%s-node-exporter", telemetry.ServiceName)
+	desiredScrapeConfig = metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		neTargetsNonTLS,
+		false,
+	)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
-		neServiceName, neTargetsNonTLS, false)
+		neServiceName, desiredScrapeConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// ScrapeConfig for tls nodes
 	neServiceName = fmt.Sprintf("%s-node-exporter-tls", telemetry.ServiceName)
+	desiredScrapeConfig = metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		neTargetsTLS,
+		true,
+	)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
-		neServiceName, neTargetsTLS, true)
+		neServiceName, desiredScrapeConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -640,10 +666,63 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	if len(keplerEndpoints) > 0 {
 		// Kepler ScrapeConfig for non-tls nodes
 		keplerServiceName := fmt.Sprintf("%s-kepler", telemetry.ServiceName)
+		desiredScrapeConfig = metricstorage.ScrapeConfig(
+			instance,
+			serviceLabels,
+			keplerEndpoints,
+			false,
+		)
 		err = r.createServiceScrapeConfig(ctx, instance, Log, "Kepler",
-			keplerServiceName, keplerEndpoints, false) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
+			keplerServiceName, desiredScrapeConfig) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
 		if err != nil {
 			return ctrl.Result{}, err
+		}
+	}
+
+	// mysqld exporter
+	ceilometerNamespacedName := types.NamespacedName{
+		Name:      ceilometer.ServiceName,
+		Namespace: instance.Namespace,
+	}
+	ceilometerInstance := &telemetryv1.Ceilometer{}
+
+	err = r.Client.Get(ctx, ceilometerNamespacedName, ceilometerInstance)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		Log.Info(fmt.Sprintf("Cannot get ceilometer. Scrape configs not created. Error: %s", err))
+	}
+
+	mysqldExporterCfgName := fmt.Sprintf("%s-mysqld-exporter", telemetry.ServiceName)
+
+	if !k8s_errors.IsNotFound(err) && len(ceilometerInstance.CeilometerStatus.MysqldExporterExportedGaleras) > 0 {
+		exportedGaleras := ceilometerInstance.CeilometerStatus.MysqldExporterExportedGaleras
+		mysqldExporterTargets := []string{}
+		for _, galera := range exportedGaleras {
+			// NOTE: the galera port is hardcoded in the mariadb-operator without
+			// any declared constant we could use here
+			mysqldExporterTargets = append(
+				mysqldExporterTargets,
+				fmt.Sprintf("%s.%s.svc:3306", galera, instance.Namespace),
+			)
+		}
+		desiredScrapeConfig = metricstorage.ScrapeConfigMysqldExporter(
+			instance,
+			serviceLabels,
+			mysqldExporterTargets,
+			ceilometerInstance.Spec.MysqldExporterTLS.Enabled(),
+		)
+		err = r.createServiceScrapeConfig(ctx, instance, Log, "mysqld_exporter", mysqldExporterCfgName, desiredScrapeConfig)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		mysqldExporterScrapeConfig := &monv1alpha1.ScrapeConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      mysqldExporterCfgName,
+				Namespace: instance.Namespace,
+			},
+		}
+		if res, err := utils.EnsureDeleted(ctx, helper, mysqldExporterScrapeConfig); err != nil {
+			return res, err
 		}
 	}
 
@@ -1068,7 +1147,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		return nil
 	}
 
-	rabbitmqWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
+	reconcileAllMetricStoragesWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all metricstorage CRs
@@ -1145,7 +1224,12 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		).
 		Watches(
 			&rabbitmqv1.RabbitmqCluster{},
-			handler.EnqueueRequestsFromMapFunc(rabbitmqWatchFn),
+			handler.EnqueueRequestsFromMapFunc(reconcileAllMetricStoragesWatchFn),
+		).
+		Watches(
+			&telemetryv1.Ceilometer{},
+			handler.EnqueueRequestsFromMapFunc(reconcileAllMetricStoragesWatchFn),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Build(r)
 	r.Controller = control
