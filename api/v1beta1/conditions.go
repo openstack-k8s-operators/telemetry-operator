@@ -58,6 +58,17 @@ const (
 
 	// KSMReadyCondition Status=True condition which indicates if the KSM is configured and operational
 	KSMReadyCondition condition.Type = "KSMReady"
+
+	// MysqldExporter conditions
+	MysqldExporterDBReadyCondition condition.Type = "MysqldExporterDBReady"
+
+	MysqldExporterDeploymentReadyCondition condition.Type = "MysqldExporterDeploymentReady"
+
+	MysqldExporterMariaDBAccountReadyCondition condition.Type = "MysqldExporterMariaDBAccountReady"
+
+	MysqldExporterServiceConfigReadyCondition condition.Type = "MysqldExporterServiceConfigReady"
+
+	MysqldExporterTLSInputReadyCondition condition.Type = "MysqldExporterTLSInputReady"
 )
 
 // Telemetry Reasons used by API objects.
@@ -207,4 +218,10 @@ const (
 
 	// KSMReadyRunningMessage
 	KSMReadyRunningMessage = "KSM in progress"
+
+	//
+	// mysqld_exporter condition messages
+	//
+	// MysqldExporterDisabledMessage
+	MysqldExporterDisabledMessage = "mysqld_exporter is disabled"
 )

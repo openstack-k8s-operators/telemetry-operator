@@ -1,3 +1,4 @@
+---
 apiVersion: telemetry.openstack.org/v1beta1
 kind: MetricStorage
 metadata:
@@ -12,3 +13,12 @@ spec:
       retention: 24h
       persistent:
         pvcStorageRequest: 20G
+---
+# Required, so that the mysqld_exporter scrapeconfig is created
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Ceilometer
+metadata:
+  name: ceilometer
+spec:
+  secret: osp-secret
+  mysqldExporterEnabled: true

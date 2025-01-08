@@ -468,8 +468,14 @@ func (in *CeilometerSpecCore) DeepCopyInto(out *CeilometerSpecCore) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.MysqldExporterEnabled != nil {
+		in, out := &in.MysqldExporterEnabled, &out.MysqldExporterEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	in.TLS.DeepCopyInto(&out.TLS)
 	in.KSMTLS.DeepCopyInto(&out.KSMTLS)
+	in.MysqldExporterTLS.DeepCopyInto(&out.MysqldExporterTLS)
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
 		*out = new(map[string]string)
@@ -512,6 +518,18 @@ func (in *CeilometerStatus) DeepCopyInto(out *CeilometerStatus) {
 	}
 	if in.Networks != nil {
 		in, out := &in.Networks, &out.Networks
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.MysqldExporterHash != nil {
+		in, out := &in.MysqldExporterHash, &out.MysqldExporterHash
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.MysqldExporterExportedGaleras != nil {
+		in, out := &in.MysqldExporterExportedGaleras, &out.MysqldExporterExportedGaleras
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

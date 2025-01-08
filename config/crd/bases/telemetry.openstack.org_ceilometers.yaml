@@ -149,6 +149,31 @@ spec:
                     description: SecretName - holding the cert, key for the service
                     type: string
                 type: object
+              mysqldExporterDatabaseAccountPrefix:
+                default: mysqld-exporter
+                description: |-
+                  MysqldExporterDatabaseAccountPrefix - Database account prefix for the mysqld-exporter.
+                  A mariadbaccount CR named "<mysqldExporterDatabaseAccountPrefix>-<galera CR name>" for each
+                  galera instance needs to be either created by the user or if it's missing, it'll be
+                  created by the telemetry-operator automatically.
+                type: string
+              mysqldExporterEnabled:
+                description: Whether mysqld_exporter should be deployed
+                type: boolean
+              mysqldExporterImage:
+                type: string
+              mysqldExporterTLS:
+                description: MysqldExporterTLS - Parameters related to the TLS for
+                  mysqld_exporter
+                properties:
+                  caBundleSecretName:
+                    description: CaBundleSecretName - holding the CA certs in a pre-created
+                      bundle file
+                    type: string
+                  secretName:
+                    description: SecretName - holding the cert, key for the service
+                    type: string
+                type: object
               networkAttachmentDefinitions:
                 description: NetworkAttachmentDefinitions list of network attachment
                   definitions the service pod gets attached to
@@ -270,6 +295,21 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
+              mysqldExporterExportedGaleras:
+                description: List of galera CRs, which are being exported with mysqld_exporter
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: atomic
+              mysqldExporterHash:
+                additionalProperties:
+                  type: string
+                description: Map of hashes to track e.g. job status
+                type: object
+              mysqldExporterReadyCount:
+                description: ReadyCount of mysqld_exporter instances
+                format: int32
+                type: integer
               networks:
                 description: Networks in addtion to the cluster network, the service
                   is attached to
