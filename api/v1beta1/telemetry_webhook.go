@@ -110,6 +110,9 @@ func (spec *TelemetrySpec) Default() {
 	if spec.Autoscaling.AutoscalingSpec.Aodh.ListenerImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.ListenerImage = telemetryDefaults.AodhListenerContainerImageURL
 	}
+	if spec.Autoscaling.AutoscalingSpec.Aodh.MemcachedInstance == "" {
+		spec.Autoscaling.AutoscalingSpec.Aodh.MemcachedInstance = "memcached"
+	}
 }
 
 // Default - set defaults for this Telemetry spec core
