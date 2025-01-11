@@ -110,14 +110,12 @@ func (spec *TelemetrySpec) Default() {
 	if spec.Autoscaling.AutoscalingSpec.Aodh.ListenerImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.ListenerImage = telemetryDefaults.AodhListenerContainerImageURL
 	}
-	if spec.Autoscaling.AutoscalingSpec.Aodh.MemcachedInstance == "" {
-		spec.Autoscaling.AutoscalingSpec.Aodh.MemcachedInstance = "memcached"
-	}
 }
 
 // Default - set defaults for this Telemetry spec core
+// NOTE: only this version gets called by the Controlplane Webhook
 func (spec *TelemetrySpecCore) Default() {
-	// nothing here yet
+	spec.Autoscaling.Aodh.Default()
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
