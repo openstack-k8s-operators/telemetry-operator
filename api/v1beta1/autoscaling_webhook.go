@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -60,6 +61,7 @@ func (r *Autoscaling) Default() {
 	autoscalinglog.Info("default", "name", r.Name)
 
 	r.Spec.Default()
+	r.Spec.Aodh.AodhCore.Default()
 }
 
 // Default - set defaults for this Autoscaling spec
@@ -76,8 +78,13 @@ func (spec *AutoscalingSpec) Default() {
 	if spec.Aodh.ListenerImage == "" {
 		spec.Aodh.ListenerImage = autoscalingDefaults.AodhListenerContainerImageURL
 	}
-	if spec.Aodh.MemcachedInstance == "" {
-		spec.Aodh.MemcachedInstance = "memcached"
+}
+
+// Default - note only *Core* versions like this will have validations that are called from the
+// Controlplane webhook
+func (spec *AodhCore) Default() {
+	if spec.MemcachedInstance == "" {
+		spec.MemcachedInstance = "memcached"
 	}
 }
 
