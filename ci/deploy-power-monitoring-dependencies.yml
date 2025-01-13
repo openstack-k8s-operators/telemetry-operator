@@ -1,0 +1,24 @@
+---
+- name: "Deploy power monitoring dependencies"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+    - name: Copy dataplane nodeset kustomization
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/dataplane/90-kustomize-dataplane-power-monitoring.yaml"
+        content: |-
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          resources:
+          namespace: {{ cifmw_install_yamls_defaults['NAMESPACE'] }}
+          patches:
+          - target:
+              kind: OpenStackDataPlaneNodeSet
+              name: .*
+            patch: |-
+              - op: add
+                path: /spec/services/-
+                value: telemetry-power-monitoring

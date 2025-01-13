@@ -1,0 +1,7 @@
+---
+cifmw_run_tests: false
+pre_deploy_deploy_power-monitoring_dependencies:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-power-monitoring-dependencies.yml"
+  type: playbook
+
+# telemetry-power-monitoring being a dataplane service needs no kustomization in OpenstackControlPlane

@@ -40,6 +40,17 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-logging.yml"
 
+- job:
+    name: telemetry-operator-multinode-power-monitoring
+    parent: podified-multinode-edpm-deployment-crc
+    # dependencies: ["openstack-k8s-operators-content-provider"]
+    description: |
+      Deploy OpenStack with power monitoring services enabled
+    vars:
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-power-monitoring.yml"
+
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
@@ -75,6 +86,7 @@
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
+        - telemetry-operator-multinode-power-monitoring
         - functional-tests-on-osp18: &fvt_jobs_config
             voting: true
             required-projects:
