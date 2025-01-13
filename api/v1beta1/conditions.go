@@ -56,8 +56,17 @@ const (
 
 	DashboardDefinitionReadyCondition condition.Type = "DashboardDefinitionReady"
 
-	// KSMReadyCondition Status=True condition which indicates if the KSM is configured and operational
-	KSMReadyCondition condition.Type = "KSMReady"
+	// KSMTLSInputReadyCondition Status=True condition when required TLS sources are ready for KSM
+	KSMTLSInputReadyCondition condition.Type = "KSMTLSInputReady"
+
+	// KSMDeploymentReadyCondition Status=True condition when KSM statefulset created ok
+	KSMDeploymentReadyCondition condition.Type = "KSMDeploymentReady"
+
+	// KSMServiceConfigReadyCondition Status=True Condition which indicates that all service config got rendered ok
+	KSMServiceConfigReadyCondition condition.Type = "KSMServiceConfigReady"
+
+	// KSMCreateServiceReadyCondition Status=True condition when k8s service for the KSM created ok
+	KSMCreateServiceReadyCondition condition.Type = "KSMCreateServiceReady"
 
 	// MysqldExporter conditions
 	MysqldExporterDBReadyCondition condition.Type = "MysqldExporterDBReady"
@@ -207,17 +216,8 @@ const (
 	//
 	// KSMReady condition messages
 	//
-	// KSMReadyInitMessage
-	KSMReadyInitMessage = "KSM not started"
-
-	// KSMReadyMessage
-	KSMReadyMessage = "KSM completed"
-
-	// KSMReadyErrorMessage
-	KSMReadyErrorMessage = "KSM error occured %s"
-
-	// KSMReadyRunningMessage
-	KSMReadyRunningMessage = "KSM in progress"
+	// KSMDisabledMessage
+	KSMDisabledMessage = "kube-state-metrics is disabled"
 
 	//
 	// mysqld_exporter condition messages

@@ -113,6 +113,11 @@ type CeilometerSpecCore struct {
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
 
+	// Whether kube-state-metrics should be deployed
+	// +kubebuilder:validation:optional
+	// +kubebuilder:default=true
+	KSMEnabled *bool `json:"ksmEnabled,omitempty"`
+
 	// Whether mysqld_exporter should be deployed
 	// +kubebuilder:validation:optional
 	MysqldExporterEnabled *bool `json:"mysqldExporterEnabled,omitempty"`
@@ -177,9 +182,16 @@ type CeilometerStatus struct {
 	// List of galera CRs, which are being exported with mysqld_exporter
 	// +listType=atomic
 	MysqldExporterExportedGaleras []string `json:"mysqldExporterExportedGaleras,omitempty"`
+
+	// ReadyCount of kube-state-metrics instances
+	KSMReadyCount int32 `json:"ksmReadyCount,omitempty"`
+
+	// Map of hashes to track e.g. job status
+	KSMHash map[string]string `json:"ksmHash,omitempty"`
 }
 
-// KSMStatus defines the observed state of kube-state-metrics
+// NOTE(mmagr): remove with API version increment
+// Deprecated
 type KSMStatus struct {
 	// ReadyCount of ksm instances
 	ReadyCount int32 `json:"readyCount,omitempty"`
@@ -223,8 +235,7 @@ type CeilometerList struct {
 
 // IsReady - returns true if Ceilometer is reconciled successfully
 func (instance Ceilometer) IsReady() bool {
-	return instance.CeilometerStatus.Conditions.IsTrue(condition.ReadyCondition) &&
-		instance.KSMStatus.Conditions.IsTrue(condition.ReadyCondition)
+	return instance.CeilometerStatus.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {

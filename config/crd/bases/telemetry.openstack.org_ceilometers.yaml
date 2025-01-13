@@ -44,7 +44,9 @@ spec:
               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           ksmStatus:
-            description: KSMStatus defines the observed state of kube-state-metrics
+            description: |-
+              NOTE(mmagr): remove with API version increment
+              Deprecated
             properties:
               conditions:
                 description: Conditions
@@ -136,6 +138,10 @@ spec:
                 type: object
               ipmiImage:
                 type: string
+              ksmEnabled:
+                default: true
+                description: Whether kube-state-metrics should be deployed
+                type: boolean
               ksmImage:
                 type: string
               ksmTls:
@@ -295,6 +301,15 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
+              ksmHash:
+                additionalProperties:
+                  type: string
+                description: Map of hashes to track e.g. job status
+                type: object
+              ksmReadyCount:
+                description: ReadyCount of kube-state-metrics instances
+                format: int32
+                type: integer
               mysqldExporterExportedGaleras:
                 description: List of galera CRs, which are being exported with mysqld_exporter
                 items:
