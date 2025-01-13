@@ -59,6 +59,7 @@ func (spec *MetricStorageSpec) Default() {
 	if *spec.DataplaneNetwork == "" {
 		*spec.DataplaneNetwork = "ctlplane"
 	}
+
 	if spec.MonitoringStack != nil {
 		spec.MonitoringStack.Default()
 	}

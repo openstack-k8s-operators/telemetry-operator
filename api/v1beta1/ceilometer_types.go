@@ -111,6 +111,7 @@ type CeilometerSpecCore struct {
 	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
 
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
+	// +listType=atomic
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
 
 	// Whether mysqld_exporter should be deployed

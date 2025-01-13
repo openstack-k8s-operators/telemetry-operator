@@ -477,6 +477,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -1864,6 +1865,12 @@ spec:
                             type: string
                         type: object
                     type: object
+                  networkAttachments:
+                    description: NetworkAttachments is a list of NetworkAttachment
+                      resource names to expose the services to the given network
+                    items:
+                      type: string
+                    type: array
                   prometheusTls:
                     description: TLS - Parameters related to the TLS
                     properties:
