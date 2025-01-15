@@ -325,7 +325,7 @@ func (in *Ceilometer) DeepCopyInto(out *Ceilometer) {
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Spec.DeepCopyInto(&out.Spec)
-	in.CeilometerStatus.DeepCopyInto(&out.CeilometerStatus)
+	in.Status.DeepCopyInto(&out.Status)
 	in.KSMStatus.DeepCopyInto(&out.KSMStatus)
 }
 

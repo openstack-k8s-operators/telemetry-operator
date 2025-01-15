@@ -219,9 +219,9 @@ type Ceilometer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec             CeilometerSpec   `json:"spec,omitempty"`
-	CeilometerStatus CeilometerStatus `json:"status,omitempty"`
-	KSMStatus        KSMStatus        `json:"ksmStatus,omitempty"`
+	Spec      CeilometerSpec   `json:"spec,omitempty"`
+	Status    CeilometerStatus `json:"status,omitempty"`
+	KSMStatus KSMStatus        `json:"ksmStatus,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -235,7 +235,7 @@ type CeilometerList struct {
 
 // IsReady - returns true if Ceilometer is reconciled successfully
 func (instance Ceilometer) IsReady() bool {
-	return instance.CeilometerStatus.Conditions.IsTrue(condition.ReadyCondition)
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {
@@ -244,7 +244,7 @@ func init() {
 
 // RbacConditionsSet - set the conditions for the rbac object
 func (instance Ceilometer) RbacConditionsSet(c *condition.Condition) {
-	instance.CeilometerStatus.Conditions.Set(c)
+	instance.Status.Conditions.Set(c)
 }
 
 // RbacNamespace - return the namespace
