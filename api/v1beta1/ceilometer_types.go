@@ -190,8 +190,9 @@ type CeilometerStatus struct {
 	KSMHash map[string]string `json:"ksmHash,omitempty"`
 }
 
-// NOTE(mmagr): remove with API version increment
-// Deprecated
+// NOTE(mmagr): remove KSMStatus with API version increment
+
+// KSMStatus defines the observed state of kube-state-metrics [DEPRECATED, Status is used instead]
 type KSMStatus struct {
 	// ReadyCount of ksm instances
 	ReadyCount int32 `json:"readyCount,omitempty"`
