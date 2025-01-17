@@ -25,6 +25,7 @@ make crc_storage
 make input
 
 make openstack
+make openstack_init
 make openstack_deploy
 ```
 
