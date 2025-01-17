@@ -16,8 +16,6 @@ for crd in config/crd/bases/*.yaml; do
     mkdir -p "$(dirname "$TMP_DIR/$crd")"
     if git show "$BASE_REF:$crd" > "$TMP_DIR/$crd"; then
         $CHECKER check-manifests \
-            --disabled-validators="NoMaps" \
-            --disabled-validators="NoBools" \
             --existing-crd-filename="$TMP_DIR/$crd" \
             --new-crd-filename="$crd"
     fi
