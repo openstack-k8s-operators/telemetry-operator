@@ -325,7 +325,7 @@ func (in *Ceilometer) DeepCopyInto(out *Ceilometer) {
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Spec.DeepCopyInto(&out.Spec)
-	in.CeilometerStatus.DeepCopyInto(&out.CeilometerStatus)
+	in.Status.DeepCopyInto(&out.Status)
 	in.KSMStatus.DeepCopyInto(&out.KSMStatus)
 }
 
@@ -468,6 +468,11 @@ func (in *CeilometerSpecCore) DeepCopyInto(out *CeilometerSpecCore) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.KSMEnabled != nil {
+		in, out := &in.KSMEnabled, &out.KSMEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.MysqldExporterEnabled != nil {
 		in, out := &in.MysqldExporterEnabled, &out.MysqldExporterEnabled
 		*out = new(bool)
@@ -532,6 +537,13 @@ func (in *CeilometerStatus) DeepCopyInto(out *CeilometerStatus) {
 		in, out := &in.MysqldExporterExportedGaleras, &out.MysqldExporterExportedGaleras
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.KSMHash != nil {
+		in, out := &in.KSMHash, &out.KSMHash
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 }
 

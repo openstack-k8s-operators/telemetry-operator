@@ -693,8 +693,8 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 	mysqldExporterCfgName := fmt.Sprintf("%s-mysqld-exporter", telemetry.ServiceName)
 
-	if !k8s_errors.IsNotFound(err) && len(ceilometerInstance.CeilometerStatus.MysqldExporterExportedGaleras) > 0 {
-		exportedGaleras := ceilometerInstance.CeilometerStatus.MysqldExporterExportedGaleras
+	if !k8s_errors.IsNotFound(err) && len(ceilometerInstance.Status.MysqldExporterExportedGaleras) > 0 {
+		exportedGaleras := ceilometerInstance.Status.MysqldExporterExportedGaleras
 		mysqldExporterTargets := []string{}
 		for _, galera := range exportedGaleras {
 			// NOTE: the galera port is hardcoded in the mariadb-operator without

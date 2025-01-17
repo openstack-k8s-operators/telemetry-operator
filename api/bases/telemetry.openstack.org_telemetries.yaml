@@ -433,6 +433,10 @@ spec:
                     type: boolean
                   ipmiImage:
                     type: string
+                  ksmEnabled:
+                    default: true
+                    description: Whether kube-state-metrics should be deployed
+                    type: boolean
                   ksmImage:
                     type: string
                   ksmTls:

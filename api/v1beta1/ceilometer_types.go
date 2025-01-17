@@ -113,6 +113,11 @@ type CeilometerSpecCore struct {
 	// NetworkAttachmentDefinitions list of network attachment definitions the service pod gets attached to
 	NetworkAttachmentDefinitions []string `json:"networkAttachmentDefinitions,omitempty"`
 
+	// Whether kube-state-metrics should be deployed
+	// +kubebuilder:validation:optional
+	// +kubebuilder:default=true
+	KSMEnabled *bool `json:"ksmEnabled,omitempty"`
+
 	// Whether mysqld_exporter should be deployed
 	// +kubebuilder:validation:optional
 	MysqldExporterEnabled *bool `json:"mysqldExporterEnabled,omitempty"`
@@ -177,9 +182,17 @@ type CeilometerStatus struct {
 	// List of galera CRs, which are being exported with mysqld_exporter
 	// +listType=atomic
 	MysqldExporterExportedGaleras []string `json:"mysqldExporterExportedGaleras,omitempty"`
+
+	// ReadyCount of kube-state-metrics instances
+	KSMReadyCount int32 `json:"ksmReadyCount,omitempty"`
+
+	// Map of hashes to track e.g. job status
+	KSMHash map[string]string `json:"ksmHash,omitempty"`
 }
 
-// KSMStatus defines the observed state of kube-state-metrics
+// NOTE(mmagr): remove KSMStatus with API version increment
+
+// KSMStatus defines the observed state of kube-state-metrics [DEPRECATED, Status is used instead]
 type KSMStatus struct {
 	// ReadyCount of ksm instances
 	ReadyCount int32 `json:"readyCount,omitempty"`
@@ -207,9 +220,9 @@ type Ceilometer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec             CeilometerSpec   `json:"spec,omitempty"`
-	CeilometerStatus CeilometerStatus `json:"status,omitempty"`
-	KSMStatus        KSMStatus        `json:"ksmStatus,omitempty"`
+	Spec      CeilometerSpec   `json:"spec,omitempty"`
+	Status    CeilometerStatus `json:"status,omitempty"`
+	KSMStatus KSMStatus        `json:"ksmStatus,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -223,8 +236,7 @@ type CeilometerList struct {
 
 // IsReady - returns true if Ceilometer is reconciled successfully
 func (instance Ceilometer) IsReady() bool {
-	return instance.CeilometerStatus.Conditions.IsTrue(condition.ReadyCondition) &&
-		instance.KSMStatus.Conditions.IsTrue(condition.ReadyCondition)
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 func init() {
@@ -233,7 +245,7 @@ func init() {
 
 // RbacConditionsSet - set the conditions for the rbac object
 func (instance Ceilometer) RbacConditionsSet(c *condition.Condition) {
-	instance.CeilometerStatus.Conditions.Set(c)
+	instance.Status.Conditions.Set(c)
 }
 
 // RbacNamespace - return the namespace
