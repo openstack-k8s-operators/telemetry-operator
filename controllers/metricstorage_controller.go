@@ -58,6 +58,7 @@ import (
 	object "github.com/openstack-k8s-operators/lib-common/modules/common/object"
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 
+	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	availability "github.com/openstack-k8s-operators/telemetry-operator/pkg/availability"
@@ -506,9 +507,15 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	// all cert input checks out so report InputReady
 	instance.Status.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
 
-	// Networks to attach to
+	//
+	// NAD
+	//
+
+	// Get networks to attach to the Prometheus pod
+	nadList := []networkv1.NetworkAttachmentDefinition{}
+
 	for _, netAtt := range instance.Spec.NetworkAttachments {
-		_, err := nad.GetNADWithName(ctx, helper, netAtt, instance.Namespace)
+		nad, err := nad.GetNADWithName(ctx, helper, netAtt, instance.Namespace)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
 				instance.Status.Conditions.Set(condition.FalseCondition(
@@ -527,6 +534,68 @@ func (r *MetricStorageReconciler) reconcileNormal(
 				err.Error()))
 			return ctrl.Result{}, err
 		}
+		if nad != nil {
+			nadList = append(nadList, *nad)
+		}
+	}
+
+	networkAnnotations, err := nad.EnsureNetworksAnnotation(nadList)
+
+	if err != nil {
+		err = fmt.Errorf("failed create network annotation from %s: %w", instance.Spec.NetworkAttachments, err)
+		instance.Status.Conditions.MarkFalse(
+			condition.NetworkAttachmentsReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.NetworkAttachmentsReadyErrorMessage,
+			err)
+		return ctrl.Result{}, err
+	}
+
+	// Set NAD annotation to the Prometheus pod
+	if len(instance.Spec.NetworkAttachments) != 0 {
+		// Patch Prometheus to add the NAD annotation
+		prometheusWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
+			name := client.ObjectKey{
+				Namespace: o.GetNamespace(),
+				Name:      o.GetName(),
+			}
+			return []reconcile.Request{{NamespacedName: name}}
+		}
+		err = r.ensureWatches(ctx, "prometheuses.monitoring.rhobs", &monv1.Prometheus{}, handler.EnqueueRequestsFromMapFunc(prometheusWatchFn))
+		if err != nil {
+			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
+				condition.Reason("Can't watch prometheus resource. The Cluster Observability Operator probably isn't installed"),
+				condition.SeverityError,
+				telemetryv1.PrometheusUnableToWatchMessage, err)
+			Log.Info("Can't watch Prometheus resource. The Cluster Observability Operator probably isn't installed")
+			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+		}
+		prometheusNADPatch := metricstorage.PrometheusNAD(instance)
+		err = r.Client.Patch(context.Background(), &prometheusNADPatch, client.Apply, client.FieldOwner("telemetry-operator"))
+		if err != nil {
+			Log.Error(err, "Can't patch Prometheus resource")
+			return ctrl.Result{}, err
+		}
+		instance.Status.NetworkAttachments = networkAnnotations
+	} else if len(instance.Spec.NetworkAttachments) == 0 {
+		// Delete the prometheus CR, so it can be automatically restored without the NAD patch
+		prometheus := monv1.Prometheus{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: instance.Namespace,
+				Name:      instance.Name,
+			},
+		}
+		err = r.Client.Delete(context.Background(), &prometheus)
+		if err != nil && !k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
+				condition.Reason("Can't delete old Prometheus CR to remove NAD configuration"),
+				condition.SeverityError,
+				telemetryv1.PrometheusUnableToRemoveNADMessage, err)
+			Log.Error(err, "Can't delete old Prometheus CR to remove NAD configuration")
+			return ctrl.Result{}, err
+		}
+		instance.Status.NetworkAttachments = nil
 	}
 
 	// when job passed, mark NetworkAttachmentsReadyCondition ready

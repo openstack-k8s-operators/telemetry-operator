@@ -172,6 +172,9 @@ const (
 	// PrometheusUnableToRemoveTLSMessage
 	PrometheusUnableToRemoveTLSMessage = "Error occured when trying to remove TLS config: %s"
 
+	// PrometheusUnableToRemoveNADMessage
+	PrometheusUnableToRemoveNADMessage = "Error occured when trying to remove NAD config: %s"
+
 	//
 	// LoggingReady condition messages
 	//

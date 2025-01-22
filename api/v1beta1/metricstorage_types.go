@@ -92,7 +92,7 @@ type MetricStorageSpec struct {
 
 	// NetworkAttachments is a list of NetworkAttachment resource names to expose the services to the given network
 	// +kubebuilder:validation:Optional
-	NetworkAttachments []string `json:"networkAttachments"`
+	NetworkAttachments []string `json:"networkAttachments,omitempty"`
 
 	// MonitoringStack allows to define a metric storage with
 	// options supported by Red Hat
@@ -131,8 +131,8 @@ type MetricStorageStatus struct {
 	// then the controller has not processed the latest changes injected by
 	// the openstack-operator in the top-level CR (e.g. the ContainerImage)
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-	// Networks in addition to the cluster network, the service is attached to
-	NetworkAttachments []string `json:"networkAttachments,omitempty"`
+	// NetworkAttachments status of the Prometheus pods
+	NetworkAttachments map[string]string `json:"networkAttachments,omitempty"`
 }
 
 //+kubebuilder:object:root=true

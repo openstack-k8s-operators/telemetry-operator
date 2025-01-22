@@ -1368,11 +1368,10 @@ spec:
                   type: object
                 type: array
               networkAttachments:
-                description: Networks in addition to the cluster network, the service
-                  is attached to
-                items:
+                additionalProperties:
                   type: string
-                type: array
+                description: NetworkAttachments status of the Prometheus pods
+                type: object
               observedGeneration:
                 description: |-
                   ObservedGeneration - the most recent generation observed for this
