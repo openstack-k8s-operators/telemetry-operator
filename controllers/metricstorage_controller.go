@@ -578,7 +578,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			return ctrl.Result{}, err
 		}
 		instance.Status.NetworkAttachments = networkAnnotations
-	} else if len(instance.Spec.NetworkAttachments) == 0 {
+	} else if len(instance.Status.NetworkAttachments) != 0 {
 		// Delete the prometheus CR, so it can be automatically restored without the NAD patch
 		prometheus := monv1.Prometheus{
 			ObjectMeta: metav1.ObjectMeta{
