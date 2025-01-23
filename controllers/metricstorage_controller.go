@@ -571,7 +571,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			Log.Info("Can't watch Prometheus resource. The Cluster Observability Operator probably isn't installed")
 			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 		}
-		prometheusNADPatch := metricstorage.PrometheusNAD(instance)
+		prometheusNADPatch := metricstorage.PrometheusNAD(instance, networkAnnotations)
 		err = r.Client.Patch(context.Background(), &prometheusNADPatch, client.Apply, client.FieldOwner("telemetry-operator"))
 		if err != nil {
 			Log.Error(err, "Can't patch Prometheus resource")
@@ -595,7 +595,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			Log.Error(err, "Can't delete old Prometheus CR to remove NAD configuration")
 			return ctrl.Result{}, err
 		}
-		instance.Status.NetworkAttachments = nil
+		instance.Status.NetworkAttachments = map[string]string{}
 	}
 
 	// when job passed, mark NetworkAttachmentsReadyCondition ready

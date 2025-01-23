@@ -25,6 +25,7 @@ import (
 // PrometheusNAD defines patch for prometheus CR to add NAD annotations
 func PrometheusNAD(
 	instance *telemetryv1.MetricStorage,
+	networkAnnotations map[string]string,
 ) monv1.Prometheus {
 	prom := monv1.Prometheus{
 		TypeMeta: metav1.TypeMeta{
@@ -38,7 +39,7 @@ func PrometheusNAD(
 		Spec: monv1.PrometheusSpec{
 			CommonPrometheusFields: monv1.CommonPrometheusFields{
 				PodMetadata: &monv1.EmbeddedObjectMetadata{
-					Annotations: instance.Annotations,
+					Annotations: networkAnnotations,
 				},
 			},
 		},
