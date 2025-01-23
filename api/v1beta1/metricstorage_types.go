@@ -92,6 +92,7 @@ type MetricStorageSpec struct {
 
 	// NetworkAttachments is a list of NetworkAttachment resource names to expose the services to the given network
 	// +kubebuilder:validation:Optional
+	// +listType=atomic
 	NetworkAttachments []string `json:"networkAttachments,omitempty"`
 
 	// MonitoringStack allows to define a metric storage with
@@ -117,7 +118,7 @@ type MetricStorageSpec struct {
 	//       See rh-jira: OSPRH-5177 and COO-44
 
 	// +kubebuilder:validation:Optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:tpe=spec
 	// TLS - Parameters related to the TLS
 	// AlertmanagerTLS tls.SimpleService `json:"alertmanagerTls,omitempty"`
 }

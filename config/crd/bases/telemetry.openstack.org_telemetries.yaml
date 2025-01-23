@@ -1871,6 +1871,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   prometheusTls:
                     description: TLS - Parameters related to the TLS
                     properties:
