@@ -63,11 +63,11 @@ func StatefulSet(
 	args = append(args, ServiceCommand)
 
 	livenessProbe.HTTPGet = &corev1.HTTPGetAction{
-		Path: "/v3",
+		Path: "/",
 		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(CeilometerPrometheusPort)},
 	}
 	readinessProbe.HTTPGet = &corev1.HTTPGetAction{
-		Path: "/v3",
+		Path: "/",
 		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(CeilometerPrometheusPort)},
 	}
 
