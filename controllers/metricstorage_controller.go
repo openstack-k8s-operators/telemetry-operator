@@ -18,10 +18,12 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -389,6 +391,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		}
 		instance.Status.PrometheusTLSPatched = false
 	}
+
+	// Create the PrometheusEndpoint secret that contains the details for Prometheus API endpoint
+	if err := r.prometheusEndpointSecret(ctx, instance, helper, serviceLabels); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	instance.Status.Conditions.MarkTrue(telemetryv1.PrometheusReadyCondition, condition.ReadyMessage)
 
 	// Patch Prometheus service to add route creation
@@ -508,6 +516,60 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
+}
+
+// PrometheusEndpointSecret creates a Secret that contains the details for Prometheus API endpoint
+func (r *MetricStorageReconciler) prometheusEndpointSecret(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	labels map[string]string,
+) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-prometheus-endpoint", instance.Name),
+			Namespace: instance.Namespace,
+			Labels:    labels,
+		},
+	}
+
+	secret.Data = map[string][]byte{
+		"host": []byte(fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace)),
+		"port": []byte(strconv.Itoa(telemetryv1.DefaultPrometheusPort)),
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), helper.GetClient(), secret, func() error {
+		secret.Type = corev1.SecretTypeOpaque
+
+		err := controllerutil.SetControllerReference(instance, secret, helper.GetScheme())
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if instance.Spec.PrometheusTLS.Enabled() {
+		tlsSecret := &corev1.Secret{
+			Data: map[string][]byte{
+				"ca_secret": []byte(*instance.Spec.PrometheusTLS.SecretName),
+				"ca_key":    []byte(tls.CAKey),
+			},
+		}
+
+		patch, err := json.Marshal(tlsSecret)
+		if err != nil {
+			return err
+		}
+
+		if err := r.Client.Patch(ctx, secret, client.RawPatch(types.StrategicMergePatchType, patch)); err != nil {
+			panic(err)
+		}
+	}
+
+	return nil
 }
 
 func (r *MetricStorageReconciler) createServiceScrapeConfig(
