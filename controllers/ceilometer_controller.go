@@ -1206,12 +1206,16 @@ func (r *CeilometerReconciler) generateServiceConfig(
 	cms := []util.Template{
 		// ScriptsSecrets
 		{
-			Name:               fmt.Sprintf("%s-scripts", ceilometer.ServiceName),
-			Namespace:          instance.Namespace,
-			Type:               util.TemplateTypeScripts,
-			InstanceType:       "ceilometercentral",
-			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
-			Labels:             cmLabels,
+			Name:         fmt.Sprintf("%s-scripts", ceilometer.ServiceName),
+			Namespace:    instance.Namespace,
+			Type:         util.TemplateTypeScripts,
+			InstanceType: "ceilometercentral",
+			AdditionalTemplate: map[string]string{
+				"common.sh":             "/common/common.sh",
+				"centralhealth.py":      "/ceilometercentral/bin/centralhealth.py",
+				"notificationhealth.py": "/ceilometercentral/bin/notificationhealth.py",
+			},
+			Labels: cmLabels,
 		},
 		// Secrets
 		{
