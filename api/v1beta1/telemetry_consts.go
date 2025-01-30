@@ -26,6 +26,8 @@ const (
 	DefaultPrometheusPort = 9090
 	// DefaultNodeExporterPort -
 	DefaultNodeExporterPort = 9100
+	// DefaultPodmanExporterPort -
+	DefaultPodmanExporterPort = 9882
 	// DefaultScrapeInterval -
 	DefaultScrapeInterval = "30s"
 	// PauseBetweenWatchAttempts -
