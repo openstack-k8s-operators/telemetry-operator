@@ -118,7 +118,7 @@ type MetricStorageSpec struct {
 	//       See rh-jira: OSPRH-5177 and COO-44
 
 	// +kubebuilder:validation:Optional
-	// +operator-sdk:csv:customresourcedefinitions:tpe=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
 	// AlertmanagerTLS tls.SimpleService `json:"alertmanagerTls,omitempty"`
 }
