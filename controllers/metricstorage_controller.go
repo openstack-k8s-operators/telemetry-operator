@@ -22,6 +22,7 @@ import (
 	"net"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -556,7 +557,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 	// ScrapeConfig for ceilometer monitoring
 	ceilometerRoute := fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
-	ceilometerTarget := []string{fmt.Sprintf("%s:%d", ceilometerRoute, ceilometer.CeilometerPrometheusPort)}
+	ceilometerTarget := []string{net.JoinHostPort(ceilometerRoute, strconv.Itoa(ceilometer.CeilometerPrometheusPort))}
 	ceilometerCfgName := fmt.Sprintf("%s-ceilometer", telemetry.ServiceName)
 	desiredScrapeConfig := metricstorage.ScrapeConfig(
 		instance,
@@ -572,7 +573,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 	// ScrapeConfig for kube-state-metrics
 	ksmRoute := fmt.Sprintf("%s.%s.svc", availability.KSMServiceName, instance.Namespace)
-	ksmTarget := []string{fmt.Sprintf("%s:%d", ksmRoute, availability.KSMMetricsPort)}
+	ksmTarget := []string{net.JoinHostPort(ksmRoute, strconv.Itoa(availability.KSMMetricsPort))}
 	ksmCfgName := fmt.Sprintf("%s-ksm", telemetry.ServiceName)
 	desiredScrapeConfig = metricstorage.ScrapeConfig(
 		instance,
@@ -601,7 +602,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	rabbitTargets := []string{}
 	for _, rabbit := range rabbitList.Items {
 		rabbitServerName := fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)
-		rabbitTargets = append(rabbitTargets, fmt.Sprintf("%s:%d", rabbitServerName, metricstorage.RabbitMQPrometheusPort))
+		rabbitTargets = append(rabbitTargets, net.JoinHostPort(rabbitServerName, strconv.Itoa(metricstorage.RabbitMQPrometheusPort)))
 	}
 	rabbitCfgName := fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName)
 	desiredScrapeConfig = metricstorage.ScrapeConfig(
@@ -699,9 +700,10 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		for _, galera := range exportedGaleras {
 			// NOTE: the galera port is hardcoded in the mariadb-operator without
 			// any declared constant we could use here
+			galeraServiceURL := fmt.Sprintf("%s.%s.svc", galera, instance.Namespace)
 			mysqldExporterTargets = append(
 				mysqldExporterTargets,
-				fmt.Sprintf("%s.%s.svc:3306", galera, instance.Namespace),
+				net.JoinHostPort(galeraServiceURL, "3306"),
 			)
 		}
 		desiredScrapeConfig = metricstorage.ScrapeConfigMysqldExporter(
@@ -735,7 +737,7 @@ func getNodeExporterTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarg
 	nonTLS := []metricstorage.LabeledTarget{}
 	for _, node := range nodes {
 		target := metricstorage.LabeledTarget{
-			IP:   fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultNodeExporterPort),
+			IP:   net.JoinHostPort(node.IP, strconv.Itoa(telemetryv1.DefaultNodeExporterPort)),
 			FQDN: node.FQDN,
 		}
 		if node.TLS {
@@ -752,7 +754,7 @@ func getKeplerTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarget, []
 	nonTLS := []metricstorage.LabeledTarget{}
 	for _, node := range nodes {
 		target := metricstorage.LabeledTarget{
-			IP:   fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultKeplerPort),
+			IP:   net.JoinHostPort(node.IP, strconv.Itoa(telemetryv1.DefaultKeplerPort)),
 			FQDN: node.FQDN,
 		}
 		if node.TLS {
