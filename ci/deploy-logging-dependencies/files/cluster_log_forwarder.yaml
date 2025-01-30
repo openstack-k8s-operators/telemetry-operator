@@ -30,5 +30,16 @@ spec:
     - name: my-syslog
       inputRefs:
         - syslog-receiver
+        - application
       outputRefs:
         - default-lokistack
+---
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  name: logging
+spec:
+  type: Logging
+  logging:
+    lokiStack:
+      name: logging-loki
