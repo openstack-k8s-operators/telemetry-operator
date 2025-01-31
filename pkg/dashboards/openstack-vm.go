@@ -163,7 +163,22 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"linewidth": 1,
 					"nullPointMode": "null",
 					"options": {
-						"dataLinks": []
+						"colorMode": "value",
+						"dataLinks": [],
+						"graphMode": "area",
+						"justifyMode": "auto",
+						"orientation": "auto",
+						"percentChangeColorMode": "standard",
+						"reduceOptions": {
+						  "calcs": [
+							"lastNotNull"
+						  ],
+						  "fields": "",
+						  "values": false
+						},
+						"showPercentChange": false,
+						"textMode": "name",
+						"wideLayout": true
 					},
 					"percentage": false,
 					"pointradius": 2,
