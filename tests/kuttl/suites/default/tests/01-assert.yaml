@@ -185,7 +185,7 @@ status:
       status: "True"
     - type: TLSInputReady
       status: "True"
-    - type: NetworkAttachments
+    - type: NetworkAttachmentsReady
       status: "True"
 ---
 apiVersion: v1
