@@ -29,19 +29,37 @@ spec:
     - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
     command:
     - /bin/bash
+    livenessProbe:
+      exec:
+        command:
+        - /usr/bin/python3
+        - /var/lib/openstack/bin/centralhealth.py
     name: ceilometer-central-agent
   - args:
     - -c
     - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
     command:
     - /bin/bash
+    livenessProbe:
+      exec:
+        command:
+        - /usr/bin/python3
+        - /var/lib/openstack/bin/notificationhealth.py
     name: ceilometer-notification-agent
   - name: sg-core
   - args:
     - -DFOREGROUND
     command:
     - /usr/sbin/httpd
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 3000
     name: proxy-httpd
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 3000
   hostname: ceilometer-0
 status:
   containerStatuses:
