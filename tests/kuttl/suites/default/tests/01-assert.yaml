@@ -179,13 +179,13 @@ status:
       status: "True"
     - type: MonitoringStackReady
       status: "True"
+    - type: NetworkAttachmentsReady
+      status: "True"
     - type: PrometheusReady
       status: "True"
     - type: ScrapeConfigReady
       status: "True"
     - type: TLSInputReady
-      status: "True"
-    - type: NetworkAttachmentsReady
       status: "True"
 ---
 apiVersion: v1
