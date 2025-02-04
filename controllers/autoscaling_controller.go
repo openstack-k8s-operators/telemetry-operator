@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
+	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -425,13 +427,30 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// Get correct prometheus host, port and if TLS should be used
 	// NOTE: Always do this before calling the generateServiceConfig to get the newest values in the ServiceConfig
 	//
+	prometheusEndpointSecret := &corev1.Secret{}
+	err = r.Client.Get(ctx, client.ObjectKey{
+		Name:      autoscaling.PrometheusEndpointSecret,
+		Namespace: instance.Namespace,
+	}, prometheusEndpointSecret)
+	if err != nil {
+		Log.Info("No Prometheus Endpoint Secret found")
+	}
+
 	if instance.Spec.PrometheusHost == "" {
-		instance.Status.PrometheusHost = fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace)
+		if prometheusEndpointSecret.Data != nil {
+			instance.Status.PrometheusHost = string(prometheusEndpointSecret.Data[metricstorage.PrometheusHost])
+		}
 	} else {
 		instance.Status.PrometheusHost = instance.Spec.PrometheusHost
 	}
 	if instance.Spec.PrometheusPort == 0 {
-		instance.Status.PrometheusPort = telemetryv1.DefaultPrometheusPort
+		if prometheusEndpointSecret.Data != nil {
+			port, err := strconv.Atoi(string(prometheusEndpointSecret.Data[metricstorage.PrometheusPort]))
+			if err != nil {
+				return ctrlResult, err
+			}
+			instance.Status.PrometheusPort = int32(port)
+		}
 	} else {
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
 	}
@@ -595,8 +614,6 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		"AodhPassword":             string(ospSecret.Data[instance.Spec.Aodh.PasswordSelectors.AodhService]),
 		"KeystoneInternalURL":      keystoneInternalURL,
 		"TransportURL":             string(transportURLSecret.Data["transport_url"]),
-		"PrometheusHost":           instance.Status.PrometheusHost,
-		"PrometheusPort":           instance.Status.PrometheusPort,
 		"MemcachedServers":         mc.GetMemcachedServerListString(),
 		"MemcachedServersWithInet": mc.GetMemcachedServerListWithInetString(),
 		"DatabaseConnection": fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
