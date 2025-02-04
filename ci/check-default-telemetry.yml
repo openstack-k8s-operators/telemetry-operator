@@ -34,23 +34,23 @@
     - name: "Get telemetry-operator logs"
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
-    - name: "Check telemetry-operator logs for Errors"
+    - name: |
+        TEST Check telemetry-operator logs for Errors
+        RHOSO-123456
       ansible.builtin.set_fact:
         error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
+      failed_when: error_list | length != 0
 
-    - name: "Fail if errors were found"
-      block:
-        - name: "Output found errors for debugging purposes"
-          ansible.builtin.debug:
-            var: error_list
-
-        - name: "Fail because errors were found in telemetry-operator logs"
-          ansible.builtin.fail:
-            msg: "Errors were found in the telemetry-operator logs"
+    - name: "Output found errors for debugging purposes"
+      ansible.builtin.debug:
+        var: error_list
       when: error_list | length != 0
 
-    - name: "Get telemetry-operator restart counts"
+    - name: |
+        TEST Get telemetry-operator restart counts
+        RHOSO-123457
       ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
+      failed_when: restart_counts != [0, 0]
 
     - name: "Fail if telemetry-operator was restarted"
       block:
@@ -63,10 +63,6 @@
         - name: "Output logs for debugging purposes"
           ansible.builtin.debug:
             var: operator_logs_previous.stdout_lines
-
-        - name: "Fail because telemetry-operator restarted"
-          ansible.builtin.fail:
-            msg: "Telemetry-operator restarted"
       when: restart_counts != [0, 0]
 
     # Enabling Autoscaling and MetricStorage without COO installed. Expected to see errors.
@@ -85,8 +81,11 @@
       ansible.builtin.wait_for:
         timeout: 120
 
-    - name: "Get telemetry-operator restart counts"
+    - name: |
+        TEST Get telemetry-operator restart counts
+        RHOSO-123458
       ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
+      failed_when: restart_counts != [0, 0]
 
     - name: "Fail if telemetry-operator was restarted"
       block:
@@ -99,30 +98,32 @@
         - name: "Output logs for debugging purposes"
           ansible.builtin.debug:
             var: operator_logs_previous.stdout_lines
-
-        - name: "Fail because telemetry-operator restarted"
-          ansible.builtin.fail:
-            msg: "Telemetry-operator restarted"
       when: restart_counts != [0, 0]
 
     - name: "Get telemetry-operator logs"
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
-    - name: "Fail if expected logs are missing"
-      ansible.builtin.fail:
-        msg: "telemetry-operator logs don't include expected log: {{ item }}"
+    - name: |
+        TEST Check telemetry-operator logs
+        RHOSO-123459
+      ansible.builtin.assert:
+        that:
+          - (operator_logs.stdout | ansible.builtin.regex_search( ".*" + item + ".*" ))
+        fail_msg: "telemetry-operator logs don't include expected log: {{ item }}"
       loop: "{{ expected_logs }}"
-      when: not (operator_logs.stdout | ansible.builtin.regex_search( ".*" + item + ".*" ))
 
-    - name: "Check telemetry-operator logs for Errors"
+    - name: "Get telemetry-operator error logs"
       ansible.builtin.set_fact:
         error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
 
-    - name: "Fail if unexpected errors are present"
-      ansible.builtin.fail:
-        msg: "telemetry-operator logs include an unexpected error: {{ item }}"
+    - name: |
+        TEST Check that telemetry-operator logs don't include unexpected errors
+        RHOSO-123460
+      ansible.builtin.assert:
+        that:
+          - item in expected_logs
+        fail_msg: "telemetry-operator logs include an unexpected error: {{ item }}"
       loop: "{{ error_list }}"
-      when: item not in expected_logs
 
     - name: "Check if we have the expected conditions for MetricStorage"
       block:
@@ -144,13 +145,16 @@
             conditions: "{{ conditions | default({}) | combine({item.item: item.stdout}) }}"
           loop: "{{ output.results }}"
 
-        - name: "Fail if an expected condition wasn't found"
-          ansible.builtin.fail:
-            msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
-          when: conditions[item.key] != item.value
+        - name: |
+            TEST Check that all expected MetricStorage conditions were found
+            RHOSO-123461
+          ansible.builtin.assert:
+            that:
+              - conditions[item.key] == item.value
+            fail_msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
           loop: "{{ expected_metricstorage_conditions | dict2items }}"
 
-    - name: "Check that we have the expected conditions for Autoscaling"
+    - name: "Check if we have the expected conditions for Autoscaling"
       block:
         - name: "Get Autoscaling condition types"
           ansible.builtin.command:
@@ -170,10 +174,13 @@
             conditions: "{{ conditions | default({}) | combine({item.item: item.stdout}) }}"
           loop: "{{ output.results }}"
 
-        - name: "Fail if an expected condition wasn't found"
-          ansible.builtin.fail:
-            msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
-          when: conditions[item.key] != item.value
+        - name: |
+            TEST Check that all expected Autoscaling conditions were found
+            RHOSO-123462
+          ansible.builtin.assert:
+            that:
+              - conditions[item.key] == item.value
+            fail_msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
           loop: "{{ expected_autoscaling_conditions | dict2items }}"
 
     # Installing COO and restarting the operators. Expecting everything to run without errors.
@@ -192,14 +199,13 @@
     - name: "Get telemetry-operator logs"
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
-    - name: "Check telemetry-operator logs for Errors"
-      ansible.builtin.set_fact:
-        error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
-
-    - name: "Fail if unexpected errors are present"
-      ansible.builtin.fail:
-        msg: "telemetry-operator logs include an unexpected error"
-      when: error_list | length != 0
+    - name: |
+        TEST Check telemetry-operator logs for Errors
+        RHOSO-123463
+      ansible.builtin.assert:
+        that:
+          - operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') | length == 0
+        fail_msg: "There are errors in the telemetry-operator logs {{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
 
     # If we got here, we know that the telemetry status is Ready
     # and there aren't any new error. Everything should be correctly
@@ -222,14 +228,12 @@
     - name: "Get telemetry-operator logs"
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
-    - name: "Check telemetry-operator logs for Errors"
+    - name: |
+        TEST Check telemetry-operator logs for Errors
+        RHOSO-123464
       ansible.builtin.set_fact:
         error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
-
-    - name: "Fail if unexpected errors are present"
-      ansible.builtin.fail:
-        msg: "telemetry-operator logs include an unexpected error"
-      when: error_list | length != 0
+      failed_when: error_list | length != 0
 
     # Try using a custom Prometheus instance for Autoscaling and check that the Prometheus config for aodh is pointing to the correct Prometheus.
     - name: "Patch Autoscaling to use a custom Prometheus instance"
@@ -245,29 +249,23 @@
     - name: "Get telemetry-operator logs"
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
-    - name: "Check telemetry-operator logs for Errors"
+    - name: |
+        TEST Check telemetry-operator logs for Errors
+        RHOSO-123465
       ansible.builtin.set_fact:
         error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
-
-    - name: "Fail if unexpected errors are present"
-      ansible.builtin.fail:
-        msg: "telemetry-operator logs include an unexpected error"
       when: error_list | length != 0
 
-    - name: "Get Prometheus host from aodh-evaluator container"
+    - name: |
+        TEST Check Prometheus host is set correctly in the aodh-evaluator container
+        RHOSO-123466
       ansible.builtin.shell: oc rsh -c aodh-evaluator aodh-0 cat /etc/openstack/prometheus.yaml | grep host | cut -d " " -f 2
       register: host
+      failed_when: host.stdout != "someprometheus.openstack.svc"
 
-    - name: "Get Prometheus port from aodh-evaluator container"
+    - name: |
+        TEST Check Prometheus port is set correctly in the aodh-evaluator container
+        RHOSO-123467
       ansible.builtin.shell: oc rsh -c aodh-evaluator aodh-0 cat /etc/openstack/prometheus.yaml | grep port | cut -d " " -f 2
       register: port
-
-    - name: "Verify that prometheusHost is set correctly"
-      ansible.builtin.fail:
-        msg: "PrometheusHost isn't set correctly in Autoscaling aodh-evaluator container {{ host.stdout }} != someprometheus.openstack.svc"
-      when: host.stdout != "someprometheus.openstack.svc"
-
-    - name: "Verify that prometheusPort is set correctly"
-      ansible.builtin.fail:
-        msg: "PrometheusPort isn't set correctly in Autoscaling aodh-evaluator container {{ port.stdout }} != 1234"
-      when: port.stdout != "1234"
+      failed_when: port.stdout != "1234"
