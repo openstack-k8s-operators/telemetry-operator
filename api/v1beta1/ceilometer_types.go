@@ -117,11 +117,12 @@ type CeilometerSpecCore struct {
 	// Whether kube-state-metrics should be deployed
 	// +kubebuilder:validation:optional
 	// +kubebuilder:default=true
-	KSMEnabled *bool `json:"ksmEnabled,omitempty"`
+	KSMEnabled *bool `json:"ksmEnabled"`
 
 	// Whether mysqld_exporter should be deployed
 	// +kubebuilder:validation:optional
-	MysqldExporterEnabled *bool `json:"mysqldExporterEnabled,omitempty"`
+	// +kubebuilder:default=false
+	MysqldExporterEnabled *bool `json:"mysqldExporterEnabled"`
 
 	// MysqldExporterDatabaseAccountPrefix - Database account prefix for the mysqld-exporter.
 	// A mariadbaccount CR named "<mysqldExporterDatabaseAccountPrefix>-<galera CR name>" for each

@@ -459,6 +459,7 @@ spec:
                       created by the telemetry-operator automatically.
                     type: string
                   mysqldExporterEnabled:
+                    default: false
                     description: Whether mysqld_exporter should be deployed
                     type: boolean
                   mysqldExporterImage:
@@ -542,6 +543,8 @@ spec:
                 - centralImage
                 - computeImage
                 - ipmiImage
+                - ksmEnabled
+                - mysqldExporterEnabled
                 - notificationImage
                 - proxyImage
                 - secret
