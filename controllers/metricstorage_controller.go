@@ -633,8 +633,8 @@ func (r *MetricStorageReconciler) prometheusEndpointSecret(
 	}
 
 	secret.Data = map[string][]byte{
-		"host": []byte(fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace)),
-		"port": []byte(strconv.Itoa(telemetryv1.DefaultPrometheusPort)),
+		metricstorage.PrometheusHost: []byte(fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace)),
+		metricstorage.PrometheusPort: []byte(strconv.Itoa(telemetryv1.DefaultPrometheusPort)),
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), helper.GetClient(), secret, func() error {
@@ -653,8 +653,8 @@ func (r *MetricStorageReconciler) prometheusEndpointSecret(
 	if instance.Spec.PrometheusTLS.Enabled() {
 		tlsSecret := &corev1.Secret{
 			Data: map[string][]byte{
-				"ca_secret": []byte(*instance.Spec.PrometheusTLS.SecretName),
-				"ca_key":    []byte(tls.CAKey),
+				metricstorage.PrometheusCaCertSecret: []byte(*instance.Spec.PrometheusTLS.SecretName),
+				metricstorage.PrometheusCaCertKey:    []byte(tls.CAKey),
 			},
 		}
 
@@ -664,7 +664,7 @@ func (r *MetricStorageReconciler) prometheusEndpointSecret(
 		}
 
 		if err := r.Client.Patch(ctx, secret, client.RawPatch(types.StrategicMergePatchType, patch)); err != nil {
-			panic(err)
+			return err
 		}
 	}
 
