@@ -954,17 +954,8 @@ func (r *CeilometerReconciler) reconcileKSM(
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, availability.KSMServiceName))
 
-	if instance.Spec.KSMEnabled == nil || !*instance.Spec.KSMEnabled {
+	if instance.Spec.KSMEnabled == nil || !*instance.Spec.KSMEnabled || instance.Spec.KSMImage == "" {
 		return r.reconcileDeleteKSM(ctx, instance, helper)
-	}
-
-	if instance.Spec.KSMImage == "" {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.KSMDeploymentReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityError,
-			"ksmImage container image isn't set"))
-		return ctrl.Result{}, nil
 	}
 
 	// ConfigMap
