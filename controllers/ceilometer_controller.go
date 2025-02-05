@@ -777,14 +777,9 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 	if instance.Spec.MysqldExporterEnabled == nil || !*instance.Spec.MysqldExporterEnabled {
 		return r.reconcileDeleteMysqldExporter(ctx, instance, helper)
 	}
-
 	if instance.Spec.MysqldExporterImage == "" {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.MysqldExporterDeploymentReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityError,
-			"mysqld_exporter container image isn't set"))
-		return ctrl.Result{}, nil
+		Log.Info("MysqldExporter is enabled, but MysqldExporterImage isn't set")
+		return r.reconcileDeleteMysqldExporter(ctx, instance, helper)
 	}
 
 	configMapVars := make(map[string]env.Setter)
@@ -954,7 +949,11 @@ func (r *CeilometerReconciler) reconcileKSM(
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, availability.KSMServiceName))
 
-	if instance.Spec.KSMEnabled == nil || !*instance.Spec.KSMEnabled || instance.Spec.KSMImage == "" {
+	if instance.Spec.KSMEnabled == nil || !*instance.Spec.KSMEnabled {
+		return r.reconcileDeleteKSM(ctx, instance, helper)
+	}
+	if instance.Spec.KSMImage == "" {
+		Log.Info("KSM is enabled, but KSMImage isn't set")
 		return r.reconcileDeleteKSM(ctx, instance, helper)
 	}
 
