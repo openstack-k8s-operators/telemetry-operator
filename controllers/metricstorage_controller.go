@@ -666,15 +666,16 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// compute nodes' exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "node-exporter", telemetryv1.DefaultNodeExporterPort, true)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "node-exporter", telemetryv1.DefaultNodeExporterPort, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, true)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetryv1.TelemetryPowerMonitoring, "kepler", telemetryv1.DefaultKeplerPort, false) // Currently Kepler doesn't support TLS
+	// Currently Kepler doesn't support TLS
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetryv1.TelemetryPowerMonitoring, "kepler", telemetryv1.DefaultKeplerPort, true)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -707,7 +708,7 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	serviceName string,
 	exporterName string,
 	exporterPort int,
-	tls bool,
+	suppressTLS bool,
 ) error {
 	Log := r.GetLogger(ctx)
 
@@ -718,22 +719,25 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	targetsTLS, targetsNonTLS := getExporterTargets(connectionInfo, exporterPort)
 
 	// ScrapeConfig for non-tls nodes
-	if len(targetsNonTLS) > 0 {
-		fullServiceName := fmt.Sprintf("%s-%s", telemetry.ServiceName, exporterName)
-		desiredScrapeConfig := metricstorage.ScrapeConfig(
-			instance,
-			serviceLabels,
-			targetsNonTLS,
-			false,
-		)
-		err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceName, desiredScrapeConfig)
-		if err != nil {
-			return err
-		}
+	//NOTE(mmagr): remove TLS suppression functionality once Kepler supports TLS
+	targets := targetsNonTLS
+	if suppressTLS {
+		targets = targetsTLS
+	}
+	fullServiceName := fmt.Sprintf("%s-%s", telemetry.ServiceName, exporterName)
+	desiredScrapeConfig := metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		targets,
+		false,
+	)
+	err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceName, desiredScrapeConfig)
+	if err != nil {
+		return err
 	}
 
 	// ScrapeConfig for tls nodes
-	if tls && len(targetsTLS) > 0 {
+	if !suppressTLS {
 		fullServiceName := fmt.Sprintf("%s-%s-tls", telemetry.ServiceName, exporterName)
 		desiredScrapeConfig := metricstorage.ScrapeConfig(
 			instance,
