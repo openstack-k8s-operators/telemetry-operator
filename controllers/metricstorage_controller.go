@@ -18,11 +18,14 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
@@ -53,9 +56,11 @@ import (
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
+	nad "github.com/openstack-k8s-operators/lib-common/modules/common/networkattachment"
 	object "github.com/openstack-k8s-operators/lib-common/modules/common/object"
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 
+	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	availability "github.com/openstack-k8s-operators/telemetry-operator/pkg/availability"
@@ -124,6 +129,7 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=rabbitmq.com,resources=rabbitmqclusters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=observability.openshift.io,resources=uiplugins,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
 // Reconcile reconciles MetricStorage
 func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -194,6 +200,7 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		condition.UnknownCondition(telemetryv1.DashboardDefinitionReadyCondition, condition.InitReason, telemetryv1.DashboardDefinitionReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.PrometheusReadyCondition, condition.InitReason, telemetryv1.PrometheusReadyInitMessage),
 		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
+		condition.UnknownCondition(condition.NetworkAttachmentsReadyCondition, condition.InitReason, condition.NetworkAttachmentsReadyInitMessage),
 	)
 
 	instance.Status.Conditions.Init(&cl)
@@ -389,6 +396,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		}
 		instance.Status.PrometheusTLSPatched = false
 	}
+
+	// Create the PrometheusEndpoint secret that contains the details for Prometheus API endpoint
+	if err := r.prometheusEndpointSecret(ctx, instance, helper, serviceLabels); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	instance.Status.Conditions.MarkTrue(telemetryv1.PrometheusReadyCondition, condition.ReadyMessage)
 
 	// Patch Prometheus service to add route creation
@@ -502,12 +515,160 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	// all cert input checks out so report InputReady
 	instance.Status.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
 
+	//
+	// NAD
+	//
+
+	// Get networks to attach to the Prometheus pod
+	nadList := []networkv1.NetworkAttachmentDefinition{}
+
+	for _, netAtt := range instance.Spec.NetworkAttachments {
+		nad, err := nad.GetNADWithName(ctx, helper, netAtt, instance.Namespace)
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.NetworkAttachmentsReadyCondition,
+					condition.RequestedReason,
+					condition.SeverityInfo,
+					condition.NetworkAttachmentsReadyWaitingMessage,
+					netAtt))
+				return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("network-attachment-definition %s not found", netAtt)
+			}
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.NetworkAttachmentsReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.NetworkAttachmentsReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+		if nad != nil {
+			nadList = append(nadList, *nad)
+		}
+	}
+
+	networkAnnotations, err := nad.EnsureNetworksAnnotation(nadList)
+
+	if err != nil {
+		err = fmt.Errorf("failed create network annotation from %s: %w", instance.Spec.NetworkAttachments, err)
+		instance.Status.Conditions.MarkFalse(
+			condition.NetworkAttachmentsReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.NetworkAttachmentsReadyErrorMessage,
+			err)
+		return ctrl.Result{}, err
+	}
+
+	// Set NAD annotation to the Prometheus pod
+	if len(instance.Spec.NetworkAttachments) != 0 {
+		// Patch Prometheus to add the NAD annotation
+		prometheusWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
+			name := client.ObjectKey{
+				Namespace: o.GetNamespace(),
+				Name:      o.GetName(),
+			}
+			return []reconcile.Request{{NamespacedName: name}}
+		}
+		err = r.ensureWatches(ctx, "prometheuses.monitoring.rhobs", &monv1.Prometheus{}, handler.EnqueueRequestsFromMapFunc(prometheusWatchFn))
+		if err != nil {
+			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
+				condition.Reason("Can't watch prometheus resource. The Cluster Observability Operator probably isn't installed"),
+				condition.SeverityError,
+				telemetryv1.PrometheusUnableToWatchMessage, err)
+			Log.Info("Can't watch Prometheus resource. The Cluster Observability Operator probably isn't installed")
+			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+		}
+		prometheusNADPatch := metricstorage.PrometheusNAD(instance, networkAnnotations)
+		err = r.Client.Patch(context.Background(), &prometheusNADPatch, client.Apply, client.FieldOwner("telemetry-operator"))
+		if err != nil {
+			Log.Error(err, "Can't patch Prometheus resource")
+			return ctrl.Result{}, err
+		}
+		instance.Status.NetworkAttachments = networkAnnotations
+	} else if len(instance.Status.NetworkAttachments) != 0 {
+		// Delete the prometheus CR, so it can be automatically restored without the NAD patch
+		prometheus := monv1.Prometheus{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: instance.Namespace,
+				Name:      instance.Name,
+			},
+		}
+		err = r.Client.Delete(context.Background(), &prometheus)
+		if err != nil && !k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
+				condition.Reason("Can't delete old Prometheus CR to remove NAD configuration"),
+				condition.SeverityError,
+				telemetryv1.PrometheusUnableToRemoveNADMessage, err)
+			Log.Error(err, "Can't delete old Prometheus CR to remove NAD configuration")
+			return ctrl.Result{}, err
+		}
+		instance.Status.NetworkAttachments = map[string]string{}
+	}
+
+	// when job passed, mark NetworkAttachmentsReadyCondition ready
+	instance.Status.Conditions.MarkTrue(condition.NetworkAttachmentsReadyCondition, condition.NetworkAttachmentsReadyMessage)
+
 	if instance.Status.Conditions.AllSubConditionIsTrue() {
 		instance.Status.Conditions.MarkTrue(
 			condition.ReadyCondition, condition.ReadyMessage)
 	}
 	Log.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
+}
+
+// PrometheusEndpointSecret creates a Secret that contains the details for Prometheus API endpoint
+func (r *MetricStorageReconciler) prometheusEndpointSecret(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	labels map[string]string,
+) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-prometheus-endpoint", instance.Name),
+			Namespace: instance.Namespace,
+			Labels:    labels,
+		},
+	}
+
+	secret.Data = map[string][]byte{
+		metricstorage.PrometheusHost: []byte(fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace)),
+		metricstorage.PrometheusPort: []byte(strconv.Itoa(telemetryv1.DefaultPrometheusPort)),
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), helper.GetClient(), secret, func() error {
+		secret.Type = corev1.SecretTypeOpaque
+
+		err := controllerutil.SetControllerReference(instance, secret, helper.GetScheme())
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if instance.Spec.PrometheusTLS.Enabled() {
+		tlsSecret := &corev1.Secret{
+			Data: map[string][]byte{
+				metricstorage.PrometheusCaCertSecret: []byte(*instance.Spec.PrometheusTLS.SecretName),
+				metricstorage.PrometheusCaCertKey:    []byte(tls.CAKey),
+			},
+		}
+
+		patch, err := json.Marshal(tlsSecret)
+		if err != nil {
+			return err
+		}
+
+		if err := r.Client.Patch(ctx, secret, client.RawPatch(types.StrategicMergePatchType, patch)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *MetricStorageReconciler) createServiceScrapeConfig(
@@ -556,7 +717,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 	// ScrapeConfig for ceilometer monitoring
 	ceilometerRoute := fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
-	ceilometerTarget := []string{fmt.Sprintf("%s:%d", ceilometerRoute, ceilometer.CeilometerPrometheusPort)}
+	ceilometerTarget := []string{net.JoinHostPort(ceilometerRoute, strconv.Itoa(ceilometer.CeilometerPrometheusPort))}
 	ceilometerCfgName := fmt.Sprintf("%s-ceilometer", telemetry.ServiceName)
 	desiredScrapeConfig := metricstorage.ScrapeConfig(
 		instance,
@@ -572,7 +733,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 	// ScrapeConfig for kube-state-metrics
 	ksmRoute := fmt.Sprintf("%s.%s.svc", availability.KSMServiceName, instance.Namespace)
-	ksmTarget := []string{fmt.Sprintf("%s:%d", ksmRoute, availability.KSMMetricsPort)}
+	ksmTarget := []string{net.JoinHostPort(ksmRoute, strconv.Itoa(availability.KSMMetricsPort))}
 	ksmCfgName := fmt.Sprintf("%s-ksm", telemetry.ServiceName)
 	desiredScrapeConfig = metricstorage.ScrapeConfig(
 		instance,
@@ -601,7 +762,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	rabbitTargets := []string{}
 	for _, rabbit := range rabbitList.Items {
 		rabbitServerName := fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)
-		rabbitTargets = append(rabbitTargets, fmt.Sprintf("%s:%d", rabbitServerName, metricstorage.RabbitMQPrometheusPort))
+		rabbitTargets = append(rabbitTargets, net.JoinHostPort(rabbitServerName, strconv.Itoa(metricstorage.RabbitMQPrometheusPort)))
 	}
 	rabbitCfgName := fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName)
 	desiredScrapeConfig = metricstorage.ScrapeConfig(
@@ -699,9 +860,10 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		for _, galera := range exportedGaleras {
 			// NOTE: the galera port is hardcoded in the mariadb-operator without
 			// any declared constant we could use here
+			galeraServiceURL := fmt.Sprintf("%s.%s.svc", galera, instance.Namespace)
 			mysqldExporterTargets = append(
 				mysqldExporterTargets,
-				fmt.Sprintf("%s.%s.svc:3306", galera, instance.Namespace),
+				net.JoinHostPort(galeraServiceURL, "3306"),
 			)
 		}
 		desiredScrapeConfig = metricstorage.ScrapeConfigMysqldExporter(
@@ -735,7 +897,7 @@ func getNodeExporterTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarg
 	nonTLS := []metricstorage.LabeledTarget{}
 	for _, node := range nodes {
 		target := metricstorage.LabeledTarget{
-			IP:   fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultNodeExporterPort),
+			IP:   net.JoinHostPort(node.IP, strconv.Itoa(telemetryv1.DefaultNodeExporterPort)),
 			FQDN: node.FQDN,
 		}
 		if node.TLS {
@@ -752,7 +914,7 @@ func getKeplerTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarget, []
 	nonTLS := []metricstorage.LabeledTarget{}
 	for _, node := range nodes {
 		target := metricstorage.LabeledTarget{
-			IP:   fmt.Sprintf("%s:%d", node.IP, telemetryv1.DefaultKeplerPort),
+			IP:   net.JoinHostPort(node.IP, strconv.Itoa(telemetryv1.DefaultKeplerPort)),
 			FQDN: node.FQDN,
 		}
 		if node.TLS {

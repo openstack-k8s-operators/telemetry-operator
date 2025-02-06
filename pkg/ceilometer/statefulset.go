@@ -34,7 +34,9 @@ import (
 
 const (
 	// ServiceCommand -
-	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	ServiceCommand       = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	CentralHCScript      = "/var/lib/openstack/bin/centralhealth.py"
+	NotificationHCScript = "/var/lib/openstack/bin/notificationhealth.py"
 )
 
 // StatefulSet func
@@ -45,31 +47,50 @@ func StatefulSet(
 ) (*appsv1.StatefulSet, error) {
 	runAsUser := int64(0)
 
-	// TO-DO Probes
-	livenessProbe := &corev1.Probe{
-		// TODO might need tuning
-		TimeoutSeconds:      30,
-		PeriodSeconds:       30,
-		InitialDelaySeconds: 5,
+	// container probes
+	sgRootEndpointCurl := corev1.HTTPGetAction{
+		Path: "/",
+		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(CeilometerPrometheusPort)},
 	}
-	readinessProbe := &corev1.Probe{
-		// TODO might need tuning
+	sgLivenessProbe := &corev1.Probe{
 		TimeoutSeconds:      30,
 		PeriodSeconds:       30,
-		InitialDelaySeconds: 5,
+		InitialDelaySeconds: 300,
+	}
+	sgLivenessProbe.HTTPGet = &sgRootEndpointCurl
+
+	sgReadinessProbe := &corev1.Probe{
+		TimeoutSeconds:      30,
+		PeriodSeconds:       30,
+		InitialDelaySeconds: 10,
+	}
+	sgReadinessProbe.HTTPGet = &sgRootEndpointCurl
+
+	//NOTE(mmagr): Once we will be sure (OSP19 timeframe) that we have Ceilometer
+	//             running with heartbeat feature, we can make below probes run much
+	//             less often (poll interval is 5 minutes currently). Right now we need
+	//             to execute HC as often as possible to hit times when pollers connect
+	//             to OpenStack API nodes
+	centralLivenessProbe := &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+		InitialDelaySeconds: 300,
+	}
+	centralLivenessProbe.Exec = &corev1.ExecAction{
+		Command: []string{"/usr/bin/python3", CentralHCScript},
+	}
+
+	notificationLivenessProbe := &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       30,
+		InitialDelaySeconds: 300,
+	}
+	notificationLivenessProbe.Exec = &corev1.ExecAction{
+		Command: []string{"/usr/bin/python3", NotificationHCScript},
 	}
 
 	args := []string{"-c"}
 	args = append(args, ServiceCommand)
-
-	livenessProbe.HTTPGet = &corev1.HTTPGetAction{
-		Path: "/v3",
-		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(CeilometerPrometheusPort)},
-	}
-	readinessProbe.HTTPGet = &corev1.HTTPGetAction{
-		Path: "/v3",
-		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(CeilometerPrometheusPort)},
-	}
 
 	envVarsCentral := map[string]env.Setter{}
 	envVarsCentral["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
@@ -95,8 +116,8 @@ func StatefulSet(
 		svc.CertMount = ptr.To(fmt.Sprintf("/etc/pki/tls/certs/%s", tls.CertKey))
 		svc.KeyMount = ptr.To(fmt.Sprintf("/etc/pki/tls/private/%s", tls.PrivateKey))
 
-		livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+		sgLivenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+		sgReadinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
 
 		volumes = append(volumes, svc.CreateVolume(ServiceName))
 		httpdVolumeMounts = append(httpdVolumeMounts, svc.CreateVolumeMounts(ServiceName)...)
@@ -123,7 +144,8 @@ func StatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: centralVolumeMounts,
+		VolumeMounts:  centralVolumeMounts,
+		LivenessProbe: centralLivenessProbe,
 	}
 	notificationAgentContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
@@ -137,7 +159,8 @@ func StatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser: &runAsUser,
 		},
-		VolumeMounts: notificationVolumeMounts,
+		VolumeMounts:  notificationVolumeMounts,
+		LivenessProbe: notificationLivenessProbe,
 	}
 	sgCoreContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
@@ -156,12 +179,12 @@ func StatefulSet(
 			RunAsUser: &runAsUser,
 		},
 		Ports: []corev1.ContainerPort{{
-			ContainerPort: 3000,
+			ContainerPort: int32(CeilometerPrometheusPort),
 			Name:          "proxy-httpd",
 		}},
 		VolumeMounts:   httpdVolumeMounts,
-		ReadinessProbe: readinessProbe,
-		LivenessProbe:  livenessProbe,
+		ReadinessProbe: sgReadinessProbe,
+		LivenessProbe:  sgLivenessProbe,
 		Command:        []string{"/usr/sbin/httpd"},
 		Args:           []string{"-DFOREGROUND"},
 	}
