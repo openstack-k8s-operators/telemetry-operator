@@ -777,69 +777,6 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
-	connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetry.ServiceName)
-	if err != nil {
-		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Scrape configs not created. Error: %s", err))
-	}
-
-	// ScrapeConfigs for NodeExporters
-	neTargetsTLS, neTargetsNonTLS := getNodeExporterTargets(connectionInfo)
-	// ScrapeConfig for non-tls nodes
-	neServiceName := fmt.Sprintf("%s-node-exporter", telemetry.ServiceName)
-	desiredScrapeConfig = metricstorage.ScrapeConfig(
-		instance,
-		serviceLabels,
-		neTargetsNonTLS,
-		false,
-	)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
-		neServiceName, desiredScrapeConfig)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// ScrapeConfig for tls nodes
-	neServiceName = fmt.Sprintf("%s-node-exporter-tls", telemetry.ServiceName)
-	desiredScrapeConfig = metricstorage.ScrapeConfig(
-		instance,
-		serviceLabels,
-		neTargetsTLS,
-		true,
-	)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, "Node Exporter",
-		neServiceName, desiredScrapeConfig)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	connectionInfo, err = getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
-	if err != nil {
-		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Scrape configs not created. Error: %s", err))
-	}
-
-	// kepler scrape endpoints
-	keplerEndpoints, _ := getKeplerTargets(connectionInfo)
-	if err != nil {
-		Log.Info(fmt.Sprintf("Cannot get Kepler targets. Scrape configs not created. Error: %s", err))
-	}
-
-	// keplerEndpoint is reported as empty slice when telemetry-power-monitoring service is not enabled
-	if len(keplerEndpoints) > 0 {
-		// Kepler ScrapeConfig for non-tls nodes
-		keplerServiceName := fmt.Sprintf("%s-kepler", telemetry.ServiceName)
-		desiredScrapeConfig = metricstorage.ScrapeConfig(
-			instance,
-			serviceLabels,
-			keplerEndpoints,
-			false,
-		)
-		err = r.createServiceScrapeConfig(ctx, instance, Log, "Kepler",
-			keplerServiceName, desiredScrapeConfig) // Currently Kepler doesn't support TLS so tlsEnabled is set to false
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
 	// mysqld exporter
 	ceilometerNamespacedName := types.NamespacedName{
 		Name:      ceilometer.ServiceName,
@@ -888,16 +825,31 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		}
 	}
 
+	// compute nodes' exporters
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "node-exporter", telemetryv1.DefaultNodeExporterPort, false)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, false)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// Currently Kepler doesn't support TLS
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetryv1.TelemetryPowerMonitoring, "kepler", telemetryv1.DefaultKeplerPort, true)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 	return ctrl.Result{}, nil
 }
 
-func getNodeExporterTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarget, []metricstorage.LabeledTarget) {
+func getExporterTargets(nodes []ConnectionInfo, port int) ([]metricstorage.LabeledTarget, []metricstorage.LabeledTarget) {
 	tls := []metricstorage.LabeledTarget{}
 	nonTLS := []metricstorage.LabeledTarget{}
 	for _, node := range nodes {
 		target := metricstorage.LabeledTarget{
-			IP:   net.JoinHostPort(node.IP, strconv.Itoa(telemetryv1.DefaultNodeExporterPort)),
+			IP:   net.JoinHostPort(node.IP, strconv.Itoa(port)),
 			FQDN: node.FQDN,
 		}
 		if node.TLS {
@@ -909,21 +861,56 @@ func getNodeExporterTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarg
 	return tls, nonTLS
 }
 
-func getKeplerTargets(nodes []ConnectionInfo) ([]metricstorage.LabeledTarget, []metricstorage.LabeledTarget) {
-	tls := []metricstorage.LabeledTarget{}
-	nonTLS := []metricstorage.LabeledTarget{}
-	for _, node := range nodes {
-		target := metricstorage.LabeledTarget{
-			IP:   net.JoinHostPort(node.IP, strconv.Itoa(telemetryv1.DefaultKeplerPort)),
-			FQDN: node.FQDN,
-		}
-		if node.TLS {
-			tls = append(tls, target)
-		} else {
-			nonTLS = append(nonTLS, target)
+func (r *MetricStorageReconciler) createComputeScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceName string,
+	exporterName string,
+	exporterPort int,
+	suppressTLS bool,
+) error {
+	Log := r.GetLogger(ctx)
+
+	connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, serviceName)
+	if err != nil {
+		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Scrape configs not created. Error: %s", err))
+	}
+	targetsTLS, targetsNonTLS := getExporterTargets(connectionInfo, exporterPort)
+
+	// ScrapeConfig for non-tls nodes
+	//NOTE(mmagr): remove TLS suppression functionality once Kepler supports TLS
+	targets := targetsNonTLS
+	if suppressTLS {
+		targets = targetsTLS
+	}
+	fullServiceName := fmt.Sprintf("%s-%s", telemetry.ServiceName, exporterName)
+	desiredScrapeConfig := metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		targets,
+		false,
+	)
+	err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceName, desiredScrapeConfig)
+	if err != nil {
+		return err
+	}
+
+	// ScrapeConfig for tls nodes
+	if !suppressTLS {
+		fullServiceName := fmt.Sprintf("%s-%s-tls", telemetry.ServiceName, exporterName)
+		desiredScrapeConfig := metricstorage.ScrapeConfig(
+			instance,
+			serviceLabels,
+			targetsTLS,
+			true,
+		)
+		err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceName, desiredScrapeConfig)
+		if err != nil {
+			return err
 		}
 	}
-	return tls, nonTLS
+	return nil
 }
 
 func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler) (ctrl.Result, error) {
