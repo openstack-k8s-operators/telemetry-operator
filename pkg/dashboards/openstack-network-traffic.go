@@ -226,6 +226,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "expr": "vm:ceilometer_network_incoming_bytes:rate1m{resource_name=~\"$VM:.*\", project=~\"$project\" } / 1000000",
                                         "editorMode": "code",
                                         "range": true,
+                                        "legendFormat": "{{vm_name}} in ({{device}})",
                                         "refId": "A"
                                     }
                                 ],
@@ -320,6 +321,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "expr": "vm:ceilometer_network_incoming_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" }",
                                         "editorMode": "code",
                                         "range": true,
+                                        "legendFormat": "{{vm_name}} in ({{device}})",
                                         "refId": "A"
                                     }
                                 ],
@@ -425,6 +427,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "expr": "(rate(ceilometer_network_incoming_packets_drop{project=~\"$project\", resource_name=~\"$VM:$In_adapter\"}[1m]) / rate(ceilometer_network_incoming_packets{project=~\"$project\", resource_name=~\"$VM:In_adapter\"}[1m])) * 100\n",
                                         "editorMode": "code",
                                         "range": true,
+                                        "legendFormat": "{{vm_name}} in ({{device}})",
                                         "refId": "A"
                                     }
                                 ],
@@ -532,6 +535,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "hide": false,
                                         "interval": "",
                                         "range": true,
+                                        "legendFormat": "{{vm_name}} in ({{device}})",
                                         "refId": "A"
                                     }
                                 ],
@@ -640,6 +644,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{resource_name=~\"$VM:$In_adapter\", project=~\"$project\" } / 1000000",
                                         "editorMode": "code",
                                         "range": true,
+                                        "legendFormat": "{{vm_name}} out ({{device}})",
                                         "refId": "A"
                                     }
                                 ],
@@ -735,6 +740,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "expr": "vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" }",
                                         "editorMode": "code",
                                         "range": true,
+                                        "legendFormat": "{{vm_name}} out ({{device}})",
                                         "refId": "A"
                                     }
                                 ],
@@ -830,6 +836,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "expr": "(rate(ceilometer_network_outgoing_packets_drop{project=~\"$project\", resource_name=~\"$VM:$In_adapter\"}[1m]) / rate(ceilometer_network_incoming_packets{project=~\"$project\", resource_name=~\"$VM:In_adapter\"}[1m])) * 100\n",
                                         "editorMode": "code",
                                         "range": true,
+                                        "legendFormat": "{{vm_name}} out ({{device}})",
                                         "refId": "A"
                                     }
                                 ],
@@ -935,6 +942,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "expr": "vm:ceilometer_network_outgoing_packets_error:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\"}",
                                         "editorMode": "code",
                                         "range": true,
+                                        "legendFormat": "{{vm_name}} out ({{device}})",
                                         "refId": "A"
                                     }
                                 ],
