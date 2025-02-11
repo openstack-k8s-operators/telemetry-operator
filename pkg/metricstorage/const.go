@@ -17,4 +17,9 @@ package metricstorage
 
 const (
 	RabbitMQPrometheusPort = 15691
+
+	PrometheusHost         = "host"
+	PrometheusPort         = "port"
+	PrometheusCaCertSecret = "ca_secret"
+	PrometheusCaCertKey    = "ca_key"
 )
