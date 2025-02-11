@@ -21,6 +21,7 @@
           ["Ready", 'Setup complete']
         ])
       }}
+    control_plane_name: controlplane
   tasks:
     - name: "Get telemetry condition"
       ansible.builtin.command:
@@ -73,12 +74,12 @@
     - name: "Enable MetricStorage"
       ansible.builtin.command:
         cmd: |
-          oc patch oscp/controlplane --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/metricStorage/enabled", "value":true}]'
+          oc patch oscp/{{ control_plane_name }} --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/metricStorage/enabled", "value":true}]'
 
     - name: "Enable Autoscaling"
       ansible.builtin.command:
         cmd: |
-          oc patch oscp/controlplane --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/autoscaling/enabled", "value":true}]'
+          oc patch oscp/{{ control_plane_name }} --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/autoscaling/enabled", "value":true}]'
 
     - name: "Wait until reconciliation finishes"
       # There isn't a convinient way to know when it finished. The status conditions will never get to a "Ready" state in this situation
@@ -212,7 +213,7 @@
     - name: "Patch MetricStorage to use CustomMonitoringStack field"
       ansible.builtin.command:
         cmd: |
-          oc patch oscp/controlplane --type merge -p '{"spec":{"telemetry":{"template":{"metricStorage":{"monitoringStack": null, "customMonitoringStack":{"prometheusConfig":{"replicas": 1}, "resourceSelector":{"matchLabels":{"service":"metricStorage"}}}}}}}}'
+          oc patch oscp/{{ control_plane_name }} --type merge -p '{"spec":{"telemetry":{"template":{"metricStorage":{"monitoringStack": null, "customMonitoringStack":{"prometheusConfig":{"replicas": 1}, "resourceSelector":{"matchLabels":{"service":"metricStorage"}}}}}}}}'
 
     - name: "Wait until MetricStorage is ready"
       ansible.builtin.command:
@@ -235,7 +236,7 @@
     - name: "Patch Autoscaling to use a custom Prometheus instance"
       ansible.builtin.command:
         cmd: |
-          oc patch oscp/controlplane --type merge -p '{"spec":{"telemetry":{"template":{"autoscaling":{"prometheusHost":"someprometheus.openstack.svc", "prometheusPort":1234}}}}}'
+          oc patch oscp/{{ control_plane_name }} --type merge -p '{"spec":{"telemetry":{"template":{"autoscaling":{"prometheusHost":"someprometheus.openstack.svc", "prometheusPort":1234}}}}}'
 
     - name: "Wait until Autoscaling is ready"
       ansible.builtin.command:
