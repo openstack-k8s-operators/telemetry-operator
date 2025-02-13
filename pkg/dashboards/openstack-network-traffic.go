@@ -138,7 +138,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 },
                                 "yaxes": [
                                     {
-                                        "format": "watt",
+                                        "format": "bytes",
                                         "label": null,
                                         "logBase": 1,
                                         "max": null,
@@ -146,7 +146,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "show": true
                                     },
                                     {
-                                        "format": "watt",
+                                        "format": "bytes",
                                         "label": null,
                                         "logBase": 1,
                                         "max": null,
@@ -250,7 +250,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "yaxes": [
                                     {
                                         "$$hashKey": "object:946",
-                                        "format": "p",
+                                        "format": "Bps",
                                         "logBase": 1,
                                         "show": true
                                     },
@@ -334,7 +334,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                         "op": "gt",
                                         "value": 30,
                                         "yaxis": "left"
-                                      }
+                                    }
                                 ],
                                 "timeFrom": null,
                                 "timeRegions": [],
@@ -356,13 +356,13 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "yaxes": [
                                     {
                                         "$$hashKey": "object:946",
-                                        "format": "percentunit",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     },
                                     {
                                         "$$hashKey": "object:947",
-                                        "format": "short",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     }
@@ -424,7 +424,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "(rate(ceilometer_network_incoming_packets_drop{project=~\"$project\", resource_name=~\"$VM:$In_adapter\"}[1m]) / rate(ceilometer_network_incoming_packets{project=~\"$project\", resource_name=~\"$VM:In_adapter\"}[1m])) * 100\n",
+                                        "expr": "(vm:ceilometer_network_incoming_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" } / vm:ceilometer_network_incoming_packets:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\"}) * 100\n",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} in ({{device}})",
@@ -462,13 +462,13 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "yaxes": [
                                     {
                                         "$$hashKey": "object:946",
-                                        "format": "percentunit",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     },
                                     {
                                         "$$hashKey": "object:947",
-                                        "format": "short",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     }
@@ -560,13 +560,13 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "yaxes": [
                                     {
                                         "$$hashKey": "object:946",
-                                        "format": "p",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     },
                                     {
                                         "$$hashKey": "object:947",
-                                        "format": "short",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     }
@@ -641,7 +641,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{resource_name=~\"$VM:$In_adapter\", project=~\"$project\" } / 1000000",
+                                        "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{resource_name=~\"$VM:.+\", project=~\"$project\" } / 1000000",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} out ({{device}})",
@@ -669,7 +669,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "yaxes": [
                                     {
                                         "$$hashKey": "object:892",
-                                        "format": "p",
+                                        "format": "Bps",
                                         "logBase": 1,
                                         "show": true
                                     },
@@ -737,7 +737,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" }",
+                                        "expr": "vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\" }",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} out ({{device}})",
@@ -765,13 +765,13 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "yaxes": [
                                     {
                                         "$$hashKey": "object:892",
-                                        "format": "p",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     },
                                     {
                                         "$$hashKey": "object:893",
-                                        "format": "short",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     }
@@ -833,7 +833,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "(rate(ceilometer_network_outgoing_packets_drop{project=~\"$project\", resource_name=~\"$VM:$In_adapter\"}[1m]) / rate(ceilometer_network_incoming_packets{project=~\"$project\", resource_name=~\"$VM:In_adapter\"}[1m])) * 100\n",
+                                        "expr": "(vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\" } / vm:ceilometer_network_outgoing_packets:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\" }) * 100\n",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} out ({{device}})",
@@ -871,13 +871,13 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "yaxes": [
                                     {
                                         "$$hashKey": "object:946",
-                                        "format": "percentunit",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     },
                                     {
                                         "$$hashKey": "object:947",
-                                        "format": "short",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     }
@@ -939,7 +939,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_outgoing_packets_error:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\"}",
+                                        "expr": "vm:ceilometer_network_outgoing_packets_error:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\"}",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} out ({{device}})",
@@ -967,13 +967,13 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "yaxes": [
                                     {
                                         "$$hashKey": "object:946",
-                                        "format": "percentunit",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     },
                                     {
                                         "$$hashKey": "object:947",
-                                        "format": "short",
+                                        "format": "packets",
                                         "logBase": 1,
                                         "show": true
                                     }
@@ -1024,13 +1024,16 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                         {
                             "allValue": ".*",
                             "current": {
-                            "tags": [],
-                            "text": "539c3dc2361f4fd191aaa21c14360e35",
-                            "value": [
-                                "539c3dc2361f4fd191aaa21c14360e35"
-                            ]
+                                "tags": [],
+                                "text": "539c3dc2361f4fd191aaa21c14360e35",
+                                "value": [
+                                    "539c3dc2361f4fd191aaa21c14360e35"
+                                ]
                             },
-                            "datasource": { "name": "` + dsName + `", "type": "prometheus" },
+                            "datasource": {
+                                "name": "` + dsName + `",
+                                "type": "prometheus"
+                            },
                             "definition": "label_values(ceilometer_cpu{vm_instance=~\"$compute_node\"}, project)",
                             "hide": 0,
                             "includeAll": true,
@@ -1083,12 +1086,12 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                             "current": {
                                 "selected": true,
                                 "text": [
-                                  "tap0cb7726a-da"
+                                    "tap0cb7726a-da"
                                 ],
                                 "value": [
-                                  "tap0cb7726a-da"
+                                    "tap0cb7726a-da"
                                 ]
-                              },
+                            },
                             "datasource": {
                                 "name": "` + dsName + `",
                                 "type": "prometheus"
@@ -1117,14 +1120,14 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                             "current": {
                                 "selected": true,
                                 "text": [
-                                  "tap0cb7726a-da",
-                                  "tapfb47a4c6-9f"
+                                    "tap0cb7726a-da",
+                                    "tapfb47a4c6-9f"
                                 ],
                                 "value": [
-                                  "tap0cb7726a-da",
-                                  "tapfb47a4c6-9f"
+                                    "tap0cb7726a-da",
+                                    "tapfb47a4c6-9f"
                                 ]
-                              },
+                            },
                             "datasource": {
                                 "name": "` + dsName + `",
                                 "type": "prometheus"
