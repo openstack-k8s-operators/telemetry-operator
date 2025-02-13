@@ -22,6 +22,7 @@ package v1beta1
 
 import (
 	networkv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
+	topologyv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
@@ -95,6 +96,11 @@ func (in *AodhCore) DeepCopyInto(out *AodhCore) {
 				(*out)[key] = val
 			}
 		}
+	}
+	if in.TopologyRef != nil {
+		in, out := &in.TopologyRef, &out.TopologyRef
+		*out = new(topologyv1beta1.TopoRef)
+		**out = **in
 	}
 }
 
@@ -491,6 +497,11 @@ func (in *CeilometerSpecCore) DeepCopyInto(out *CeilometerSpecCore) {
 				(*out)[key] = val
 			}
 		}
+	}
+	if in.TopologyRef != nil {
+		in, out := &in.TopologyRef, &out.TopologyRef
+		*out = new(topologyv1beta1.TopoRef)
+		**out = **in
 	}
 }
 
@@ -1036,6 +1047,11 @@ func (in *TelemetrySpecBase) DeepCopyInto(out *TelemetrySpecBase) {
 				(*out)[key] = val
 			}
 		}
+	}
+	if in.TopologyRef != nil {
+		in, out := &in.TopologyRef, &out.TopologyRef
+		*out = new(topologyv1beta1.TopoRef)
+		**out = **in
 	}
 }
 
