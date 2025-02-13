@@ -1,5 +1,5 @@
 ---
-- name: "Check telemetry-operator logs for errors"
+- name: Execute the default-telemetry scenario
   hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
   gather_facts: false
   environment:
@@ -23,7 +23,7 @@
       }}
     control_plane_name: controlplane
   tasks:
-    - name: "Get telemetry condition"
+    - name: Wait until telemetry is finished reconciling and its conditions are all True
       ansible.builtin.command:
         cmd:
           oc get telemetry telemetry --output=jsonpath --template={.status.conditions[*].status}
@@ -32,80 +32,78 @@
       delay: 10
       until: output.stdout is ansible.builtin.regex("(True\s?)+$")
 
-    - name: "Get telemetry-operator logs"
+    - name: Get telemetry-operator logs
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
     - name: |
-        TEST Check telemetry-operator logs for Errors
+        TEST Check telemetry-operator logs for errors after it's started
         RHOSO-123456
       ansible.builtin.set_fact:
         error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
       failed_when: error_list | length != 0
 
-    - name: "Output found errors for debugging purposes"
+    - name: Output found errors for debugging purposes
       ansible.builtin.debug:
         var: error_list
       when: error_list | length != 0
 
     - name: |
-        TEST Get telemetry-operator restart counts
+        TEST Check telemetry-operator didn't restart
         RHOSO-123457
       ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
       failed_when: restart_counts != [0, 0]
 
-    - name: "Fail if telemetry-operator was restarted"
-      block:
-        - name: "Get telemetry-operator failed pod logs"
-          ansible.builtin.command:
-            cmd:
-              oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
-          register: operator_logs_previous
+    - name: Get telemetry-operator failed container logs
+      ansible.builtin.command:
+        cmd:
+          oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
+      register: operator_logs_previous
+      when: restart_counts != [0, 0]
 
-        - name: "Output logs for debugging purposes"
-          ansible.builtin.debug:
-            var: operator_logs_previous.stdout_lines
+    - name: Output logs of failed container for debugging purposes
+      ansible.builtin.debug:
+        var: operator_logs_previous.stdout_lines
       when: restart_counts != [0, 0]
 
     # Enabling Autoscaling and MetricStorage without COO installed. Expected to see errors.
-    - name: "Enable MetricStorage"
+    - name: Enable MetricStorage
       ansible.builtin.command:
         cmd: |
           oc patch oscp/{{ control_plane_name }} --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/metricStorage/enabled", "value":true}]'
 
-    - name: "Enable Autoscaling"
+    - name: Enable Autoscaling
       ansible.builtin.command:
         cmd: |
           oc patch oscp/{{ control_plane_name }} --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/autoscaling/enabled", "value":true}]'
 
-    - name: "Wait until reconciliation finishes"
+    - name: Wait until reconciliation finishes
       # There isn't a convinient way to know when it finished. The status conditions will never get to a "Ready" state in this situation
       ansible.builtin.wait_for:
         timeout: 120
 
     - name: |
-        TEST Get telemetry-operator restart counts
+        TEST Check telemetry-operator didn't restart after enabling MetricStorage and Autoscaling without COO installed
         RHOSO-123458
       ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
       failed_when: restart_counts != [0, 0]
 
-    - name: "Fail if telemetry-operator was restarted"
-      block:
-        - name: "Get telemetry-operator failed pod logs"
-          ansible.builtin.command:
-            cmd:
-              oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
-          register: operator_logs_previous
-
-        - name: "Output logs for debugging purposes"
-          ansible.builtin.debug:
-            var: operator_logs_previous.stdout_lines
+    - name: Get telemetry-operator failed container logs
+      ansible.builtin.command:
+        cmd:
+          oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
+      register: operator_logs_previous
       when: restart_counts != [0, 0]
 
-    - name: "Get telemetry-operator logs"
+    - name: Output logs of failed container for debugging purposes
+      ansible.builtin.debug:
+        var: operator_logs_previous.stdout_lines
+      when: restart_counts != [0, 0]
+
+    - name: Get telemetry-operator logs
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
     - name: |
-        TEST Check telemetry-operator logs
+        TEST Check that telemetry-operator logs include expected error logs when MetricStorage is enabled, but COO isn't installed
         RHOSO-123459
       ansible.builtin.assert:
         that:
@@ -113,12 +111,12 @@
         fail_msg: "telemetry-operator logs don't include expected log: {{ item }}"
       loop: "{{ expected_logs }}"
 
-    - name: "Get telemetry-operator error logs"
+    - name: Get telemetry-operator error logs
       ansible.builtin.set_fact:
         error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
 
     - name: |
-        TEST Check that telemetry-operator logs don't include unexpected errors
+        TEST Check that telemetry-operator logs don't include unexpected errors when MetricStorage is enabled, but COO isn't installed
         RHOSO-123460
       ansible.builtin.assert:
         that:
@@ -126,28 +124,28 @@
         fail_msg: "telemetry-operator logs include an unexpected error: {{ item }}"
       loop: "{{ error_list }}"
 
-    - name: "Check if we have the expected conditions for MetricStorage"
+    - name: Check if we have the expected conditions for MetricStorage
       block:
-        - name: "Get MetricStorage condition types"
+        - name: Get MetricStorage condition types
           ansible.builtin.command:
             cmd:
               oc get metricstorage metric-storage -o jsonpath='{.status.conditions[*].type}'
           register: condition_types
 
-        - name: "Get MetricStorage condition values"
+        - name: Get MetricStorage condition values
           ansible.builtin.command:
             cmd:
               oc get metricstorage metric-storage -o jsonpath='{.status.conditions[?(@.type == "{{ item }}")].message}'
           register: output
           loop: "{{ condition_types.stdout | split(' ') }}"
 
-        - name: "Construct MetricStorage condition dictionary"
+        - name: Construct MetricStorage condition dictionary
           ansible.builtin.set_fact:
             conditions: "{{ conditions | default({}) | combine({item.item: item.stdout}) }}"
           loop: "{{ output.results }}"
 
         - name: |
-            TEST Check that all expected MetricStorage conditions were found
+            TEST Check that all MetricStorage conditions are as expected when COO isn't installed
             RHOSO-123461
           ansible.builtin.assert:
             that:
@@ -155,28 +153,28 @@
             fail_msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
           loop: "{{ expected_metricstorage_conditions | dict2items }}"
 
-    - name: "Check if we have the expected conditions for Autoscaling"
+    - name: Check if we have the expected conditions for Autoscaling
       block:
-        - name: "Get Autoscaling condition types"
+        - name: Get Autoscaling condition types
           ansible.builtin.command:
             cmd:
               oc get autoscaling autoscaling -o jsonpath='{.status.conditions[*].type}'
           register: condition_types
 
-        - name: "Get Autoscaling condition values"
+        - name: Get Autoscaling condition values
           ansible.builtin.command:
             cmd:
               oc get autoscaling autoscaling -o jsonpath='{.status.conditions[?(@.type == "{{ item }}")].message}'
           register: output
           loop: "{{ condition_types.stdout | split(' ') }}"
 
-        - name: "Construct Autoscaling condition dictionary"
+        - name: Construct Autoscaling condition dictionary
           ansible.builtin.set_fact:
             conditions: "{{ conditions | default({}) | combine({item.item: item.stdout}) }}"
           loop: "{{ output.results }}"
 
         - name: |
-            TEST Check that all expected Autoscaling conditions were found
+            TEST Check that all Autoscaling conditions are as expected when COO isn't installed
             RHOSO-123462
           ansible.builtin.assert:
             that:
@@ -184,11 +182,11 @@
             fail_msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
           loop: "{{ expected_autoscaling_conditions | dict2items }}"
 
-    # Installing COO and restarting the operators. Expecting everything to run without errors.
+    # Installing COO, expecting everything to run without errors.
     - name: Install COO
       ansible.builtin.include_tasks: "create-coo-subscription.yaml"
 
-    - name: "Wait until Autoscaling and MetricStorage are ready"
+    - name: Wait until Autoscaling and MetricStorage are ready
       ansible.builtin.command:
         cmd:
           oc get telemetry telemetry --output=jsonpath --template={.status.conditions[*].status}
@@ -197,11 +195,11 @@
       delay: 10
       until: output.stdout is ansible.builtin.regex("(True\s?)+$")
 
-    - name: "Get telemetry-operator logs"
+    - name: Get telemetry-operator logs
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
     - name: |
-        TEST Check telemetry-operator logs for Errors
+        TEST Check that telemetry-operator logs don't include any errors after COO is installed
         RHOSO-123463
       ansible.builtin.assert:
         that:
@@ -216,56 +214,56 @@
     # Try using the CustomMonitoringStack field in MetricStorage. We should see the status as Ready,
     # there shouldn't be any error logs in the operator logs.
 
-    - name: "Patch MetricStorage to use CustomMonitoringStack field"
+    - name: Patch MetricStorage to use CustomMonitoringStack field
       ansible.builtin.command:
         cmd: |
           oc patch oscp/{{ control_plane_name }} --type merge -p '{"spec":{"telemetry":{"template":{"metricStorage":{"monitoringStack": null, "customMonitoringStack":{"prometheusConfig":{"replicas": 1}, "resourceSelector":{"matchLabels":{"service":"metricStorage"}}}}}}}}'
 
-    - name: "Wait until MetricStorage is ready"
+    - name: Wait until MetricStorage is ready
       ansible.builtin.command:
         cmd:
           oc wait telemetry telemetry --for=condition=Ready --timeout=2m
 
-    - name: "Get telemetry-operator logs"
+    - name: Get telemetry-operator logs
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
     - name: |
-        TEST Check telemetry-operator logs for Errors
+        TEST Check that telemetry-operator logs don't include any errors when using the CustomMonitoringStack
         RHOSO-123464
       ansible.builtin.set_fact:
         error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
       failed_when: error_list | length != 0
 
     # Try using a custom Prometheus instance for Autoscaling and check that the Prometheus config for aodh is pointing to the correct Prometheus.
-    - name: "Patch Autoscaling to use a custom Prometheus instance"
+    - name: Patch Autoscaling to use a custom Prometheus instance
       ansible.builtin.command:
         cmd: |
           oc patch oscp/{{ control_plane_name }} --type merge -p '{"spec":{"telemetry":{"template":{"autoscaling":{"prometheusHost":"someprometheus.openstack.svc", "prometheusPort":1234}}}}}'
 
-    - name: "Wait until Autoscaling is ready"
+    - name: Wait until Autoscaling is ready
       ansible.builtin.command:
         cmd:
           oc wait telemetry telemetry --for=condition=Ready --timeout=2m
 
-    - name: "Get telemetry-operator logs"
+    - name: Get telemetry-operator logs
       ansible.builtin.import_tasks: "get-operator-logs.yml"
 
     - name: |
-        TEST Check telemetry-operator logs for Errors
+        TEST Check that telemetry-operator logs don't include any errors when using a custom Prometheus instance for Autoscaling
         RHOSO-123465
       ansible.builtin.set_fact:
         error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
       when: error_list | length != 0
 
     - name: |
-        TEST Check Prometheus host is set correctly in the aodh-evaluator container
+        TEST Check Prometheus host is set correctly in the aodh-evaluator container when using a custom Prometheus
         RHOSO-123466
       ansible.builtin.shell: oc rsh -c aodh-evaluator aodh-0 cat /etc/openstack/prometheus.yaml | grep host | cut -d " " -f 2
       register: host
       failed_when: host.stdout != "someprometheus.openstack.svc"
 
     - name: |
-        TEST Check Prometheus port is set correctly in the aodh-evaluator container
+        TEST Check Prometheus port is set correctly in the aodh-evaluator container when using a custom Prometheus
         RHOSO-123467
       ansible.builtin.shell: oc rsh -c aodh-evaluator aodh-0 cat /etc/openstack/prometheus.yaml | grep port | cut -d " " -f 2
       register: port
