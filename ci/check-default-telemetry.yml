@@ -53,16 +53,16 @@
       ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
       failed_when: restart_counts != [0, 0]
 
-    - name: Get telemetry-operator failed container logs
-      ansible.builtin.command:
-        cmd:
-          oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
-      register: operator_logs_previous
-      when: restart_counts != [0, 0]
+    - block:
+      - name: Get telemetry-operator failed container logs
+        ansible.builtin.command:
+          cmd:
+            oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
+        register: operator_logs_previous
 
-    - name: Output logs of failed container for debugging purposes
-      ansible.builtin.debug:
-        var: operator_logs_previous.stdout_lines
+      - name: Output logs of failed container for debugging purposes
+        ansible.builtin.debug:
+          var: operator_logs_previous.stdout_lines
       when: restart_counts != [0, 0]
 
     # Enabling Autoscaling and MetricStorage without COO installed. Expected to see errors.
@@ -80,24 +80,6 @@
       # There isn't a convinient way to know when it finished. The status conditions will never get to a "Ready" state in this situation
       ansible.builtin.wait_for:
         timeout: 120
-
-    - name: |
-        TEST Check telemetry-operator didn't restart after enabling MetricStorage and Autoscaling without COO installed
-        RHOSO-123458
-      ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
-      failed_when: restart_counts != [0, 0]
-
-    - name: Get telemetry-operator failed container logs
-      ansible.builtin.command:
-        cmd:
-          oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
-      register: operator_logs_previous
-      when: restart_counts != [0, 0]
-
-    - name: Output logs of failed container for debugging purposes
-      ansible.builtin.debug:
-        var: operator_logs_previous.stdout_lines
-      when: restart_counts != [0, 0]
 
     - name: Get telemetry-operator logs
       ansible.builtin.import_tasks: "get-operator-logs.yml"
@@ -123,6 +105,24 @@
           - item in expected_logs
         fail_msg: "telemetry-operator logs include an unexpected error: {{ item }}"
       loop: "{{ error_list }}"
+
+    - name: |
+        TEST Check telemetry-operator didn't restart after enabling MetricStorage and Autoscaling without COO installed
+        RHOSO-123458
+      ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
+      failed_when: restart_counts != [0, 0]
+
+    - block:
+      - name: Get telemetry-operator failed container logs
+        ansible.builtin.command:
+          cmd:
+            oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
+        register: operator_logs_previous
+
+      - name: Output logs of failed container for debugging purposes
+        ansible.builtin.debug:
+          var: operator_logs_previous.stdout_lines
+      when: restart_counts != [0, 0]
 
     - name: Check if we have the expected conditions for MetricStorage
       block:
