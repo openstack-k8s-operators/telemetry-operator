@@ -255,6 +255,10 @@ func (r TelemetryReconciler) reconcileCeilometer(ctx context.Context, instance *
 		instance.Spec.Ceilometer.NodeSelector = instance.Spec.NodeSelector
 	}
 
+	if instance.Spec.Ceilometer.TopologyRef == nil {
+		instance.Spec.Ceilometer.TopologyRef = instance.Spec.TopologyRef
+	}
+
 	helper.GetLogger().Info("Reconciling Ceilometer", ceilometerNamespaceLabel, instance.Namespace, ceilometerNameLabel, ceilometer.ServiceName)
 	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), ceilometerInstance, func() error {
 		instance.Spec.Ceilometer.CeilometerSpec.DeepCopyInto(&ceilometerInstance.Spec)
@@ -334,6 +338,10 @@ func (r TelemetryReconciler) reconcileAutoscaling(ctx context.Context, instance 
 
 	if instance.Spec.Autoscaling.Aodh.NodeSelector == nil {
 		instance.Spec.Autoscaling.Aodh.NodeSelector = instance.Spec.NodeSelector
+	}
+
+	if instance.Spec.Autoscaling.Aodh.TopologyRef == nil {
+		instance.Spec.Autoscaling.Aodh.TopologyRef = instance.Spec.TopologyRef
 	}
 
 	helper.GetLogger().Info("Reconciling Autoscaling", autoscalingNamespaceLabel, instance.Namespace, autoscalingNameLabel, autoscalingName)

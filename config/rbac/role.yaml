@@ -469,3 +469,12 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - topology.openstack.org
+  resources:
+  - topologies
+  verbs:
+  - get
+  - list
+  - update
+  - watch
