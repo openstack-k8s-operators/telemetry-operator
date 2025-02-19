@@ -20,6 +20,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -133,7 +134,7 @@ func (r *Telemetry) ValidateCreate() (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	basePath := field.NewPath("spec")
 
-	allErrs = r.Spec.ValidateTelemetryTopology(basePath, r.Namespace)
+	allErrs = r.Spec.ValidateCreate(basePath, r.Namespace)
 	if len(allErrs) != 0 {
 		return nil, apierrors.NewInvalid(
 			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Telemetry"},
@@ -143,20 +144,47 @@ func (r *Telemetry) ValidateCreate() (admission.Warnings, error) {
 	return nil, nil
 }
 
+func (r TelemetrySpec) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
+	return allErrs
+}
+
+func (r TelemetrySpecCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
+	return allErrs
+}
+
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Telemetry) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	telemetrylog.Info("validate update", "name", r.Name)
-
 	var allErrs field.ErrorList
 	basePath := field.NewPath("spec")
 
-	allErrs = r.Spec.ValidateTelemetryTopology(basePath, r.Namespace)
+	oldTelemetry, ok := old.(*Telemetry)
+	if !ok || oldTelemetry == nil {
+		return nil, apierrors.NewInternalError(fmt.Errorf("unable to convert existing object"))
+	}
+
+	allErrs = r.Spec.ValidateUpdate(oldTelemetry.Spec, basePath, r.Namespace)
 	if len(allErrs) != 0 {
 		return nil, apierrors.NewInvalid(
 			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Telemetry"},
 			r.Name, allErrs)
 	}
 	return nil, nil
+}
+
+func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, namespace string) field.ErrorList {
+	return r.ValidateCreate(basePath, namespace)
+}
+
+func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpec, basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
+	return allErrs
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -167,6 +195,37 @@ func (r *Telemetry) ValidateDelete() (admission.Warnings, error) {
 	return nil, nil
 }
 
+// ValidateTelemetryTopology - Returns an ErrorList if the Topology is referenced
+// on a different namespace
+func (spec *TelemetrySpecCore) ValidateTelemetryTopology(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// When a TopologyRef CR is referenced, fail if a different Namespace is
+	// referenced because is not supported
+	if spec.TopologyRef != nil {
+		if err := topologyv1.ValidateTopologyNamespace(spec.TopologyRef.Namespace, *basePath, namespace); err != nil {
+			allErrs = append(allErrs, err)
+		}
+	}
+
+	// When a TopologyRef CR is referenced with an override to Aodh, fail
+	// if a different Namespace is referenced because not supported
+	if spec.Autoscaling.Aodh.TopologyRef != nil {
+		if err := topologyv1.ValidateTopologyNamespace(spec.Autoscaling.Aodh.TopologyRef.Namespace, *basePath, namespace); err != nil {
+			allErrs = append(allErrs, err)
+		}
+	}
+
+	// When a TopologyRef CR is referenced with an override to Ceilometer,
+	// fail if a different Namespace is referenced because not supported
+	if spec.Ceilometer.TopologyRef != nil {
+		if err := topologyv1.ValidateTopologyNamespace(spec.Ceilometer.TopologyRef.Namespace, *basePath, namespace); err != nil {
+			allErrs = append(allErrs, err)
+		}
+	}
+
+	return allErrs
+}
 // ValidateTelemetryTopology - Returns an ErrorList if the Topology is referenced
 // on a different namespace
 func (spec *TelemetrySpec) ValidateTelemetryTopology(basePath *field.Path, namespace string) field.ErrorList {

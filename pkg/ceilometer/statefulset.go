@@ -212,16 +212,7 @@ func StatefulSet(
 		pod.Spec.NodeSelector = *instance.Spec.NodeSelector
 	}
 	if topology != nil {
-		// Get the Topology .Spec
-		ts := topology.Spec
-		// Process TopologySpreadConstraints if defined in the referenced Topology
-		if ts.TopologySpreadConstraints != nil {
-			pod.Spec.TopologySpreadConstraints = *topology.Spec.TopologySpreadConstraints
-		}
-		// Process Affinity if defined in the referenced Topology
-		if ts.Affinity != nil {
-			pod.Spec.Affinity = ts.Affinity
-		}
+		topology.ApplyTo(&pod)
 	}
 	statefulset := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
