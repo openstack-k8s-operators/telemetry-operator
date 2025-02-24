@@ -176,16 +176,7 @@ func KSMStatefulSet(
 		ss.Spec.Template.Spec.NodeSelector = *instance.Spec.NodeSelector
 	}
 	if topology != nil {
-		// Get the Topology .Spec
-		ts := topology.Spec
-		// Process TopologySpreadConstraints if defined in the referenced Topology
-		if ts.TopologySpreadConstraints != nil {
-			ss.Spec.Template.Spec.TopologySpreadConstraints = *topology.Spec.TopologySpreadConstraints
-		}
-		// Process Affinity if defined in the referenced Topology
-		if ts.Affinity != nil {
-			ss.Spec.Template.Spec.Affinity = ts.Affinity
-		}
+		topology.ApplyTo(&ss.Spec.Template)
 	}
 
 	return ss, nil

@@ -37,6 +37,9 @@ spec:
       - description: KSMTLS - Parameters related to the TLS for kube-state-metrics
         displayName: KSMTLS
         path: ksmTls
+      - description: MysqldExporterTLS - Parameters related to the TLS for mysqld_exporter
+        displayName: Mysqld Exporter TLS
+        path: mysqldExporterTLS
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: tls
@@ -78,6 +81,9 @@ spec:
       - description: KSMTLS - Parameters related to the TLS for kube-state-metrics
         displayName: KSMTLS
         path: ceilometer.ksmTls
+      - description: MysqldExporterTLS - Parameters related to the TLS for mysqld_exporter
+        displayName: Mysqld Exporter TLS
+        path: ceilometer.mysqldExporterTLS
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: ceilometer.tls
