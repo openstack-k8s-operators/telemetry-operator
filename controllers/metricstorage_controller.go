@@ -830,6 +830,12 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	// dataplane nodes' exporters
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "dataplane-node-exporter", telemetryv1.DefaultDataplaneNodeExporterPort, false)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, false)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -1001,9 +1007,21 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	// Deploy ConfigMaps for dashboards
 	// NOTE: Dashboards installed without the custom datasource will default to the openshift-monitoring prometheus causing unexpected results
 	if dataSourceSuccess {
+		// Only enable DPDK sections of dataplane dashboard if dpdk service is enabled on at least one nodeset
+		dpdkConnectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetry.DpdkserviceName)
+		hasDpdk := false
+		if err != nil {
+			Log.Info(fmt.Sprintf("Cannot get compute node connection info for dpdk service: %s", err))
+		} else {
+			if len(dpdkConnectionInfo) > 0 {
+				hasDpdk = true
+			}
+		}
+
 		dashboardCMs := map[string]*corev1.ConfigMap{
 			"grafana-dashboard-openstack-cloud":           dashboards.OpenstackCloud(datasourceName),
 			"grafana-dashboard-openstack-node":            dashboards.OpenstackNode(datasourceName),
+			"grafana-dashboard-openstack-dataplane-node":  dashboards.OpenstackDataplaneNode(datasourceName, hasDpdk),
 			"grafana-dashboard-openstack-vm":              dashboards.OpenstackVM(datasourceName),
 			"grafana-dashboard-openstack-rabbitmq":        dashboards.OpenstackRabbitmq(datasourceName),
 			"grafana-dashboard-openstack-network-traffic": dashboards.OpenstackNetworkTraffic(datasourceName),
