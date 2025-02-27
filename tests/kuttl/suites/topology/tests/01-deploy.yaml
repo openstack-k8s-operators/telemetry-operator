@@ -1,0 +1,33 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Telemetry
+metadata:
+  name: telemetry-kuttl
+spec:
+  topologyRef:
+    name: telemetry-topology
+  metricStorage:
+    enabled: true
+    monitoringStack:
+      alertingEnabled: true
+      scrapeInterval: 30s
+      storage:
+        strategy: persistent
+        retention: 24h
+        persistent:
+          pvcStorageRequest: 20G
+  autoscaling:
+    enabled: true
+    aodh:
+      secret: osp-secret
+      passwordSelectors:
+      databaseAccount: aodh
+      databaseInstance: openstack
+      memcachedInstance: memcached
+    heatInstance: heat
+  ceilometer:
+    enabled: true
+    secret: osp-secret
+  logging:
+    enabled: false
+    port: 10514
+    cloNamespace: openshift-logging

@@ -1,0 +1,7 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |
+      # COO is required for MetricStorage
+      oc apply -f ../deps/rhobs.yaml
+      until oc api-resources | grep -q rhobs; do sleep 1; done

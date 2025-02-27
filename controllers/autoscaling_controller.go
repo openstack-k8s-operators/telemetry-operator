@@ -57,6 +57,7 @@ import (
 	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
@@ -101,6 +102,7 @@ func (r *AutoscalingReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch
 // service account permissions that are needed to grant permission to the above
 // +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
+// +kubebuilder:rbac:groups=topology.openstack.org,resources=topologies,verbs=get;list;watch;update
 
 // Reconcile reconciles an Autoscaling
 func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -185,6 +187,12 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	instance.Status.Conditions.Init(&cl)
 	instance.Status.ObservedGeneration = instance.Generation
 
+	// Init Topology condition if there's a reference
+	if instance.Spec.Aodh.TopologyRef != nil {
+		c := condition.UnknownCondition(condition.TopologyReadyCondition, condition.InitReason, condition.TopologyReadyInitMessage)
+		cl.Set(c)
+	}
+
 	// If we're not deleting this and the service object doesn't have our finalizer, add it.
 	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) || isNewInstance {
 		return ctrl.Result{}, nil
@@ -210,6 +218,7 @@ const (
 	autoscalingTLSAPIInternalField     = ".spec.tls.api.internal.secretName"
 	autoscalingTLSAPIPublicField       = ".spec.tls.api.public.secretName"
 	autoscalingTLSField                = ".spec.tls.secretName"
+	topologyField                      = ".spec.topologyRef.Name"
 )
 
 var (
@@ -219,6 +228,7 @@ var (
 		autoscalingTLSAPIInternalField,
 		autoscalingTLSAPIPublicField,
 		autoscalingTLSField,
+		topologyField,
 	}
 )
 
@@ -234,6 +244,15 @@ func (r *AutoscalingReconciler) reconcileDelete(
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
+	}
+	// Remove finalizer on the Topology CR
+	if ctrlResult, err := topologyv1.EnsureDeletedTopologyRef(
+		ctx,
+		helper,
+		instance.Status.LastAppliedTopology,
+		instance.Name,
+	); err != nil {
+		return ctrlResult, err
 	}
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
@@ -874,6 +893,18 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		return err
 	}
 
+	// index topologyField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, topologyField, func(rawObj client.Object) []string {
+		// Extract the topology name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Autoscaling)
+		if cr.Spec.Aodh.TopologyRef == nil {
+			return nil
+		}
+		return []string{cr.Spec.Aodh.TopologyRef.Name}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Autoscaling{}).
 		Owns(&appsv1.StatefulSet{}).
@@ -901,6 +932,10 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		Watches(
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(prometheusEndpointFn)).
+		Watches(
+      &topologyv1.Topology{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 

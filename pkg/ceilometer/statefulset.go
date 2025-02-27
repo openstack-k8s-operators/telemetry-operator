@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
 
@@ -44,6 +45,7 @@ func StatefulSet(
 	instance *telemetryv1.Ceilometer,
 	configHash string,
 	labels map[string]string,
+	topology *topologyv1.Topology,
 ) (*appsv1.StatefulSet, error) {
 	runAsUser := int64(0)
 
@@ -209,7 +211,9 @@ func StatefulSet(
 	if instance.Spec.NodeSelector != nil {
 		pod.Spec.NodeSelector = *instance.Spec.NodeSelector
 	}
-
+	if topology != nil {
+		topology.ApplyTo(&pod)
+	}
 	statefulset := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ServiceName,

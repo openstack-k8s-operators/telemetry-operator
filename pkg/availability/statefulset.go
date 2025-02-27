@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
 
@@ -35,6 +36,7 @@ func KSMStatefulSet(
 	instance *telemetryv1.Ceilometer,
 	tlsConfName string,
 	labels map[string]string,
+	topology *topologyv1.Topology,
 ) (*appsv1.StatefulSet, error) {
 
 	livenessProbe := &corev1.Probe{
@@ -172,6 +174,9 @@ func KSMStatefulSet(
 
 	if instance.Spec.NodeSelector != nil {
 		ss.Spec.Template.Spec.NodeSelector = *instance.Spec.NodeSelector
+	}
+	if topology != nil {
+		topology.ApplyTo(&ss.Spec.Template)
 	}
 
 	return ss, nil

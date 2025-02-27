@@ -34,6 +34,7 @@ import (
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	job "github.com/openstack-k8s-operators/lib-common/modules/common/job"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	statefulset "github.com/openstack-k8s-operators/lib-common/modules/common/statefulset"
@@ -303,7 +304,30 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 	// ConfigVars
 	configVars := make(map[string]env.Setter)
 
-	sfsetDef, err := autoscaling.AodhStatefulSet(instance, inputHash, serviceLabels)
+	//
+	// Handle Topology
+	//
+	topology, err := ensureTopology(
+		ctx,
+		helper,
+		instance,      // topologyHandler
+		instance.Name, // finalizer
+		&instance.Status.Conditions,
+		labels.GetAppLabelSelector(
+			autoscaling.ServiceName,
+		),
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.TopologyReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.TopologyReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements: %w", err)
+	}
+
+	sfsetDef, err := autoscaling.AodhStatefulSet(instance, inputHash, serviceLabels, topology)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,

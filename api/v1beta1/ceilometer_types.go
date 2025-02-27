@@ -19,6 +19,7 @@ package v1beta1
 import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
@@ -30,7 +31,7 @@ const (
 	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notification
 	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
 	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
-	CeilometerSgCoreContainerImage = "quay.io/openstack-k8s-operators/sg-core:v6.0.0"
+	CeilometerSgCoreContainerImage = "quay.io/openstack-k8s-operators/sg-core:latest"
 	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
 	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
 	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
@@ -149,6 +150,11 @@ type CeilometerSpecCore struct {
 	// +kubebuilder:validation:Optional
 	// NodeSelector to target subset of worker nodes running this service
 	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// TopologyRef to apply the Topology defined by the associated CR referenced
+	// by name
+	TopologyRef *topologyv1.TopoRef `json:"topologyRef,omitempty"`
 }
 
 // CeilometerStatus defines the observed state of Ceilometer
@@ -189,6 +195,9 @@ type CeilometerStatus struct {
 
 	// Map of hashes to track e.g. job status
 	KSMHash map[string]string `json:"ksmHash,omitempty"`
+
+	// LastAppliedTopology - the last applied Topology
+	LastAppliedTopology *topologyv1.TopoRef `json:"lastAppliedTopology,omitempty"`
 }
 
 // NOTE(mmagr): remove KSMStatus with API version increment
@@ -274,4 +283,19 @@ func SetupDefaultsCeilometer() {
 	}
 
 	SetupCeilometerDefaults(ceilometerDefaults)
+}
+
+// GetSpecTopologyRef - Returns the LastAppliedTopology Set in the Status
+func (instance *Ceilometer) GetSpecTopologyRef() *topologyv1.TopoRef {
+	return instance.Spec.TopologyRef
+}
+
+// GetLastAppliedTopology - Returns the LastAppliedTopology Set in the Status
+func (instance *Ceilometer) GetLastAppliedTopology() *topologyv1.TopoRef {
+	return instance.Status.LastAppliedTopology
+}
+
+// SetLastAppliedTopology - Sets the LastAppliedTopology value in the Status
+func (instance *Ceilometer) SetLastAppliedTopology(topologyRef *topologyv1.TopoRef) {
+	instance.Status.LastAppliedTopology = topologyRef
 }

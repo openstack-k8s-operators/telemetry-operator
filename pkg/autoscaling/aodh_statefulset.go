@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
 
@@ -43,6 +44,7 @@ func AodhStatefulSet(
 	instance *telemetryv1.Autoscaling,
 	configHash string,
 	labels map[string]string,
+	topology *topologyv1.Topology,
 ) (*appsv1.StatefulSet, error) {
 	runAsUser := int64(0)
 
@@ -202,6 +204,9 @@ func AodhStatefulSet(
 
 	if instance.Spec.Aodh.NodeSelector != nil {
 		pod.Spec.NodeSelector = *instance.Spec.Aodh.NodeSelector
+	}
+	if topology != nil {
+		topology.ApplyTo(&pod)
 	}
 
 	statefulset := &appsv1.StatefulSet{
