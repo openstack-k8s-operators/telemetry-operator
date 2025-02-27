@@ -924,16 +924,13 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
 		Watches(&memcachedv1.Memcached{},
 			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
-		Watches(
-			&corev1.Secret{},
+		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
-		Watches(
-			&corev1.Secret{},
+		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(prometheusEndpointFn)).
-		Watches(
-      &topologyv1.Topology{},
+		Watches(&topologyv1.Topology{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
