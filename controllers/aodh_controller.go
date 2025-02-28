@@ -313,9 +313,7 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		instance,      // topologyHandler
 		instance.Name, // finalizer
 		&instance.Status.Conditions,
-		labels.GetAppLabelSelector(
-			autoscaling.ServiceName,
-		),
+		labels.GetLabelSelector(serviceLabels),
 	)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
