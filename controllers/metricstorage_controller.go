@@ -826,16 +826,15 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// compute nodes' exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "node-exporter", telemetryv1.DefaultNodeExporterPort, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "node-exporter", telemetryv1.DefaultNodeExporterPort)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	// Currently Kepler doesn't support TLS
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetryv1.TelemetryPowerMonitoring, "kepler", telemetryv1.DefaultKeplerPort, true)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetryv1.TelemetryPowerMonitoring, "kepler", telemetryv1.DefaultKeplerPort)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -868,7 +867,6 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	serviceName string,
 	exporterName string,
 	exporterPort int,
-	suppressTLS bool,
 ) error {
 	Log := r.GetLogger(ctx)
 
@@ -879,16 +877,11 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	targetsTLS, targetsNonTLS := getExporterTargets(connectionInfo, exporterPort)
 
 	// ScrapeConfig for non-tls nodes
-	//NOTE(mmagr): remove TLS suppression functionality once Kepler supports TLS
-	targets := targetsNonTLS
-	if suppressTLS {
-		targets = targetsTLS
-	}
 	fullServiceName := fmt.Sprintf("%s-%s", telemetry.ServiceName, exporterName)
 	desiredScrapeConfig := metricstorage.ScrapeConfig(
 		instance,
 		serviceLabels,
-		targets,
+		targetsNonTLS,
 		false,
 	)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceName, desiredScrapeConfig)
@@ -897,18 +890,16 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	}
 
 	// ScrapeConfig for tls nodes
-	if !suppressTLS {
-		fullServiceName := fmt.Sprintf("%s-%s-tls", telemetry.ServiceName, exporterName)
-		desiredScrapeConfig := metricstorage.ScrapeConfig(
-			instance,
-			serviceLabels,
-			targetsTLS,
-			true,
-		)
-		err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceName, desiredScrapeConfig)
-		if err != nil {
-			return err
-		}
+	fullServiceName = fmt.Sprintf("%s-%s-tls", telemetry.ServiceName, exporterName)
+	desiredScrapeConfig = metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		targetsTLS,
+		true,
+	)
+	err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceName, desiredScrapeConfig)
+	if err != nil {
+		return err
 	}
 	return nil
 }
