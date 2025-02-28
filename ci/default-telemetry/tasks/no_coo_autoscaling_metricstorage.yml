@@ -1,0 +1,100 @@
+- name: |
+    TEST Check telemetry-operator didn't restart after enabling MetricStorage and Autoscaling without COO installed
+    RHOSO-123458
+  ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
+  failed_when: restart_counts != [0, 0]
+
+- name: Get telemetry-operator failed container logs
+  ansible.builtin.command:
+    cmd:
+      oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
+  register: operator_logs_previous
+  when: restart_counts != [0, 0]
+
+- name: Output logs of failed container for debugging purposes
+  ansible.builtin.debug:
+    var: operator_logs_previous.stdout_lines
+  when: restart_counts != [0, 0]
+
+- name: Get telemetry-operator logs
+  ansible.builtin.import_tasks: "get-operator-logs.yml"
+
+- name: |
+    TEST Check that telemetry-operator logs include expected error logs when MetricStorage is enabled, but COO isn't installed
+    RHOSO-123459
+  ansible.builtin.assert:
+    that:
+      - (operator_logs.stdout | ansible.builtin.regex_search( ".*" + item + ".*" ))
+    fail_msg: "telemetry-operator logs don't include expected log: {{ item }}"
+  loop: "{{ default_telemetry_no_coo_expected_logs }}"
+
+- name: Get telemetry-operator error logs
+  ansible.builtin.set_fact:
+    error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
+
+- name: |
+    TEST Check that telemetry-operator logs don't include unexpected errors when MetricStorage is enabled, but COO isn't installed
+    RHOSO-123460
+  ansible.builtin.assert:
+    that:
+      - item in default_telemetry_no_coo_expected_logs
+    fail_msg: "telemetry-operator logs include an unexpected error: {{ item }}"
+  loop: "{{ error_list }}"
+
+- name: Check if we have the expected conditions for MetricStorage
+  block:
+    - name: Get MetricStorage condition types
+      ansible.builtin.command:
+        cmd:
+          oc get metricstorage metric-storage -o jsonpath='{.status.conditions[*].type}'
+      register: condition_types
+
+    - name: Get MetricStorage condition values
+      ansible.builtin.command:
+        cmd:
+          oc get metricstorage metric-storage -o jsonpath='{.status.conditions[?(@.type == "{{ item }}")].message}'
+      register: output
+      loop: "{{ condition_types.stdout | split(' ') }}"
+
+    - name: Construct MetricStorage condition dictionary
+      ansible.builtin.set_fact:
+        conditions: "{{ conditions | default({}) | combine({item.item: item.stdout}) }}"
+      loop: "{{ output.results }}"
+
+    - name: |
+        TEST Check that all MetricStorage conditions are as expected when COO isn't installed
+        RHOSO-123461
+      ansible.builtin.assert:
+        that:
+          - conditions[item.key] == item.value
+        fail_msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
+      loop: "{{ default_telemetry_no_coo_expected_metricstorage_conditions | dict2items }}"
+
+- name: Check if we have the expected conditions for Autoscaling
+  block:
+    - name: Get Autoscaling condition types
+      ansible.builtin.command:
+        cmd:
+          oc get autoscaling autoscaling -o jsonpath='{.status.conditions[*].type}'
+      register: condition_types
+
+    - name: Get Autoscaling condition values
+      ansible.builtin.command:
+        cmd:
+          oc get autoscaling autoscaling -o jsonpath='{.status.conditions[?(@.type == "{{ item }}")].message}'
+      register: output
+      loop: "{{ condition_types.stdout | split(' ') }}"
+
+    - name: Construct Autoscaling condition dictionary
+      ansible.builtin.set_fact:
+        conditions: "{{ conditions | default({}) | combine({item.item: item.stdout}) }}"
+      loop: "{{ output.results }}"
+
+    - name: |
+        TEST Check that all Autoscaling conditions are as expected when COO isn't installed
+        RHOSO-123462
+      ansible.builtin.assert:
+        that:
+          - conditions[item.key] == item.value
+        fail_msg: "Expected {{ item.key }} condition field to be {{ item.value }}, not {{ output }}"
+      loop: "{{ default_telemetry_no_coo_expected_autoscaling_conditions | dict2items }}"

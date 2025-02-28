@@ -1,0 +1,41 @@
+- name: Wait until telemetry is finished reconciling and its conditions are all True
+  ansible.builtin.command:
+    cmd:
+      oc get telemetry telemetry --output=jsonpath --template={.status.conditions[*].status}
+  register: output
+  retries: 12
+  delay: 10
+  until: output.stdout is ansible.builtin.regex("(True\s?)+$")
+
+- name: Get telemetry-operator logs
+  ansible.builtin.import_tasks: "get-operator-logs.yml"
+
+- name: |
+    TEST Check telemetry-operator logs for errors after it's started
+    RHOSO-123456
+  ansible.builtin.set_fact:
+    error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
+  failed_when: error_list | length != 0
+
+- name: Output found errors for debugging purposes
+  ansible.builtin.debug:
+    var: error_list
+  when: error_list | length != 0
+
+- name: |
+    TEST Check telemetry-operator didn't restart
+    RHOSO-123457
+  ansible.builtin.import_tasks: "get-operator-restart-counts.yml"
+  failed_when: restart_counts != [0, 0]
+
+- name: Get telemetry-operator failed container logs
+  ansible.builtin.command:
+    cmd:
+      oc logs -n openstack-operators -p -l "openstack.org/operator-name=telemetry" --tail=-1
+  register: operator_logs_previous
+  when: restart_counts != [0, 0]
+
+- name: Output logs of failed container for debugging purposes
+  ansible.builtin.debug:
+    var: operator_logs_previous.stdout_lines
+  when: restart_counts != [0, 0]
