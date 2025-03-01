@@ -86,7 +86,6 @@
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
-        - telemetry-operator-multinode-power-monitoring
         - functional-tests-on-osp18: &fvt_jobs_config
             voting: true
             required-projects:
