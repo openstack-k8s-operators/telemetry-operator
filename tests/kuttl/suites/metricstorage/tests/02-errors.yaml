@@ -28,6 +28,12 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: grafana-dashboard-openstack-openstack-network
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: grafana-dashboard-openstack-vm
   namespace: openshift-config-managed
 ---
