@@ -394,10 +394,7 @@ func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *te
 	if ctrlResult, err := topologyv1.EnsureDeletedTopologyRef(
 		ctx,
 		helper,
-		&topologyv1.TopoRef{
-			Name:      instance.Status.LastAppliedTopology,
-			Namespace: instance.Namespace,
-		},
+		instance.Status.LastAppliedTopology,
 		instance.Name,
 	); err != nil {
 		return ctrlResult, err
@@ -500,17 +497,13 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	//
 	// Handle Topology
 	//
-	lastTopologyRef := topologyv1.TopoRef{
-		Name:      instance.Status.LastAppliedTopology,
-		Namespace: instance.Namespace,
-	}
-	topology, err := ensureTelemetryTopology(
+	topology, err := ensureTopology(
 		ctx,
 		helper,
-		instance.Spec.TopologyRef,
-		&lastTopologyRef,
-		instance.Name,
-		ceilometer.ServiceName,
+		instance,      // topologyHandler
+		instance.Name, // finalizer
+		&instance.Status.Conditions,
+		labels.GetLabelSelector(serviceLabels),
 	)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -520,19 +513,6 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 			condition.TopologyReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements: %w", err)
-	}
-
-	// If TopologyRef is present and ensureTelemetryTopology returned a valid
-	// topology object, set .Status.LastAppliedTopology to the referenced one
-	// and mark the condition as true
-	if instance.Spec.TopologyRef != nil {
-		// update the Status with the last retrieved Topology name
-		instance.Status.LastAppliedTopology = instance.Spec.TopologyRef.Name
-		// update the TopologyRef associated condition
-		instance.Status.Conditions.MarkTrue(condition.TopologyReadyCondition, condition.TopologyReadyMessage)
-	} else {
-		// remove LastAppliedTopology from the .Status
-		instance.Status.LastAppliedTopology = ""
 	}
 
 	ksmRes, err := r.reconcileKSM(ctx, instance, helper, topology)
@@ -840,14 +820,9 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 	if instance.Spec.MysqldExporterEnabled == nil || !*instance.Spec.MysqldExporterEnabled {
 		return r.reconcileDeleteMysqldExporter(ctx, instance, helper)
 	}
-
 	if instance.Spec.MysqldExporterImage == "" {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.MysqldExporterDeploymentReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityError,
-			"mysqld_exporter container image isn't set"))
-		return ctrl.Result{}, nil
+		Log.Info("MysqldExporter is enabled, but MysqldExporterImage isn't set")
+		return r.reconcileDeleteMysqldExporter(ctx, instance, helper)
 	}
 
 	configMapVars := make(map[string]env.Setter)
@@ -1018,7 +993,11 @@ func (r *CeilometerReconciler) reconcileKSM(
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, availability.KSMServiceName))
 
-	if instance.Spec.KSMEnabled == nil || !*instance.Spec.KSMEnabled || instance.Spec.KSMImage == "" {
+	if instance.Spec.KSMEnabled == nil || !*instance.Spec.KSMEnabled {
+		return r.reconcileDeleteKSM(ctx, instance, helper)
+	}
+	if instance.Spec.KSMImage == "" {
+		Log.Info("KSM is enabled, but KSMImage isn't set")
 		return r.reconcileDeleteKSM(ctx, instance, helper)
 	}
 
