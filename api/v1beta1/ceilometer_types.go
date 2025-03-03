@@ -17,9 +17,9 @@ limitations under the License.
 package v1beta1
 
 import (
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
@@ -42,7 +42,8 @@ const (
 	// KubeStateMetricsImage - default fall-back image for KSM
 	KubeStateMetricsImage = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0"
 	// MysqldExporterImage - default fall-back image for mysqld_exporter
-	MysqldExporterContainerImage = "quay.io/prometheus/mysqld-exporter:v0.16.0"
+	// MysqldExporterContainerImage = "quay.io/prometheus/mysqld-exporter:v0.16.0"
+	MysqldExporterContainerImage = ""
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
