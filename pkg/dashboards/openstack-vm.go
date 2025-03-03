@@ -54,88 +54,91 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 				"links": [],
 				"panels": [
 					{
-					"aliasColors": {},
-					"bars": false,
-					"dashLength": 10,
-					"dashes": false,
-					"datasource": { "name": "` + dsName + `", "type": "prometheus" },
-					"fieldConfig": {
-						"defaults": {
-						  "mappings": [],
-						  "thresholds": {
-							"mode": "absolute",
-							"steps": [
-							  {
-								"color": "green",
-								"value": null
-							  },
-							  {
-								"color": "red",
-								"value": 80
-							  }
-							]
-						  }
+						"aliasColors": {},
+						"bars": false,
+						"dashLength": 10,
+						"dashes": false,
+						"datasource": { "name": "` + dsName + `", "type": "prometheus" },
+						"fieldConfig": {
+						  "defaults": {
+							"mappings": [],
+							"thresholds": {
+							  "mode": "absolute",
+							  "steps": [
+								{ "color": "green", "value": 1 },
+								{ "color": "red", "value": 2 }
+							  ]
+							}
+						  },
+						  "overrides": []
 						},
-						"overrides": []
-					  },
-					"fill": 10,
-					"fillGradient": 0,
-					"gridPos": {
-						"h": 12,
-						"w": 12,
-						"x": 0,
-						"y": 0
-					},
-					"hiddenSeries": false,
-					"id": 14,
-					"lines": true,
-					"linewidth": 1,
-					"nullPointMode": "null",
-					"options": {
-						"colorMode": "value",
-						"dataLinks": [],
-						"graphMode": "area",
-						"justifyMode": "auto",
-						"orientation": "auto",
-						"percentChangeColorMode": "standard",
-						"reduceOptions": {
-							"calcs": [
-							"lastNotNull"
-							],
+						"fill": 1,
+						"fillGradient": 0,
+						"gridPos": {
+						  "h": 12,
+						  "w": 12,
+						  "x": 0,
+						  "y": 0
+						},
+						"hiddenSeries": false,
+						"id": 14,
+						"lines": true,
+						"linewidth": 1,
+						"nullPointMode": "null",
+						"legend": {
+						  "show": true,
+						  "values": true,
+						  "current": true
+						},
+						"options": {
+						  "colorMode": "value",
+						  "graphMode": "line",
+						  "reduceOptions": {
+							"calcs": ["lastNotNull"],
 							"fields": "",
 							"values": false
+						  },
+						  "textMode": "value"
 						},
-						"showPercentChange": false,
-						"textMode": "name",
-						"wideLayout": true
-					},
-					"percentage": false,
-					"pointradius": 2,
-					"points": false,
-					"renderer": "flot",
-					"seriesOverrides": [],
-					"spaceLength": 10,
-					"stack": false,
-					"steppedLine": false,
-					"targets": [
-						{
-							"expr": "label_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 7, \n  \"state\", \n  \"suspended\", \n  \"__name__\", \n  \".*\"\n)or \nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 6, \n  \"state\", \n  \"crashed\", \n  \"__name__\", \n  \".*\"\n)or \nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 5, \n  \"state\", \n  \"shut off\", \n  \"__name__\", \n  \".*\"\n)or \nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 4, \n  \"state\", \n  \"shut down\", \n  \"__name__\", \n  \".*\"\n)or \nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 3, \n  \"state\", \n  \"paused\", \n  \"__name__\", \n  \".*\"\n)or \nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 2, \n  \"state\", \n  \"blocked\", \n  \"__name__\", \n  \".*\"\n)or \nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 1, \n  \"state\", \n  \"running\", \n  \"__name__\", \n  \".*\"\n)",
-							"instant": true,
-							"legendFormat": "$VM is {{state}}",
-							"range": false,
+						"percentage": false,
+						"pointradius": 2,
+						"points": true,
+						"renderer": "flot",
+						"seriesOverrides": [],
+						"stack": false,
+						"steppedLine": false,
+						"targets": [
+						  {
+							"expr": "label_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 7, \n  \"state\", \"suspended\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 6, \n  \"state\", \"crashed\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 5, \n  \"state\", \"shut off\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 4, \n  \"state\", \"shut down\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 3, \n  \"state\", \"paused\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 2, \n  \"state\", \"blocked\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 1, \n  \"state\", \"running\", \"__name__\", \".*\"\n)",
+							"instant": false,
+							"legendFormat": "{{resource_name}} is {{state}}",
+							"range": true,
 							"refId": "A"
-						}
+						  }
 						],
-					"thresholds": [],
-					"timeRegions": [],
-					"title": "Power State",
-					"type": "singlestat",
-					"tooltip": {
-						"shared": true,
-						"sort": 0,
-						"value_type": "individual"
-					}
-					},
+						"thresholds": [],
+						"timeRegions": [],
+						"title": "Power State",
+						"type": "graph",
+						"tooltip": {
+						  "shared": true,
+						  "sort": 0,
+						  "value_type": "individual"
+						},
+						"yaxes": [
+						  {
+							"format": "none",
+							"min": 0,
+							"max": 7,
+							"show": true,
+							"decimals": 0
+						  },
+						  {
+							"show": false
+						  }
+						]
+					  }
+					  ,
 					{
 					"aliasColors": {},
 					"bars": false,
