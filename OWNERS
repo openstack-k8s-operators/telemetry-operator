@@ -1,4 +1,6 @@
 # See the OWNERS docs at https://go.k8s.io/owners
+# This update should be the only one to the PR.
+# Since this file is excluded by the job, then there should be no CI run
 approvers:
   - telemetry-approvers
   - ci-approvers
