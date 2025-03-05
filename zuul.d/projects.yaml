@@ -116,3 +116,4 @@
         - functional-logging-tests-osp18: *fvt_jobs_config
         - functional-graphing-tests-osp18: *fvt_jobs_config
         - functional-metric-verification-tests-osp18: *fvt_jobs_config
+        - feature-verification-tests-noop
