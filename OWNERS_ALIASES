@@ -11,3 +11,8 @@ aliases:
   - lewisdenny
   - frenzyfriday
   - viroel
+  openstack-approvers:
+  - abays
+  - dprince
+  - olliewalsh
+  - stuggi

@@ -2,7 +2,9 @@
 approvers:
   - telemetry-approvers
   - ci-approvers
+  - openstack-approvers
 
 reviewers:
   - telemetry-approvers
   - ci-approvers
+  - openstack-approvers
