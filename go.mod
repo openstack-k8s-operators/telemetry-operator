@@ -11,7 +11,7 @@ require (
 	github.com/onsi/gomega v1.34.1
 	github.com/openstack-k8s-operators/heat-operator/api v0.6.0
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.0
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20250307111533-41e871fbcc32
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20250309111939-0605fce19482
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.5.1-0.20250228124213-cd63da392f97
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.5.1-0.20250228124213-cd63da392f97
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.0
