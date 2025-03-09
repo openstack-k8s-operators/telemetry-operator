@@ -1,0 +1,27 @@
+- name: Check telemetry without COO and without Autoscaling and MetricStorage enabled
+  ansible.builtin.include_tasks:
+    file: no_coo_no_autoscaling_no_metricstorage.yml
+
+- name: Enable Autoscaling and MetricStorage
+  ansible.builtin.include_tasks:
+    file: enable_autoscaling_and_metricstorage.yml
+
+- name: Check telemetry without COO and with Autoscaling and MetricStorage enabled
+  ansible.builtin.include_tasks:
+    file: no_coo_autoscaling_metricstorage.yml
+
+- name: Enable Autoscaling and MetricStorage
+  ansible.builtin.include_tasks:
+    file: ../../create-coo-subscription.yaml
+
+- name: Check telemetry with COO and with Autoscaling and MetricStorage enabled
+  ansible.builtin.include_tasks:
+    file: coo_autoscaling_metricstorage.yml
+
+# If we got here, we know that the telemetry status is Ready
+# and there aren't any new error. Everything should be correctly
+# deployed.
+
+- name: Test CustomMonitoringStack
+  ansible.builtin.include_tasks:
+    file: test_custom_monitoring_stack.yml
