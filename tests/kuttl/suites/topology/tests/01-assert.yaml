@@ -53,11 +53,13 @@ kind: Autoscaling
 metadata:
   name: autoscaling
 status:
-  lastAppliedTopology: telemetry-topology
+  lastAppliedTopology:
+    name: telemetry-topology
 ---
 apiVersion: telemetry.openstack.org/v1beta1
 kind: Ceilometer
 metadata:
   name: ceilometer
 status:
-  lastAppliedTopology: telemetry-topology
+  lastAppliedTopology:
+    name: telemetry-topology

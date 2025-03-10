@@ -39,9 +39,8 @@ func AlertmanagerService(
 			Name:      fmt.Sprintf("%s-alertmanager", instance.Name),
 			Namespace: instance.Namespace,
 			Annotations: map[string]string{
-				service.AnnotationEndpointKey:              string(service.EndpointPublic),
-				service.AnnotationIngressCreateKey:         "true",
-				service.AnnotationIngressTargetPortNameKey: "web",
+				service.AnnotationEndpointKey:      string(service.EndpointInternal),
+				service.AnnotationIngressCreateKey: "false",
 			},
 		},
 	}

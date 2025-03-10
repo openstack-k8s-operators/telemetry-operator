@@ -249,10 +249,7 @@ func (r *AutoscalingReconciler) reconcileDelete(
 	if ctrlResult, err := topologyv1.EnsureDeletedTopologyRef(
 		ctx,
 		helper,
-		&topologyv1.TopoRef{
-			Name:      instance.Status.LastAppliedTopology,
-			Namespace: instance.Namespace,
-		},
+		instance.Status.LastAppliedTopology,
 		instance.Name,
 	); err != nil {
 		return ctrlResult, err
@@ -455,7 +452,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		Namespace: instance.Namespace,
 	}, prometheusEndpointSecret)
 	if err != nil {
-		Log.Info("No Prometheus Endpoint Secret found")
+		Log.Info("Prometheus Endpoint Secret not found")
 	}
 
 	if instance.Spec.PrometheusHost == "" {
@@ -828,7 +825,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		}
 		return nil
 	}
-	metricStorageFn := func(_ context.Context, o client.Object) []reconcile.Request {
+	prometheusEndpointFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all autoscaling CRs
@@ -843,14 +840,17 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 
 		for _, cr := range autoscalings.Items {
 			if cr.Spec.PrometheusHost == "" {
-				// the autoscaling is using MetricStorage for metrics
-				name := client.ObjectKey{
-					Namespace: o.GetNamespace(),
-					Name:      cr.Name,
+				// the autoscaling is using PrometheusEndpoint secret for metrics
+				if o.GetName() == autoscaling.PrometheusEndpointSecret {
+					name := client.ObjectKey{
+						Namespace: o.GetNamespace(),
+						Name:      cr.Name,
+					}
+					Log.Info(fmt.Sprintf("Secret %s is used by Autoscaling CR %s", o.GetName(), cr.Name))
+					result = append(result, reconcile.Request{NamespacedName: name})
 				}
-				Log.Info(fmt.Sprintf("MetricStorage %s is used by Autoscaling CR %s", o.GetName(), cr.Name))
-				result = append(result, reconcile.Request{NamespacedName: name})
 			}
+
 		}
 		if len(result) > 0 {
 			return result
@@ -924,16 +924,12 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
 		Watches(&memcachedv1.Memcached{},
 			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
-		Watches(
-			&corev1.Secret{},
+		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
-		Watches(
-			&telemetryv1.MetricStorage{},
-			handler.EnqueueRequestsFromMapFunc(metricStorageFn),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
-		).
+		Watches(&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(prometheusEndpointFn)).
 		Watches(&topologyv1.Topology{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).

@@ -95,36 +95,6 @@ metadata:
 spec:
   scrapeInterval: 30s
 ---
-apiVersion: monitoring.rhobs/v1alpha1
-kind: ScrapeConfig
-metadata:
-  labels:
-    service: metricStorage
-  name: telemetry-mysqld-exporter
-  ownerReferences:
-  - kind: MetricStorage
-    name: telemetry-kuttl
-spec:
-  metricsPath: /probe
-  relabelings:
-  - action: Replace
-    sourceLabels:
-    - __address__
-    targetLabel: __param_target
-  - action: Replace
-    regex: (.*):(.*)
-    replacement: client.$1
-    sourceLabels:
-    - __address__
-    targetLabel: __param_auth_module
-  - action: Replace
-    sourceLabels:
-    - __param_target
-    targetLabel: instance
-  - action: Replace
-    targetLabel: __address__
-  scrapeInterval: 30s
----
 apiVersion: observability.openshift.io/v1alpha1
 kind: UIPlugin
 metadata:
@@ -163,6 +133,12 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboard-openstack-node
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-openstack-network
   namespace: openshift-config-managed
 ---
 apiVersion: v1
