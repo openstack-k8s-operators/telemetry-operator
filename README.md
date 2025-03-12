@@ -90,13 +90,17 @@ This operator deploys a multiple telemetry agents, both in the control plane and
 
     There are two options, either use the existing OpenStackControlPlane to manage the telemetry object, or manage it yourself.
 
-    9.a. To use the existing OpenStackControlPlane to manage the telemetry object, re-enable telemetry:
+    9.a. To use the existing OpenStackControlPlane to manage the telemetry object, re-enable telemetry (preferred way, unless necessary for some reason):
 
     ```bash
     oc patch openstackcontrolplane openstack-galera-network-isolation --type='json' -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value":true}]'
     ```
 
     9.b. To use a custom telemetry object
+
+    >NOTE: Make sure to use a different name other than "telemetry" in your custom object
+    >
+    >Otherwise the openstack-operator will remove the object automatically
 
     ```bash
     oc apply -f config/samples/telemetry_v1beta1_telemetry.yaml
