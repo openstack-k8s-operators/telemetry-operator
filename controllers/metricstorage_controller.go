@@ -715,27 +715,12 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 
-	// ScrapeConfig for ceilometer monitoring
-	ceilometerRoute := fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
-	ceilometerTarget := []string{net.JoinHostPort(ceilometerRoute, strconv.Itoa(ceilometer.CeilometerPrometheusPort))}
-	ceilometerCfgName := fmt.Sprintf("%s-ceilometer", telemetry.ServiceName)
-	desiredScrapeConfig := metricstorage.ScrapeConfig(
-		instance,
-		serviceLabels,
-		ceilometerTarget,
-		instance.Spec.PrometheusTLS.Enabled(),
-	)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, "Ceilometer",
-		ceilometerCfgName, desiredScrapeConfig)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	// ScrapeConfig for kube-state-metrics
 	ksmRoute := fmt.Sprintf("%s.%s.svc", availability.KSMServiceName, instance.Namespace)
 	ksmTarget := []string{net.JoinHostPort(ksmRoute, strconv.Itoa(availability.KSMMetricsPort))}
 	ksmCfgName := fmt.Sprintf("%s-ksm", telemetry.ServiceName)
-	desiredScrapeConfig = metricstorage.ScrapeConfig(
+	desiredScrapeConfig := metricstorage.ScrapeConfig(
 		instance,
 		serviceLabels,
 		ksmTarget,
