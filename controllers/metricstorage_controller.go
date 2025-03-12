@@ -836,6 +836,12 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
+	// openstack Ceilometer's exporters
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "openstack-ceilometer-exporter", telemetryv1.DefaultCeilometerExporterPort, false)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, false)
 	if err != nil {
 		return ctrl.Result{}, err
