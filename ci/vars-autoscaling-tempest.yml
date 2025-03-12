@@ -21,8 +21,10 @@ tempest_conf:
 cifmw_tempest_tempestconf_config: "{{ tempest_conf }}"
 cifmw_test_operator_tempest_tempestconf_config: "{{ tempest_conf }}"
 cifmw_test_operator_tempest_include_list: |
+  \[.*\bsmoke\b.*\]
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh
+# Should this tempest test be excluded?
 cifmw_test_operator_tempest_exclude_list: |
   telemetry_tempest_plugin.scenario.test_telemetry_integration_prometheus.PrometheusGabbiTest.test_autoscaling
 external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
