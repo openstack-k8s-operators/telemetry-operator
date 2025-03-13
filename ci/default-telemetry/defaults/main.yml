@@ -1,0 +1,17 @@
+---
+default_telemetry_no_coo_expected_logs:
+  - "INFO	Controllers.MetricStorage	Can't own MonitoringStack resource"
+default_telemetry_no_coo_expected_metricstorage_conditions: >-
+  {{
+    dict([
+      ["MonitoringStackReady", 'Error occured when trying to own: customresourcedefinitions.apiextensions.k8s.io "monitoringstacks.monitoring.rhobs" not found'],
+      ["Ready", 'Error occured when trying to own: customresourcedefinitions.apiextensions.k8s.io "monitoringstacks.monitoring.rhobs" not found']
+    ])
+  }}
+default_telemetry_no_coo_expected_autoscaling_conditions: >-
+  {{
+    dict([
+      ["Ready", 'Setup complete']
+    ])
+  }}
+default_telemetry_control_plane_name: controlplane
