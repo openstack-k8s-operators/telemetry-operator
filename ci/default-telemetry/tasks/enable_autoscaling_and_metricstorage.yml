@@ -1,0 +1,15 @@
+# Enabling Autoscaling and MetricStorage without COO installed. Expected to see errors.
+- name: Enable MetricStorage
+  ansible.builtin.command:
+    cmd: |
+      oc patch oscp/{{ default_telemetry_control_plane_name }} --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/metricStorage/enabled", "value":true}]'
+
+- name: Enable Autoscaling
+  ansible.builtin.command:
+    cmd: |
+      oc patch oscp/{{ default_telemetry_control_plane_name }} --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/autoscaling/enabled", "value":true}]'
+
+- name: Wait until reconciliation finishes
+  # There isn't a convinient way to know when it finished. The status conditions will never get to a "Ready" state in this situation
+  ansible.builtin.wait_for:
+    timeout: 120
