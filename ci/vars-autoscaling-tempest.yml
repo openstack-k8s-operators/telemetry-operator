@@ -6,6 +6,8 @@ cifmw_test_operator_tempest_container: openstack-tempest-all
 cifmw_test_operator_tempest_image_tag: 'current-podified'
 # This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
 # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
+# Cinder is disabled because the number of replicas is set to 0 by default for cinder volumes.
+#   so we can skip the tests with cinder involved
 tempest_conf:
   overrides: |
       validation.run_validation true
@@ -13,6 +15,7 @@ tempest_conf:
       service_available.ceilometer true
       service_available.sg_core true
       service_available.aodh true
+      service_available.cinder false
       telemetry.sg_core_service_url "https://ceilometer-internal.openstack.svc.cluster.local:3000"
       telemetry.prometheus_service_url "https://metric-storage-prometheus.openstack.svc.cluster.local:9090"
       telemetry.ceilometer_polling_interval 120
@@ -21,6 +24,7 @@ tempest_conf:
 cifmw_tempest_tempestconf_config: "{{ tempest_conf }}"
 cifmw_test_operator_tempest_tempestconf_config: "{{ tempest_conf }}"
 cifmw_test_operator_tempest_include_list: |
+  ^tempest.*\[.*\bsmoke\b.*\]
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh
 cifmw_test_operator_tempest_exclude_list: |
