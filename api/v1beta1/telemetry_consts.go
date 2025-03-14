@@ -30,6 +30,8 @@ const (
 	DefaultPodmanExporterPort = 9882
 	// DefaultDataplaneNodeExporterPort -
 	DefaultOpenStackNetworkExporterPort = 9105
+	// DefaultNodeExporterPort -
+	DefaultCeilometerPromExporterPort = 9101
 	// DefaultScrapeInterval -
 	DefaultScrapeInterval = "30s"
 	// PauseBetweenWatchAttempts -
