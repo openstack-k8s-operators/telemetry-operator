@@ -46,6 +46,9 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-default-telemetry.yml"
     irrelevant-files: *irrelevant_files
+    required-projects:
+      - name: infrawatch/feature-verification-tests
+        override-checkout: master
 
 - job:
     name: telemetry-operator-multinode-logging
