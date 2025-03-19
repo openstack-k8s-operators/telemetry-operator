@@ -83,6 +83,7 @@
     templates:
       - podified-multinode-edpm-pipeline
     github-check:
+      debug: true
       jobs:
         - openstack-k8s-operators-content-provider
         - telemetry-operator-multinode-autoscaling-tempest
