@@ -85,7 +85,8 @@
     github-check:
       debug: true
       jobs:
-        - openstack-k8s-operators-content-provider
+        - openstack-k8s-operators-content-provider:
+            override-checkout: main
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
         - telemetry-operator-multinode-power-monitoring
