@@ -87,9 +87,12 @@
       jobs:
         - openstack-k8s-operators-content-provider:
             override-checkout: main
-        - telemetry-operator-multinode-autoscaling-tempest
-        - telemetry-operator-multinode-default-telemetry
-        - telemetry-operator-multinode-power-monitoring
+        - telemetry-operator-multinode-autoscaling-tempest: &jobs_config
+            required-projects:
+              - name: openstack-k8s-operators/ci-framework
+                override-checkout: main
+        - telemetry-operator-multinode-default-telemetry: *jobs_config
+        - telemetry-operator-multinode-power-monitoring: *jobs_config
         - functional-tests-on-osp18: &fvt_jobs_config
             voting: true
             required-projects:
