@@ -836,7 +836,8 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 	// openstack Ceilometer's prom exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-prom-exporter", telemetryv1.DefaultCeilometerPromExporterPort, false)
+	// Currently Ceilometer's prom exporters doesn't support TLS
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-prom-exporter", telemetryv1.DefaultCeilometerPromExporterPort, true)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
