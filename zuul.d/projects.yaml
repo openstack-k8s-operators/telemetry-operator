@@ -65,7 +65,7 @@
 - job:
     name: telemetry-operator-multinode-power-monitoring
     parent: podified-multinode-edpm-deployment-crc
-    # dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies: ["openstack-k8s-operators-content-provider"]
     description: |
       Deploy OpenStack with power monitoring services enabled
     vars:
@@ -109,7 +109,6 @@
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
-        - telemetry-operator-multinode-power-monitoring
         - functional-tests-on-osp18: &fvt_jobs_config
             voting: true
             required-projects:
