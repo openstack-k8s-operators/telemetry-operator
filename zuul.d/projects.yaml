@@ -84,9 +84,15 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
-        - telemetry-operator-multinode-autoscaling-tempest
-        - telemetry-operator-multinode-default-telemetry
-        - telemetry-operator-multinode-power-monitoring
+        - openstack-k8s-operators-content-provider:  &override-missing-fr2-branches
+            required-projects:
+              - name: openstack-k8s-operators/ci-framework
+                override-checkout: main
+              - name: openstack-k8s-operators/repo-setup
+                override-checkout: main
+        - telemetry-operator-multinode-autoscaling-tempest:  *override-missing-fr2-branches
+        - telemetry-operator-multinode-default-telemetry:  *override-missing-fr2-branches
+        - telemetry-operator-multinode-power-monitoring:  *override-missing-fr2-branches
         - functional-tests-on-osp18: &fvt_jobs_config
             voting: true
             required-projects:
