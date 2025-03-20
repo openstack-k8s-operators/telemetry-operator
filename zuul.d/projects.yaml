@@ -107,10 +107,20 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
-        - telemetry-operator-multinode-default-telemetry
+        - openstack-k8s-operators-content-provider: &override-missing-fr3-branches
+            required-projects:
+              - name: openstack-k8s-operators/ci-framework
+                override-checkout: main
+              - name: openstack-k8s-operators/repo-setup
+                override-checkout: main
+        - telemetry-operator-multinode-default-telemetry: *override-missing-fr3-branches
         - functional-graphing-tests-osp18:
             voting: false
             required-projects:
+              - name: openstack-k8s-operators/ci-framework
+                override-checkout: main
+              - name: openstack-k8s-operators/repo-setup
+                override-checkout: main
               - name: infrawatch/feature-verification-tests
                 override-checkout: master
             irrelevant-files: *irrelevant_files
@@ -119,6 +129,10 @@
             required-projects:
               - name: infrawatch/feature-verification-tests
                 override-checkout: master
+              - name: openstack-k8s-operators/ci-framework
+                override-checkout: main
+              - name: openstack-k8s-operators/repo-setup
+                override-checkout: main
             irrelevant-files: *irrelevant_files
         - functional-logging-tests-osp18: *fvt_jobs_config
         - feature-verification-tests-noop:
