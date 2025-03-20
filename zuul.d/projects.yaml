@@ -80,10 +80,11 @@
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
-    templates:
-      - podified-multinode-edpm-pipeline
+    #templates:
+    #  - podified-multinode-edpm-pipeline
     github-check:
       jobs:
+        - openstack-k8s-operators-content-provider
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
         - telemetry-operator-multinode-power-monitoring
@@ -92,8 +93,6 @@
             required-projects:
               - name: infrawatch/feature-verification-tests
                 override-checkout: master
-              - name: openstack-k8s-operators/ci-framework
-                override-checkout: main
         - functional-logging-tests-osp18: *fvt_jobs_config
         - functional-graphing-tests-osp18: *fvt_jobs_config
         - functional-metric-verification-tests-osp18: *fvt_jobs_config
