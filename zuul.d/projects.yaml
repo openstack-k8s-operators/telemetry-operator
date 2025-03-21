@@ -84,6 +84,7 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
+        - openstack-k8s-operators-content-provider
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
         - telemetry-operator-multinode-power-monitoring
