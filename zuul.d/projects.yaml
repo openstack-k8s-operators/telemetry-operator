@@ -87,6 +87,7 @@
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
         - telemetry-operator-multinode-power-monitoring
+        - openstack-k8s-operators-content-provider
         - functional-tests-on-osp18: &fvt_jobs_config
             voting: true
             required-projects:
