@@ -1,3 +1,16 @@
+# The minio sometimes fails to deploy, because of:
+# no matches for kind "Route" in version "route.openshift.io/v1" ensure CRDs are installed first
+#
+# Let's try to check if the route is available in the cluster bofere deploying minio
+- name: Wait for the route kind to be present in the cluster
+  ansible.builtin.command:
+    cmd:
+      oc api-resources --api-group=route.openshift.io --no-headers
+  delay: 10
+  retries: 50
+  register: output
+  until: output.stdout_lines | length != 0
+
 - name: Create minio deployment
   ansible.builtin.shell:
     cmd: |
