@@ -26,5 +26,8 @@ cifmw_edpm_prepare_kustomizations:
                   alertingEnabled: false
               autoscaling:
                 enabled: true
+              ceilometer:
+                enabled: true
+                mysqldExporterEnabled: true
       target:
         kind: OpenStackControlPlane
