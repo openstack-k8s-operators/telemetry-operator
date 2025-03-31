@@ -28,18 +28,12 @@
     fail_msg: "telemetry-operator logs don't include expected log: {{ item }}"
   loop: "{{ default_telemetry_no_coo_expected_logs }}"
 
-- name: Get telemetry-operator error logs
+- name: |
+    TEST Check that telemetry-operator logs don't include errors when MetricStorage is enabled, but COO isn't installed
+    RHOSO-123460
   ansible.builtin.set_fact:
     error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
-
-- name: |
-    TEST Check that telemetry-operator logs don't include unexpected errors when MetricStorage is enabled, but COO isn't installed
-    RHOSO-123460
-  ansible.builtin.assert:
-    that:
-      - item in default_telemetry_no_coo_expected_logs
-    fail_msg: "telemetry-operator logs include an unexpected error: {{ item }}"
-  loop: "{{ error_list }}"
+  failed_when: error_list | length != 0
 
 - name: Check if we have the expected conditions for MetricStorage
   block:
