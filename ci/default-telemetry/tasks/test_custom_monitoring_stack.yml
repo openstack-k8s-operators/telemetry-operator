@@ -37,7 +37,7 @@
     RHOSO-123465
   ansible.builtin.set_fact:
     error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
-  when: error_list | length != 0
+  failed_when: error_list | length != 0
 
 - name: |
     TEST Check Prometheus host is set correctly in the aodh-evaluator container when using a custom Prometheus
