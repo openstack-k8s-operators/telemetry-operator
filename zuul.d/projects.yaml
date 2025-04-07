@@ -119,7 +119,7 @@
             voting: true
             required-projects:
               - name: infrawatch/feature-verification-tests
-            override-checkout: master
+                override-checkout: master
             irrelevant-files: *irrelevant_files
         - functional-logging-tests-osp18: *fvt_jobs_config
         - functional-metric-verification-tests-osp18: *fvt_jobs_config
