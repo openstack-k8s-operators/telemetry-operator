@@ -20,7 +20,7 @@ import (
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 )
@@ -42,8 +42,7 @@ const (
 	// KubeStateMetricsImage - default fall-back image for KSM
 	KubeStateMetricsImage = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0"
 	// MysqldExporterImage - default fall-back image for mysqld_exporter
-	// MysqldExporterContainerImage = "quay.io/prometheus/mysqld-exporter:v0.16.0"
-	MysqldExporterContainerImage = ""
+	MysqldExporterContainerImage = "quay.io/prometheus/mysqld-exporter:v0.16.0"
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
@@ -299,4 +298,16 @@ func (instance *Ceilometer) GetLastAppliedTopology() *topologyv1.TopoRef {
 // SetLastAppliedTopology - Sets the LastAppliedTopology value in the Status
 func (instance *Ceilometer) SetLastAppliedTopology(topologyRef *topologyv1.TopoRef) {
 	instance.Status.LastAppliedTopology = topologyRef
+}
+
+// ValidateTopology -
+func (instance *CeilometerSpecCore) ValidateTopology(
+	basePath *field.Path,
+	namespace string,
+) field.ErrorList {
+	var allErrs field.ErrorList
+	allErrs = append(allErrs, topologyv1.ValidateTopologyRef(
+		instance.TopologyRef,
+		*basePath.Child("topologyRef"), namespace)...)
+	return allErrs
 }

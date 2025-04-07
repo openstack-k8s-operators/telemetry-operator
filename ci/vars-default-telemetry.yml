@@ -1,7 +1,8 @@
 ---
 cifmw_run_tests: false
-pre_tests_check_default_telemetry:
+pre_tests_00_check_default_telemetry:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/check-default-telemetry.yml"
+  config_file: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/ansible.cfg"
   type: playbook
 cifmw_edpm_prepare_kustomizations:
   - apiVersion: kustomize.config.k8s.io/v1beta1
@@ -20,3 +21,6 @@ cifmw_edpm_prepare_kustomizations:
             enabled: true
       target:
         kind: OpenStackControlPlane
+pre_tests_99_collect_results:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/report_result.yml"
+  type: playbook
