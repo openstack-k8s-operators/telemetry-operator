@@ -109,14 +109,14 @@
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
-        - functional-tests-on-osp18: &fvt_jobs_config
-            voting: true
+        - functional-graphing-tests-osp18: &fvt_jobs_config
+            voting: false
             required-projects:
               - name: infrawatch/feature-verification-tests
                 override-checkout: master
             irrelevant-files: *irrelevant_files
+        - functional-tests-on-osp18: *fvt_jobs_config
         - functional-logging-tests-osp18: *fvt_jobs_config
-        - functional-graphing-tests-osp18: *fvt_jobs_config
         - functional-metric-verification-tests-osp18: *fvt_jobs_config
         - feature-verification-tests-noop:
             files: *irrelevant_files
