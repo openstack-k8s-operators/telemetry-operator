@@ -93,6 +93,6 @@
               - name: infrawatch/feature-verification-tests
                 override-checkout: master
         - functional-logging-tests-osp18: *fvt_jobs_config
-        - functional-graphing-tests-osp18: &fvt_jobs_config
+        - functional-graphing-tests-osp18: *fvt_jobs_config
             voting: false
         - functional-metric-verification-tests-osp18: *fvt_jobs_config
