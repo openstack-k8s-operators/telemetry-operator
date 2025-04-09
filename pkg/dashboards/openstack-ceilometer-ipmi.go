@@ -106,7 +106,7 @@ func OpenstackCeilometerIpmi(dsName string) *corev1.ConfigMap {
 								"steppedLine": false,
 								"targets": [
 									{
-									"expr": "label_replace(ceilometer_hardware_ipmi_voltage{unit=\"V\", resource=~\"$compute.*\"}, \"resource_name\", \"$1\", \"resource\", \".*-(voltage.*)\")",
+									"expr": "label_replace(ceilometer_hardware_ipmi_voltage{unit=\"V\", resource=~\"$compute.*\"}, \"resource_name\", \"$1\", \"resource\", \".*-(.*)\")",
 									"legendFormat": "{{ resource_name }}",
 									"refId": "A"
 									}
