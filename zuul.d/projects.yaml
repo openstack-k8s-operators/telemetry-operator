@@ -122,6 +122,5 @@
                 override-checkout: master
             irrelevant-files: *irrelevant_files
         - functional-logging-tests-osp18: *fvt_jobs_config
-#        - functional-metric-verification-tests-osp18: *fvt_jobs_config
         - feature-verification-tests-noop:
             files: *irrelevant_files
