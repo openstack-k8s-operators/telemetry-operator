@@ -42,6 +42,7 @@ const (
 	// CustomPrometheusCaCertFolderPath -
 	CustomPrometheusCaCertFolderPath = "/etc/pki/ca-trust/extracted/pem/"
 
+	// PrometheusEndpointSecret is the name of the secret containing Prometheus endpoint configuration
 	PrometheusEndpointSecret = "metric-storage-prometheus-endpoint"
 )
 

@@ -85,7 +85,7 @@ func KSMStatefulSet(
 	volumes := []corev1.Volume{}
 	mounts := []corev1.VolumeMount{}
 	if instance.Spec.KSMTLS.Enabled() {
-		svc, err := instance.Spec.KSMTLS.GenericService.ToService()
+		svc, err := instance.Spec.KSMTLS.ToService()
 		if err != nil {
 			return nil, err
 		}

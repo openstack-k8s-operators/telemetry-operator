@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// OpenstackKepler creates a ConfigMap containing the OpenStack Kepler power monitoring dashboard
 func OpenstackKepler(dsName string) *corev1.ConfigMap {
 	dashboardCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
