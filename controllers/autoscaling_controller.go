@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
+	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -111,7 +112,7 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Fetch the Autoscaling instance
 	instance := &telemetryv1.Autoscaling{}
-	err := r.Client.Get(ctx, req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -220,7 +221,7 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // fields to index to reconcile when change
 const (
 	autoscalingPasswordSecretField     = ".spec.secret"
-	autoscalingCaBundleSecretNameField = ".spec.tls.caBundleSecretName"
+	autoscalingCaBundleSecretNameField = ".spec.tls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 	autoscalingTLSAPIInternalField     = ".spec.tls.api.internal.secretName"
 	autoscalingTLSAPIPublicField       = ".spec.tls.api.public.secretName"
 	autoscalingTLSField                = ".spec.tls.secretName"
@@ -453,7 +454,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// NOTE: Always do this before calling the generateServiceConfig to get the newest values in the ServiceConfig
 	//
 	prometheusEndpointSecret := &corev1.Secret{}
-	err = r.Client.Get(ctx, client.ObjectKey{
+	err = r.Get(ctx, client.ObjectKey{
 		Name:      autoscaling.PrometheusEndpointSecret,
 		Namespace: instance.Namespace,
 	}, prometheusEndpointSecret)
@@ -474,7 +475,10 @@ func (r *AutoscalingReconciler) reconcileNormal(
 			if err != nil {
 				return ctrlResult, err
 			}
-			instance.Status.PrometheusPort = int32(port)
+			if port < 0 || port > 65535 {
+				return ctrlResult, fmt.Errorf("%w: %d", telemetry.ErrInvalidPortNumber, port)
+			}
+			instance.Status.PrometheusPort = int32(port) //nolint:gosec // G109: Port validated to be within valid range
 		}
 	} else {
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
@@ -482,7 +486,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	if instance.Spec.PrometheusHost == "" {
 		// We're using MetricStorage for Prometheus. Set TLS accordingly
 		metricStorage := &telemetryv1.MetricStorage{}
-		err := r.Client.Get(ctx, client.ObjectKey{
+		err := r.Get(ctx, client.ObjectKey{
 			Namespace: instance.Namespace,
 			Name:      telemetryv1.DefaultServiceName,
 		}, metricStorage)
@@ -788,7 +792,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), autoscalings, listOpts...); err != nil {
+		if err := r.List(context.Background(), autoscalings, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve Autoscaling CRs %v")
 			return nil
 		}
@@ -821,7 +825,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), autoscalings, listOpts...); err != nil {
+		if err := r.List(context.Background(), autoscalings, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve Autoscaling CRs %w")
 			return nil
 		}
@@ -849,7 +853,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), autoscalings, listOpts...); err != nil {
+		if err := r.List(context.Background(), autoscalings, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve Autoscaling CRs %w")
 			return nil
 		}
@@ -966,7 +970,7 @@ func (r *AutoscalingReconciler) findObjectsForSrc(ctx context.Context, src clien
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
 			Namespace:     src.GetNamespace(),
 		}
-		err := r.Client.List(ctx, crList, listOps)
+		err := r.List(ctx, crList, listOps)
 		if err != nil {
 			return []reconcile.Request{}
 		}
@@ -997,7 +1001,7 @@ func (r *AutoscalingReconciler) findObjectForSrc(ctx context.Context, src client
 	listOps := &client.ListOptions{
 		Namespace: src.GetNamespace(),
 	}
-	err := r.Client.List(ctx, crList, listOps)
+	err := r.List(ctx, crList, listOps)
 	if err != nil {
 		Log.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
 		return requests

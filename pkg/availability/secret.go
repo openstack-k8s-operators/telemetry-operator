@@ -42,11 +42,13 @@ tls_server_config:`
 )
 
 var (
+	// TLSCertPath is the path to the TLS certificate file
 	TLSCertPath = fmt.Sprintf("/etc/pki/tls/certs/%s", tls.CertKey)
-	TLSKeyPath  = fmt.Sprintf("/etc/pki/tls/private/%s", tls.PrivateKey)
+	// TLSKeyPath is the path to the TLS private key file
+	TLSKeyPath = fmt.Sprintf("/etc/pki/tls/private/%s", tls.PrivateKey)
 )
 
-// KSMDeployment requests Deployment of kube-state-metrics
+// KSMTLSConfig creates TLS configuration for kube-state-metrics
 func KSMTLSConfig(
 	instance *telemetryv1.Ceilometer,
 	labels map[string]string,

@@ -114,7 +114,7 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Fetch the Ceilometer instance
 	instance := &telemetryv1.Ceilometer{}
-	err := r.Client.Get(ctx, req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -236,11 +236,11 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // fields to index to reconcile when change
 const (
 	ceilometerPasswordSecretField         = ".spec.secret"
-	ceilometerCaBundleSecretNameField     = ".spec.tls.caBundleSecretName"
+	ceilometerCaBundleSecretNameField     = ".spec.tls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 	ceilometerTLSField                    = ".spec.tls.secretName"
-	ksmCaBundleSecretNameField            = ".spec.ksmTls.caBundleSecretName"
+	ksmCaBundleSecretNameField            = ".spec.ksmTls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 	ksmTLSField                           = ".spec.ksmTls.secretName"
-	mysqldExporterCaBundleSecretNameField = ".spec.mysqldExporterTls.caBundleSecretName"
+	mysqldExporterCaBundleSecretNameField = ".spec.mysqldExporterTls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 	mysqldExporterTLSField                = ".spec.mysqldExporterTls.secretName"
 )
 
@@ -620,7 +620,7 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.TLS.CaBundleSecretName)))
+					condition.TLSInputReadyWaitingMessage, instance.Spec.TLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -646,7 +646,7 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, err.Error())))
+					condition.TLSInputReadyWaitingMessage, err.Error()))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -850,7 +850,7 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 					telemetryv1.MysqldExporterTLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.MysqldExporterTLS.CaBundleSecretName)))
+					condition.TLSInputReadyWaitingMessage, instance.Spec.MysqldExporterTLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -876,7 +876,7 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 					telemetryv1.MysqldExporterTLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, err.Error())))
+					condition.TLSInputReadyWaitingMessage, err.Error()))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -1029,7 +1029,7 @@ func (r *CeilometerReconciler) reconcileKSM(
 					telemetryv1.KSMTLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.KSMTLS.CaBundleSecretName)))
+					condition.TLSInputReadyWaitingMessage, instance.Spec.KSMTLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -1406,7 +1406,7 @@ func (r *CeilometerReconciler) mysqldExporterEnsureDB(
 	// Unfortunatelly access to the database is granted only after creating a db.
 	db := mariadbv1.NewDatabaseForAccount(
 		dbInstance, // mariadb/galera service to target
-		strings.Replace(databaseName, "-", "_", -1), // name used in CREATE DATABASE in mariadb
+		strings.ReplaceAll(databaseName, "-", "_"), // name used in CREATE DATABASE in mariadb
 		databaseName,       // CR name for MariaDBDatabase
 		accountName,        // CR name for MariaDBAccount
 		instance.Namespace, // namespace
@@ -1469,7 +1469,7 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.GetNamespace()),
 	}
-	if err := r.Client.List(context.Background(), galeras, listOpts...); err != nil {
+	if err := r.List(context.Background(), galeras, listOpts...); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -1623,7 +1623,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), ceilometers, listOpts...); err != nil {
+		if err := r.List(context.Background(), ceilometers, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve Ceilometer CRs %v")
 			return nil
 		}
@@ -1668,7 +1668,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), ceilometers, listOpts...); err != nil {
+		if err := r.List(context.Background(), ceilometers, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve Ceilometer CRs %v")
 			return nil
 		}
@@ -1837,7 +1837,7 @@ func (r *CeilometerReconciler) findObjectsForSrc(ctx context.Context, src client
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
 			Namespace:     src.GetNamespace(),
 		}
-		err := r.Client.List(ctx, crList, listOps)
+		err := r.List(ctx, crList, listOps)
 		if err != nil {
 			Log.Error(err, fmt.Sprintf("listing %s for field: %s - %s", crList.GroupVersionKind().Kind, field, src.GetNamespace()))
 			return requests
@@ -1869,7 +1869,7 @@ func (r *CeilometerReconciler) findObjectForSrc(ctx context.Context, src client.
 	listOps := &client.ListOptions{
 		Namespace: src.GetNamespace(),
 	}
-	err := r.Client.List(ctx, crList, listOps)
+	err := r.List(ctx, crList, listOps)
 	if err != nil {
 		Log.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
 		return requests
