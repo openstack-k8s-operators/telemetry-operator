@@ -1,6 +1,6 @@
 module github.com/openstack-k8s-operators/telemetry-operator
 
-go 1.21
+go 1.24
 
 replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 

@@ -78,7 +78,7 @@ func (r *LoggingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	// Fetch the Logging instance
 	instance := &telemetryv1.Logging{}
-	err := r.Client.Get(ctx, req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -329,7 +329,7 @@ func (r *LoggingReconciler) retrieveOpenshiftCA(ctx context.Context) []byte {
 		Namespace: "openshift-service-ca",
 	}
 	instance := &corev1.Secret{}
-	err := r.Client.Get(ctx, namespacedName, instance)
+	err := r.Get(ctx, namespacedName, instance)
 	if err != nil {
 		// No Openshift CA secret in the cluster
 		return nil

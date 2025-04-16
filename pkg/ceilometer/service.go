@@ -19,6 +19,7 @@ import (
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	svc "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -44,12 +45,16 @@ func Service(
 		},
 	}
 
+	if port < 0 || port > 65535 {
+		return nil, controllerutil.OperationResultNone, fmt.Errorf("%w: %d", telemetry.ErrInvalidPortNumber, port)
+	}
+
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), helper.GetClient(), service, func() error {
 		service.Labels = labels
 		service.Spec.Selector = labels
 		service.Spec.Ports = []corev1.ServicePort{{
 			Protocol:   "TCP",
-			Port:       int32(port),
+			Port:       int32(port), //nolint:gosec // G115: Port validated to be within valid range
 			TargetPort: intstr.FromInt(port),
 		}}
 

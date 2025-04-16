@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package availability provides functionality for managing telemetry availability monitoring components
 package availability
 
 const (

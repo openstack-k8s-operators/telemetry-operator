@@ -74,7 +74,7 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Fetch the Telemetry instance
 	instance := &telemetryv1.Telemetry{}
-	err := r.Client.Get(ctx, req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -573,7 +573,7 @@ func (r *TelemetryReconciler) checkCeilometerGeneration(
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.Namespace),
 	}
-	if err := r.Client.List(context.Background(), clm, listOpts...); err != nil {
+	if err := r.List(context.Background(), clm, listOpts...); err != nil {
 		Log.Error(err, "Unable to retrieve Ceilometer CR %w")
 		return false, err
 	}
@@ -594,7 +594,7 @@ func (r *TelemetryReconciler) checkAutoscalingGeneration(
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.Namespace),
 	}
-	if err := r.Client.List(context.Background(), as, listOpts...); err != nil {
+	if err := r.List(context.Background(), as, listOpts...); err != nil {
 		Log.Error(err, "Unable to retrieve Autoscaling CR %w")
 		return false, err
 	}
@@ -615,7 +615,7 @@ func (r *TelemetryReconciler) checkMetricsStorageGeneration(
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.Namespace),
 	}
-	if err := r.Client.List(context.Background(), ms, listOpts...); err != nil {
+	if err := r.List(context.Background(), ms, listOpts...); err != nil {
 		Log.Error(err, "Unable to retrieve MetricsStorage CR %w")
 		return false, err
 	}
@@ -636,7 +636,7 @@ func (r *TelemetryReconciler) checkLoggingGeneration(
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.Namespace),
 	}
-	if err := r.Client.List(context.Background(), l, listOpts...); err != nil {
+	if err := r.List(context.Background(), l, listOpts...); err != nil {
 		Log.Error(err, "Unable to retrieve Logging CR %w")
 		return false, err
 	}

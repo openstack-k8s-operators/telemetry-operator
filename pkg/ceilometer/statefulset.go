@@ -35,8 +35,10 @@ import (
 
 const (
 	// ServiceCommand -
-	ServiceCommand       = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
-	CentralHCScript      = "/var/lib/openstack/bin/centralhealth.py"
+	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	// CentralHCScript is the path to the central health check script
+	CentralHCScript = "/var/lib/openstack/bin/centralhealth.py"
+	// NotificationHCScript is the path to the notification health check script
 	NotificationHCScript = "/var/lib/openstack/bin/notificationhealth.py"
 )
 
@@ -110,7 +112,7 @@ func StatefulSet(
 	httpdVolumeMounts := getHttpdVolumeMounts()
 
 	if instance.Spec.TLS.Enabled() {
-		svc, err := instance.Spec.TLS.GenericService.ToService()
+		svc, err := instance.Spec.TLS.ToService()
 		if err != nil {
 			return nil, err
 		}
