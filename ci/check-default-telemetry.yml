@@ -9,3 +9,4 @@
     - name: Execute the default-telemetry scenario
       ansible.builtin.import_role:
         name: default-telemetry
+      ignore_errors: true

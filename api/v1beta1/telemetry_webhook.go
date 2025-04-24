@@ -202,27 +202,20 @@ func (spec *TelemetrySpecCore) ValidateTelemetryTopology(basePath *field.Path, n
 
 	// When a TopologyRef CR is referenced, fail if a different Namespace is
 	// referenced because is not supported
-	if spec.TopologyRef != nil {
-		if err := topologyv1.ValidateTopologyNamespace(spec.TopologyRef.Namespace, *basePath, namespace); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
+	allErrs = append(allErrs, topologyv1.ValidateTopologyRef(
+		spec.TopologyRef, *basePath.Child("topologyRef"), namespace)...)
 
 	// When a TopologyRef CR is referenced with an override to Aodh, fail
 	// if a different Namespace is referenced because not supported
-	if spec.Autoscaling.Aodh.TopologyRef != nil {
-		if err := topologyv1.ValidateTopologyNamespace(spec.Autoscaling.Aodh.TopologyRef.Namespace, *basePath, namespace); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
+	aodhPath := basePath.Child("autoscaling").Child("aodh")
+	allErrs = append(allErrs,
+		spec.Autoscaling.Aodh.ValidateTopology(aodhPath, namespace)...)
 
 	// When a TopologyRef CR is referenced with an override to Ceilometer,
 	// fail if a different Namespace is referenced because not supported
-	if spec.Ceilometer.TopologyRef != nil {
-		if err := topologyv1.ValidateTopologyNamespace(spec.Ceilometer.TopologyRef.Namespace, *basePath, namespace); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
+	ceilPath := basePath.Child("ceilometer")
+	allErrs = append(allErrs,
+		spec.Ceilometer.ValidateTopology(ceilPath, namespace)...)
 
 	return allErrs
 }
@@ -233,27 +226,20 @@ func (spec *TelemetrySpec) ValidateTelemetryTopology(basePath *field.Path, names
 
 	// When a TopologyRef CR is referenced, fail if a different Namespace is
 	// referenced because is not supported
-	if spec.TopologyRef != nil {
-		if err := topologyv1.ValidateTopologyNamespace(spec.TopologyRef.Namespace, *basePath, namespace); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
+	allErrs = append(allErrs, topologyv1.ValidateTopologyRef(
+		spec.TopologyRef, *basePath.Child("topologyRef"), namespace)...)
 
 	// When a TopologyRef CR is referenced with an override to Aodh, fail
 	// if a different Namespace is referenced because not supported
-	if spec.Autoscaling.Aodh.TopologyRef != nil {
-		if err := topologyv1.ValidateTopologyNamespace(spec.Autoscaling.Aodh.TopologyRef.Namespace, *basePath, namespace); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
+	aodhPath := basePath.Child("autoscaling").Child("aodh")
+	allErrs = append(allErrs,
+		spec.Autoscaling.Aodh.ValidateTopology(aodhPath, namespace)...)
 
 	// When a TopologyRef CR is referenced with an override to Ceilometer,
 	// fail if a different Namespace is referenced because not supported
-	if spec.Ceilometer.TopologyRef != nil {
-		if err := topologyv1.ValidateTopologyNamespace(spec.Ceilometer.TopologyRef.Namespace, *basePath, namespace); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
+	ceilPath := basePath.Child("ceilometer")
+	allErrs = append(allErrs,
+		spec.Ceilometer.ValidateTopology(ceilPath, namespace)...)
 
 	return allErrs
 }
