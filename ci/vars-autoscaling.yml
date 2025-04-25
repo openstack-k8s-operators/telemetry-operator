@@ -24,6 +24,7 @@ cifmw_edpm_prepare_kustomizations:
                 enabled: true
                 monitoringStack:
                   alertingEnabled: false
+                dashboardsEnabled: true
               autoscaling:
                 enabled: true
               ceilometer:
