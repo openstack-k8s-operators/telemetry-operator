@@ -100,7 +100,7 @@ kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
-  name: telemetry-ceilometer-prom-exporter
+  name: telemetry-ceilometer-compute-prom-exporter
   ownerReferences:
   - kind: MetricStorage
     name: telemetry-kuttl
