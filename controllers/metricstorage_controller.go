@@ -371,7 +371,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 		}
 		prometheusTLSPatch := metricstorage.PrometheusTLS(instance)
-		err = r.Client.Patch(context.Background(), &prometheusTLSPatch, client.Apply, client.FieldOwner("telemetry-operator"))
+		err = r.Client.Patch(context.Background(), &prometheusTLSPatch, client.Merge, client.FieldOwner("telemetry-operator"))
 		if err != nil {
 			Log.Error(err, "Can't patch Prometheus resource")
 			return ctrl.Result{}, err
@@ -580,7 +580,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 		}
 		prometheusNADPatch := metricstorage.PrometheusNAD(instance, networkAnnotations)
-		err = r.Client.Patch(context.Background(), &prometheusNADPatch, client.Apply, client.FieldOwner("telemetry-operator"))
+		err = r.Client.Patch(context.Background(), &prometheusNADPatch, client.Merge, client.FieldOwner("telemetry-operator"))
 		if err != nil {
 			Log.Error(err, "Can't patch Prometheus resource")
 			return ctrl.Result{}, err
@@ -835,7 +835,11 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
+	// openstack Ceilometer Compute's prom exporters
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-compute-prom-exporter", telemetryv1.DefaultCeilometerComputePromExporterPort, true)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, false)
 	if err != nil {
 		return ctrl.Result{}, err

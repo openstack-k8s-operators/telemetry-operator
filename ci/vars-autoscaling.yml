@@ -24,7 +24,11 @@ cifmw_edpm_prepare_kustomizations:
                 enabled: true
                 monitoringStack:
                   alertingEnabled: false
+                dashboardsEnabled: true
               autoscaling:
                 enabled: true
+              ceilometer:
+                enabled: true
+                mysqldExporterEnabled: true
       target:
         kind: OpenStackControlPlane

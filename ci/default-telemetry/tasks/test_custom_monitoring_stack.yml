@@ -1,0 +1,54 @@
+- name: Patch MetricStorage to use CustomMonitoringStack field
+  ansible.builtin.command:
+    cmd: |
+      oc patch oscp/{{ default_telemetry_control_plane_name }} --type merge -p '{"spec":{"telemetry":{"template":{"metricStorage":{"monitoringStack": null, "customMonitoringStack":{"prometheusConfig":{"replicas": 1}, "resourceSelector":{"matchLabels":{"service":"metricStorage"}}}}}}}}'
+
+- name: Wait until MetricStorage is ready
+  ansible.builtin.command:
+    cmd:
+      oc wait telemetry telemetry --for=condition=Ready --timeout=2m
+
+- name: Get telemetry-operator logs
+  ansible.builtin.import_tasks: "get-operator-logs.yml"
+
+- name: |
+    TEST Check that telemetry-operator logs don't include any errors when using the CustomMonitoringStack
+    RHOSO-123464
+  ansible.builtin.set_fact:
+    error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
+  failed_when: error_list | length != 0
+
+# Try using a custom Prometheus instance for Autoscaling and check that the Prometheus config for aodh is pointing to the correct Prometheus.
+- name: Patch Autoscaling to use a custom Prometheus instance
+  ansible.builtin.command:
+    cmd: |
+      oc patch oscp/{{ default_telemetry_control_plane_name }} --type merge -p '{"spec":{"telemetry":{"template":{"autoscaling":{"prometheusHost":"someprometheus.openstack.svc", "prometheusPort":1234}}}}}'
+
+- name: Wait until Autoscaling is ready
+  ansible.builtin.command:
+    cmd:
+      oc wait telemetry telemetry --for=condition=Ready --timeout=2m
+
+- name: Get telemetry-operator logs
+  ansible.builtin.import_tasks: "get-operator-logs.yml"
+
+- name: |
+    TEST Check that telemetry-operator logs don't include any errors when using a custom Prometheus instance for Autoscaling
+    RHOSO-123465
+  ansible.builtin.set_fact:
+    error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
+  failed_when: error_list | length != 0
+
+- name: |
+    TEST Check Prometheus host is set correctly in the aodh-evaluator container when using a custom Prometheus
+    RHOSO-123466
+  ansible.builtin.shell: oc rsh -c aodh-evaluator aodh-0 cat /etc/openstack/prometheus.yaml | grep host | cut -d " " -f 2
+  register: host
+  failed_when: host.stdout != "someprometheus.openstack.svc"
+
+- name: |
+    TEST Check Prometheus port is set correctly in the aodh-evaluator container when using a custom Prometheus
+    RHOSO-123467
+  ansible.builtin.shell: oc rsh -c aodh-evaluator aodh-0 cat /etc/openstack/prometheus.yaml | grep port | cut -d " " -f 2
+  register: port
+  failed_when: port.stdout != "1234"

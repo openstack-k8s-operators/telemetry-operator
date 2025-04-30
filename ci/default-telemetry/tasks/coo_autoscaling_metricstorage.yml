@@ -1,0 +1,19 @@
+- name: Wait until Autoscaling and MetricStorage are ready
+  ansible.builtin.command:
+    cmd:
+      oc get telemetry telemetry --output=jsonpath --template={.status.conditions[*].status}
+  register: output
+  retries: 12
+  delay: 10
+  until: output.stdout is ansible.builtin.regex("(True\s?)+$")
+
+- name: Get telemetry-operator logs
+  ansible.builtin.import_tasks: "get-operator-logs.yml"
+
+- name: |
+    TEST Check that telemetry-operator logs don't include any errors after COO is installed
+    RHOSO-123463
+  ansible.builtin.assert:
+    that:
+      - operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') | length == 0
+    fail_msg: "There are errors in the telemetry-operator logs {{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"

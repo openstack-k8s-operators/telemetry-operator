@@ -8,6 +8,22 @@
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
+    irrelevant-files: &irrelevant_files
+      - .github/.*
+      - ci/github/.*
+      - callback_plugins/.*
+      - README*
+      - OWNERS*
+      - .*/*.md
+      - roles/client_side_tests/.*
+      - roles/test_alerts/.*
+      - roles/test_collectd/.*
+      - roles/test_metrics_retention/.*
+      - roles/test_observability_strategy/.*
+      - roles/test_qdr/.*
+      - roles/test_sensubility/.*
+      - roles/test_snmp_traps/.*
+      - roles/test_verify_email/.*
 
 - job:
     name: telemetry-operator-multinode-autoscaling-tempest
@@ -17,6 +33,7 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
+    irrelevant-files: *irrelevant_files
 
 - job:
     name: telemetry-operator-multinode-default-telemetry
@@ -28,6 +45,10 @@
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-default-telemetry.yml"
+    irrelevant-files: *irrelevant_files
+    required-projects:
+      - name: infrawatch/feature-verification-tests
+        override-checkout: master
 
 - job:
     name: telemetry-operator-multinode-logging
@@ -39,17 +60,19 @@
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-logging.yml"
+    irrelevant-files: *irrelevant_files
 
 - job:
     name: telemetry-operator-multinode-power-monitoring
     parent: podified-multinode-edpm-deployment-crc
-    # dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies: ["openstack-k8s-operators-content-provider"]
     description: |
       Deploy OpenStack with power monitoring services enabled
     vars:
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-power-monitoring.yml"
+    irrelevant-files: *irrelevant_files
 
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
@@ -86,12 +109,18 @@
       jobs:
         - telemetry-operator-multinode-autoscaling-tempest
         - telemetry-operator-multinode-default-telemetry
-        - telemetry-operator-multinode-power-monitoring
-        - functional-tests-on-osp18: &fvt_jobs_config
+        - functional-graphing-tests-osp18:
+            voting: false
+            required-projects:
+              - name: infrawatch/feature-verification-tests
+                override-checkout: master
+            irrelevant-files: *irrelevant_files
+        - functional-autoscaling-tests-osp18: &fvt_jobs_config
             voting: true
             required-projects:
               - name: infrawatch/feature-verification-tests
                 override-checkout: master
+            irrelevant-files: *irrelevant_files
         - functional-logging-tests-osp18: *fvt_jobs_config
-        - functional-graphing-tests-osp18: *fvt_jobs_config
-        - functional-metric-verification-tests-osp18: *fvt_jobs_config
+        - feature-verification-tests-noop:
+            files: *irrelevant_files
