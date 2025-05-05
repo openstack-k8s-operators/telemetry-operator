@@ -1307,7 +1307,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		"TLS":    false,
 	}
 
-	if instance.Spec.TLS.Enabled(){
+	if instance.Spec.TLS.Enabled() {
 		templateParameters["TLS"] = true
 		templateParameters["TlsCert"] = fmt.Sprintf("/etc/ceilometer/tls/tls.crt")
 		templateParameters["TlsKey"] = fmt.Sprintf("/etc/ceilometer/tls/tls.key")
