@@ -1304,7 +1304,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		"CeilometerPassword":       string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
 		"ceilometer_compute_image": instance.Spec.ComputeImage,
 		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
-		"TLS":    false,
+		"TLS":                      false,
 	}
 
 	if instance.Spec.TLS.Enabled() {
