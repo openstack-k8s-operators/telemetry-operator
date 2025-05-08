@@ -43,7 +43,7 @@ func KSMStatefulSet(
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/healthz",
-				Port: intstr.FromInt(KSMHealthPort),
+				Port: intstr.FromInt(KSMMetricsPort),
 			},
 		},
 		InitialDelaySeconds: 5,
