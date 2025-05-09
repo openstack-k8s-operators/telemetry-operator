@@ -1304,6 +1304,13 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		"CeilometerPassword":       string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
 		"ceilometer_compute_image": instance.Spec.ComputeImage,
 		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
+		"TLS":                      false,
+	}
+
+	if instance.Spec.TLS.Enabled() {
+		templateParameters["TLS"] = true
+		templateParameters["TlsCert"] = "/etc/ceilometer/tls/tls.crt"
+		templateParameters["TlsKey"] = "/etc/ceilometer/tls/tls.key"
 	}
 
 	cms := []util.Template{
