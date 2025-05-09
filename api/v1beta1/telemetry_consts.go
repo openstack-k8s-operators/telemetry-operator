@@ -32,6 +32,8 @@ const (
 	DefaultOpenStackNetworkExporterPort = 9105
 	// DefaultCeilometerComputePromExporterPort -
 	DefaultCeilometerComputePromExporterPort = 9101
+	// DefaultCeilometerIpmiPromExporterPort -
+	DefaultCeilometerIpmiPromExporterPort = 9102
 	// DefaultScrapeInterval -
 	DefaultScrapeInterval = "30s"
 	// PauseBetweenWatchAttempts -
