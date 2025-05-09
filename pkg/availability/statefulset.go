@@ -42,7 +42,7 @@ func KSMStatefulSet(
 	livenessProbe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/healthz",
+				Path: "/livez",
 				Port: intstr.FromInt(KSMMetricsPort),
 			},
 		},
@@ -53,8 +53,8 @@ func KSMStatefulSet(
 	readinessProbe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/",
-				Port: intstr.FromInt(KSMMetricsPort),
+				Path: "/readyz",
+				Port: intstr.FromInt(KSMReadyPort),
 			},
 		},
 		InitialDelaySeconds: 5,
@@ -138,7 +138,7 @@ func KSMStatefulSet(
 				Name:          "http-metrics",
 			},
 			{
-				ContainerPort: KSMHealthPort,
+				ContainerPort: KSMReadyPort,
 				Name:          "telemetry",
 			},
 		},
