@@ -1207,7 +1207,7 @@ func getAddressFromIPSet(
 	if ok {
 		for _, domain := range domains {
 			domainString, ok := domain.(string)
-			if ok && domainString[0:8] == "ctlplane" {
+			if ok && strings.HasPrefix(domainString, "ctlplane") {
 				ctlplaneDNSDomain = domainString
 			}
 		}
