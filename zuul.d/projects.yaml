@@ -109,7 +109,7 @@
 ##########################################################
 # The openstack-meta-content-provider-epoxy is defined in watcher-operator, we create a varient in the pipeline.
 # We need to add a container list as well, to list the containers that get built.
- - job:
+- job:
     name: openstack-meta-content-provider-epoxy
     description: |
       A zuul job building content from OpenDev epoxy release.
