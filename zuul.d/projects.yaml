@@ -110,12 +110,16 @@
 # The openstack-meta-content-provider-epoxy is defined in watcher-operator, we create a varient in the pipeline.
 # We need to add a container list as well, to list the containers that get built.
 - job:
-    name: openstack-meta-content-provider-epoxy
+    name: openstack-meta-content-provider-epoxy-telemetry
     description: |
       A zuul job building content from OpenDev epoxy release.
     parent: openstack-meta-content-provider
     # pre-run:
     #   - ci/playbooks/copy_container_files.yaml
+    #  This is required if it is not run from the telemetry-operator repo (e.g. on opendev changes)
+    required-projects:
+      - github.com/openstack-k8s-operators/telemetry-operator
+      - github.com/openstack-k8s-operators/openstack-operator
     vars:
       cifmw_operator_build_meta_build: false
       cifmw_bop_openstack_release: epoxy
@@ -125,7 +129,15 @@
       cifmw_build_containers_config_file: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator/ci/containers.yaml"
       cifmw_repo_setup_promotion: podified-ci-testing
       cifmw_build_containers_force: true
+      # need to check this image tag. It's probably needs some plumbing, but this is the only part of the content provider from watcher that needs to be overwritten at the moment.
+      # Later, there might just be a usable epoxy tag.
       cifmw_build_containers_image_tag: telemetry_latest
+      cifmw_operator_build_operators:
+        - name: telemetry-operator
+          src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator"
+        - name: openstack-operator
+          src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/openstack-operator"
+
 
 - job:
     name: functional-autoscaling-tests-epoxy
@@ -140,20 +152,7 @@
     name: opendev-epoxy-telemetry-operator-pipeline
     github-check:
       jobs:
-        - openstack-meta-content-provider-epoxy:
-            # This is required if it is not run from the telemetry-operator repo (e.g. on opendev changes)
-            required-projects:
-              - github.com/openstack-k8s-operators/telemetry-operator
-              - github.com/openstack-k8s-operators/openstack-operator
-            vars:
-              # need to check this image tag. It's probably needs some plumbing, but this is the only part of the content provider from watcher that needs to be overwritten at the moment.
-              # Later, there might just be a usable epoxy tag.
-              cifmw_build_containers_image_tag: telemetry_latest
-              cifmw_operator_build_operators:
-                - name: telemetry-operator
-                  src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator"
-                - name: openstack-operator
-                  src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/openstack-operator"
+        - openstack-meta-content-provider-epoxy-telemetry
         - functional-autoscaling-tests-epoxy
 
 ######################
