@@ -120,8 +120,11 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
-        #- telemetry-operator-multinode-autoscaling-tempest
+        - telemetry-operator-multinode-autoscaling-tempest:
+            dependencies: ["openstack-k8s-operators-content-provider"]
         - telemetry-operator-multinode-autoscaling-tempest-update:
+            dependencies: ["openstack-k8s-operators-content-provider"]
+        - podified-multinode-edpm-update-crc:
             dependencies: ["openstack-k8s-operators-content-provider"]
        # - telemetry-operator-multinode-default-telemetry
        # - functional-graphing-tests-osp18:
