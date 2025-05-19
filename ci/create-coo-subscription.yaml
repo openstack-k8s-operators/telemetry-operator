@@ -23,7 +23,7 @@
     cmd:
       oc get csv --namespace=openshift-operators -l operators.coreos.com/cluster-observability-operator.openshift-operators
   delay: 10
-  retries: 20
+  retries: 60
   register: output
   until: output.stdout_lines | length != 0
 
