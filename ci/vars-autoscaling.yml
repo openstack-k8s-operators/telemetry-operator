@@ -32,3 +32,27 @@ cifmw_edpm_prepare_kustomizations:
                 mysqldExporterEnabled: true
       target:
         kind: OpenStackControlPlane
+    - patch: |-
+        apiVersion: core.openstack.org/v1beta1
+        kind: OpenStackControlPlane
+        metadata:
+          name: unused
+        spec:
+          nova:
+            customServiceConfig: |
+              [cache]
+              memcache_sasl_enabled=False
+          neutron:
+            customServiceConfig: |
+              [cache]
+              memcache_sasl_enabled=False
+          keystone:
+            customServiceConfig: |
+              [cache]
+              memcache_sasl_enabled=False
+          heat:
+            customServiceConfig: |
+              [cache]
+              memcache_sasl_enabled=False
+      target:
+        kind: OpenStackControlPlane
