@@ -1,6 +1,7 @@
 - job:
     name: telemetry-operator-multinode-autoscaling
-    parent: podified-multinode-edpm-deployment-crc
+    parent: podified-multinode-hci-deployment-crc-1comp-backends
+    timeout: 18000
     dependencies: ["openstack-k8s-operators-content-provider"]
     description: |
       Deploy OpenStack with Autoscaling features enabled
