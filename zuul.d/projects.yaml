@@ -123,3 +123,8 @@
         - functional-logging-tests-osp18: *fvt_jobs_config
         - feature-verification-tests-noop:
             files: *irrelevant_files
+        # TODO: Uncomment once the job merges in FVT
+        #- functional-periodic-telemetry-with-ceph: *fvt_jobs_config
+        #    files:
+        #      - ci/deploy-telemetry-with-ceph.yml
+        #      - ci/var-telemetry-with-ceph.yml
