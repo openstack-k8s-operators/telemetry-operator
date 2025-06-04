@@ -26,6 +26,19 @@
       - roles/test_verify_email/.*
 
 - job:
+    name: telemetry-operator-periodic-telemetry-with-ceph
+    parent: podified-multinode-hci-deployment-crc-1comp-backends
+    timeout: 18000
+    dependencies: ["openstack-k8s-operators-content-provider"]
+    description: |
+      Deploy OpenStack with Telemetry and Ceph. Run metric-verification with volume pool metric tests
+    vars:
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-telemetry-with-ceph.yml"
+    irrelevant-files: *irrelevant_files
+
+- job:
     name: telemetry-operator-multinode-autoscaling-tempest
     parent: telemetry-operator-multinode-autoscaling
     vars:
@@ -123,3 +136,4 @@
         - functional-logging-tests-osp18: *fvt_jobs_config
         - feature-verification-tests-noop:
             files: *irrelevant_files
+        - telemetry-operator-periodic-telemetry-with-ceph: *fvt_jobs_config
