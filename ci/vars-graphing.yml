@@ -15,8 +15,6 @@ cifmw_edpm_prepare_kustomizations:
         metadata:
           name: unused
         spec:
-          heat:
-            enabled: true
           telemetry:
             enabled: true
             template:
@@ -24,8 +22,7 @@ cifmw_edpm_prepare_kustomizations:
                 enabled: true
                 monitoringStack:
                   alertingEnabled: false
-              autoscaling:
-                enabled: true
+                dashboardsEnabled: true
               ceilometer:
                 enabled: true
                 mysqldExporterEnabled: true
