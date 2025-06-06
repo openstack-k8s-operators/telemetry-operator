@@ -21,3 +21,39 @@ cifmw_edpm_prepare_kustomizations:
                 enabled: true
       target:
         kind: OpenStackControlPlane
+    - patch: |-
+        apiVersion: core.openstack.org/v1beta1
+        kind: OpenStackControlPlane
+        metadata:
+          name: unused
+        spec:
+          heat:
+            enabled: true
+          telemetry:
+            enabled: true
+            template:
+              metricStorage:
+                enabled: true
+                monitoringStack:
+                  alertingEnabled: false
+                dashboardsEnabled: true
+              autoscaling:
+                enabled: true
+              ceilometer:
+                enabled: true
+                mysqldExporterEnabled: true
+      target:
+        kind: OpenStackControlPlane
+    - patch: |-
+        apiVersion: core.openstack.org/v1beta1
+        kind: OpenStackControlPlane
+        metadata:
+          name: unused
+        spec:
+          telemetry:
+            enabled: true
+            template:
+              metricStorage:
+                dashboardsEnabled: true
+      target:
+        kind: OpenStackControlPlane
