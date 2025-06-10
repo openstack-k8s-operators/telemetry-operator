@@ -543,7 +543,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	if err != nil {
 		return ctrlResult, err
 	}
-	ctrlResult, err = r.reconcileNormalAodh(ctx, instance, helper, inputHash)
+	ctrlResult, err = r.reconcileNormalAodh(ctx, instance, helper, inputHash, memcached)
 	if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
@@ -669,6 +669,13 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		httpdVhostConfig[endpt.String()] = endptConfig
 	}
 	templateParameters["VHosts"] = httpdVhostConfig
+
+	// MTLS
+	if mc.GetMemcachedMTLSSecret() != "" {
+		templateParameters["MemcachedAuthCert"] = fmt.Sprint(memcachedv1.CertMountPath())
+		templateParameters["MemcachedAuthKey"] = fmt.Sprint(memcachedv1.KeyMountPath())
+		templateParameters["MemcachedAuthCa"] = fmt.Sprint(memcachedv1.CaMountPath())
+	}
 
 	cms := []util.Template{
 		// ScriptsSecret

@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
@@ -294,6 +295,7 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 	inputHash string,
+	memcached *memcachedv1.Memcached,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service Aodh '%s'", autoscaling.ServiceName))
@@ -325,7 +327,7 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements: %w", err)
 	}
 
-	sfsetDef, err := autoscaling.AodhStatefulSet(instance, inputHash, serviceLabels, topology)
+	sfsetDef, err := autoscaling.AodhStatefulSet(instance, inputHash, serviceLabels, topology, memcached)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
