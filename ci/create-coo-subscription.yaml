@@ -1,4 +1,5 @@
 ---
+# This is used by the default-telemety job
 - name: Create the COO subscription
   ansible.builtin.shell:
     cmd: |
