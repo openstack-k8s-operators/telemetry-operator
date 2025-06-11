@@ -1,4 +1,5 @@
 ---
+# This is used by the default-telemetry job
 - name: "Create the cluster-observability-operator subscription"
   hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
   gather_facts: false
