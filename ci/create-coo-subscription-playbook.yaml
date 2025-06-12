@@ -32,7 +32,6 @@
                       enabled: true
                       monitoringStack:
                         alertingEnabled: false
-                      dashboardsEnabled: true
                     autoscaling:
                       enabled: true
                     ceilometer:
@@ -40,3 +39,16 @@
                       mysqldExporterEnabled: true
             target:
               kind: OpenStackControlPlane
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: OpenStackControlPlane
+              metadata:
+                name: unused
+              spec:
+                telemetry:
+                  template:
+                    metricStorage:
+                      dashboardsEnabled: true
+            target:
+              kind: OpenStackControlPlane
+ 
