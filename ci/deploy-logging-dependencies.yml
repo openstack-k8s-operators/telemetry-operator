@@ -25,3 +25,25 @@
               - op: add
                 path: /spec/services/-
                 value: logging
+
+    - name: Copy controlplane kustomization
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-controlplane-logging.yaml"
+        content: |-
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          namespace: openstack
+          patches:
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: OpenStackControlPlane
+              metadata:
+                name: unused
+              spec:
+                telemetry:
+                  enabled: true
+                  template:
+                    logging:
+                      enabled: true
+            target:
+              kind: OpenStackControlPlane
