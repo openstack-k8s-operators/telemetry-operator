@@ -182,3 +182,4 @@
 #        - functional-logging-tests-osp18: *fvt_jobs_config
 #        - feature-verification-tests-noop:
 #            files: *irrelevant_files
+        - functional-autoscaling-tests-epoxy
