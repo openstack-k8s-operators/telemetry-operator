@@ -1,0 +1,65 @@
+---
+- name: "Create the kustomization for deploying cinder-volume"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+    - name: Copy controlplane kustomization
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-controlplane-cinder-volume.yaml"
+        content: |-
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          namespace: openstack
+          patches:
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: OpenStackControlPlane
+              metadata:
+                name: unused
+              spec:
+                extraMounts:
+                  - name: v1
+                    region: r1
+                    extraVol:
+                      - propagation:
+                        - CinderVolume
+                        - CinderBackup
+                        - GlanceAPI
+                        extraVolType: Ceph
+                        volumes:
+                        - name: ceph
+                          secret:
+                            secretName: ceph-conf-files
+                        mounts:
+                        - name: ceph
+                          mountPath: "/etc/ceph"
+                          readOnly: true
+                cinder:
+                  template:
+                    cinderVolumes:
+                      ceph:
+                        networkAttachments:
+                        - storage
+                        customServiceConfig: |
+                          [ceph]
+                          volume_backend_name=ceph
+                          volume_driver=cinder.volume.drivers.rbd.RBDDriver
+                          rbd_ceph_conf=/etc/ceph/ceph.conf
+                          rbd_user=openstack
+                          rbd_pool=volumes
+                          rbd_flatten_volume_from_snapshot=False
+                          report_discard_supported=True
+                    cinderBackup:
+                      replicas: 1
+                      customServiceConfig: |
+                        [DEFAULT]
+                        backup_driver = cinder.backup.drivers.ceph.CephBackupDriver
+                        backup_ceph_pool = backups
+                        backup_ceph_user = openstack
+                          target:
+                            kind: OpenStackControlPlane
+            target:
+              kind: OpenStackControlPlane
