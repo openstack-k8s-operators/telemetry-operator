@@ -45,6 +45,15 @@ const (
 	// LoggingReadyCondition Status=True condition which indicates if the Logging is configured and operational
 	LoggingReadyCondition condition.Type = "LoggingReady"
 
+	// CloudKittyReadyCondition Status=True condition which indicates if the CloudKitty is configured and operational
+	CloudKittyReadyCondition condition.Type = "CloudKittyReady"
+
+	// CloudKittyAPIReadyCondition Status=True condition which indicates if the CloudKitty API is configured and operational
+	CloudKittyAPIReadyCondition condition.Type = "CloudKittyAPIReady"
+
+	// CloudKittyProcReadyCondition Status=True condition which indicates if the CloudKitty Processor is configured and operational
+	CloudKittyProcReadyCondition condition.Type = "CloudKittyProcReady"
+
 	// LoggingCLONamespaceReadyCondition Status=True condition which indicates if the cluster-logging-operator namespace is created
 	LoggingCLONamespaceReadyCondition condition.Type = "LoggingCLONamespaceReady"
 
@@ -201,6 +210,48 @@ const (
 
 	// LoggingCLONamespaceFailedMessage
 	LoggingCLONamespaceFailedMessage = "CLO Namespace %s does not exist"
+
+	//
+	// CloudKittyReady condition messages
+	//
+	// CloudKittyReadyInitMessage
+	CloudKittyReadyInitMessage = "CloudKitty not started"
+
+	// CloudKittyReadyMessage
+	CloudKittyReadyMessage = "CloudKitty completed"
+
+	// CloudKittyReadyErrorMessage
+	CloudKittyReadyErrorMessage = "CloudKitty error occured %s"
+
+	//
+	// CloudKittyAPIReady condition messages
+	//
+	// CloudKittyAPIReadyInitMessage
+	CloudKittyAPIReadyInitMessage = "CloudKittyAPI not started"
+
+	// CloudKittyAPIReadyMessage
+	CloudKittyAPIReadyMessage = "CloudKittyAPI completed"
+
+	// CloudKittyAPIReadyErrorMessage
+	CloudKittyAPIReadyErrorMessage = "CloudKittyAPI error occured %s"
+
+	// CloudKittyAPIReadyRunningMessage
+	CloudKittyAPIReadyRunningMessage = "CloudKittyAPI in progress"
+
+	//
+	// CloudKittyProcReady condition messages
+	//
+	// CloudKittyProcReadyInitMessage
+	CloudKittyProcReadyInitMessage = "CloudKittyProc not started"
+
+	// CloudKittyProcReadyMessage
+	CloudKittyProcReadyMessage = "CloudKittyProc completed"
+
+	// CloudKittyProcReadyErrorMessage
+	CloudKittyProcReadyErrorMessage = "CloudKittyProc error occured %s"
+
+	// CloudKittyProcReadyRunningMessage
+	CloudKittyProcReadyRunningMessage = "CloudKittyProc in progress"
 
 	DashboardsNotEnabledMessage = "Dashboarding was not enabled, so no actions required"
 

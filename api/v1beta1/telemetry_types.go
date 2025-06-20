@@ -17,12 +17,20 @@ limitations under the License.
 package v1beta1
 
 import (
+	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
-	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 )
+
+// APIOverrideSpec to override the generated manifest of several child resources.
+type APIOverrideSpec struct {
+	// Override configuration for the Service created to serve traffic to the cluster.
+	// The key must be the endpoint type (public, internal)
+	Service map[service.Endpoint]service.RoutedOverrideSpec `json:"service,omitempty"`
+}
 
 // PasswordsSelector to identify the Service password from the Secret
 type PasswordsSelector struct {
@@ -35,6 +43,11 @@ type PasswordsSelector struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=AodhPassword
 	AodhService string `json:"aodhService"`
+
+	// CloudKittyService - Selector to get the CloudKitty service password from the Secret
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=CloudKittyPassword
+	CloudKittyService string `json:"cloudKittyService"`
 }
 
 // TelemetrySpec defines the desired state of Telemetry
@@ -72,6 +85,10 @@ type TelemetrySpecBase struct {
 	// +kubebuilder:validation:Optional
 	// Logging - Parameters related to the logging
 	Logging LoggingSection `json:"logging,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// CloudKitty - Parameters related to the cloudkitty service
+	CloudKitty CloudKittySection `json:"cloudkitty,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// NodeSelector to target subset of worker nodes running this service
@@ -165,6 +182,20 @@ type LoggingSection struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
 	// Template - Overrides to use when creating the OpenStack Logging
 	LoggingSpec `json:",inline"`
+}
+
+// CloudKittySpec defines the desired state of the cloudkitty service
+type CloudKittySection struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// Enabled - Whether OpenStack CloudKitty service should be deployed and managed
+	Enabled *bool `json:"enabled"`
+
+	// +kubebuilder:validation:Optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec
+	// Template - Overrides to use when creating the OpenStack CloudKitty service
+	CloudKittySpec `json:",inline"`
 }
 
 // TelemetryStatus defines the observed state of Telemetry

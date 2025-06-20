@@ -1,0 +1,11 @@
+{
+  "command": "/usr/bin/uwsgi --ini /etc/cloudkitty/cloudkitty-api-uwsgi.ini",
+  "config_files": [
+    {
+      "source": "/var/lib/openstack/config/cloudkitty-api-uwsgi.ini",
+      "dest": "/etc/cloudkitty/cloudkitty-api-uwsgi.ini",
+      "owner": "cloudkitty",
+      "perm": "0600"
+    }
+  ]
+}

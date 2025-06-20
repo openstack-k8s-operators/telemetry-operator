@@ -1,0 +1,11 @@
+{
+  "command": "/usr/bin/cloudkitty-dbsync upgrade",
+  "config_files": [
+    {
+      "source": "/var/lib/openstack/config/cloudkitty.conf",
+      "dest": "/etc/cloudkitty/cloudkitty.conf",
+      "owner": "cloudkitty",
+      "perm": "0600"
+    }
+  ]
+}
