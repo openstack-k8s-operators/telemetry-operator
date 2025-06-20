@@ -7,6 +7,18 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - serviceaccounts
   verbs:
   - create
@@ -46,6 +58,33 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - cloudkitty.openstack.org
+  resources:
+  - cloudkittyprocs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudkitty.openstack.org
+  resources:
+  - cloudkittyprocs/finalizers
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - cloudkitty.openstack.org
+  resources:
+  - cloudkittyprocs/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - ""
   resources:
@@ -331,6 +370,15 @@ rules:
   verbs:
   - use
 - apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - anyuid
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+- apiGroups:
   - telemetry.openstack.org
   resources:
   - autoscalings
@@ -382,6 +430,88 @@ rules:
   - telemetry.openstack.org
   resources:
   - ceilometers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkitties
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkitties/finalizers
+  verbs:
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkitties/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkittyapis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkittyapis/finalizers
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkittyapis/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkittyprocs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkittyprocs/finalizers
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkittyprocs/status
   verbs:
   - get
   - patch

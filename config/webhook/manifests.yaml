@@ -50,6 +50,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-telemetry-openstack-org-v1beta1-cloudkitty
+  failurePolicy: Fail
+  name: mcloudkitty.kb.io
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cloudkitties
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-telemetry-openstack-org-v1beta1-metricstorage
   failurePolicy: Fail
   name: mmetricstorage.kb.io
@@ -129,6 +149,26 @@ webhooks:
     - UPDATE
     resources:
     - ceilometers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-telemetry-openstack-org-v1beta1-cloudkitty
+  failurePolicy: Fail
+  name: vcloudkitty.kb.io
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cloudkitties
   sideEffects: None
 - admissionReviewVersions:
   - v1
