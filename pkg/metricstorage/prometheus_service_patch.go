@@ -24,6 +24,7 @@ import (
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // PrometheusService defines fields of the prometheus service needed for telemetry to work
@@ -41,6 +42,16 @@ func PrometheusService(
 			Annotations: map[string]string{
 				service.AnnotationEndpointKey:      string(service.EndpointInternal),
 				service.AnnotationIngressCreateKey: "false",
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "https-proxy",
+					Port:       8443,
+					TargetPort: intstr.FromInt(8443),
+					Protocol:   corev1.ProtocolTCP,
+				},
 			},
 		},
 	}

@@ -412,6 +412,14 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		return ctrl.Result{}, err
 	}
 
+	// Patch Prometheus service to add Proxy container
+	prometheusProxyPatch := metricstorage.PrometheusProxy(instance)
+	err = r.Client.Patch(context.Background(), prometheusProxyPatch, client.Apply, client.FieldOwner("telemetry-operator"))
+	if err != nil {
+		Log.Error(err, "Can't patch Prometheus service resource with proxy config")
+		return ctrl.Result{}, err
+	}
+
 	// Patch Alertmanager service to add route creation
 	if instance.Spec.MonitoringStack != nil && instance.Spec.MonitoringStack.AlertingEnabled {
 		alertmanagerServicePatch := metricstorage.AlertmanagerService(instance)
