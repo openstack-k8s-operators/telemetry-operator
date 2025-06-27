@@ -45,7 +45,7 @@ func PrometheusProxy(instance *telemetryv1.MetricStorage) *unstructured.Unstruct
 					map[string]interface{}{
 						"name": "ca-cert",
 						"secret": map[string]interface{}{
-							"secretName": "cert-metric-storage-sample-prometheus-svc",
+							"secretName": "metric-storage-prometheus-svc",
 							"items": []interface{}{
 								map[string]interface{}{
 									"key":  "ca.crt",
