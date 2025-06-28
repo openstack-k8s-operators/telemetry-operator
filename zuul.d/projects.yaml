@@ -35,6 +35,19 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
     irrelevant-files: *irrelevant_files
 
+  # I may need to look closer at what the cifmw_run_update and cifmw_run_tests options do.
+  # The update job sets these to true, and also includes the update playbook as a run stage.
+- job:
+    name: telemetry-operator-multinode-autoscaling-tempest-update
+    parent: podified-multinode-edpm-update-crc
+    description: |
+      Run update jobs with autoscaling features.
+    vars:
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
+
 - job:
     name: telemetry-operator-multinode-default-telemetry
     parent: podified-multinode-edpm-deployment-crc
@@ -107,19 +120,26 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
-        - telemetry-operator-multinode-default-telemetry
-        - functional-graphing-tests-osp18:
-            voting: false
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            irrelevant-files: *irrelevant_files
-        - functional-autoscaling-tests-osp18: &fvt_jobs_config
-            voting: true
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            irrelevant-files: *irrelevant_files
-        - functional-logging-tests-osp18: *fvt_jobs_config
-        - feature-verification-tests-noop:
-            files: *irrelevant_files
+        - telemetry-operator-multinode-autoscaling-tempest:
+            dependencies: ["openstack-k8s-operators-content-provider"]
+        - telemetry-operator-multinode-autoscaling-tempest-update:
+            dependencies: ["openstack-k8s-operators-content-provider"]
+        - podified-multinode-edpm-update-crc:
+            dependencies: ["openstack-k8s-operators-content-provider"]
+       # - telemetry-operator-multinode-default-telemetry
+       # - functional-graphing-tests-osp18:
+       #     voting: false
+       #     required-projects:
+       #       - name: infrawatch/feature-verification-tests
+       #         override-checkout: master
+       #     irrelevant-files: *irrelevant_files
+       # - functional-autoscaling-tests-osp18: &fvt_jobs_config
+       #     voting: true
+       #     required-projects:
+       #       - name: infrawatch/feature-verification-tests
+       #         override-checkout: master
+       #     irrelevant-files: *irrelevant_files
+       # - functional-logging-tests-osp18: *fvt_jobs_config
+       # - functional-metric-verification-tests-osp18: *fvt_jobs_config
+       # - feature-verification-tests-noop:
+       #     files: *irrelevant_files
