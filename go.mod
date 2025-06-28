@@ -5,16 +5,16 @@ go 1.21
 replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 
 require (
-	github.com/go-logr/logr v1.4.2
+	github.com/go-logr/logr v1.4.3
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.6
 	github.com/onsi/ginkgo/v2 v2.20.1
 	github.com/onsi/gomega v1.34.1
-	github.com/openstack-k8s-operators/heat-operator/api v0.6.0
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20250513115636-b549982a5d8f
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20250604143452-2260c431b9f1
-	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20250423055245-3cb2ae8df6f0
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20250508141203-be026d3164f7
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20250415060817-dc849adfa27e
+	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20250623134039-cd9d6c60f812
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20250626084237-ff8bcd258e1a
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20250623134042-91132f1a9d4d
+	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20250605082218-a58074898dd7
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20250605082218-a58074898dd7
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20250623172438-ee017ae3da75
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240529090522-c780bd90b147
 	github.com/rabbitmq/cluster-operator v1.14.0
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.71.0-rhobs1
