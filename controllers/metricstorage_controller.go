@@ -174,6 +174,11 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Always patch the instance status when exiting this function so we can
 	// persist any changes.
 	defer func() {
+		// Don't update the status, if reconciler Panics
+		if r := recover(); r != nil {
+			Log.Info(fmt.Sprintf("panic during reconcile %v\n", r))
+			panic(r)
+		}
 		condition.RestoreLastTransitionTimes(
 			&instance.Status.Conditions, savedConditions)
 		if instance.Status.Conditions.IsUnknown(condition.ReadyCondition) {
@@ -836,12 +841,12 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 	// openstack Ceilometer Compute's prom exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-compute-prom-exporter", telemetryv1.DefaultCeilometerComputePromExporterPort, true)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-compute-prom-exporter", telemetryv1.DefaultCeilometerComputePromExporterPort, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// openstack Ceilometer IPMI's prom exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-ipmi-prom-exporter", telemetryv1.DefaultCeilometerIpmiPromExporterPort, true)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-ipmi-prom-exporter", telemetryv1.DefaultCeilometerIpmiPromExporterPort, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
