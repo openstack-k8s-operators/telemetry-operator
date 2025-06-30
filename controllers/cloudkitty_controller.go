@@ -181,6 +181,7 @@ func (r *CloudKittyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		condition.UnknownCondition(condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage),
 		condition.UnknownCondition(condition.DBReadyCondition, condition.InitReason, condition.DBReadyInitMessage),
 		condition.UnknownCondition(condition.DBSyncReadyCondition, condition.InitReason, condition.DBSyncReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.CloudKittyStorageInitReadyCondition, condition.InitReason, telemetryv1.CloudKittyStorageInitReadyInitMessage),
 		condition.UnknownCondition(condition.RabbitMqTransportURLReadyCondition, condition.InitReason, condition.RabbitMqTransportURLReadyInitMessage),
 		condition.UnknownCondition(condition.MemcachedReadyCondition, condition.InitReason, condition.MemcachedReadyInitMessage),
 		condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
@@ -419,10 +420,10 @@ func (r *CloudKittyReconciler) reconcileInit(
 	// run CloudKitty db sync
 	//
 	dbSyncHash := instance.Status.Hash[telemetryv1.CKDbSyncHash]
-	jobDef := cloudkitty.DbSyncJob(instance, serviceLabels)
+	jobDbSyncDef := cloudkitty.DbSyncJob(instance, serviceLabels)
 
 	dbSyncjob := job.NewJob(
-		jobDef,
+		jobDbSyncDef,
 		telemetryv1.CKDbSyncHash,
 		instance.Spec.PreserveJobs,
 		cloudkitty.ShortDuration,
@@ -451,11 +452,53 @@ func (r *CloudKittyReconciler) reconcileInit(
 	}
 	if dbSyncjob.HasChanged() {
 		instance.Status.Hash[telemetryv1.CKDbSyncHash] = dbSyncjob.GetHash()
-		Log.Info(fmt.Sprintf("Service '%s' - Job %s hash added - %s", instance.Name, jobDef.Name, instance.Status.Hash[telemetryv1.CKDbSyncHash]))
+		Log.Info(fmt.Sprintf("Service '%s' - Job %s hash added - %s", instance.Name, jobDbSyncDef.Name, instance.Status.Hash[telemetryv1.CKDbSyncHash]))
 	}
 	instance.Status.Conditions.MarkTrue(condition.DBSyncReadyCondition, condition.DBSyncReadyMessage)
 
 	// run CloudKitty db sync - end
+
+	//
+	// run CloudKitty Storage Init
+	//
+	ckStorageInitHash := instance.Status.Hash[telemetryv1.CKStorageInitHash]
+	jobStorageInitDef := cloudkitty.StorageInitJob(instance, serviceLabels)
+
+	storageInitjob := job.NewJob(
+		jobStorageInitDef,
+		telemetryv1.CKStorageInitHash,
+		instance.Spec.PreserveJobs,
+		cloudkitty.ShortDuration,
+		ckStorageInitHash,
+	)
+	ctrlResult, err = storageInitjob.DoJob(
+		ctx,
+		helper,
+	)
+	if (ctrlResult != ctrl.Result{}) {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyStorageInitReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.CloudKittyStorageInitReadyRunningMessage))
+		return ctrlResult, nil
+	}
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyStorageInitReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.CloudKittyStorageInitReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	if storageInitjob.HasChanged() {
+		instance.Status.Hash[telemetryv1.CKStorageInitHash] = storageInitjob.GetHash()
+		Log.Info(fmt.Sprintf("Service '%s' - Job %s hash added - %s", instance.Name, jobStorageInitDef.Name, instance.Status.Hash[telemetryv1.CKStorageInitHash]))
+	}
+	instance.Status.Conditions.MarkTrue(telemetryv1.CloudKittyStorageInitReadyCondition, telemetryv1.CloudKittyStorageInitReadyMessage)
+
+	// run CloudKitty Storage Init - end
 
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' init successfully", instance.Name))
 	return ctrl.Result{}, nil
@@ -829,6 +872,12 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	templateParameters["MemcachedServersWithInet"] = memcached.GetMemcachedServerListWithInetString()
 	templateParameters["TimeOut"] = instance.Spec.APITimeout
 
+	templateParameters["TLS"] = false
+	if instance.Spec.CloudKittyProc.TLS.Enabled() {
+		templateParameters["TLS"] = true
+		templateParameters["CAFile"] = tls.DownstreamTLSCABundlePath
+	}
+
 	// create httpd  vhost template parameters
 	httpdVhostConfig := map[string]interface{}{}
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
@@ -961,7 +1010,7 @@ func (r *CloudKittyReconciler) procDeploymentCreateOrUpdate(ctx context.Context,
 		DatabaseHostname:       instance.Status.DatabaseHostname,
 		TransportURLSecret:     instance.Status.TransportURLSecret,
 		ServiceAccount:         instance.RbacResourceName(),
-		TLS:                    instance.Spec.CloudKittyAPI.TLS.Ca,
+		//TLS:                    instance.Spec.CloudKittyProc.TLS.Ca,
 	}
 
 	if cloudKittyProcSpec.NodeSelector == nil {

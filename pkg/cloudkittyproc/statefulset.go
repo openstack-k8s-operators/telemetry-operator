@@ -24,7 +24,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -45,7 +44,7 @@ func StatefulSet(
 	// cloudKittyGroup := int64(telemetryv1.CloudKittyGroupID)
 
 	// TODO until we determine how to properly query for these
-	livenessProbe := &corev1.Probe{
+	/*livenessProbe := &corev1.Probe{
 		// TODO might need tuning
 		TimeoutSeconds:      5,
 		PeriodSeconds:       3,
@@ -57,10 +56,10 @@ func StatefulSet(
 		FailureThreshold:    12,
 		PeriodSeconds:       5,
 		InitialDelaySeconds: 5,
-	}
+	}*/
 
 	args := []string{"-c", ServiceCommand}
-	var probeCommand []string
+	/*var probeCommand []string
 	livenessProbe.HTTPGet = &corev1.HTTPGetAction{
 		Port: intstr.FromInt(8080),
 	}
@@ -69,7 +68,7 @@ func StatefulSet(
 		"/usr/local/bin/container-scripts/healthcheck.py",
 		"processor",
 		"/etc/cloudkitty/cloudkitty.conf.d",
-	}
+	}*/
 
 	envVars := map[string]env.Setter{}
 	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
@@ -113,13 +112,13 @@ func StatefulSet(
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser: &cloudKittyUser,
 							},
-							Env:           env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts:  volumeMounts,
-							Resources:     instance.Spec.Resources,
-							LivenessProbe: livenessProbe,
-							StartupProbe:  startupProbe,
+							Env:          env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts: volumeMounts,
+							Resources:    instance.Spec.Resources,
+							//LivenessProbe: livenessProbe,
+							//StartupProbe:  startupProbe,
 						},
-						{
+						/*{
 							Name:    "probe",
 							Command: probeCommand,
 							Image:   instance.Spec.ContainerImage,
@@ -128,7 +127,7 @@ func StatefulSet(
 								//RunAsGroup: &cloudKittyGroup,
 							},
 							VolumeMounts: volumeMounts,
-						},
+						},*/
 					},
 					Volumes: volumes,
 				},

@@ -54,6 +54,9 @@ const (
 	// CloudKittyProcReadyCondition Status=True condition which indicates if the CloudKitty Processor is configured and operational
 	CloudKittyProcReadyCondition condition.Type = "CloudKittyProcReady"
 
+	// CloudKittyStorageInitReadyCondition Status=True condition which indicates if the CloudKitty Storage Init process has ran
+	CloudKittyStorageInitReadyCondition condition.Type = "CloudKittyStorageInitReady"
+
 	// LoggingCLONamespaceReadyCondition Status=True condition which indicates if the cluster-logging-operator namespace is created
 	LoggingCLONamespaceReadyCondition condition.Type = "LoggingCLONamespaceReady"
 
@@ -222,6 +225,21 @@ const (
 
 	// CloudKittyReadyErrorMessage
 	CloudKittyReadyErrorMessage = "CloudKitty error occured %s"
+
+	//
+	// CloudKittyStorageInit condition messages
+	//
+	// CloudKittyStorageInitReadyInitMessage
+	CloudKittyStorageInitReadyInitMessage = "CloudKittyStorageInit not started"
+
+	// CloudKittyStorageInitReadyMessage
+	CloudKittyStorageInitReadyMessage = "CloudKittyStorageInit completed"
+
+	// CloudKittyStorageInitReadyRunning
+	CloudKittyStorageInitReadyRunningMessage = "CloudKittyStorageInit job still running"
+
+	// CloudKittyStorageInitReadyErrorMessage
+	CloudKittyStorageInitReadyErrorMessage = "CloudKittyStorageInit job error occurred %s"
 
 	//
 	// CloudKittyAPIReady condition messages

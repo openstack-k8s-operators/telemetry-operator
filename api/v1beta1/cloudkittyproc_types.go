@@ -33,6 +33,11 @@ type CloudKittyProcTemplateCore struct {
 	// +kubebuilder:validation:Minimum=0
 	// Replicas - CloudKitty API Replicas
 	Replicas *int32 `json:"replicas"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// TLS - Parameters related to the TLS
+	TLS tls.SimpleService `json:"tls,omitempty"`
 }
 
 // CloudKittyProcTemplate defines the input parameters for the CloudKitty Processor service
@@ -63,11 +68,6 @@ type CloudKittyProcSpec struct {
 	// +kubebuilder:validation:Required
 	// ServiceAccount - service account name used internally to provide CloudKitty services the default SA name
 	ServiceAccount string `json:"serviceAccount"`
-
-	// +kubebuilder:validation:Optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	// TLS - Parameters related to the TLS
-	TLS tls.Ca `json:"tls,omitempty"`
 }
 
 // CloudKittyProcStatus defines the observed state of CloudKitty Processor

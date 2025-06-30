@@ -32,11 +32,13 @@ const (
 	CloudKittyGroupID = 42408
 
 	// CloudKittyAPIContainerImage - default fall-back image for CloudKitty API
-	CloudKittyAPIContainerImage = "quay.io/podified-master-centos9/cloudkitty-api:current-podified"
+	CloudKittyAPIContainerImage = "quay.io/podified-master-centos9/openstack-cloudkitty-api:current-podified"
 	// CloudKittyProcContainerImage - default fall-back image for CloudKitty Processor
-	CloudKittyProcContainerImage = "quay.io/podified-master-centos9/cloudkitty-processor:current-podified"
+	CloudKittyProcContainerImage = "quay.io/podified-master-centos9/openstack-cloudkitty-processor:current-podified"
 	// CloudKittyDbSyncHash hash
 	CKDbSyncHash = "ckdbsync"
+	// CKStorageInitHash hash
+	CKStorageInitHash = "ckstorageinit"
 	// CloudKittyReplicas - The number of replicas per each service deployed
 	CloudKittyReplicas = 1
 )
