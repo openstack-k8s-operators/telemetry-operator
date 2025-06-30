@@ -44,6 +44,16 @@ func PrometheusService(
 				service.AnnotationIngressCreateKey: "false",
 			},
 		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "https-proxy",
+					Port:       8443,
+					TargetPort: intstr.FromInt(8443),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+		},
 	}
 	return svc
 }

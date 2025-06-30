@@ -22,7 +22,7 @@ func PrometheusProxy(instance *telemetryv1.MetricStorage) *unstructured.Unstruct
 						"args": []interface{}{
 							"--secure-listen-address=0.0.0.0:8443",
 							"--upstream=https://metric-storage-prometheus.openstack.svc:9090/",
-							"--upstream-ca-file=/etc/tls/ca.crt",
+							"--upstream-ca-file=/etc/tls/internal-ca-bundle.pem",
 							"--logtostderr=true",
 							"--v=10",
 						},
@@ -45,11 +45,11 @@ func PrometheusProxy(instance *telemetryv1.MetricStorage) *unstructured.Unstruct
 					map[string]interface{}{
 						"name": "ca-cert",
 						"secret": map[string]interface{}{
-							"secretName": "metric-storage-prometheus-svc",
+							"secretName": "combined-ca-bundle",
 							"items": []interface{}{
 								map[string]interface{}{
-									"key":  "ca.crt",
-									"path": "ca.crt",
+									"key":  "internal-ca-bundle.pem",
+									"path": "internal-ca-bundle.pem",
 								},
 							},
 						},
