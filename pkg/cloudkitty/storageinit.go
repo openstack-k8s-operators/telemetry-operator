@@ -24,25 +24,24 @@ import (
 )
 
 const (
-	// DBSyncCommand -
+	// storageInitCommand -
 	// TODO: Once we work on update/upgrades revisit the command in the
-	//       the cloudkitty-dbsync-config.json file.
+	//       the cloudkitty-storageinit-config.json file.
 	//       If we stop all services during the update/upgrade then we can keep
 	//       the --bump-versions flag.
 	//       If we are doing rolling upgrades we'll need to use the flag
 	//       conditionally (only for adoption) and do the restart cycle of
 	//       services as described in the upstream rolling upgrades process.
-	dbSyncCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	storageInitCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
 )
 
-// DbSyncJob func
-func DbSyncJob(instance *telemetryv1.CloudKitty, labels map[string]string) *batchv1.Job {
-	args := []string{"-c"}
-	args = append(args, dbSyncCommand)
+// StorageInitJob func
+func StorageInitJob(instance *telemetryv1.CloudKitty, labels map[string]string) *batchv1.Job {
+	args := []string{"-c", storageInitCommand}
 
 	// create Volume and VolumeMounts
 	volumes := GetVolumes("cloudkitty")
-	volumeMounts := GetVolumeMounts("cloudkitty-dbsync")
+	volumeMounts := GetVolumeMounts("cloudkitty-storageinit")
 	// add CA cert if defined
 	if instance.Spec.CloudKittyAPI.TLS.CaBundleSecretName != "" {
 		volumes = append(volumes, instance.Spec.CloudKittyAPI.TLS.CreateVolume())
@@ -69,7 +68,7 @@ func DbSyncJob(instance *telemetryv1.CloudKitty, labels map[string]string) *batc
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ServiceName + "-db-sync",
+			Name:      ServiceName + "-storageinit",
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
@@ -80,7 +79,7 @@ func DbSyncJob(instance *telemetryv1.CloudKitty, labels map[string]string) *batc
 					ServiceAccountName: instance.RbacResourceName(),
 					Containers: []corev1.Container{
 						{
-							Name: ServiceName + "-db-sync",
+							Name: ServiceName + "-storageinit",
 							Command: []string{
 								"/bin/bash",
 							},
