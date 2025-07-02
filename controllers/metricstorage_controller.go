@@ -849,12 +849,12 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 	// openstack Ceilometer Compute's prom exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-compute-prom-exporter", telemetryv1.DefaultCeilometerComputePromExporterPort, true)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-compute-prom-exporter", telemetryv1.DefaultCeilometerComputePromExporterPort, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// openstack Ceilometer IPMI's prom exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-ipmi-prom-exporter", telemetryv1.DefaultCeilometerIpmiPromExporterPort, true)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-ipmi-prom-exporter", telemetryv1.DefaultCeilometerIpmiPromExporterPort, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
