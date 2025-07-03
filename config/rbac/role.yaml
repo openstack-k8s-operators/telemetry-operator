@@ -103,6 +103,14 @@ rules:
   - list
   - watch
 - apiGroups:
+  - k8s.cni.cncf.io
+  resources:
+  - network-attachment-definitions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - keystone.openstack.org
   resources:
   - keystoneapis
@@ -461,3 +469,12 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - topology.openstack.org
+  resources:
+  - topologies
+  verbs:
+  - get
+  - list
+  - update
+  - watch

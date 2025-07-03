@@ -5,3 +5,4 @@ metadata:
 spec:
   secret: osp-secret
   mysqldExporterEnabled: true
+  ksmEnabled: true

@@ -20,10 +20,10 @@ const (
 	// KSMServiceName -
 	KSMServiceName = "kube-state-metrics"
 
-	// KSMHealthPort -
-	KSMHealthPort = 8081
+	// KSMReadyPort - (/readyz)
+	KSMReadyPort = 8081
 
-	// KSMMetricsPort -
+	// KSMMetricsPort - (/metrics, /healthz, /livez)
 	KSMMetricsPort = 8080
 )
 

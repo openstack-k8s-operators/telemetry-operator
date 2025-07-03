@@ -19,7 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
+
+	"github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -55,6 +58,7 @@ import (
 	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
@@ -99,6 +103,7 @@ func (r *AutoscalingReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch
 // service account permissions that are needed to grant permission to the above
 // +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
+// +kubebuilder:rbac:groups=topology.openstack.org,resources=topologies,verbs=get;list;watch;update
 
 // Reconcile reconciles an Autoscaling
 func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -143,6 +148,11 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Always patch the instance status when exiting this function so we can
 	// persist any changes.
 	defer func() {
+		// Don't update the status, if reconciler Panics
+		if r := recover(); r != nil {
+			Log.Info(fmt.Sprintf("panic during reconcile %v\n", r))
+			panic(r)
+		}
 		condition.RestoreLastTransitionTimes(
 			&instance.Status.Conditions, savedConditions)
 		if instance.Status.Conditions.IsUnknown(condition.ReadyCondition) {
@@ -183,6 +193,12 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	instance.Status.Conditions.Init(&cl)
 	instance.Status.ObservedGeneration = instance.Generation
 
+	// Init Topology condition if there's a reference
+	if instance.Spec.Aodh.TopologyRef != nil {
+		c := condition.UnknownCondition(condition.TopologyReadyCondition, condition.InitReason, condition.TopologyReadyInitMessage)
+		cl.Set(c)
+	}
+
 	// If we're not deleting this and the service object doesn't have our finalizer, add it.
 	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) || isNewInstance {
 		return ctrl.Result{}, nil
@@ -208,6 +224,7 @@ const (
 	autoscalingTLSAPIInternalField     = ".spec.tls.api.internal.secretName"
 	autoscalingTLSAPIPublicField       = ".spec.tls.api.public.secretName"
 	autoscalingTLSField                = ".spec.tls.secretName"
+	topologyField                      = ".spec.topologyRef.Name"
 )
 
 var (
@@ -217,6 +234,7 @@ var (
 		autoscalingTLSAPIInternalField,
 		autoscalingTLSAPIPublicField,
 		autoscalingTLSField,
+		topologyField,
 	}
 )
 
@@ -232,6 +250,15 @@ func (r *AutoscalingReconciler) reconcileDelete(
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
+	}
+	// Remove finalizer on the Topology CR
+	if ctrlResult, err := topologyv1.EnsureDeletedTopologyRef(
+		ctx,
+		helper,
+		instance.Status.LastAppliedTopology,
+		instance.Name,
+	); err != nil {
+		return ctrlResult, err
 	}
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
@@ -425,13 +452,30 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// Get correct prometheus host, port and if TLS should be used
 	// NOTE: Always do this before calling the generateServiceConfig to get the newest values in the ServiceConfig
 	//
+	prometheusEndpointSecret := &corev1.Secret{}
+	err = r.Client.Get(ctx, client.ObjectKey{
+		Name:      autoscaling.PrometheusEndpointSecret,
+		Namespace: instance.Namespace,
+	}, prometheusEndpointSecret)
+	if err != nil {
+		Log.Info("Prometheus Endpoint Secret not found")
+	}
+
 	if instance.Spec.PrometheusHost == "" {
-		instance.Status.PrometheusHost = fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace)
+		if prometheusEndpointSecret.Data != nil {
+			instance.Status.PrometheusHost = string(prometheusEndpointSecret.Data[metricstorage.PrometheusHost])
+		}
 	} else {
 		instance.Status.PrometheusHost = instance.Spec.PrometheusHost
 	}
 	if instance.Spec.PrometheusPort == 0 {
-		instance.Status.PrometheusPort = telemetryv1.DefaultPrometheusPort
+		if prometheusEndpointSecret.Data != nil {
+			port, err := strconv.Atoi(string(prometheusEndpointSecret.Data[metricstorage.PrometheusPort]))
+			if err != nil {
+				return ctrlResult, err
+			}
+			instance.Status.PrometheusPort = int32(port)
+		}
 	} else {
 		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
 	}
@@ -504,7 +548,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	if err != nil {
 		return ctrlResult, err
 	}
-	ctrlResult, err = r.reconcileNormalAodh(ctx, instance, helper, inputHash)
+	ctrlResult, err = r.reconcileNormalAodh(ctx, instance, helper, inputHash, memcached)
 	if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
@@ -595,8 +639,6 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		"AodhPassword":             string(ospSecret.Data[instance.Spec.Aodh.PasswordSelectors.AodhService]),
 		"KeystoneInternalURL":      keystoneInternalURL,
 		"TransportURL":             string(transportURLSecret.Data["transport_url"]),
-		"PrometheusHost":           instance.Status.PrometheusHost,
-		"PrometheusPort":           instance.Status.PrometheusPort,
 		"MemcachedServers":         mc.GetMemcachedServerListString(),
 		"MemcachedServersWithInet": mc.GetMemcachedServerListWithInetString(),
 		"DatabaseConnection": fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
@@ -632,6 +674,13 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		httpdVhostConfig[endpt.String()] = endptConfig
 	}
 	templateParameters["VHosts"] = httpdVhostConfig
+
+	// MTLS
+	if mc.GetMemcachedMTLSSecret() != "" {
+		templateParameters["MemcachedAuthCert"] = fmt.Sprint(memcachedv1.CertMountPath())
+		templateParameters["MemcachedAuthKey"] = fmt.Sprint(memcachedv1.KeyMountPath())
+		templateParameters["MemcachedAuthCa"] = fmt.Sprint(memcachedv1.CaMountPath())
+	}
 
 	cms := []util.Template{
 		// ScriptsSecret
@@ -789,7 +838,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		}
 		return nil
 	}
-	metricStorageFn := func(_ context.Context, o client.Object) []reconcile.Request {
+	prometheusEndpointFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all autoscaling CRs
@@ -804,14 +853,17 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 
 		for _, cr := range autoscalings.Items {
 			if cr.Spec.PrometheusHost == "" {
-				// the autoscaling is using MetricStorage for metrics
-				name := client.ObjectKey{
-					Namespace: o.GetNamespace(),
-					Name:      cr.Name,
+				// the autoscaling is using PrometheusEndpoint secret for metrics
+				if o.GetName() == autoscaling.PrometheusEndpointSecret {
+					name := client.ObjectKey{
+						Namespace: o.GetNamespace(),
+						Name:      cr.Name,
+					}
+					Log.Info(fmt.Sprintf("Secret %s is used by Autoscaling CR %s", o.GetName(), cr.Name))
+					result = append(result, reconcile.Request{NamespacedName: name})
 				}
-				Log.Info(fmt.Sprintf("MetricStorage %s is used by Autoscaling CR %s", o.GetName(), cr.Name))
-				result = append(result, reconcile.Request{NamespacedName: name})
 			}
+
 		}
 		if len(result) > 0 {
 			return result
@@ -854,6 +906,18 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		return err
 	}
 
+	// index topologyField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, topologyField, func(rawObj client.Object) []string {
+		// Extract the topology name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Autoscaling)
+		if cr.Spec.Aodh.TopologyRef == nil {
+			return nil
+		}
+		return []string{cr.Spec.Aodh.TopologyRef.Name}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Autoscaling{}).
 		Owns(&appsv1.StatefulSet{}).
@@ -873,16 +937,18 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
 		Watches(&memcachedv1.Memcached{},
 			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
-		Watches(
-			&corev1.Secret{},
+		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
-		Watches(
-			&telemetryv1.MetricStorage{},
-			handler.EnqueueRequestsFromMapFunc(metricStorageFn),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
-		).
+		Watches(&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(prometheusEndpointFn)).
+		Watches(&topologyv1.Topology{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(&keystonev1.KeystoneAPI{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectForSrc),
+			builder.WithPredicates(keystonev1.KeystoneAPIStatusChangedPredicate)).
 		Complete(r)
 }
 
@@ -914,6 +980,37 @@ func (r *AutoscalingReconciler) findObjectsForSrc(ctx context.Context, src clien
 				},
 			)
 		}
+	}
+
+	return requests
+}
+
+func (r *AutoscalingReconciler) findObjectForSrc(ctx context.Context, src client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	l := log.FromContext(ctx).WithName("Controllers").WithName("Autoscaling")
+
+	crList := &telemetryv1.AutoscalingList{}
+	listOps := &client.ListOptions{
+		Namespace: src.GetNamespace(),
+	}
+	err := r.Client.List(ctx, crList, listOps)
+	if err != nil {
+		l.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
+		return requests
+	}
+
+	for _, item := range crList.Items {
+		l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+
+		requests = append(requests,
+			reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      item.GetName(),
+					Namespace: item.GetNamespace(),
+				},
+			},
+		)
 	}
 
 	return requests

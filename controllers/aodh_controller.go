@@ -28,12 +28,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	job "github.com/openstack-k8s-operators/lib-common/modules/common/job"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	statefulset "github.com/openstack-k8s-operators/lib-common/modules/common/statefulset"
@@ -293,6 +295,7 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 	instance *telemetryv1.Autoscaling,
 	helper *helper.Helper,
 	inputHash string,
+	memcached *memcachedv1.Memcached,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service Aodh '%s'", autoscaling.ServiceName))
@@ -303,7 +306,28 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 	// ConfigVars
 	configVars := make(map[string]env.Setter)
 
-	sfsetDef, err := autoscaling.AodhStatefulSet(instance, inputHash, serviceLabels)
+	//
+	// Handle Topology
+	//
+	topology, err := ensureTopology(
+		ctx,
+		helper,
+		instance,      // topologyHandler
+		instance.Name, // finalizer
+		&instance.Status.Conditions,
+		labels.GetLabelSelector(serviceLabels),
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.TopologyReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.TopologyReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements: %w", err)
+	}
+
+	sfsetDef, err := autoscaling.AodhStatefulSet(instance, inputHash, serviceLabels, topology, memcached)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,

@@ -56,6 +56,7 @@ import (
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
@@ -105,6 +106,7 @@ func (r *CeilometerReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch
 // service account permissions that are needed to grant permission to the above
 // +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
+// +kubebuilder:rbac:groups=topology.openstack.org,resources=topologies,verbs=get;list;watch;update
 
 // Reconcile reconciles a Ceilometer
 func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -149,6 +151,11 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Always patch the instance status when exiting this function so we can
 	// persist any changes.
 	defer func() {
+		// Don't update the status, if reconciler Panics
+		if r := recover(); r != nil {
+			Log.Info(fmt.Sprintf("panic during reconcile %v\n", r))
+			panic(r)
+		}
 		condition.RestoreLastTransitionTimes(
 			&instance.Status.Conditions, savedConditions)
 		if instance.Status.Conditions.IsUnknown(condition.ReadyCondition) {
@@ -190,6 +197,13 @@ func (r *CeilometerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		condition.UnknownCondition(telemetryv1.KSMServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.KSMTLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 	)
+
+	// Init Topology condition if there's a reference
+	if instance.Spec.TopologyRef != nil {
+		c := condition.UnknownCondition(condition.TopologyReadyCondition, condition.InitReason, condition.TopologyReadyInitMessage)
+		cl.Set(c)
+	}
+
 	instance.Status.Conditions.Init(&cl)
 	instance.Status.ObservedGeneration = instance.Generation
 
@@ -239,6 +253,7 @@ var (
 		ksmTLSField,
 		mysqldExporterCaBundleSecretNameField,
 		mysqldExporterTLSField,
+		topologyField,
 	}
 )
 
@@ -380,6 +395,16 @@ func (r *CeilometerReconciler) reconcileDelete(ctx context.Context, instance *te
 		}
 	}
 
+	// Remove finalizer on the Topology CR
+	if ctrlResult, err := topologyv1.EnsureDeletedTopologyRef(
+		ctx,
+		helper,
+		instance.Status.LastAppliedTopology,
+		instance.Name,
+	); err != nil {
+		return ctrlResult, err
+	}
+
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", ceilometer.ServiceName))
@@ -474,25 +499,47 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		return rbacResult, nil
 	}
 
-	ksmRes, err := r.reconcileKSM(ctx, instance, helper)
+	//
+	// Handle Topology
+	//
+	topology, err := ensureTopology(
+		ctx,
+		helper,
+		instance,      // topologyHandler
+		instance.Name, // finalizer
+		&instance.Status.Conditions,
+		labels.GetLabelSelector(serviceLabels),
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.TopologyReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.TopologyReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements: %w", err)
+	}
+
+	ksmRes, err := r.reconcileKSM(ctx, instance, helper, topology)
 	if err != nil {
 		return ksmRes, err
 	}
 
-	mysqldRes, err := r.reconcileMysqldExporter(ctx, instance, helper)
+	mysqldRes, err := r.reconcileMysqldExporter(ctx, instance, helper, topology)
 	if (err != nil || mysqldRes != ctrl.Result{}) {
 		return mysqldRes, err
 	}
 
 	// NOTE(mmagr): Ceilometer reconciliation has to be the last as this is the (only) place
 	//              where condition ReadyCondition is/should be evaluated
-	return r.reconcileCeilometer(ctx, instance, helper)
+	return r.reconcileCeilometer(ctx, instance, helper, topology)
 }
 
 func (r *CeilometerReconciler) reconcileCeilometer(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
+	topology *topologyv1.Topology,
 ) (ctrl.Result, error) {
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
@@ -711,7 +758,7 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	}
 
 	// Define a new StatefulSet object
-	sfsetDef, err := ceilometer.StatefulSet(instance, inputHash, serviceLabels)
+	sfsetDef, err := ceilometer.StatefulSet(instance, inputHash, serviceLabels, topology)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -770,6 +817,7 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
+	topology *topologyv1.Topology,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, mysqldexporter.ServiceName))
@@ -777,14 +825,9 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 	if instance.Spec.MysqldExporterEnabled == nil || !*instance.Spec.MysqldExporterEnabled {
 		return r.reconcileDeleteMysqldExporter(ctx, instance, helper)
 	}
-
 	if instance.Spec.MysqldExporterImage == "" {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.MysqldExporterDeploymentReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityError,
-			"mysqld_exporter container image isn't set"))
-		return ctrl.Result{}, nil
+		Log.Info("MysqldExporter is enabled, but MysqldExporterImage isn't set")
+		return r.reconcileDeleteMysqldExporter(ctx, instance, helper)
 	}
 
 	configMapVars := make(map[string]env.Setter)
@@ -895,7 +938,7 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 	}
 
 	// Define a new StatefulSet object
-	sfsetDef, err := mysqldexporter.StatefulSet(instance, inputHash, serviceLabels)
+	sfsetDef, err := mysqldexporter.StatefulSet(instance, inputHash, serviceLabels, topology)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -950,6 +993,7 @@ func (r *CeilometerReconciler) reconcileKSM(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
+	topology *topologyv1.Topology,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, availability.KSMServiceName))
@@ -957,14 +1001,9 @@ func (r *CeilometerReconciler) reconcileKSM(
 	if instance.Spec.KSMEnabled == nil || !*instance.Spec.KSMEnabled {
 		return r.reconcileDeleteKSM(ctx, instance, helper)
 	}
-
 	if instance.Spec.KSMImage == "" {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			telemetryv1.KSMDeploymentReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityError,
-			"ksmImage container image isn't set"))
-		return ctrl.Result{}, nil
+		Log.Info("KSM is enabled, but KSMImage isn't set")
+		return r.reconcileDeleteKSM(ctx, instance, helper)
 	}
 
 	// ConfigMap
@@ -1059,7 +1098,7 @@ func (r *CeilometerReconciler) reconcileKSM(
 	instance.Status.Conditions.MarkTrue(telemetryv1.KSMServiceConfigReadyCondition, condition.InputReadyMessage)
 
 	// create the kube-state-metrics statefulset
-	ssDef, err := availability.KSMStatefulSet(instance, tlsConfName, serviceLabels)
+	ssDef, err := availability.KSMStatefulSet(instance, tlsConfName, serviceLabels, topology)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -1206,12 +1245,16 @@ func (r *CeilometerReconciler) generateServiceConfig(
 	cms := []util.Template{
 		// ScriptsSecrets
 		{
-			Name:               fmt.Sprintf("%s-scripts", ceilometer.ServiceName),
-			Namespace:          instance.Namespace,
-			Type:               util.TemplateTypeScripts,
-			InstanceType:       "ceilometercentral",
-			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
-			Labels:             cmLabels,
+			Name:         fmt.Sprintf("%s-scripts", ceilometer.ServiceName),
+			Namespace:    instance.Namespace,
+			Type:         util.TemplateTypeScripts,
+			InstanceType: "ceilometercentral",
+			AdditionalTemplate: map[string]string{
+				"common.sh":             "/common/common.sh",
+				"centralhealth.py":      "/ceilometercentral/bin/centralhealth.py",
+				"notificationhealth.py": "/ceilometercentral/bin/notificationhealth.py",
+			},
+			Labels: cmLabels,
 		},
 		// Secrets
 		{
@@ -1266,6 +1309,13 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		"CeilometerPassword":       string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
 		"ceilometer_compute_image": instance.Spec.ComputeImage,
 		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
+		"TLS":                      false,
+	}
+
+	if instance.Spec.TLS.Enabled() {
+		templateParameters["TLS"] = true
+		templateParameters["TlsCert"] = "/etc/ceilometer/tls/tls.crt"
+		templateParameters["TlsKey"] = "/etc/ceilometer/tls/tls.key"
 	}
 
 	cms := []util.Template{
@@ -1724,6 +1774,18 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return err
 	}
 
+	// index topologyField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, topologyField, func(rawObj client.Object) []string {
+		// Extract the topology name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Ceilometer)
+		if cr.Spec.TopologyRef == nil {
+			return nil
+		}
+		return []string{cr.Spec.TopologyRef.Name}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.Ceilometer{}).
 		Owns(&keystonev1.KeystoneService{}).
@@ -1752,6 +1814,12 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			&mariadbv1.Galera{},
 			handler.EnqueueRequestsFromMapFunc(galeraWatchFn),
 		).
+		Watches(&topologyv1.Topology{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(&keystonev1.KeystoneAPI{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectForSrc),
+			builder.WithPredicates(keystonev1.KeystoneAPIStatusChangedPredicate)).
 		Complete(r)
 }
 
@@ -1784,6 +1852,37 @@ func (r *CeilometerReconciler) findObjectsForSrc(ctx context.Context, src client
 				},
 			)
 		}
+	}
+
+	return requests
+}
+
+func (r *CeilometerReconciler) findObjectForSrc(ctx context.Context, src client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	l := log.FromContext(ctx).WithName("Controllers").WithName("Ceilometer")
+
+	crList := &telemetryv1.CeilometerList{}
+	listOps := &client.ListOptions{
+		Namespace: src.GetNamespace(),
+	}
+	err := r.Client.List(ctx, crList, listOps)
+	if err != nil {
+		l.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
+		return requests
+	}
+
+	for _, item := range crList.Items {
+		l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+
+		requests = append(requests,
+			reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      item.GetName(),
+					Namespace: item.GetNamespace(),
+				},
+			},
+		)
 	}
 
 	return requests

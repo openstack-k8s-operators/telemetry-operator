@@ -20,4 +20,6 @@ const (
 	ServiceName = "telemetry"
 	// ServiceType -
 	ServiceType = "telemetry"
+	// DpdkServiceName -
+	DpdkServiceName = "configure-ovs-dpdk"
 )

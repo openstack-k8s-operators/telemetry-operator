@@ -1,30 +1,20 @@
 ---
 cifmw_run_tests: false
 cifmw_edpm_prepare_timeout: 60
-pre_deploy_create_coo_subscription:
-    source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/create-coo-subscription-playbook.yaml"
-    type: playbook
-cifmw_edpm_prepare_kustomizations:
-  - apiVersion: kustomize.config.k8s.io/v1beta1
-    kind: Kustomization
-    namespace: openstack
-    patches:
-    - patch: |-
-        apiVersion: core.openstack.org/v1beta1
-        kind: OpenStackControlPlane
-        metadata:
-          name: unused
-        spec:
-          heat:
-            enabled: true
-          telemetry:
-            enabled: true
-            template:
-              metricStorage:
-                enabled: true
-                monitoringStack:
-                  alertingEnabled: false
-              autoscaling:
-                enabled: true
-      target:
-        kind: OpenStackControlPlane
+cifmw_deploy_obs: true
+cifmw_openshift_obs_definition:
+  apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: observability-operator
+    namespace: openshift-operators
+  spec:
+    channel: stable
+    installPlanApproval: Automatic
+    name: cluster-observability-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+
+pre_deploy_kustomize_autoscaling:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-autoscaling.yml"
+  type: playbook

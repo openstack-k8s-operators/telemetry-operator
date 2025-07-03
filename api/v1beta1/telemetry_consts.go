@@ -26,6 +26,14 @@ const (
 	DefaultPrometheusPort = 9090
 	// DefaultNodeExporterPort -
 	DefaultNodeExporterPort = 9100
+	// DefaultPodmanExporterPort -
+	DefaultPodmanExporterPort = 9882
+	// DefaultDataplaneNodeExporterPort -
+	DefaultOpenStackNetworkExporterPort = 9105
+	// DefaultCeilometerComputePromExporterPort -
+	DefaultCeilometerComputePromExporterPort = 9101
+	// DefaultCeilometerIpmiPromExporterPort -
+	DefaultCeilometerIpmiPromExporterPort = 9102
 	// DefaultScrapeInterval -
 	DefaultScrapeInterval = "30s"
 	// PauseBetweenWatchAttempts -

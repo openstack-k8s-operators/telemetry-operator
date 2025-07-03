@@ -54,6 +54,92 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 				"links": [],
 				"panels": [
 					{
+						"aliasColors": {},
+						"bars": false,
+						"dashLength": 10,
+						"dashes": false,
+						"datasource": { "name": "` + dsName + `", "type": "prometheus" },
+						"fieldConfig": {
+						  "defaults": {
+							"mappings": [],
+							"thresholds": {
+							  "mode": "absolute",
+							  "steps": [
+								{ "color": "green", "value": 1 },
+								{ "color": "red", "value": 2 }
+							  ]
+							}
+						  },
+						  "overrides": []
+						},
+						"fill": 1,
+						"fillGradient": 0,
+						"gridPos": {
+						  "h": 12,
+						  "w": 12,
+						  "x": 0,
+						  "y": 0
+						},
+						"hiddenSeries": false,
+						"id": 14,
+						"lines": true,
+						"linewidth": 1,
+						"nullPointMode": "null",
+						"legend": {
+						  "show": true,
+						  "values": true,
+						  "current": true
+						},
+						"options": {
+						  "colorMode": "value",
+						  "graphMode": "line",
+						  "reduceOptions": {
+							"calcs": ["lastNotNull"],
+							"fields": "",
+							"values": false
+						  },
+						  "textMode": "value"
+						},
+						"percentage": false,
+						"pointradius": 2,
+						"points": true,
+						"renderer": "flot",
+						"seriesOverrides": [],
+						"stack": false,
+						"steppedLine": false,
+						"targets": [
+						  {
+							"expr": "label_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 7, \n  \"state\", \"suspended\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 6, \n  \"state\", \"crashed\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 5, \n  \"state\", \"shut off\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 4, \n  \"state\", \"shut down\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 3, \n  \"state\", \"paused\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 2, \n  \"state\", \"blocked\", \"__name__\", \".*\"\n) or\nlabel_replace(\n  ceilometer_power_state{resource_name=~\"$VM.*\"} == 1, \n  \"state\", \"running\", \"__name__\", \".*\"\n)",
+							"instant": false,
+							"legendFormat": "{{resource_name}} is {{state}}",
+							"range": true,
+							"refId": "A"
+						  }
+						],
+						"thresholds": [],
+						"timeRegions": [],
+						"title": "Power State",
+						"type": "graph",
+						"tooltip": {
+						  "shared": true,
+						  "sort": 0,
+						  "value_type": "individual"
+						},
+						"yaxes": [
+						  {
+							"format": "none",
+							"min": 0,
+							"max": 7,
+							"show": true,
+							"decimals": 0
+						  },
+						  {
+							"show": false
+						  }
+						]
+					  }
+					  ,
+					{
 					"aliasColors": {},
 					"bars": false,
 					"dashLength": 10,
@@ -64,7 +150,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"gridPos": {
 						"h": 9,
 						"w": 12,
-						"x": 0,
+						"x": 12,
 						"y": 0
 					},
 					"hiddenSeries": false,
@@ -152,10 +238,10 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"fill": 10,
 					"fillGradient": 0,
 					"gridPos": {
-						"h": 9,
+						"h": 8,
 						"w": 12,
-						"x": 12,
-						"y": 0
+						"x": 0,
+						"y": 5
 					},
 					"hiddenSeries": false,
 					"id": 4,
@@ -241,9 +327,9 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"fill": 10,
 					"fillGradient": 0,
 					"gridPos": {
-						"h": 8,
+						"h": 9,
 						"w": 12,
-						"x": 0,
+						"x": 12,
 						"y": 9
 					},
 					"hiddenSeries": false,
@@ -332,8 +418,8 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"gridPos": {
 						"h": 8,
 						"w": 12,
-						"x": 12,
-						"y": 9
+						"x": 0,
+						"y": 13
 					},
 					"hiddenSeries": false,
 					"id": 8,
@@ -427,8 +513,8 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"gridPos": {
 						"h": 8,
 						"w": 12,
-						"x": 0,
-						"y": 17
+						"x": 12,
+						"y": 18
 					},
 					"hiddenSeries": false,
 					"id": 10,
@@ -523,8 +609,8 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 					"gridPos": {
 						"h": 8,
 						"w": 12,
-						"x": 12,
-						"y": 17
+						"x": 0,
+						"y": 21
 					},
 					"hiddenSeries": false,
 					"id": 12,
@@ -620,7 +706,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 						"h": 8,
 						"w": 12,
 						"x": 12,
-						"y": 17
+						"y": 26
 					},
 					"hiddenSeries": false,
 					"id": 12,
@@ -771,7 +857,7 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 						"datasource": { "name": "` + dsName + `", "type": "prometheus" },
 						"definition": "label_values(ceilometer_cpu{project =~ \"$project\"}, vm_instance)",
 						"hide": 0,
-						"includeAll": true,
+						"includeAll": false,
 						"index": -1,
 						"label": null,
 						"multi": true,

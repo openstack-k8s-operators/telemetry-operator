@@ -49,7 +49,7 @@ func KSMService(
 				Name: "http-metrics",
 			},
 			{
-				Port: KSMHealthPort,
+				Port: KSMReadyPort,
 				Name: "telemetry",
 			},
 		}

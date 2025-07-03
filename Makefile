@@ -127,10 +127,11 @@ build: generate fmt vet ## Build manager binary.
 .PHONY: run
 run: export METRICS_PORT?=8080
 run: export HEALTH_PORT?=8081
+run: export PPROF_PORT?=8082
 run: export ENABLE_WEBHOOKS?=false
 run: manifests generate fmt vet ## Run a controller from your host.
 	/bin/bash hack/clean_local_webhook.sh
-	go run ./main.go -metrics-bind-address ":$(METRICS_PORT)" -health-probe-bind-address ":$(HEALTH_PORT)"
+	go run ./main.go -metrics-bind-address ":$(METRICS_PORT)" -health-probe-bind-address ":$(HEALTH_PORT)" -pprof-bind-address ":$(PPROF_PORT)"
 
 # Extra vars which will be passed to the Docker-build
 DOCKER_BUILD_ARGS ?=
@@ -351,6 +352,7 @@ SKIP_CERT ?=false
 .PHONY: run-with-webhook
 run-with-webhook: export METRICS_PORT?=8080
 run-with-webhook: export HEALTH_PORT?=8081
+run-with-webhook: export PPROF_PORT?=8082
 run-with-webhook: manifests generate fmt vet ## Run a controller from your host.
 	/bin/bash hack/run_with_local_webhook.sh
 
@@ -402,6 +404,14 @@ kuttl-test-cleanup:
 
 CRD_SCHEMA_CHECKER_VERSION ?= release-4.16
 BRANCH ?= main
+.PHONY: force-bump
+force-bump: ## Force bump operator and lib-common dependencies
+	for dep in $$(cat go.mod | grep openstack-k8s-operators | grep -vE -- 'indirect|telemetry-operator|^replace' | awk '{print $$1}'); do \
+		go get $$dep@$(BRANCH) ; \
+	done
+	for dep in $$(cat api/go.mod | grep openstack-k8s-operators | grep -vE -- 'indirect|telemetry-operator|^replace' | awk '{print $$1}'); do \
+		cd ./api && go get $$dep@$(BRANCH) && cd .. ; \
+	done
 
 PHONY: crd-schema-check
 crd-schema-check: manifests

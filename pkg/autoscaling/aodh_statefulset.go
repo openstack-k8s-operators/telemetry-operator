@@ -30,6 +30,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
 
@@ -43,6 +45,8 @@ func AodhStatefulSet(
 	instance *telemetryv1.Autoscaling,
 	configHash string,
 	labels map[string]string,
+	topology *topologyv1.Topology,
+	memcached *memcachedv1.Memcached,
 ) (*appsv1.StatefulSet, error) {
 	runAsUser := int64(0)
 
@@ -96,6 +100,12 @@ func AodhStatefulSet(
 	if instance.Spec.PrometheusTLSCaCertSecret != nil {
 		volumes = append(volumes, getCustomPrometheusCaVolume(instance.Spec.PrometheusTLSCaCertSecret.LocalObjectReference.Name))
 		evaluatorVolumeMounts = append(evaluatorVolumeMounts, getCustomPrometheusCaVolumeMount(instance.Spec.PrometheusTLSCaCertSecret.Key))
+	}
+
+	// add MTLS cert if defined
+	if memcached.GetMemcachedMTLSSecret() != "" {
+		volumes = append(volumes, memcached.CreateMTLSVolume())
+		apiVolumeMounts = append(apiVolumeMounts, memcached.CreateMTLSVolumeMounts(nil, nil)...)
 	}
 
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
@@ -202,6 +212,9 @@ func AodhStatefulSet(
 
 	if instance.Spec.Aodh.NodeSelector != nil {
 		pod.Spec.NodeSelector = *instance.Spec.Aodh.NodeSelector
+	}
+	if topology != nil {
+		topology.ApplyTo(&pod)
 	}
 
 	statefulset := &appsv1.StatefulSet{

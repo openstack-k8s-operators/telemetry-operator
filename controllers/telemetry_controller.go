@@ -113,6 +113,11 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Always patch the instance status when exiting this function so we can
 	// persist any changes.
 	defer func() {
+		// Don't update the status, if reconciler Panics
+		if r := recover(); r != nil {
+			Log.Info(fmt.Sprintf("panic during reconcile %v\n", r))
+			panic(r)
+		}
 		condition.RestoreLastTransitionTimes(
 			&instance.Status.Conditions, savedConditions)
 		if instance.Status.Conditions.IsUnknown(condition.ReadyCondition) {
@@ -255,6 +260,10 @@ func (r TelemetryReconciler) reconcileCeilometer(ctx context.Context, instance *
 		instance.Spec.Ceilometer.NodeSelector = instance.Spec.NodeSelector
 	}
 
+	if instance.Spec.Ceilometer.TopologyRef == nil {
+		instance.Spec.Ceilometer.TopologyRef = instance.Spec.TopologyRef
+	}
+
 	helper.GetLogger().Info("Reconciling Ceilometer", ceilometerNamespaceLabel, instance.Namespace, ceilometerNameLabel, ceilometer.ServiceName)
 	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), ceilometerInstance, func() error {
 		instance.Spec.Ceilometer.CeilometerSpec.DeepCopyInto(&ceilometerInstance.Spec)
@@ -334,6 +343,10 @@ func (r TelemetryReconciler) reconcileAutoscaling(ctx context.Context, instance 
 
 	if instance.Spec.Autoscaling.Aodh.NodeSelector == nil {
 		instance.Spec.Autoscaling.Aodh.NodeSelector = instance.Spec.NodeSelector
+	}
+
+	if instance.Spec.Autoscaling.Aodh.TopologyRef == nil {
+		instance.Spec.Autoscaling.Aodh.TopologyRef = instance.Spec.TopologyRef
 	}
 
 	helper.GetLogger().Info("Reconciling Autoscaling", autoscalingNamespaceLabel, instance.Namespace, autoscalingNameLabel, autoscalingName)

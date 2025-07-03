@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    service: ceilometer
+  name: ceilometer
+  ownerReferences:
+  - kind: Ceilometer
+    name: ceilometer
+spec:
+  template:
+    spec:
+      topologySpreadConstraints:
+       - maxSkew: 1
+         topologyKey: "topology.kubernetes.io/hostname"
+         whenUnsatisfiable: ScheduleAnyway
+         labelSelector:
+           matchLabels:
+             service: ceilometer
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    service: aodh
+  name: aodh
+  ownerReferences:
+  - kind: Autoscaling
+    name: autoscaling
+spec:
+  template:
+    spec:
+      topologySpreadConstraints:
+       - maxSkew: 1
+         topologyKey: "topology.kubernetes.io/hostname"
+         whenUnsatisfiable: ScheduleAnyway
+         labelSelector:
+           matchLabels:
+             service: aodh
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Autoscaling
+metadata:
+  name: autoscaling
+status:
+  lastAppliedTopology:
+    name: telemetry-topology
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Ceilometer
+metadata:
+  name: ceilometer
+status:
+  lastAppliedTopology:
+    name: telemetry-topology

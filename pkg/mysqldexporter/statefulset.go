@@ -18,6 +18,8 @@ package mysqldexporter
 import (
 	"fmt"
 
+	"github.com/openstack-k8s-operators/lib-common/modules/common"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/affinity"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/annotations"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
@@ -29,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
 
@@ -37,6 +40,7 @@ func StatefulSet(
 	instance *telemetryv1.Ceilometer,
 	configHash string,
 	labels map[string]string,
+	topology *topologyv1.Topology,
 ) (*appsv1.StatefulSet, error) {
 	runAsUser := int64(0)
 
@@ -122,6 +126,21 @@ func StatefulSet(
 			},
 			Volumes: volumes,
 		},
+	}
+
+	if topology != nil {
+		topology.ApplyTo(&pod)
+	} else {
+		// If possible two pods of the same service should not
+		// run on the same worker node. If this is not possible
+		// the get still created on the same worker node.
+		pod.Spec.Affinity = affinity.DistributePods(
+			common.AppSelector,
+			[]string{
+				ServiceName,
+			},
+			corev1.LabelHostname,
+		)
 	}
 
 	statefulset := &appsv1.StatefulSet{

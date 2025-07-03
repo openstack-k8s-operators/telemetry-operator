@@ -20,11 +20,16 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 )
 
 // TelemetryDefaults -
@@ -126,17 +131,60 @@ var _ webhook.Validator = &Telemetry{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Telemetry) ValidateCreate() (admission.Warnings, error) {
 	telemetrylog.Info("validate create", "name", r.Name)
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
 
-	// TODO(user): fill in your validation logic upon object creation.
+	allErrs = r.Spec.ValidateCreate(basePath, r.Namespace)
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Telemetry"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
+}
+
+func (r TelemetrySpec) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
+	return allErrs
+}
+
+func (r TelemetrySpecCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
+	return allErrs
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Telemetry) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	telemetrylog.Info("validate update", "name", r.Name)
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
 
-	// TODO(user): fill in your validation logic upon object update.
+	oldTelemetry, ok := old.(*Telemetry)
+	if !ok || oldTelemetry == nil {
+		return nil, apierrors.NewInternalError(fmt.Errorf("unable to convert existing object"))
+	}
+
+	allErrs = r.Spec.ValidateUpdate(oldTelemetry.Spec, basePath, r.Namespace)
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Telemetry"},
+			r.Name, allErrs)
+	}
 	return nil, nil
+}
+
+func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, namespace string) field.ErrorList {
+	return r.ValidateCreate(basePath, namespace)
+}
+
+func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpec, basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
+	return allErrs
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -145,4 +193,53 @@ func (r *Telemetry) ValidateDelete() (admission.Warnings, error) {
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
+}
+
+// ValidateTelemetryTopology - Returns an ErrorList if the Topology is referenced
+// on a different namespace
+func (spec *TelemetrySpecCore) ValidateTelemetryTopology(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// When a TopologyRef CR is referenced, fail if a different Namespace is
+	// referenced because is not supported
+	allErrs = append(allErrs, topologyv1.ValidateTopologyRef(
+		spec.TopologyRef, *basePath.Child("topologyRef"), namespace)...)
+
+	// When a TopologyRef CR is referenced with an override to Aodh, fail
+	// if a different Namespace is referenced because not supported
+	aodhPath := basePath.Child("autoscaling").Child("aodh")
+	allErrs = append(allErrs,
+		spec.Autoscaling.Aodh.ValidateTopology(aodhPath, namespace)...)
+
+	// When a TopologyRef CR is referenced with an override to Ceilometer,
+	// fail if a different Namespace is referenced because not supported
+	ceilPath := basePath.Child("ceilometer")
+	allErrs = append(allErrs,
+		spec.Ceilometer.ValidateTopology(ceilPath, namespace)...)
+
+	return allErrs
+}
+// ValidateTelemetryTopology - Returns an ErrorList if the Topology is referenced
+// on a different namespace
+func (spec *TelemetrySpec) ValidateTelemetryTopology(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// When a TopologyRef CR is referenced, fail if a different Namespace is
+	// referenced because is not supported
+	allErrs = append(allErrs, topologyv1.ValidateTopologyRef(
+		spec.TopologyRef, *basePath.Child("topologyRef"), namespace)...)
+
+	// When a TopologyRef CR is referenced with an override to Aodh, fail
+	// if a different Namespace is referenced because not supported
+	aodhPath := basePath.Child("autoscaling").Child("aodh")
+	allErrs = append(allErrs,
+		spec.Autoscaling.Aodh.ValidateTopology(aodhPath, namespace)...)
+
+	// When a TopologyRef CR is referenced with an override to Ceilometer,
+	// fail if a different Namespace is referenced because not supported
+	ceilPath := basePath.Child("ceilometer")
+	allErrs = append(allErrs,
+		spec.Ceilometer.ValidateTopology(ceilPath, namespace)...)
+
+	return allErrs
 }
