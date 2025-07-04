@@ -4,7 +4,7 @@ reportFormat: JSON
 reportName: kuttl-metricstorage-results
 namespace: telemetry-kuttl-metricstorage
 # we could set this lower, but the initial image pull can take a while
-timeout: 300
+timeout: 600
 parallel: 1
 skipDelete: true
 testDirs:
