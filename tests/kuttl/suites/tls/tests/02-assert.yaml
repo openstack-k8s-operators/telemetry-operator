@@ -251,6 +251,7 @@ spec:
         readOnly: true
     - name: config-reloader
     - name: thanos-sidecar
+    - name: kube-rbac-proxy
 ---
 apiVersion: monitoring.rhobs/v1
 kind: Prometheus
@@ -374,7 +375,7 @@ metadata:
     name: telemetry-kuttl-metricstorage
 spec:
   ports:
-  - name: web
-    port: 9090
-    protocol: TCP
-    targetPort: 9090
+    - name: web
+      port: 9090
+    - name: https-proxy
+      port: 8443
