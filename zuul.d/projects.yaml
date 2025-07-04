@@ -5,15 +5,21 @@
       A meta content provider zuul job to build telemetry
       specific containers.
     vars:
+<<<<<<< HEAD
       # Note(Chandan Kumar): image_base is the operator name without -operator.
       # It is needed by openstack-operator to include telemetry operator images
       # in the openstack-operator catalog image.
+=======
+>>>>>>> a45c3ae (Add and Use meta content provider in telemetry-operator)
       cifmw_operator_build_operators:
         - name: telemetry-operator
           src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator"
         - name: openstack-operator
           src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/openstack-operator"
+<<<<<<< HEAD
           image_base: telemetry
+=======
+>>>>>>> a45c3ae (Add and Use meta content provider in telemetry-operator)
       cifmw_build_containers_image_tag: telemetry_latest
       zuul_project_container_path: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator/ci/files/containers.yaml"
       cifmw_build_containers_config_file: "{{ ansible_user_dir }}/containers.yaml"
