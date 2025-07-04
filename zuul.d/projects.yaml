@@ -1,13 +1,21 @@
 - job:
     name: telemetry-operator-multinode-autoscaling
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies: ["telemetry-openstack-meta-content-provider-master"]
     description: |
-      Deploy OpenStack with Autoscaling features enabled
+      Deploy OpenStack with Autoscaling features enabled.
+      It deploys telemetry service containers bits from cs10 master.
     vars:
+      cifmw_update_containers: false
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-use-master-containers.yml"
+    extra-vars: &functional_autoscaling_extra_vars
+      # Override zuul meta content provider provided content_provider_dlrn_md5_hash
+      # var. As returned dlrn md5 hash comes from master release but job is using
+      # antelope content.
+      content_provider_dlrn_md5_hash: ''
     irrelevant-files: &irrelevant_files
       - .github/.*
       - ci/github/.*
@@ -33,18 +41,20 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-use-master-containers.yml"
     irrelevant-files: *irrelevant_files
 
 - job:
     name: telemetry-operator-multinode-default-telemetry
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies: ["telemetry-openstack-meta-content-provider-master"]
     description: |
       Deploy a default OpenStack with telemetry enabled, but without COO installed. Check that the telemetry-operator logs don't have any errors.
     vars:
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-default-telemetry.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-use-master-containers.yml"
     irrelevant-files: *irrelevant_files
     required-projects:
       - name: infrawatch/feature-verification-tests
@@ -103,10 +113,12 @@
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
-    templates:
-      - podified-multinode-edpm-pipeline
     github-check:
+      debug: true
       jobs:
+        - telemetry-openstack-meta-content-provider-master:
+            branches: main
+            override-checkout: main
         - telemetry-operator-multinode-default-telemetry
         - functional-graphing-tests-osp18:
             voting: false
