@@ -108,13 +108,7 @@
     github-check:
       jobs:
         - telemetry-operator-multinode-default-telemetry
-        - functional-graphing-tests-osp18:
-            voting: false
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            irrelevant-files: *irrelevant_files
-        - functional-autoscaling-tests-osp18: &fvt_jobs_config
+        - functional-autoscaling-graphing-tests-osp18: &fvt_jobs_config
             voting: true
             required-projects:
               - name: infrawatch/feature-verification-tests
