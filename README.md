@@ -67,7 +67,7 @@ This operator deploys a multiple telemetry agents, both in the control plane and
 
     ```bash
     oc scale deployments/openstack-operator-controller-operator --replicas 0 -n openstack-operators
-    
+
     oc scale deployments/openstack-operator-controller-manager --replicas 0 -n openstack-operators
 
     oc scale deployments/telemetry-operator-controller-manager --replicas 0 -n openstack-operators
