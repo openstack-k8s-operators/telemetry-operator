@@ -104,6 +104,30 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-power-monitoring.yml"
     irrelevant-files: *irrelevant_files
 
+- job:
+    name: telemetry-operator-multinode-cloudkitty
+    dependencies: ["telemetry-openstack-meta-content-provider-master"]
+    parent: telemetry-operator-multinode-autoscaling
+    description: |
+      Deploy CloudKitty and run tempest tests
+    required-projects:
+      - name: infrawatch/feature-verification-tests
+        override-checkout: master
+    extra-vars: *mcp_extra_vars
+    vars:
+      #patch_observabilityclient: true
+      cifmw_update_containers: false
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
+        # Deploys logging dependencies (e.g. loki)
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-logging.yml"
+        # Need a config for CK
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-use-master-containers.yml"
+    roles:
+      - zuul: github.com/openstack-k8s-operators/ci-framework
+    irrelevant-files: *irrelevant_files
+
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
@@ -133,25 +157,28 @@
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
-    templates:
-      - podified-multinode-edpm-pipeline
+    #templates:
+    #  - podified-multinode-edpm-pipeline
     github-check:
+      #debug: true
       jobs:
+        - telemetry-operator-multinode-cloudkitty
         - telemetry-openstack-meta-content-provider-master
-        - telemetry-operator-multinode-default-telemetry
-        - functional-tests-osp18: &fvt_jobs_config
-            voting: true
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            irrelevant-files: *irrelevant_files
-        - feature-verification-tests-noop:
-            files: *irrelevant_files
-        - functional-periodic-telemetry-with-ceph:
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            files:
-              - ci/deploy-telemetry-with-ceph.yml
-              - ci/vars-telemetry-with-ceph.yml
-              - zuul.d/projects.yaml
+        #- telemetry-operator-multinode-default-telemetry
+        #- functional-tests-osp18: &fvt_jobs_config
+        #    voting: true
+        #    required-projects:
+        #      - name: infrawatch/feature-verification-tests
+        #        override-checkout: master
+        #    irrelevant-files: *irrelevant_files
+        #- feature-verification-tests-noop:
+        #    files: *irrelevant_files
+        #- functional-periodic-telemetry-with-ceph:
+        #    required-projects:
+        #      - name: infrawatch/feature-verification-tests
+        #        override-checkout: master
+        #    files:
+        #      - ci/deploy-telemetry-with-ceph.yml
+        #      - ci/vars-telemetry-with-ceph.yml
+        #      - zuul.d/projects.yaml
+
