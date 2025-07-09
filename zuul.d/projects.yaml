@@ -103,6 +103,31 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-power-monitoring.yml"
     irrelevant-files: *irrelevant_files
 
+- job:
+    name: telemetry-operator-multinode-cloudkitty
+    dependencies: ["telemetry-openstack-meta-content-provider-master"]
+    parent: telemetry-operator-multinode-autoscaling
+    description: |
+      Deploy CloudKitty and run tempest tests
+    extra-vars: &extra_vars_for_jobs_using_meta_content_provider
+      # Override zuul meta content provider provided content_provider_dlrn_md5_hash
+      # var. As returned dlrn md5 hash comes from master release but job is using
+      # antelope content.
+      content_provider_dlrn_md5_hash: ''
+    vars:
+      #patch_observabilityclient: true
+      cifmw_update_containers: false
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
+        # Deploys logging dependencies (e.g. loki)
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-logging.yml"
+        # Need a config for CK
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-use-master-containers.yml"
+    roles:
+      - zuul: github.com/openstack-k8s-operators/ci-framework
+    irrelevant-files: *irrelevant_files
+
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
@@ -135,6 +160,7 @@
     templates:
       - podified-multinode-edpm-pipeline
     github-check:
+      debug: true
       jobs:
         - telemetry-openstack-meta-content-provider-master
         - telemetry-operator-multinode-default-telemetry
