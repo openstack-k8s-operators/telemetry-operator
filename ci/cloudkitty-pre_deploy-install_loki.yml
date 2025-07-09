@@ -1,0 +1,30 @@
+---
+- name: "Install loki for cloudkitty"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: true
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig | default(ansible_env.HOME + '/.kube.config' ) }}"
+    PATH: "{{ cifmw_path | default(ansible_env.PATH) }}"
+  tasks:
+    - name: Set zuul
+      when: not zuul is defined
+      ansible.builtin.set_fact:
+        zuul:
+          projects:
+            github.com/openstack-k8s-operators/telemetry-operator:
+              src_dir: "{{ telemetry_operator_dir | default('telemetry-operator/') }}"
+
+    - name: Deploy loki operator
+      ansible.builtin.shell:
+        cmd: |
+          oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-loki-for-ck.yaml
+
+    - name: Wait up to 5 minutes until the Loki CSV is Succeeded
+      ansible.builtin.shell:
+        cmd: |
+          oc get csv | grep loki-operator
+      ignore_errors: true
+      register: output
+      until: output.stdout_lines | length == 1 and "Succeeded" in output.stdout
+      retries: 30
+      delay: 10

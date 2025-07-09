@@ -105,6 +105,27 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-power-monitoring.yml"
     irrelevant-files: *irrelevant_files
 
+- job:
+    name: telemetry-operator-multinode-cloudkitty
+    dependencies: ["telemetry-openstack-meta-content-provider-master"]
+    parent: telemetry-operator-multinode-autoscaling
+    description: |
+      Deploy CloudKitty and run tempest tests
+    required-projects:
+      - name: infrawatch/feature-verification-tests
+        override-checkout: master
+    extra-vars: *mcp_extra_vars
+    vars:
+      #patch_observabilityclient: true
+      cifmw_update_containers: false
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-use-master-containers.yml"
+    roles:
+      - zuul: github.com/openstack-k8s-operators/ci-framework
+    irrelevant-files: *irrelevant_files
+
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
@@ -134,13 +155,14 @@
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
-    templates:
-      - podified-multinode-edpm-pipeline
     github-check:
       jobs:
         - openstack-k8s-operators-content-provider:
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
+        - telemetry-operator-multinode-cloudkitty:
+            dependencies:
+              - telemetry-openstack-meta-content-provider-master
         - telemetry-openstack-meta-content-provider-master
         - telemetry-operator-multinode-default-telemetry
         - functional-tests-osp18: &fvt_jobs_config
