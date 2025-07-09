@@ -1,0 +1,19 @@
+---
+cifmw_run_tests: true
+cifmw_run_test_role: test_operator
+cifmw_test_operator_tempest_namespace: podified-antelope-centos9
+cifmw_test_operator_tempest_container: openstack-tempest-all
+cifmw_test_operator_tempest_image_tag: 'current-podified'
+# This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
+# https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
+tempest_conf:
+  overrides: |
+      validation.run_validation true
+cifmw_test_operator_tempest_tempestconf_config: "{{ tempest_conf }}"
+cifmw_test_operator_tempest_include_list: |
+  ^tempest.*\[.*\bsmoke\b.*\]
+  cloudkitty_tempest_plugin.*
+
+external_plugin: "opendev.org/openstack/cloudkitty-tempest-plugin"
+change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
+cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + external_plugin, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
