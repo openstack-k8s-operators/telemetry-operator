@@ -9,6 +9,9 @@ status:
   - name: config-reloader
     ready: true
     started: true
+  - name: kube-rbac-proxy
+    ready: true
+    started: true
   - name: prometheus
     ready: true
     started: true
@@ -25,6 +28,10 @@ metadata:
       name: telemetry-kuttl
 spec:
   ports:
+  - name: https-proxy
+    port: 8443
+    protocol: TCP
+    targetPort: 8443
   - name: web
     port: 9090
     protocol: TCP

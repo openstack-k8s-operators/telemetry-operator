@@ -22,3 +22,8 @@ metadata:
 spec:
   secret: osp-secret
   mysqldExporterEnabled: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: combined-ca-bundle
