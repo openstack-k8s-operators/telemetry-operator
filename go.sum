@@ -14,8 +14,8 @@ github.com/evanphx/json-patch/v5 v5.9.0 h1:kcBlZQbplgElYIlo/n1hJbls2z/1awpXxpRi0
 github.com/evanphx/json-patch/v5 v5.9.0/go.mod h1:VNkHZ/282BpEyt/tObQO8s5CMPmYYq14uClGH4abBuQ=
 github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
-github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
-github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
+github.com/go-logr/logr v1.4.2 h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=
+github.com/go-logr/logr v1.4.2/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-logr/zapr v1.3.0 h1:XGdV8XW8zdwFiwOA2Dryh1gj2KRQyOOoNmBy4EplIcQ=
 github.com/go-logr/zapr v1.3.0/go.mod h1:YKepepNBd1u/oyhd/yQmtjVXmm9uML4IXUgMOwR8/Gg=
 github.com/go-openapi/jsonpointer v0.21.0 h1:YgdVicSA9vH5RiHs9TZW5oyafXZFc6+2Vc1rr/O9oNQ=
@@ -55,8 +55,8 @@ github.com/josharian/intern v1.0.0 h1:vlS4z54oSdjm0bgjRigI+G1HpF+tI+9rE5LLzOg8Hm
 github.com/josharian/intern v1.0.0/go.mod h1:5DoeVV0s6jJacbCEi61lwdGj/aVlrQvzHFFd8Hwg//Y=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
-github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7 h1:z4P744DR+PIpkjwXSEc6TvN3L6LVzmUquFgmNm8wSUc=
-github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7/go.mod h1:CM7HAH5PNuIsqjMN0fGc1ydM74Uj+0VZFhob620nklw=
+github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.6 h1:lhSaboKtal0XF2yqSw2BqNB1vUL4+a4BFe39I9G/yiM=
+github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.6/go.mod h1:CM7HAH5PNuIsqjMN0fGc1ydM74Uj+0VZFhob620nklw=
 github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI2bnpBCr8=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
@@ -86,6 +86,8 @@ github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20250818180001
 github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20250818180001-057253e3d233/go.mod h1:qevkmDP/Yr7FTM0ZVe2fABjSjrfkkdZkYeMho71OVG0=
 github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20250730071847-837b07f8d72f h1:7w9WseH9LSKnLX3UW1AfWPaozN7fimdVoUtOYHnsQKY=
 github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20250730071847-837b07f8d72f/go.mod h1:0bajRHochTUT6Ecfriw27l3vL0yezVrnUmt3bcIpu4w=
+github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.0 h1:cFOyP37qQ9T1D6mVTCwuPGt86LB4sTErpHT+L1e+VKY=
+github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.0/go.mod h1:jgfvFeljXxot0LODLYCmjESxoMXbClXcBcf0DaX4zA0=
 github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20250823121217-7e1cd2e3dd03 h1:9VanDdvg1APf9B1nzGElLvWr6dM5GsSayMLSV/nJZnE=
 github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20250823121217-7e1cd2e3dd03/go.mod h1:Z+rmtn3qhuPZfx2EDVmloUh2MkYbvDMgcpJneRYerS0=
 github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20250730071847-837b07f8d72f h1:nGYLHcpM7EjiSzN4bmiLZbxty9u0k0Qzvkqn+1s1TF0=
