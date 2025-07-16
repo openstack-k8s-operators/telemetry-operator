@@ -159,7 +159,7 @@
     #templates:
     #  - podified-multinode-edpm-pipeline
     github-check:
-      debug: true
+      #debug: true
       jobs:
         - telemetry-operator-multinode-cloudkitty
         - telemetry-openstack-meta-content-provider-master
