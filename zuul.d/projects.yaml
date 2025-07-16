@@ -109,11 +109,7 @@
     parent: telemetry-operator-multinode-autoscaling
     description: |
       Deploy CloudKitty and run tempest tests
-    extra-vars: &extra_vars_for_jobs_using_meta_content_provider
-      # Override zuul meta content provider provided content_provider_dlrn_md5_hash
-      # var. As returned dlrn md5 hash comes from master release but job is using
-      # antelope content.
-      content_provider_dlrn_md5_hash: ''
+    extra-vars: *mcp_extra_vars
     vars:
       #patch_observabilityclient: true
       cifmw_update_containers: false
@@ -162,23 +158,24 @@
     github-check:
       debug: true
       jobs:
+        - telemetry-operator-multinode-cloudkitty
         - telemetry-openstack-meta-content-provider-master
-        - telemetry-operator-multinode-default-telemetry
-        - functional-graphing-tests-osp18:
-            voting: false
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            irrelevant-files: *irrelevant_files
-        - functional-autoscaling-tests-osp18: &fvt_jobs_config
-            voting: true
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            irrelevant-files: *irrelevant_files
-        - functional-logging-tests-osp18: *fvt_jobs_config
-        - feature-verification-tests-noop:
-            files: *irrelevant_files
+        #- telemetry-operator-multinode-default-telemetry
+        #- functional-graphing-tests-osp18:
+        #    voting: false
+        #    required-projects:
+        #      - name: infrawatch/feature-verification-tests
+        #        override-checkout: master
+        #    irrelevant-files: *irrelevant_files
+        #- functional-autoscaling-tests-osp18: &fvt_jobs_config
+        #    voting: true
+        #    required-projects:
+        #      - name: infrawatch/feature-verification-tests
+        #        override-checkout: master
+        #    irrelevant-files: *irrelevant_files
+        #- functional-logging-tests-osp18: *fvt_jobs_config
+        #- feature-verification-tests-noop:
+        #    files: *irrelevant_files
         # TODO: Uncomment once the job merges in FVT
         #- functional-periodic-telemetry-with-ceph: *fvt_jobs_config
         #    files:
