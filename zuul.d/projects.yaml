@@ -109,6 +109,9 @@
     parent: telemetry-operator-multinode-autoscaling
     description: |
       Deploy CloudKitty and run tempest tests
+    required-projects:
+      - name: infrawatch/feature-verification-tests
+        override-checkout: master
     extra-vars: *mcp_extra_vars
     vars:
       #patch_observabilityclient: true
