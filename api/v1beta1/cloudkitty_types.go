@@ -90,6 +90,21 @@ type CloudKittySpecBase struct {
 	// TopologyRef to apply the Topology defined by the associated CR referenced
 	// by name
 	TopologyRef *topologyv1.TopoRef `json:"topologyRef,omitempty"`
+
+	// Host of user deployed prometheus
+	// +kubebuilder:validation:Optional
+	PrometheusHost string `json:"prometheusHost,omitempty"`
+
+	// Port of user deployed prometheus
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:validation:Optional
+	PrometheusPort int32 `json:"prometheusPort,omitempty"`
+
+	// If defined, specifies which CA certificate to use for user deployed prometheus
+	// +kubebuilder:validation:Optional
+	// +nullable
+	PrometheusTLSCaCertSecret *corev1.SecretKeySelector `json:"prometheusTLSCaCertSecret,omitempty"`
 }
 
 // CloudKittySpecCore the same as CloudKittySpec without ContainerImage references
@@ -211,6 +226,15 @@ type CloudKittyStatus struct {
 	// controller has not started processing the latest changes, and the status
 	// and its conditions are likely stale.
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// PrometheusHost - Hostname for prometheus used for autoscaling
+	PrometheusHost string `json:"prometheusHostname,omitempty"`
+
+	// PrometheusPort - Port for prometheus used for autoscaling
+	PrometheusPort int32 `json:"prometheusPort,omitempty"`
+
+	// PrometheusTLS - Determines if TLS should be used for accessing prometheus
+	PrometheusTLS bool `json:"prometheusTLS,omitempty"`
 }
 
 //+kubebuilder:object:root=true
