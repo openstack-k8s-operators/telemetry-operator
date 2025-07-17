@@ -49,6 +49,9 @@ const (
 
 	ShortDuration  = time.Duration(5) * time.Second
 	NormalDuration = time.Duration(10) * time.Second
+
+	// PrometheusEndpointSecret - The name of the secret that contains the Prometheus endpoint configuration.
+	PrometheusEndpointSecret = "metric-storage-prometheus-endpoint"
 )
 
 var ResultRequeue = ctrl.Result{RequeueAfter: NormalDuration}
