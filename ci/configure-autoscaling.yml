@@ -21,7 +21,7 @@
                 name: unused
               spec:
                 heat:
-                  enabled: true
+                  enabled: false
                 telemetry:
                   enabled: true
                   template:
@@ -30,21 +30,23 @@
                       monitoringStack:
                         alertingEnabled: false
                     autoscaling:
-                      enabled: true
+                      enabled: false
                     ceilometer:
                       enabled: true
                       mysqldExporterEnabled: true
+                    cloudkitty:
+                      enabled: true
             target:
               kind: OpenStackControlPlane
-          - patch: |-
-              apiVersion: core.openstack.org/v1beta1
-              kind: OpenStackControlPlane
-              metadata:
-                name: unused
-              spec:
-                telemetry:
-                  template:
-                    metricStorage:
-                      dashboardsEnabled: true
-            target:
-              kind: OpenStackControlPlane
+#          - patch: |-
+#              apiVersion: core.openstack.org/v1beta1
+#              kind: OpenStackControlPlane
+#              metadata:
+#                name: unused
+#              spec:
+#                telemetry:
+#                  template:
+#                    metricStorage:
+#                      dashboardsEnabled: true
+#            target:
+#              kind: OpenStackControlPlane
