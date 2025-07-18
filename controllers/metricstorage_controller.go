@@ -433,7 +433,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			instance.Status.Conditions.MarkFalse(telemetryv1.MonitoringStackReadyCondition,
 				condition.Reason(c.Reason),
 				condition.SeverityError,
-				c.Message)
+				"%s", c.Message)
 			monitoringStackReady = false
 			break
 		}
@@ -482,7 +482,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.PrometheusTLS.CaBundleSecretName)))
+					condition.TLSInputReadyWaitingMessage, instance.Spec.PrometheusTLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -504,7 +504,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, err.Error())))
+					condition.TLSInputReadyWaitingMessage, err.Error()))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
