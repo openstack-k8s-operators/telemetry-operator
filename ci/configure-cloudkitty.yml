@@ -1,5 +1,5 @@
 ---
-- name: "Create the kustomization for deploying autoscaling"
+- name: "Create the kustomization for deploying CloudKitty"
   hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
   gather_facts: false
   environment:
@@ -8,7 +8,7 @@
   tasks:
     - name: Copy controlplane kustomization
       ansible.builtin.copy:
-        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-controlplane-autoscaling.yaml"
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-controlplane-cloudkitty.yaml"
         content: |-
           apiVersion: kustomize.config.k8s.io/v1beta1
           kind: Kustomization
@@ -20,8 +20,6 @@
               metadata:
                 name: unused
               spec:
-                heat:
-                  enabled: true
                 telemetry:
                   enabled: true
                   template:
@@ -30,21 +28,10 @@
                       monitoringStack:
                         alertingEnabled: false
                     autoscaling:
-                      enabled: true
+                      enabled: false
                     ceilometer:
                       enabled: true
-                      mysqldExporterEnabled: true
-            target:
-              kind: OpenStackControlPlane
-          - patch: |-
-              apiVersion: core.openstack.org/v1beta1
-              kind: OpenStackControlPlane
-              metadata:
-                name: unused
-              spec:
-                telemetry:
-                  template:
-                    metricStorage:
-                      dashboardsEnabled: true
+                    cloudkitty:
+                      enabled: true
             target:
               kind: OpenStackControlPlane

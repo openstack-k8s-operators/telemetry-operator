@@ -15,13 +15,14 @@ cifmw_openshift_obs_definition:
     sourceNamespace: openshift-marketplace
 
 # TODO: Add a kustomization for CK, most likely separate from the autoscaling one.
-pre_deploy_kustomize_autoscaling:
-  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-autoscaling.yml"
+pre_deploy_kustomize_cloudkitty:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
   type: playbook
 
 # test cloudkitty
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
+# TODO: Consider switching to podified-master-centos10 for features that patch master
 cifmw_test_operator_tempest_namespace: podified-antelope-centos9
 # cloudkitty tempest plugin is not part of the tempest rpm.
 # https://review.rdoproject.org/cgit/openstack/tempest-distgit/tree/openstack-tempest.spec
@@ -32,6 +33,7 @@ cifmw_test_operator_tempest_container: openstack-tempest-all
 cifmw_test_operator_tempest_image_tag: 'current-podified'
 # This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
 # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
+# TODO: Refine this tempest config
 tempest_conf:
   overrides: |
       validation.run_validation true
@@ -50,9 +52,10 @@ cifmw_test_operator_tempest_include_list: |
   ^tempest.*\[.*\bsmoke\b.*\]
   cloudkitty_tempest_plugin.*
   telemetry_tempest_plugin.*
-cifmw_test_operator_tempest_exclude_list: |
-  telemetry_tempest_plugin.scenario.test_telemetry_integration_prometheus.PrometheusGabbiTest.test_autoscaling
-
+#cifmw_test_operator_tempest_exclude_list: |
+#  telemetry_tempest_plugin.scenario.test_telemetry_integration_prometheus.PrometheusGabbiTest.test_autoscaling
+# TODO: update this to allow multiple external plugins to be listed with Depends-On.
+# Potentially, this can be done via the meta content provider, by adding the tempest images to the list.
 external_plugin: "opendev.org/openstack/cloudkitty-tempest-plugin"
 change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
 # This is a workaround because CK tempest is not packages in RDO. Typically, the default would be [], since we would not require an external installation.
