@@ -23,14 +23,6 @@
                 telemetry:
                   enabled: true
                   template:
-                    metricStorage:
-                      enabled: true
-                      monitoringStack:
-                        alertingEnabled: false
-                    autoscaling:
-                      enabled: false
-                    ceilometer:
-                      enabled: true
                     cloudkitty:
                       enabled: true
             target:
