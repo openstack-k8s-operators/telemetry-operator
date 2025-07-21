@@ -1439,7 +1439,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 func (r *MetricStorageReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
-	l := log.FromContext(context.Background()).WithName("Controllers").WithName("MetricStorage")
+	Log := r.GetLogger(ctx)
 
 	for _, field := range prometheusAllWatchFields {
 		crList := &telemetryv1.MetricStorageList{}
@@ -1453,7 +1453,7 @@ func (r *MetricStorageReconciler) findObjectsForSrc(ctx context.Context, src cli
 		}
 
 		for _, item := range crList.Items {
-			l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+			Log.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
 
 			requests = append(requests,
 				reconcile.Request{
@@ -1470,7 +1470,7 @@ func (r *MetricStorageReconciler) findObjectsForSrc(ctx context.Context, src cli
 }
 
 func (r *MetricStorageReconciler) nodeSetWatchFn(ctx context.Context, o client.Object) []reconcile.Request {
-	l := log.FromContext(context.Background()).WithName("Controllers").WithName("MetricStorage")
+	Log := r.GetLogger(ctx)
 	// Reconcile all metricstorages when a nodeset changes
 	result := []reconcile.Request{}
 
@@ -1480,7 +1480,7 @@ func (r *MetricStorageReconciler) nodeSetWatchFn(ctx context.Context, o client.O
 		client.InNamespace(o.GetNamespace()),
 	}
 	if err := r.Client.List(ctx, metricstorages, listOpts...); err != nil {
-		l.Error(err, "Unable to retrieve MetricStorage CRs %v")
+		Log.Error(err, "Unable to retrieve MetricStorage CRs %v")
 		return nil
 	}
 	for _, cr := range metricstorages.Items {
