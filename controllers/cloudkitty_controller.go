@@ -19,7 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/cloudkitty"
+	"github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
 
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -813,6 +816,7 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	memcached *memcachedv1.Memcached,
 	db *mariadbv1.Database,
 ) error {
+	Log := r.GetLogger(ctx)
 	//
 	// create Secret required for cloudkitty input
 	// - %-scripts holds scripts to e.g. bootstrap the service
@@ -855,6 +859,46 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 		return err
 	}
 
+	if instance.Spec.PrometheusHost == "" {
+		// We're using MetricStorage for Prometheus.
+		prometheusEndpointSecret := &corev1.Secret{}
+		err = r.Client.Get(ctx, client.ObjectKey{
+			Name:      cloudkitty.PrometheusEndpointSecret,
+			Namespace: instance.Namespace,
+		}, prometheusEndpointSecret)
+		if err != nil {
+			Log.Info("Prometheus Endpoint Secret not found")
+		}
+		if prometheusEndpointSecret.Data != nil {
+			instance.Status.PrometheusHost = string(prometheusEndpointSecret.Data[metricstorage.PrometheusHost])
+			port, err := strconv.Atoi(string(prometheusEndpointSecret.Data[metricstorage.PrometheusPort]))
+			if err != nil {
+				return err
+			}
+			instance.Status.PrometheusPort = int32(port)
+
+			metricStorage := &telemetryv1.MetricStorage{}
+			err = r.Client.Get(ctx, client.ObjectKey{
+				Namespace: instance.Namespace,
+				Name:      telemetryv1.DefaultServiceName,
+			}, metricStorage)
+			if err != nil {
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.ServiceConfigReadyCondition,
+					condition.ErrorReason,
+					condition.SeverityWarning,
+					condition.ServiceConfigReadyErrorMessage,
+					err.Error()))
+			}
+			instance.Status.PrometheusTLS = metricStorage.Spec.PrometheusTLS.Enabled()
+		}
+	} else {
+		// We're using user-deployed Prometheus.
+		instance.Status.PrometheusHost = instance.Spec.PrometheusHost
+		instance.Status.PrometheusPort = instance.Spec.PrometheusPort
+		instance.Status.PrometheusTLS = instance.Spec.PrometheusTLSCaCertSecret != nil
+	}
+
 	databaseAccount := db.GetAccount()
 	dbSecret := db.GetSecret()
 
@@ -864,6 +908,8 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	templateParameters["KeystoneInternalURL"] = keystoneInternalURL
 	templateParameters["KeystonePublicURL"] = keystonePublicURL
 	templateParameters["TransportURL"] = string(transportURLSecret.Data["transport_url"])
+	templateParameters["PrometheusHost"] = instance.Status.PrometheusHost
+	templateParameters["PrometheusPort"] = instance.Status.PrometheusPort
 	templateParameters["DatabaseConnection"] = fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
 		databaseAccount.Spec.UserName,
 		string(dbSecret.Data[mariadbv1.DatabasePasswordSelector]),

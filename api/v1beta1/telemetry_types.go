@@ -194,6 +194,7 @@ type CloudKittySection struct {
 
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:default={apiTimeout: 60}
 	// Template - Overrides to use when creating the OpenStack CloudKitty service
 	CloudKittySpec `json:",inline"`
 }
