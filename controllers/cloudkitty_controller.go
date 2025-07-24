@@ -993,7 +993,7 @@ func (r *CloudKittyReconciler) transportURLCreateOrUpdate(
 ) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-cloudkitty-transport", instance.Name),
+			Name:      fmt.Sprintf("%s-transport", instance.Name),
 			Namespace: instance.Namespace,
 			Labels:    serviceLabels,
 		},

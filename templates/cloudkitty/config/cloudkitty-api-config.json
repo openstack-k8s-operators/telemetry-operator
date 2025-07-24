@@ -36,7 +36,7 @@
       "source": "/var/lib/config-data/tls/certs/*",
       "dest": "/etc/pki/tls/certs/",
       "owner": "cloudkitty",
-      "perm": "0440",
+      "perm": "0640",
       "optional": true,
       "merge": true
     },
@@ -44,15 +44,9 @@
       "source": "/var/lib/config-data/tls/private/*",
       "dest": "/etc/pki/tls/private/",
       "owner": "cloudkitty",
-      "perm": "0400",
+      "perm": "0600",
       "optional": true,
       "merge": true
-    },
-    {
-      "source": "/var/lib/openstack/config/my.cnf",
-      "dest": "/etc/my.cnf",
-      "owner": "cloudkitty",
-      "perm": "0644"
     },
     {
       "source": "/var/lib/config-data/mtls/certs/*",
@@ -70,5 +64,17 @@
       "optional": true,
       "merge": true
     }
+  ],
+  "permissions": [
+      {
+          "path": "/var/log/cinder",
+          "owner": "cloudkitty:apache",
+          "recurse": true
+      },
+      {
+          "path": "/etc/httpd/run",
+          "owner": "cloudkitty:apache",
+          "recurse": true
+      }
   ]
 }

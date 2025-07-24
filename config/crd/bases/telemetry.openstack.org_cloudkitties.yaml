@@ -42,7 +42,6 @@ spec:
               apiTimeout:
                 default: 60
                 description: APITimeout for HAProxy, Apache, and rpc_response_timeout
-                minimum: 10
                 type: integer
               cloudKittyAPI:
                 description: CloudKittyAPI - Spec definition for the API service of
@@ -494,6 +493,7 @@ spec:
                   DB, defaults to cloudkitty
                 type: string
               databaseInstance:
+                default: openstack
                 description: |-
                   MariaDB instance name
                   Right now required by the maridb-operator to get the credentials from the instance to create the DB
@@ -538,6 +538,37 @@ spec:
                 description: PreserveJobs - do not delete jobs after they finished
                   e.g. to check logs
                 type: boolean
+              prometheusHost:
+                description: Host of user deployed prometheus
+                type: string
+              prometheusPort:
+                description: Port of user deployed prometheus
+                format: int32
+                maximum: 65535
+                minimum: 1
+                type: integer
+              prometheusTLSCaCertSecret:
+                description: If defined, specifies which CA certificate to use for
+                  user deployed prometheus
+                nullable: true
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a
+                      valid secret key.
+                    type: string
+                  name:
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                type: object
+                x-kubernetes-map-type: atomic
               rabbitMqClusterName:
                 default: rabbitmq
                 description: |-
@@ -657,6 +688,17 @@ spec:
                   and its conditions are likely stale.
                 format: int64
                 type: integer
+              prometheusHostname:
+                description: PrometheusHost - Hostname for prometheus used for autoscaling
+                type: string
+              prometheusPort:
+                description: PrometheusPort - Port for prometheus used for autoscaling
+                format: int32
+                type: integer
+              prometheusTLS:
+                description: PrometheusTLS - Determines if TLS should be used for
+                  accessing prometheus
+                type: boolean
               serviceIDs:
                 additionalProperties:
                   type: string
