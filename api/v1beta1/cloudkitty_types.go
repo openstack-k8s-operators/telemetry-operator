@@ -47,6 +47,7 @@ type CloudKittySpecBase struct {
 	CloudKittyTemplate `json:",inline"`
 
 	// +kubebuilder:validation:Required
+	// +kubebuilder:default=openstack
 	// MariaDB instance name
 	// Right now required by the maridb-operator to get the credentials from the instance to create the DB
 	// Might not be required in future
@@ -82,7 +83,6 @@ type CloudKittySpecBase struct {
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=60
-	// +kubebuilder:validation:Minimum=10
 	// APITimeout for HAProxy, Apache, and rpc_response_timeout
 	APITimeout int `json:"apiTimeout"`
 
