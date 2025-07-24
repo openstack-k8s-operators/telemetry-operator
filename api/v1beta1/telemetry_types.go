@@ -187,7 +187,7 @@ type LoggingSection struct {
 // CloudKittySpec defines the desired state of the cloudkitty service
 type CloudKittySection struct {
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
+	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	// Enabled - Whether OpenStack CloudKitty service should be deployed and managed
 	Enabled *bool `json:"enabled"`
