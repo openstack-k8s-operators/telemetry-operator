@@ -148,6 +148,11 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Always patch the instance status when exiting this function so we can
 	// persist any changes.
 	defer func() {
+		// Don't update the status, if reconciler Panics
+		if r := recover(); r != nil {
+			Log.Info(fmt.Sprintf("panic during reconcile %v\n", r))
+			panic(r)
+		}
 		condition.RestoreLastTransitionTimes(
 			&instance.Status.Conditions, savedConditions)
 		if instance.Status.Conditions.IsUnknown(condition.ReadyCondition) {
@@ -950,7 +955,7 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 func (r *AutoscalingReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
-	l := log.FromContext(ctx).WithName("Controllers").WithName("Autoscaling")
+	Log := r.GetLogger(ctx)
 
 	for _, field := range autoscalingAllWatchFields {
 		crList := &telemetryv1.AutoscalingList{}
@@ -964,7 +969,7 @@ func (r *AutoscalingReconciler) findObjectsForSrc(ctx context.Context, src clien
 		}
 
 		for _, item := range crList.Items {
-			l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+			Log.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
 
 			requests = append(requests,
 				reconcile.Request{
@@ -983,7 +988,7 @@ func (r *AutoscalingReconciler) findObjectsForSrc(ctx context.Context, src clien
 func (r *AutoscalingReconciler) findObjectForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
-	l := log.FromContext(ctx).WithName("Controllers").WithName("Autoscaling")
+	Log := r.GetLogger(ctx)
 
 	crList := &telemetryv1.AutoscalingList{}
 	listOps := &client.ListOptions{
@@ -991,12 +996,12 @@ func (r *AutoscalingReconciler) findObjectForSrc(ctx context.Context, src client
 	}
 	err := r.Client.List(ctx, crList, listOps)
 	if err != nil {
-		l.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
+		Log.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
 		return requests
 	}
 
 	for _, item := range crList.Items {
-		l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+		Log.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
 
 		requests = append(requests,
 			reconcile.Request{

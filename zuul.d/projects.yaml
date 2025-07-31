@@ -1,9 +1,31 @@
 - job:
+    name: telemetry-openstack-meta-content-provider-master
+    parent: openstack-meta-content-provider-master
+    description: |
+      A meta content provider zuul job to build telemetry
+      specific containers.
+    vars:
+      # Note(Chandan Kumar): image_base is the operator name without -operator.
+      # It is needed by openstack-operator to include telemetry operator images
+      # in the openstack-operator catalog image.
+      cifmw_operator_build_operators:
+        - name: telemetry-operator
+          src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator"
+        - name: openstack-operator
+          src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/openstack-operator"
+          image_base: telemetry
+      cifmw_build_containers_image_tag: telemetry_latest
+      zuul_project_container_path: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator/ci/files/containers.yaml"
+      cifmw_build_containers_config_file: "{{ ansible_user_dir }}/containers.yaml"
+      # build tcib containers only when there is opendev depends-on
+      cifmw_build_containers_force: false
+
+- job:
     name: telemetry-operator-multinode-autoscaling
     parent: podified-multinode-edpm-deployment-crc
     dependencies: ["openstack-k8s-operators-content-provider"]
     description: |
-      Deploy OpenStack with Autoscaling features enabled
+      Deploy OpenStack with Autoscaling features enabled.
     vars:
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
@@ -41,7 +63,14 @@
     dependencies: ["openstack-k8s-operators-content-provider"]
     description: |
       Deploy a default OpenStack with telemetry enabled, but without COO installed. Check that the telemetry-operator logs don't have any errors.
+    extra-vars: &mcp_extra_vars
+      # Override zuul meta content provider provided content_provider_dlrn_md5_hash
+      # var. As returned dlrn md5 hash comes from master release but job is using
+      # antelope content.
+      content_provider_dlrn_md5_hash: ''
+
     vars:
+      cifmw_update_containers: false
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-default-telemetry.yml"
@@ -107,6 +136,7 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
+        - telemetry-openstack-meta-content-provider-master
         - telemetry-operator-multinode-default-telemetry
         - functional-graphing-tests-osp18:
             voting: false
@@ -123,3 +153,8 @@
         - functional-logging-tests-osp18: *fvt_jobs_config
         - feature-verification-tests-noop:
             files: *irrelevant_files
+        # TODO: Uncomment once the job merges in FVT
+        #- functional-periodic-telemetry-with-ceph: *fvt_jobs_config
+        #    files:
+        #      - ci/deploy-telemetry-with-ceph.yml
+        #      - ci/var-telemetry-with-ceph.yml

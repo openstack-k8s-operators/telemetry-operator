@@ -1,0 +1,17 @@
+---
+# tcib container images used by cloudops team for telemetry testing
+container_images:
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-aodh-api:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-aodh-evaluator:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-aodh-listener:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-aodh-notifier:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-ceilometer-central:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-ceilometer-compute:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-ceilometer-notification:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-ceilometer-ipmi:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-heat-api-cfn:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-heat-api:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-heat-engine:current-tested
+- imagename: quay.rdoproject.org/podified-master-centos10/openstack-tempest-all:current-tested
