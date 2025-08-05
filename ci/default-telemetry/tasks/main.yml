@@ -25,3 +25,7 @@
 - name: Test CustomMonitoringStack
   ansible.builtin.include_tasks:
     file: test_custom_monitoring_stack.yml
+
+- name: Test podlevel TLS with NAD for MetricStorage
+  ansible.builtin.include_tasks:
+    file: test_podlevel_tls_with_nad_metricstorage.yml
