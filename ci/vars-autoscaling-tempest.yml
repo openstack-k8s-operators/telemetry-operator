@@ -23,8 +23,8 @@ tempest_conf:
       telemetry.alarm_threshold 50000000000
 cifmw_tempest_tempestconf_config: "{{ tempest_conf }}"
 cifmw_test_operator_tempest_tempestconf_config: "{{ tempest_conf }}"
+cifmw_test_operator_tempest_smoke: true
 cifmw_test_operator_tempest_include_list: |
-  ^tempest.*\[.*\bsmoke\b.*\]
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh
 cifmw_test_operator_tempest_exclude_list: |
