@@ -1,0 +1,24 @@
+- name: Enable TLS at a pod level
+  ansible.builtin.command:
+    cmd: |
+      oc patch oscp/{{ default_telemetry_control_plane_name }} --type='json' -p '[{"op": "replace", "path": "/spec/tls/podLevel/enabled", "value":true}]'
+
+- name: Set NAD for MetricStorage
+  ansible.builtin.command:
+    cmd: |
+      oc patch oscp/{{ default_telemetry_control_plane_name }} --type='json' -p '[{"op": "replace", "path": "/spec/telemetry/template/metricStorage/networkAttachments", "value":["ctlplane"]}]'
+
+- name: Wait until MetricStorage is ready
+  ansible.builtin.command:
+    cmd:
+      oc wait telemetry telemetry --for=condition=Ready --timeout=2m
+
+- name: Get telemetry-operator logs
+  ansible.builtin.import_tasks: "get-operator-logs.yml"
+
+- name: |
+    TEST Check that telemetry-operator logs don't include any errors when using TLS at a pod level
+    OSPRH-14635
+  ansible.builtin.set_fact:
+    error_list: "{{ operator_logs.stdout | ansible.builtin.regex_findall('ERROR.*') }}"
+  failed_when: error_list | length != 0
