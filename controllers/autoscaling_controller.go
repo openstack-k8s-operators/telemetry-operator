@@ -682,6 +682,9 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		templateParameters["MemcachedAuthCa"] = fmt.Sprint(memcachedv1.CaMountPath())
 	}
 
+	// Quorum Queues
+	templateParameters["QuorumQueues"] = string(transportURLSecret.Data["quorumqueues"]) == "true"
+
 	cms := []util.Template{
 		// ScriptsSecret
 		{
