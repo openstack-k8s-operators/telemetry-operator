@@ -302,7 +302,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 
-	var eventHandler = handler.EnqueueRequestForOwner(
+	eventHandler := handler.EnqueueRequestForOwner(
 		r.Scheme,
 		r.RESTMapper,
 		&telemetryv1.MetricStorage{},
@@ -555,7 +555,6 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 
 	networkAnnotations, err := nad.EnsureNetworksAnnotation(nadList)
-
 	if err != nil {
 		err = fmt.Errorf("failed create network annotation from %s: %w", instance.Spec.NetworkAttachments, err)
 		instance.Status.Conditions.MarkFalse(
@@ -913,7 +912,7 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	targetsTLS, targetsNonTLS := getExporterTargets(connectionInfo, exporterPort)
 
 	// ScrapeConfig for non-tls nodes
-	//NOTE(mmagr): remove TLS suppression functionality once Kepler supports TLS
+	// NOTE(mmagr): remove TLS suppression functionality once Kepler supports TLS
 	targets := targetsNonTLS
 	if suppressTLS {
 		targets = targetsTLS
@@ -1223,9 +1222,7 @@ func (r *MetricStorageReconciler) ensureWatches(
 	}
 
 	Log.Info(fmt.Sprintf("Starting to watch %s", name))
-	err = r.Controller.Watch(source.Kind(r.Cache, kind),
-		handler,
-	)
+	err = r.Controller.Watch(source.Kind(r.Cache, kind, handler))
 	if err == nil {
 		r.Watching = append(r.Watching, name)
 	}
