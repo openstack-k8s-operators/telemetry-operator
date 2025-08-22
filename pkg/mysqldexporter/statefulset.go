@@ -79,7 +79,7 @@ func StatefulSet(
 	volumeMounts := getVolumeMounts()
 
 	if instance.Spec.MysqldExporterTLS.Enabled() {
-		svc, err := instance.Spec.MysqldExporterTLS.GenericService.ToService()
+		svc, err := instance.Spec.MysqldExporterTLS.ToService()
 		if err != nil {
 			return nil, err
 		}
