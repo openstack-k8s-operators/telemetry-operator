@@ -301,7 +301,7 @@ func (r *CloudKittyAPIReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 
 	// index tlsAPIInternalField
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.CloudKittyAPI{}, cloudKittyTlsAPIInternalField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.CloudKittyAPI{}, cloudKittyTLSAPIInternalField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
 		cr := rawObj.(*telemetryv1.CloudKittyAPI)
 		if cr.Spec.TLS.API.Internal.SecretName == nil {
@@ -313,7 +313,7 @@ func (r *CloudKittyAPIReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 
 	// index tlsAPIPublicField
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.CloudKittyAPI{}, cloudKittyTlsAPIPublicField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.CloudKittyAPI{}, cloudKittyTLSAPIPublicField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
 		cr := rawObj.(*telemetryv1.CloudKittyAPI)
 		if cr.Spec.TLS.API.Public.SecretName == nil {
@@ -583,7 +583,7 @@ func (r *CloudKittyAPIReconciler) reconcileInit(
 	if instance.Status.APIEndpoints == nil {
 		instance.Status.APIEndpoints = map[string]map[string]string{}
 	}
-	instance.Status.APIEndpoints[cloudkitty.ServiceName] = apiEndpointsV3
+	instance.Status.APIEndpoints[cloudkitty.ServiceName] = apiEndpoints
 	// V2 - end
 
 	// expose service - end

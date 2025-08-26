@@ -36,7 +36,7 @@ const (
 )
 
 // DbSyncJob func
-func DbSyncJob(instance *telemetryv1.CloudKitty, labels map[string]string) *batchv1.Job {
+func DbSyncJob(instance *telemetryv1.CloudKitty, labels map[string]string, annotations map[string]string) *batchv1.Job {
 	args := []string{"-c"}
 	args = append(args, dbSyncCommand)
 
@@ -75,6 +75,9 @@ func DbSyncJob(instance *telemetryv1.CloudKitty, labels map[string]string) *batc
 		},
 		Spec: batchv1.JobSpec{
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: annotations,
+				},
 				Spec: corev1.PodSpec{
 					RestartPolicy:      corev1.RestartPolicyOnFailure,
 					ServiceAccountName: instance.RbacResourceName(),

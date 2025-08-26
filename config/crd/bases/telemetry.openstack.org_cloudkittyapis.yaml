@@ -57,6 +57,7 @@ spec:
                 items:
                   type: string
                 type: array
+                x-kubernetes-list-type: atomic
               databaseAccount:
                 default: cloudkitty
                 description: DatabaseAccount - optional MariaDBAccount used for cloudkitty
@@ -71,6 +72,7 @@ spec:
                 items:
                   type: string
                 type: array
+                x-kubernetes-list-type: atomic
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -384,12 +386,6 @@ spec:
               transportURLSecret:
                 description: Secret containing RabbitMq transport URL
                 type: string
-            required:
-            - containerImage
-            - databaseHostname
-            - secret
-            - serviceAccount
-            - transportURLSecret
             type: object
           status:
             description: CloudKittyAPIStatus defines the observed state of CloudKittyAPI

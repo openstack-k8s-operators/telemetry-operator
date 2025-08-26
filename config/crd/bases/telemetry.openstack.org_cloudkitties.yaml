@@ -65,12 +65,14 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   networkAttachments:
                     description: NetworkAttachments is a list of NetworkAttachment
                       resource names to expose the services to the given network
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -348,8 +350,6 @@ spec:
                           current project
                         type: string
                     type: object
-                required:
-                - containerImage
                 type: object
               cloudKittyProc:
                 description: CloudKittyProc - Spec definition for the Scheduler service
@@ -373,12 +373,14 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   networkAttachments:
                     description: NetworkAttachments is a list of NetworkAttachment
                       resource names to expose the services to the given network
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -478,8 +480,6 @@ spec:
                           current project
                         type: string
                     type: object
-                required:
-                - containerImage
                 type: object
               customServiceConfig:
                 description: |-
@@ -600,13 +600,6 @@ spec:
                       current project
                     type: string
                 type: object
-            required:
-            - cloudKittyAPI
-            - cloudKittyProc
-            - databaseInstance
-            - memcachedInstance
-            - rabbitMqClusterName
-            - secret
             type: object
           status:
             description: CloudKittyStatus defines the observed state of CloudKitty
