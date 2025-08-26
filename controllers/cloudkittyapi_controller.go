@@ -460,21 +460,20 @@ func (r *CloudKittyAPIReconciler) reconcileInit(
 	// expose the service (create service and return the created endpoint URLs)
 	//
 
-	// V2
 	publicEndpointData := endpoint.Data{
 		Port: cloudkitty.CloudKittyPublicPort,
-		Path: "/v2",
+		Path: "",
 	}
 	internalEndpointData := endpoint.Data{
 		Port: cloudkitty.CloudKittyInternalPort,
-		Path: "/v2",
+		Path: "",
 	}
 	cloudkittyEndpoints := map[service.Endpoint]endpoint.Data{
 		service.EndpointPublic:   publicEndpointData,
 		service.EndpointInternal: internalEndpointData,
 	}
 
-	apiEndpointsV3 := make(map[string]string)
+	apiEndpoints := make(map[string]string)
 
 	for endpointType, data := range cloudkittyEndpoints {
 		endpointTypeStr := string(endpointType)
@@ -564,7 +563,7 @@ func (r *CloudKittyAPIReconciler) reconcileInit(
 			data.Protocol = ptr.To(service.ProtocolHTTPS)
 		}
 
-		apiEndpointsV3[string(endpointType)], err = svc.GetAPIEndpoint(
+		apiEndpoints[string(endpointType)], err = svc.GetAPIEndpoint(
 			svcOverride.EndpointURL, data.Protocol, data.Path)
 		if err != nil {
 			instance.Status.Conditions.MarkFalse(
