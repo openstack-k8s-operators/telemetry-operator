@@ -42,7 +42,7 @@ type CloudKittyProcTemplateCore struct {
 
 // CloudKittyProcTemplate defines the input parameters for the CloudKitty Processor service
 type CloudKittyProcTemplate struct {
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// ContainerImage - CloudKitty Container Image URL (will be set to environmental default if empty)
 	ContainerImage string `json:"containerImage"`
 
@@ -57,15 +57,15 @@ type CloudKittyProcSpec struct {
 	// Input parameters for the CloudKitty Processor service
 	CloudKittyProcTemplate `json:",inline"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// DatabaseHostname - CloudKitty Database Hostname
 	DatabaseHostname string `json:"databaseHostname"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// Secret containing RabbitMq transport URL
 	TransportURLSecret string `json:"transportURLSecret"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// ServiceAccount - service account name used internally to provide CloudKitty services the default SA name
 	ServiceAccount string `json:"serviceAccount"`
 }
