@@ -14,25 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# Trivial HTTP server to check health of scheduler, backup and volume services.
-# Cinder-API hast its own health check endpoint and does not need this.
-#
-# The only check this server currently does is using the heartbeat in the
-# database service table, accessing the DB directly here using cinder's
-# configuration options.
-#
-# The benefit of accessing the DB directly is that it doesn't depend on the
-# Cinder-API service being up and we can also differentiate between the
-# container not having a connection to the DB and the cinder service not doing
-# the heartbeats.
-#
-# For volume services all enabled backends must be up to return 200, so it is
-# recommended to use a different pod for each backend to avoid one backend
-# affecting others.
-#
-# Requires the name of the service as the first argument (volume, backup,
-# scheduler) and optionally a second argument with the location of the
-# configuration directory (defaults to /etc/cinder/cinder.conf.d)
 
 from http import server
 import signal
@@ -40,17 +21,67 @@ import socket
 import sys
 import time
 import threading
+import requests
 
 from oslo_config import cfg
+
 
 SERVER_PORT = 8080
 CONF = cfg.CONF
 
+
 class HTTPServerV6(server.HTTPServer):
-  address_family = socket.AF_INET6
+    address_family = socket.AF_INET6
+
 
 class HeartbeatServer(server.BaseHTTPRequestHandler):
+
+    @staticmethod
+    def check_services():
+        print("Starting health checks")
+        results = {}
+
+        # Todo Database Endpoint Reachability
+        # Keystone Endpoint Reachability
+        try:
+            keystone_uri = CONF.keystone_authtoken.auth_url
+            response = requests.get(keystone_uri, timeout=5)
+            response.raise_for_status()
+            server_header = response.headers.get('Server', '').lower()
+            if 'keystone' in server_header:
+                results['keystone_endpoint'] = 'OK'
+                print("Keystone endpoint reachable and responsive.")
+            else:
+                results['keystone_endpoint'] = 'WARN'
+                print(f"Keystone endpoint reachable, but not a valid Keystone service: {keystone_uri}")
+        except requests.exceptions.RequestException as e:
+            results['keystone_endpoint'] = 'FAIL'
+            print(f"ERROR: Keystone endpoint check failed: {e}")
+            raise Exception('ERROR: Keystone check failed', e)
+
+        # Prometheus Collector Endpoint Reachability
+        try:
+            prometheus_url = CONF.collector_prometheus.prometheus_url
+            insecure = CONF.collector_prometheus.insecure
+            cafile = CONF.collector_prometheus.cafile
+            verify_ssl = cafile if cafile and not insecure else not insecure
+
+            response = requests.get(prometheus_url, timeout=5, verify=verify_ssl)
+            response.raise_for_status()
+            results['collector_endpoint'] = 'OK'
+            print("Prometheus collector endpoint reachable.")
+        except requests.exceptions.RequestException as e:
+            results['collector_endpoint'] = 'FAIL'
+            print(f"ERROR: Prometheus collector check failed: {e}")
+            raise Exception('ERROR: Prometheus collector check failed', e)
+
     def do_GET(self):
+        try:
+            self.check_services()
+        except Exception as exc:
+            self.send_error(500, exc.args[0], exc.args[1])
+            return
+
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
@@ -68,12 +99,41 @@ def get_stopper(server):
 
 
 if __name__ == "__main__":
+    # Register config options
+    cfg.CONF.register_group(cfg.OptGroup(name='database', title='Database connection options'))
+    cfg.CONF.register_opt(cfg.StrOpt('connection', default=None), group='database')
+
+    cfg.CONF.register_group(cfg.OptGroup(name='keystone_authtoken', title='Keystone Auth Token Options'))
+    cfg.CONF.register_opt(cfg.StrOpt('auth_url',
+                                    default='https://keystone-internal.openstack.svc:5000'),
+                         group='keystone_authtoken')
+
+    cfg.CONF.register_group(cfg.OptGroup(name='collector_prometheus', title='Prometheus Collector Options'))
+    cfg.CONF.register_opt(cfg.StrOpt('prometheus_url',
+                                    default='http://metric-storage-prometheus.openstack.svc:9090'),
+                         group='collector_prometheus')
+    cfg.CONF.register_opt(cfg.BoolOpt('insecure', default=False), group='collector_prometheus')
+    cfg.CONF.register_opt(cfg.StrOpt('cafile', default=None), group='collector_prometheus')
+
+    # Load configuration from file
+    try:
+        cfg.CONF(sys.argv[1:], default_config_files=['/etc/cloudkitty/cloudkitty.conf.d/cloudkitty.conf'])
+    except cfg.ConfigFilesNotFoundError as e:
+        print(f"Health check failed: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Detect IPv6 support for binding
     hostname = socket.gethostname()
-    ipv6_address = socket.getaddrinfo(hostname, None, socket.AF_INET6)
+    try:
+        ipv6_address = socket.getaddrinfo(hostname, None, socket.AF_INET6)
+    except socket.gaierror:
+        ipv6_address = None
+
     if ipv6_address:
-        webServer = HTTPServerV6(("::",SERVER_PORT), HeartbeatServer)
+        webServer = HTTPServerV6(("::", SERVER_PORT), HeartbeatServer)
     else:
         webServer = server.HTTPServer(("0.0.0.0", SERVER_PORT), HeartbeatServer)
+
     stop = get_stopper(webServer)
 
     # Need to run the server on a different thread because its shutdown method
