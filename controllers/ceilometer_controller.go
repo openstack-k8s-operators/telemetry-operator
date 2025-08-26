@@ -1237,6 +1237,9 @@ func (r *CeilometerReconciler) generateServiceConfig(
 	}
 	templateParameters["vhost"] = endptConfig
 
+	// Quorum Queues
+	templateParameters["QuorumQueues"] = string(transportURLSecret.Data["quorumqueues"]) == "true"
+
 	// If the Swift user exists, we add it to the polling
 	if r.roleExists(ctx, h, instance, "SwiftSystemReader", h.GetLogger()) {
 		templateParameters["SwiftRole"] = true
