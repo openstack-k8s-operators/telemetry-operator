@@ -46,20 +46,20 @@ const (
 type CloudKittySpecBase struct {
 	CloudKittyTemplate `json:",inline"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=openstack
 	// MariaDB instance name
 	// Right now required by the maridb-operator to get the credentials from the instance to create the DB
 	// Might not be required in future
 	DatabaseInstance string `json:"databaseInstance"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=rabbitmq
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in CloudKitty
 	RabbitMqClusterName string `json:"rabbitMqClusterName"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=memcached
 	// Memcached instance name.
 	MemcachedInstance string `json:"memcachedInstance"`
@@ -111,11 +111,11 @@ type CloudKittySpecBase struct {
 type CloudKittySpecCore struct {
 	CloudKittySpecBase `json:",inline"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// CloudKittyAPI - Spec definition for the API service of this CloudKitty deployment
 	CloudKittyAPI CloudKittyAPITemplateCore `json:"cloudKittyAPI"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// CloudKittyProc - Spec definition for the Scheduler service of this CloudKitty deployment
 	CloudKittyProc CloudKittyProcTemplateCore `json:"cloudKittyProc"`
 }
@@ -124,11 +124,11 @@ type CloudKittySpecCore struct {
 type CloudKittySpec struct {
 	CloudKittySpecBase `json:",inline"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// CloudKittyAPI - Spec definition for the API service of this CloudKitty deployment
 	CloudKittyAPI CloudKittyAPITemplate `json:"cloudKittyAPI"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// CloudKittyProc - Spec definition for the Scheduler service of this CloudKitty deployment
 	CloudKittyProc CloudKittyProcTemplate `json:"cloudKittyProc"`
 }
@@ -145,7 +145,7 @@ type CloudKittyTemplate struct {
 	// DatabaseAccount - optional MariaDBAccount used for cloudkitty DB, defaults to cloudkitty
 	DatabaseAccount string `json:"databaseAccount"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// Secret containing OpenStack password information
 	Secret string `json:"secret"`
 
@@ -171,6 +171,7 @@ type CloudKittyServiceTemplate struct {
 	CustomServiceConfig string `json:"customServiceConfig,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +listType=atomic
 	// CustomServiceConfigSecrets - customize the service config using this parameter to specify Secrets
 	// that contain sensitive service config data. The content of each Secret gets added to the
 	// /etc/<service>/<service>.conf.d directory as a custom config file.
@@ -182,6 +183,7 @@ type CloudKittyServiceTemplate struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +listType=atomic
 	// NetworkAttachments is a list of NetworkAttachment resource names to expose the services to the given network
 	NetworkAttachments []string `json:"networkAttachments,omitempty"`
 

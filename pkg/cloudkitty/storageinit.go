@@ -36,7 +36,7 @@ const (
 )
 
 // StorageInitJob func
-func StorageInitJob(instance *telemetryv1.CloudKitty, labels map[string]string) *batchv1.Job {
+func StorageInitJob(instance *telemetryv1.CloudKitty, labels map[string]string, annotations map[string]string) *batchv1.Job {
 	args := []string{"-c", storageInitCommand}
 
 	// create Volume and VolumeMounts
@@ -74,6 +74,9 @@ func StorageInitJob(instance *telemetryv1.CloudKitty, labels map[string]string) 
 		},
 		Spec: batchv1.JobSpec{
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: annotations,
+				},
 				Spec: corev1.PodSpec{
 					RestartPolicy:      corev1.RestartPolicyOnFailure,
 					ServiceAccountName: instance.RbacResourceName(),

@@ -227,8 +227,8 @@ func (r *CloudKittyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 const (
 	cloudKittyPasswordSecretField     = ".spec.secret"
 	cloudKittyCaBundleSecretNameField = ".spec.tls.caBundleSecretName"
-	cloudKittyTlsAPIInternalField     = ".spec.tls.api.internal.secretName"
-	cloudKittyTlsAPIPublicField       = ".spec.tls.api.public.secretName"
+	cloudKittyTLSAPIInternalField     = ".spec.tls.api.internal.secretName"
+	cloudKittyTLSAPIPublicField       = ".spec.tls.api.public.secretName"
 	cloudKittyTopologyField           = ".spec.topologyRef.Name"
 )
 
@@ -241,8 +241,8 @@ var (
 	cloudKittyAPIWatchFields = []string{
 		cloudKittyPasswordSecretField,
 		cloudKittyCaBundleSecretNameField,
-		cloudKittyTlsAPIInternalField,
-		cloudKittyTlsAPIPublicField,
+		cloudKittyTLSAPIInternalField,
+		cloudKittyTLSAPIPublicField,
 		cloudKittyTopologyField,
 	}
 )
@@ -423,7 +423,7 @@ func (r *CloudKittyReconciler) reconcileInit(
 	// run CloudKitty db sync
 	//
 	dbSyncHash := instance.Status.Hash[telemetryv1.CKDbSyncHash]
-	jobDbSyncDef := cloudkitty.DbSyncJob(instance, serviceLabels)
+	jobDbSyncDef := cloudkitty.DbSyncJob(instance, serviceLabels, serviceAnnotations)
 
 	dbSyncjob := job.NewJob(
 		jobDbSyncDef,
@@ -465,7 +465,7 @@ func (r *CloudKittyReconciler) reconcileInit(
 	// run CloudKitty Storage Init
 	//
 	ckStorageInitHash := instance.Status.Hash[telemetryv1.CKStorageInitHash]
-	jobStorageInitDef := cloudkitty.StorageInitJob(instance, serviceLabels)
+	jobStorageInitDef := cloudkitty.StorageInitJob(instance, serviceLabels, serviceAnnotations)
 
 	storageInitjob := job.NewJob(
 		jobStorageInitDef,
