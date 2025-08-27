@@ -1,0 +1,12 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKittyApi
+metadata:
+  labels:
+    app.kubernetes.io/name: cloudkittyapi
+    app.kubernetes.io/instance: cloudkittyapi-sample
+    app.kubernetes.io/part-of: telemetry-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: telemetry-operator
+  name: cloudkittyapi-sample
+spec:
+  # TODO(user): Add fields here
