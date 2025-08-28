@@ -22,7 +22,7 @@ pre_deploy_kustomize_cloudkitty:
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
 # TODO: Consider switching to podified-master-centos10 for features that patch master
-cifmw_test_operator_tempest_namespace: podified-antelope-centos9
+cifmw_test_operator_tempest_namespace: podified-master-centos10
 # cloudkitty tempest plugin is not part of the tempest rpm.
 # https://review.rdoproject.org/cgit/openstack/tempest-distgit/tree/openstack-tempest.spec
 # We need to add the cloudkitty-tempest-plugin package to RDO, same as TTTP
