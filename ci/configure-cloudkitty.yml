@@ -43,5 +43,10 @@
               spec:
                 cloudkitty:
                   enabled: true
+                  secret: osp-secret
+                  passwordSelector:
+                    aodhService: AodhPassword
+                    ceilometerService: CeilometerPassword
+                    cloudKittyService: CloudKittyPassword
             target:
               kind: Telemetry
