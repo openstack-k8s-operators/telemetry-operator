@@ -27,3 +27,21 @@
                       enabled: true
             target:
               kind: OpenStackControlPlane
+    - name: Copy telemetry kustomization
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-telemetry-cloudkitty.yaml"
+        content: |-
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          namespace: openstack
+          patches:
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: Telemetry
+              metadata:
+                name: unused
+              spec:
+                cloudkitty:
+                  enabled: true
+            target:
+              kind: Telemetry
