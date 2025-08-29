@@ -66,6 +66,9 @@ func (r *TelemetryReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=loggings,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=loggings/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=loggings/finalizers,verbs=update;delete;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=cloudkitties,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=cloudkitties/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=telemetry.openstack.org,resources=cloudkitties/finalizers,verbs=update;delete;patch
 // +kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=transporturls,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile reconciles a Telemetry
@@ -141,6 +144,7 @@ func (r *TelemetryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		condition.UnknownCondition(telemetryv1.AutoscalingReadyCondition, condition.InitReason, telemetryv1.AutoscalingReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.MetricStorageReadyCondition, condition.InitReason, telemetryv1.MetricStorageReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.LoggingReadyCondition, condition.InitReason, telemetryv1.LoggingReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.CloudKittyReadyCondition, condition.InitReason, telemetryv1.CloudKittyReadyInitMessage),
 	)
 
 	instance.Status.Conditions.Init(&cl)
@@ -219,6 +223,13 @@ func (r *TelemetryReconciler) reconcileNormal(ctx context.Context, instance *tel
 	}
 
 	ctrlResult, err = r.reconcileLogging(ctx, instance, helper)
+	if err != nil {
+		return ctrl.Result{}, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	ctrlResult, err = r.reconcileCloudKitty(ctx, instance, helper)
 	if err != nil {
 		return ctrl.Result{}, err
 	} else if (ctrlResult != ctrl.Result{}) {
@@ -553,6 +564,89 @@ func (r TelemetryReconciler) reconcileLogging(ctx context.Context, instance *tel
 	return ctrl.Result{}, nil
 }
 
+// reconcileAutoscaling ...
+func (r TelemetryReconciler) reconcileCloudKitty(ctx context.Context, instance *telemetryv1.Telemetry, helper *helper.Helper) (ctrl.Result, error) {
+	const (
+		cloudKittyNamespaceLabel = "CloudKitty.Namespace"
+		cloudKittyNameLabel      = "CloudKitty.Name"
+		cloudKittyName           = "cloudkitty"
+	)
+	cloudKittyInstance := &telemetryv1.CloudKitty{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cloudKittyName,
+			Namespace: instance.Namespace,
+		},
+	}
+
+	if instance.Spec.CloudKitty.Enabled == nil || !*instance.Spec.CloudKitty.Enabled {
+		if res, err := utils.EnsureDeleted(ctx, helper, cloudKittyInstance); err != nil {
+			return res, err
+		}
+		instance.Status.Conditions.Remove(telemetryv1.CloudKittyReadyCondition)
+		return ctrl.Result{}, nil
+	}
+
+	if instance.Spec.CloudKitty.NodeSelector == nil {
+		instance.Spec.CloudKitty.NodeSelector = instance.Spec.NodeSelector
+	}
+
+	if instance.Spec.CloudKitty.TopologyRef == nil {
+		instance.Spec.CloudKitty.TopologyRef = instance.Spec.TopologyRef
+	}
+
+	helper.GetLogger().Info("Reconciling CloudKitty", cloudKittyNamespaceLabel, instance.Namespace, cloudKittyNameLabel, cloudKittyName)
+	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), cloudKittyInstance, func() error {
+		instance.Spec.CloudKitty.CloudKittySpec.DeepCopyInto(&cloudKittyInstance.Spec)
+
+		err := controllerutil.SetControllerReference(helper.GetBeforeObject(), cloudKittyInstance, helper.GetScheme())
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.CloudKittyReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	// Check the observed Generation and mirror the condition from the
+	// underlying resource reconciliation
+	autoObsGen, err := r.checkCloudKittyGeneration(instance)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.CloudKittyReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, nil
+	}
+	if !autoObsGen {
+		instance.Status.Conditions.Set(condition.UnknownCondition(
+			telemetryv1.CloudKittyReadyCondition,
+			condition.InitReason,
+			telemetryv1.AutoscalingReadyRunningMessage,
+		))
+	} else {
+		// Mirror Autoscaling condition status
+		c := cloudKittyInstance.Status.Conditions.Mirror(telemetryv1.CloudKittyReadyCondition)
+		if c != nil {
+			instance.Status.Conditions.Set(c)
+		}
+	}
+	if op != controllerutil.OperationResultNone && autoObsGen {
+		helper.GetLogger().Info(fmt.Sprintf("%s %s - %s", cloudKittyName, cloudKittyInstance.Name, op))
+	}
+
+	return ctrl.Result{}, nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *TelemetryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -561,6 +655,7 @@ func (r *TelemetryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&telemetryv1.Autoscaling{}).
 		Owns(&telemetryv1.MetricStorage{}).
 		Owns(&telemetryv1.Logging{}).
+		Owns(&telemetryv1.CloudKitty{}).
 		Complete(r)
 }
 
@@ -641,6 +736,27 @@ func (r *TelemetryReconciler) checkLoggingGeneration(
 		return false, err
 	}
 	for _, item := range l.Items {
+		if item.Generation != item.Status.ObservedGeneration {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// checkCloudKittyGeneration -
+func (r *TelemetryReconciler) checkCloudKittyGeneration(
+	instance *telemetryv1.Telemetry,
+) (bool, error) {
+	Log := r.GetLogger(context.Background())
+	clm := &telemetryv1.CloudKittyList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.Namespace),
+	}
+	if err := r.Client.List(context.Background(), clm, listOpts...); err != nil {
+		Log.Error(err, "Unable to retrieve CloudKitty CR %w")
+		return false, err
+	}
+	for _, item := range clm.Items {
 		if item.Generation != item.Status.ObservedGeneration {
 			return false, nil
 		}

@@ -198,10 +198,38 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.CloudKittyReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create CloudKitty controller")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.CloudKittyAPIReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+	}).SetupWithManager(context.Background(), mgr); err != nil {
+		setupLog.Error(err, "unable to create CloudKitty API controller")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.CloudKittyProcReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+	}).SetupWithManager(context.Background(), mgr); err != nil {
+		setupLog.Error(err, "unable to create CloudKitty Processor controller")
+		os.Exit(1)
+	}
+
 	// Acquire environmental defaults and initialize defaults with them
 	telemetryv1beta1.SetupDefaultsTelemetry()
 	telemetryv1beta1.SetupDefaultsCeilometer()
 	telemetryv1beta1.SetupDefaultsAutoscaling()
+	telemetryv1beta1.SetupDefaultsCloudKitty()
 
 	// Setup webhooks if requested
 	checker := healthz.Ping
@@ -221,6 +249,10 @@ func main() {
 		}
 		if err = (&telemetryv1beta1.MetricStorage{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MetricStorage")
+			os.Exit(1)
+		}
+		if err = (&telemetryv1beta1.CloudKitty{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CloudKitty")
 			os.Exit(1)
 		}
 		checker = mgr.GetWebhookServer().StartedChecker()
