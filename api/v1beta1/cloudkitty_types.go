@@ -146,6 +146,7 @@ type CloudKittyTemplate struct {
 	DatabaseAccount string `json:"databaseAccount"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=osp-secret
 	// Secret containing OpenStack password information
 	Secret string `json:"secret"`
 
