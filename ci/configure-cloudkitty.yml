@@ -50,3 +50,25 @@
                     cloudKittyService: CloudKittyPassword
             target:
               kind: Telemetry
+    - name: Copy cloudkitty kustomization
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-cloudkitty-cloudkitty.yaml"
+        content: |-
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          namespace: openstack
+          patches:
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: CloudKitty
+              metadata:
+                name: unused
+              spec:
+                secret: osp-secret
+                passwordSelector:
+                  aodhService: AodhPassword
+                  ceilometerService: CeilometerPassword
+                  cloudKittyService: CloudKittyPassword
+            target:
+              kind: CloudKitty
+
