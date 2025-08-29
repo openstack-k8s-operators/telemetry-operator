@@ -24,4 +24,4 @@
 - name: Wait for the cluster log forwarder to be ready
   ansible.builtin.command:
     cmd: |
-      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder collector
+      oc wait --timeout=1300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder collector
