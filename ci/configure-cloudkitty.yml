@@ -48,5 +48,16 @@
                     aodhService: AodhPassword
                     ceilometerService: CeilometerPassword
                     cloudKittyService: CloudKittyPassword
+                  # WORKAROUND
+                  # Need to set the images, since the defaulting is not working at the moment.
+                  # The container image is not being set, so the dbsync is failing.
+                  # The defaulting will not be done in the webhook until CK is added to the openstack-operator.
+                  # If I change the name of the CK, I can just configure using the CK CRD.
+                  # If I don't change the name, and disable it in telemetry, then the telemetry-operator will delete the telemetry telemetry.
+                  cloudKittyAPI:
+                    containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api"
+                  cloudKittyProc:
+                    containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor"
             target:
               kind: Telemetry
+
