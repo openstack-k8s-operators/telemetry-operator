@@ -1,0 +1,43 @@
+---
+# This should get to the point where we have must-gather running so that there is more information available.
+- name: "Create the kustomization for deploying CloudKitty"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+  # WORKAROUND
+  # Need to set the images, since the defaulting is not working at the moment.
+  # The container image is not being set, so the dbsync is failing.
+  # The defaulting will not be done in the webhook until CK is added to the openstack-operator.
+  # If I change the name of the CK, I can just configure using the CK CRD.
+  # If I don't change the name, and disable it in telemetry, then the telemetry-operator will delete the telemetry telemetry.
+    - name: Patch telemetry CR
+      ansible.builtin.shell:
+        cmd: |
+          oc apply -f - <<EOF
+          apiVersion: core.openstack.org/v1beta1
+          kind: Telemetry
+          metadata:
+            name: telemetry
+            namespace: openstack
+          spec:
+            cloudkitty:
+              enabled: true
+              secret: osp-secret
+              passwordSelector:
+                aodhService: AodhPassword
+                ceilometerService: CeilometerPassword
+                cloudKittyService: CloudKittyPassword
+              cloudKittyAPI:
+                containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api"
+              cloudKittyProc:
+                containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor"
+          EOF
+      register: output
+    - name: wait for the update to telemetry
+      ansible.builtin.shell:
+        cmd: |
+          oc wait --for=condition=Ready telemetry telemetry
+
