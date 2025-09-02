@@ -19,5 +19,10 @@
 
 - name: Wait for the lokistack to be ready
   ansible.builtin.command:
-    cmd: |
-      oc wait --timeout=500s --for condition=Ready=True --namespace=openshift-logging lokistacks logging-loki
+    cmd: >
+      oc get lokistack logging-loki -n openshift-logging
+      -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+  register: loki_ready
+  until: loki_ready.stdout == "True"
+  retries: 40 
+  delay: 15
