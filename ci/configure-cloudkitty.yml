@@ -1,4 +1,8 @@
 ---
+# I may need to do a post-deploy hook instead, so I can see what the errors are.
+# I know that the openstack kustomization did no damage, but I should just remove this hook for now.
+# There will be an alternative hook as a post_deploy for now.
+# That should get to the point where we have must-gather running so that there is more information available.
 - name: "Create the kustomization for deploying CloudKitty"
   hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
   gather_facts: false
