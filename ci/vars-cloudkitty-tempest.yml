@@ -1,5 +1,9 @@
 ---
 # Deploy cloudkitty
+# TODO: To use the images created by the content provider, we need to add in the images here until there's support in openstack operator to pull them in the expected way.
+cloudkitty_api_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested"
+cloudkitty_proc_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested"
+
 pre_deploy_kustomize_cloudkitty:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
   type: playbook
@@ -8,9 +12,9 @@ pre_deploy_kustomize_cloudkitty:
 #pre_deploy_deploy_logging_dependencies:
 #  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-logging-dependencies.yml"
 #  type: playbook
-#post_deploy_enable_cloudkitty:
-#  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/cloudkitty-post_deploy.yml"
-#  type: playbook
+post_deploy_enable_cloudkitty:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/cloudkitty-post_deploy.yml"
+  type: playbook
 # test cloudkitty
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
