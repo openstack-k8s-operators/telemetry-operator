@@ -1,16 +1,16 @@
 ---
 # Deploy cloudkitty
-#pre_deploy_kustomize_cloudkitty:
-#  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
-#  type: playbook
+pre_deploy_kustomize_cloudkitty:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
+  type: playbook
 # TODO: Adapt the deploy-logging-dependencies role to allow config necessary for CK
 # # I can remove the vars-logging from the job definition.
-pre_deploy_deploy_logging_dependencies:
-  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-logging-dependencies.yml"
-  type: playbook
-post_deploy_enable_cloudkitty:
-  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/cloudkitty-post_deploy.yml"
-  type: playbook
+#pre_deploy_deploy_logging_dependencies:
+#  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-logging-dependencies.yml"
+#  type: playbook
+#post_deploy_enable_cloudkitty:
+#  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/cloudkitty-post_deploy.yml"
+#  type: playbook
 # test cloudkitty
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
