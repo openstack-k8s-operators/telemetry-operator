@@ -267,5 +267,6 @@ func SetupDefaultsTelemetry() {
 		AodhListenerContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_LISTENER_IMAGE_URL_DEFAULT", AodhListenerContainerImage),
 	}
 
+		// CloudKitty Defaults can be duplicated here.
 	SetupTelemetryDefaults(telemetryDefaults)
 }
