@@ -31,9 +31,9 @@
                 ceilometerService: CeilometerPassword
                 cloudKittyService: CloudKittyPassword
               cloudKittyAPI:
-                containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api"
+                containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested"
               cloudKittyProc:
-                containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor"
+                containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested"
           EOF
       register: output
     - name: wait for the update to telemetry
