@@ -31,8 +31,9 @@
                       enabled: true
             target:
               kind: OpenStackControlPlane
-      # TODO: To use the images created by the content provider, we need to add in the images here until there's support in openstack operator to pull them in the expected way.
 
+      # This probably won't actually work, since there's no telemetry object yet at this point.
+      # The kustomization needs to be done post_deploy
     - name: Copy telemetry kustomization
       ansible.builtin.copy:
         dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-telemetry-cloudkitty.yaml"
@@ -61,9 +62,9 @@
                   # If I change the name of the CK, I can just configure using the CK CRD.
                   # If I don't change the name, and disable it in telemetry, then the telemetry-operator will delete the telemetry telemetry.
                   cloudKittyAPI:
-                    containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested"
+                    containerImage: "{{ cloudkitty_api_image }}"
                   cloudKittyProc:
-                    containerImage: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested"
+                    containerImage: "{{ cloudkitty_proc_image }}"
             target:
               kind: Telemetry
 
