@@ -20,7 +20,8 @@
           apiVersion: core.openstack.org/v1beta1
           kind: Telemetry
           metadata:
-            name: unused
+            name: telemetry
+            namespace: openstack
           spec:
             cloudkitty:
               enabled: true
