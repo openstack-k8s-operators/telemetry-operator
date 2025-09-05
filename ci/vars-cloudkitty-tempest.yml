@@ -15,16 +15,32 @@ cifmw_openshift_obs_definition:
     sourceNamespace: openshift-marketplace
 
 # TODO: To use the images created by the content provider, we need to add in the images here until there's support in openstack operator to pull them in the expected way.
-cloudkitty_api_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested"
-cloudkitty_proc_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested"
+
+# from fvt/ci/vars/common.yml should be used from there eventually.
+telemetry_registry: >-
+  {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
+  {{ content_provider_os_registry_url  }}
+  {%- else -%}
+  quay.rdoproject.org/podified-master-centos10
+  {%- endif -%}
+
+telemetry_tag: >-
+  {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
+  telemetry_latest
+  {%- else -%}
+  current-tested
+  {%- endif -%}
+
+_ck_api_image: "{{ telemetry_registry }}/openstack-cloudkitty-api:{{ telemetry_tag }}"
+_ck_proc_image: "{{ telemetry_registry }}/openstack-cloudkitty-processor:{{ telemetry_tag }}"
 
 # This is removed for now.
 #pre_deploy_kustomize_cloudkitty:
 #  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
 #  type: playbook
 #  extra_vars:
-#    cloudkitty_api_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested"
-#    cloudkitty_proc_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested"
+#    cloudkitty_api_image: "{{ _ck_api_image }}
+#    cloudkitty_proc_image: "{{ _ck_proc_image }}"
 # TODO: Adapt the deploy-logging-dependencies role to allow config necessary for CK
 # # I can remove the vars-logging from the job definition.
 #pre_deploy_deploy_logging_dependencies:
@@ -34,8 +50,9 @@ post_deploy_enable_cloudkitty:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/cloudkitty-post_deploy.yml"
   type: playbook
   extra_vars:
-    cloudkitty_api_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested"
-    cloudkitty_proc_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested"
+    cloudkitty_api_image: "{{ _ck_api_image }}"
+    cloudkitty_proc_image: "{{ _ck_proc_image }}"
+
 # test cloudkitty
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
