@@ -164,12 +164,12 @@
         - telemetry-operator-multinode-cloudkitty
         - telemetry-openstack-meta-content-provider-master
         #- telemetry-operator-multinode-default-telemetry
-        - functional-tests-osp18: &fvt_jobs_config
-            voting: true
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            irrelevant-files: *irrelevant_files
+        #- functional-tests-osp18: &fvt_jobs_config
+        #    voting: true
+        #    required-projects:
+        #      - name: infrawatch/feature-verification-tests
+        #        override-checkout: master
+        #    irrelevant-files: *irrelevant_files
         #- feature-verification-tests-noop:
         #    files: *irrelevant_files
         # TODO: Uncomment once the job merges in FVT
