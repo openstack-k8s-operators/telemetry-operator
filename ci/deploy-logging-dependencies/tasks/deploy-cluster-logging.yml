@@ -25,7 +25,3 @@
   ansible.builtin.command:
     cmd: |
       oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder collector
-
-- name: Force Error
-  ansible.builtin.fail:
-    msg: "Force failure at end of playbook"
