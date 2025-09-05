@@ -18,12 +18,13 @@ cifmw_openshift_obs_definition:
 cloudkitty_api_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested"
 cloudkitty_proc_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested"
 
-pre_deploy_kustomize_cloudkitty:
-  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
-  type: playbook
-  extra_vars:
-    cloudkitty_api_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested"
-    cloudkitty_proc_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested"
+# This is removed for now.
+#pre_deploy_kustomize_cloudkitty:
+#  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
+#  type: playbook
+#  extra_vars:
+#    cloudkitty_api_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current-tested"
+#    cloudkitty_proc_image: "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current-tested"
 # TODO: Adapt the deploy-logging-dependencies role to allow config necessary for CK
 # # I can remove the vars-logging from the job definition.
 #pre_deploy_deploy_logging_dependencies:
