@@ -39,9 +39,15 @@
           apiVersion: telemetry.openstack.org/v1beta1
           kind: Telemetry
           metadata:
-            name: telemetry
+            name: telemetry-2
             namespace: openstack
           spec:
+            ceilometer:
+              enabled: false
+            autoscaling:
+              enabled: false
+            logging:
+              enabled: false
             cloudkitty:
               enabled: true
               secret: osp-secret
@@ -53,11 +59,12 @@
                 containerImage: "{{ cloudkitty_api_image }}"
               cloudKittyProc:
                 containerImage: "{{ cloudkitty_proc_image }}"
-              databaseAccount: "cloudkitty"
-              databaseInstance: "openstack"
-              memcachedInstance: "memcached"
-              rabbitMqClusterName: "rabbitmq"
-              serviceUser: "cloudkitty"
+              preserveJobs: true
+              databaseAccount: cloudkitty
+              databaseInstance: openstack
+              memcachedInstance: memcached
+              rabbitMqClusterName: rabbitmq
+              serviceUser: cloudkitty
           EOF
       register: output
     - name: wait for the update to telemetry
