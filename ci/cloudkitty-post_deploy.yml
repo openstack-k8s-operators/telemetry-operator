@@ -13,6 +13,25 @@
   # The defaulting will not be done in the webhook until CK is added to the openstack-operator.
   # If I change the name of the CK, I can just configure using the CK CRD.
   # If I don't change the name, and disable it in telemetry, then the telemetry-operator will delete the telemetry telemetry.
+  # WORKAROUND
+  # The databaseAccount, databaseInstance, memcachedInstance, rabbitMqClusterName and serviceUser do not set default values
+  # They should, IINM, since these are also defaulted/set for ceilometer, autoscaling, etc
+  # The databaseInstance needs to be created..
+  # The databaseAccount needs to be created...
+  # I am re-using the existing memcached and rabbitmq instances
+  # The serviceuser should be cloudkitty, and that needs to be configured/created as well.
+  # databaseAccount defaults to cloudkitty, according to api/bases/openstack.org_cloudkittyes.yaml
+  # BUG: cloudkitty.databaseAccount is not defaulting correctly
+  # databaseInstance defaults to openstack, according to api/bases/openstack.org_cloudkittyes.yaml
+  # BUG: databaseInstance is not defaulting to the right value
+  # memcachedInstance is supposed to default to memcached, but does not
+  # serviceUser is optional
+  # NOTE: The failure to set the default might be some issue between the Telemetry CR and CloudKitty, since cloudkitty_types.go defines a default for memcachedInstance, rabbitmqInstance, databaseInstance.
+  # HOWEVER, the fact that they are all optional could be why they are not defaulting when created via telemetry CR
+  # They are not set to omitEmpty, which is why the empty values are propogating.
+  # Since the memcached instance is not omitted when empty, CK tries to resolve it and connect.
+  # The serviceUser should not be omitted when it is unset, since the values is used to create the cloudkitty.conf file.
+  # BUG: serviceUser value is not being defaulted correctly when it is omitted from the CR: expected "cloudkitty", got "" (same for the other config values mentioned above, all were set to "".
     - name: Patch telemetry CR
       ansible.builtin.shell:
         cmd: |
@@ -34,6 +53,11 @@
                 containerImage: "{{ cloudkitty_api_image }}"
               cloudKittyProc:
                 containerImage: "{{ cloudkitty_proc_image }}"
+              databaseAccount: "cloudkitty"
+              databaseInstance: "openstack"
+              memcachedInstance: "memcached"
+              rabbitMqClusterName: "rabbitmq"
+              serviceUser: "cloudkitty"
           EOF
       register: output
     - name: wait for the update to telemetry
