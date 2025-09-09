@@ -67,6 +67,7 @@ func StatefulSet(
 	startupProbe.HTTPGet = livenessProbe.HTTPGet
 	probeCommand = []string{
 		"/var/lib/openstack/bin/healthcheck.py",
+		"--config-file",
 		"/etc/cloudkitty/cloudkitty.conf.d/cloudkitty.conf",
 	}
 
