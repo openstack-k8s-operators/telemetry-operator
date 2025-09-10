@@ -35,7 +35,7 @@ func GetVolumeMounts(parentName string) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "config-data-custom",
-			MountPath: "/etc/cloudkitty/cloudkitty.conf.d",
+			MountPath: "/var/lib/openstack/service-config/",
 			ReadOnly:  true,
 		},
 		GetLogVolumeMount(),

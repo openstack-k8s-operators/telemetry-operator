@@ -60,15 +60,12 @@ func StatefulSet(
 	}
 
 	args := []string{"-c", ServiceCommand}
-	var probeCommand []string
+	var probeCommand string
 	livenessProbe.HTTPGet = &corev1.HTTPGetAction{
 		Port: intstr.FromInt(8080),
 	}
 	startupProbe.HTTPGet = livenessProbe.HTTPGet
-	probeCommand = []string{
-		"/var/lib/openstack/bin/healthcheck.py",
-		"/etc/cloudkitty/cloudkitty.conf.d/cloudkitty.conf",
-	}
+	probeCommand = "/usr/local/bin/kolla_set_configs && /var/lib/openstack/bin/healthcheck.py --config-dir /etc/cloudkitty/cloudkitty.conf.d/"
 
 	envVars := map[string]env.Setter{}
 	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
@@ -119,14 +116,19 @@ func StatefulSet(
 							StartupProbe:  startupProbe,
 						},
 						{
-							Name:    "probe",
-							Command: probeCommand,
-							Image:   instance.Spec.ContainerImage,
+							Name: "probe",
+							Command: []string{
+								"/bin/bash",
+							},
+							Args:  []string{"-c", probeCommand},
+							Env:   env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							Image: instance.Spec.ContainerImage,
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser: &cloudKittyUser,
 								//RunAsGroup: &cloudKittyGroup,
 							},
 							VolumeMounts: volumeMounts,
+							Resources:    instance.Spec.Resources,
 						},
 					},
 					Volumes: volumes,
