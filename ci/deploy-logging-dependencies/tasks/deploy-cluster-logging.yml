@@ -24,4 +24,9 @@
 - name: Wait for the cluster log forwarder to be ready
   ansible.builtin.command:
     cmd: |
-      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder collector
+      # oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder collector
+      oc get clusterlogforwarder collector -n openshift-logging -o jsonpath='{.status.conditions}' | jq 'all(.[]; .status == "True")'
+  delay: 20
+  retries: 20
+  register: oc_output
+  until: oc_output.stdout is ansible.builtin.regex("([Tt]rue\s?)+$")
