@@ -48,14 +48,14 @@ func StatefulSet(
 	livenessProbe := &corev1.Probe{
 		// TODO might need tuning
 		TimeoutSeconds:      5,
-		PeriodSeconds:       3,
-		InitialDelaySeconds: 5,
+		PeriodSeconds:       5,
+		InitialDelaySeconds: 30,
 	}
 	readinessProbe := &corev1.Probe{
 		// TODO might need tuning
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
-		InitialDelaySeconds: 5,
+		InitialDelaySeconds: 30,
 	}
 
 	args := []string{"-c", ServiceCommand}
