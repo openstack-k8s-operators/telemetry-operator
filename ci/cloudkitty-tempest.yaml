@@ -1,0 +1,103 @@
+apiVersion: test.openstack.org/v1beta1
+kind: Tempest
+metadata:
+  name: tempest-tests-cloudkitty
+  namespace: openstack
+spec:
+  containerImage: quay.rdoproject.org/podified-master-centos10/openstack-tempest-all:current-tested
+  debug: true
+  openStackConfigMap: openstack-config
+  openStackConfigSecret: openstack-config-secret
+  parallel: false
+  privileged: true
+  rerunFailedTests: false
+  storageClass: local-storage
+  tempestRun:
+    concurrency: 2
+    excludeList: |
+      tempest.scenario.test_network_basic_ops.TestNetworkBasicOps.test_mtu_sized_frames
+
+    externalPlugin:
+    - repository: https://opendev.org/openstack/cloudkitty-tempest-plugin.git
+    includeList: |
+      #^tempest.*\[.*\bsmoke\b.*\]
+      cloudkitty_tempest_plugin.*
+      #telemetry_tempest_plugin.*
+    excludeList: |
+      ^tempest*
+      ^*tempest*
+    parallel: true
+    serial: false
+    smoke: false
+    workerFile: ""
+  tempestconfRun:
+    append: ""
+    collectTiming: false
+    convertToRaw: false
+    create: true
+    createAccountsFile: ""
+    debug: false
+    deployerInput: |
+      [auth]
+      tempest_roles =
+
+      [enforce_scope]
+      barbican = true
+      cinder = true
+      designate = true
+      glance = true
+      ironic = true
+      ironic_inspector = true
+      neutron = true
+      nova = true
+      octavia = true
+      keystone = true
+      manila = true
+      placement = true
+
+      [identity-feature-enabled]
+      enforce_scope = true
+
+      [compute-feature-enabled]
+      dhcp_domain = ''
+
+      [load_balancer]
+      member_role = load-balancer_member
+      admin_role = load-balancer_admin
+      RBAC_test_type = keystone_default_roles
+      enforce_new_defaults = true
+      enforce_scope = false
+
+      [volume]
+      catalog_type = volumev3
+    flavorMinDisk: 0
+    flavorMinMem: 0
+    generateProfile: ""
+    image: ""
+    imageDiskFormat: ""
+    insecure: false
+    networkID: ""
+    noDefaultDeployer: false
+    nonAdmin: false
+    out: ""
+    overrides: |-
+      validation.run_validation true
+      identity.v3_endpoint_type public
+      service_available.ceilometer true
+      service_available.sg_core true
+      service_available.aodh true
+      service_available.cinder false
+      telemetry.sg_core_service_url "https://ceilometer-internal.openstack.svc.cluster.local:3000"
+      telemetry.prometheus_service_url "https://metric-storage-prometheus.openstack.svc.cluster.local:9090"
+      telemetry.ceilometer_polling_interval 120
+      telemetry.prometheus_scrape_interval 30
+      telemetry.alarm_threshold 50000000000
+      whitebox_neutron_plugin_options.proxy_host_address 38.102.83.182
+    profile: ""
+    remove: ""
+    retryImage: false
+    testAccounts: ""
+    timeout: 0
+    verbose: false
+  workflow: []
+

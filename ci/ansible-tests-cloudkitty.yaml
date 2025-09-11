@@ -1,0 +1,47 @@
+apiVersion: test.openstack.org/v1beta1
+kind: AnsibleTest
+metadata:
+  name: ansible-tests-cloudkitty
+  namespace: openstack
+spec:
+  ansibleGitRepo: 'http://github.com/elfiesmelfie/feature-verification-tests'
+  debug: true
+  #containerImage: quay.io/podified-antelope-centos9/openstack-ansible-tests:current-podified
+  containerImage: quay.io/efoley/openstack-ansible-tests@sha256:9080fa1a359de1d824585ae99bcc4f34a7400fc0a29550ea6b92c44f2975901c
+  #ansiblePlaybookPath: ci/run_verify_metrics_osp18.yml
+  storageClass: crc-csi-hostpath-provisioner
+  computeSSHKeySecretName: dataplane-ansible-ssh-private-key-secret
+  workloadSSHKeySecretName: dataplane-ansible-ssh-private-key-secret
+  ansibleVarFiles: |
+    cifmw_openshift_kubeconfig: ~/.kube.config
+    cifmw_path: "{{ ansible_env.PATH }}:/var/lib/ansible/bin"
+    cifmw_openshift_api: api.crc.testing:6443
+    cifmw_openshift_password: '12345678'
+    cifmw_openshift_user: kubeadmin
+    openstack_cmd: "oc -n openstack rsh openstackclient openstack" 
+    patch_observabilityclient: true
+  ansibleCollections: 'git+https://github.com/elfiesmelfie/feature-verification-tests.git,master'
+  privileged: false
+    #extraMounts:
+    #  - extraVol:
+    #      - mounts:
+    #          - name: test-operator-logs
+    #            mountPath: /var/lib/ansible/ci-framework-data/tests/feature-verification-tests
+    #        volumes: []
+  ansibleInventory: |
+    localhost ansible_connection=local ansible_python_interpreter=python3
+    compute-0 ansible_host=192.168.122.100 ansible_user=root ansible_ssh_private_key_file=/var/lib/ansible/.ssh/compute_id
+    compute-1 ansible_host=192.168.122.101 ansible_user=root ansible_ssh_private_key_file=/var/lib/ansible/.ssh/compute_id
+    [compute]
+    compute-0
+    compute-1
+    [controller]
+    localhost
+    [local]
+    localhost
+  workflow:
+    - stepName: cloudkitty
+      ansiblePlaybookPath: ci/run_cloudkitty_tests.yml
+      debug: true
+    #- stepName: report-results
+    #  ansiblePlaybookPath: ci/report_result.yml
