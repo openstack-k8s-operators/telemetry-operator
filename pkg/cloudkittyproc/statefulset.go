@@ -120,9 +120,9 @@ func StatefulSet(
 							Command: []string{
 								"/bin/bash",
 							},
-							Args:    []string{"-c", probeCommand},
-							Env:     env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							Image:   instance.Spec.ContainerImage,
+							Args:  []string{"-c", probeCommand},
+							Env:   env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							Image: instance.Spec.ContainerImage,
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser: &cloudKittyUser,
 								//RunAsGroup: &cloudKittyGroup,
