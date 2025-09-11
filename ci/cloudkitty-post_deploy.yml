@@ -38,29 +38,28 @@
         cmd: |
           oc apply -f - <<EOF
           apiVersion: telemetry.openstack.org/v1beta1
-          kind: Telemetry
+          kind: CloudKitty
           metadata:
-            name: telemetry
+            name: cloudkitty-test
             namespace: openstack
           spec:
-            cloudkitty:
-              enabled: true
-              secret: osp-secret
-              passwordSelector:
-                aodhService: AodhPassword
-                ceilometerService: CeilometerPassword
-                cloudKittyService: CloudKittyPassword
-              cloudKittyAPI:
-                containerImage: "{{ cloudkitty_api_image }}"
-              cloudKittyProc:
-                containerImage: "{{ cloudkitty_proc_image }}"
-              preserveJobs: true
-              databaseAccount: cloudkitty
-              databaseInstance: openstack
-              memcachedInstance: memcached
-              rabbitMqClusterName: rabbitmq
-              serviceUser: cloudkitty
-          EOF
+            enabled: true
+            secret: osp-secret
+            passwordSelector:
+              aodhService: AodhPassword
+              ceilometerService: CeilometerPassword
+              cloudKittyService: CloudKittyPassword
+            cloudKittyAPI:
+              containerImage: "{{ cloudkitty_api_image }}"
+            cloudKittyProc:
+              containerImage: "{{ cloudkitty_proc_image }}"
+            preserveJobs: true
+            databaseAccount: cloudkitty
+            databaseInstance: openstack
+            memcachedInstance: memcached
+            rabbitMqClusterName: rabbitmq
+            serviceUser: cloudkitty
+           EOF
       register: output
 
     - name: wait for the update to telemetry
