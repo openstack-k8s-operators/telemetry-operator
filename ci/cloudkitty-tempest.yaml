@@ -4,7 +4,9 @@ metadata:
   name: tempest-tests-cloudkitty
   namespace: openstack
 spec:
-  containerImage: quay.rdoproject.org/podified-master-centos10/openstack-tempest-all:current-tested
+  # currently doesn't work with c10s containers, but works cith c9s
+  #containerImage: quay.rdoproject.org/podified-master-centos10/openstack-tempest-all:current-tested
+  containerImage: quay.io/podified-antelope-centos9/openstack-tempest-all:current-podified
   debug: true
   openStackConfigMap: openstack-config
   openStackConfigSecret: openstack-config-secret
@@ -24,9 +26,8 @@ spec:
       #^tempest.*\[.*\bsmoke\b.*\]
       cloudkitty_tempest_plugin.*
       #telemetry_tempest_plugin.*
-    excludeList: |
-      ^tempest*
-      ^*tempest*
+      #excludeList: |
+      #  ^tempest*
     parallel: true
     serial: false
     smoke: false
