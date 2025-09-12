@@ -65,7 +65,7 @@ func StatefulSet(
 		Port: intstr.FromInt(8080),
 	}
 	startupProbe.HTTPGet = livenessProbe.HTTPGet
-	probeCommand = "/usr/local/bin/kolla_set_configs && /var/lib/openstack/bin/healthcheck.py --config-file /etc/cloudkitty/cloudkitty.conf.d/cloudkitty.conf"
+	probeCommand = "/usr/local/bin/kolla_set_configs && /var/lib/openstack/bin/healthcheck.py --config-dir /etc/cloudkitty/cloudkitty.conf.d/"
 
 	envVars := map[string]env.Setter{}
 	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
@@ -116,7 +116,7 @@ func StatefulSet(
 							StartupProbe:  startupProbe,
 						},
 						{
-							Name:    "probe",
+							Name: "probe",
 							Command: []string{
 								"/bin/bash",
 							},
