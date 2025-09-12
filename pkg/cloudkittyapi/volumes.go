@@ -30,12 +30,16 @@ func GetVolumes(parentName string, name string) []corev1.Volume {
 	return append(cloudkitty.GetVolumes(parentName), volumes...)
 }
 
+// /etc/cloudkitty/cloudkitty.conf.d should not be mounted.
+// kolla_start copies configs to here, using the json file in templates/cloudkitty/config/
+// The volumes from pkg/cloudkitty/volumes should be mounted here as well.
+// For now, I am copying them in, but they should be refactored into a common function that gets used here and in the proc pod.
 // GetVolumeMounts - CloudKitty API VolumeMounts
 func GetVolumeMounts(parentName string) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "config-data-custom",
-			MountPath: "/etc/cloudkitty/cloudkitty.conf.d",
+			MountPath: "/var/lib/openstack/service-config/",
 			ReadOnly:  true,
 		},
 		GetLogVolumeMount(),
