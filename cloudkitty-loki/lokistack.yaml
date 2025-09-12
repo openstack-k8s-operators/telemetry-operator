@@ -1,0 +1,56 @@
+---
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: cloudkitty-lokistack
+  namespace: openstack
+spec:
+  size: 1x.demo
+  storage:
+    schemas:
+    - version: v13
+      effectiveDate: "2024-11-18"
+    secret:
+      name: loki-secret-s3
+      type: s3
+  storageClassName: crc-csi-hostpath-provisioner
+  tenants:
+    mode: static
+    authentication:
+      - tenantName: cloudkitty
+        tenantId: cloudkitty
+        mTLS:
+          ca:
+            caKey: ca.crt
+            caName: lokistack-mtls
+    authorization:
+      roleBindings:
+      - name: cloudkitty-dataframes
+        roles:
+        - cloudkitty-dataframes
+        subjects:
+        - kind: group
+          name: cloudkitty
+      - name: cluster-reader
+        roles:
+        - cluster-reader
+        subjects:
+        - kind: group
+          name: cloudkitty-dataframes-admin
+      roles:
+      - name: cloudkitty-dataframes
+        permissions:
+        - read
+        - write
+        resources:
+        - logs
+        tenants:
+        - cloudkitty
+      - name: cluster-reader
+        permissions:
+        - read
+        resources:
+        - logs
+        tenants:
+        - cloudkitty
+
