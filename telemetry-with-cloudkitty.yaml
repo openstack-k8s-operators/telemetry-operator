@@ -32,7 +32,8 @@ spec:
       #containerImage: "quay.io/efoley/cloudkitty-api:epoxy-loki"
       customServiceConfig: |
           [storage_loki]
-          url = lokistack-openstack.apps-crc.testing
+          url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
+          #url = https://lokistack-openstack.apps-crc.testing
       tls:
         caBundleSecretName: combined-ca-bundle
     cloudKittyProc:
@@ -40,7 +41,8 @@ spec:
       #containerImage: "quay.io/efoley/cloudkitty-processor:epoxy-loki"
       customServiceConfig: |
           [storage_loki]
-          url = lokistack-openstack.apps-crc.testing
+          url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
+          #url = https://lokistack-openstack.apps-crc.testing
       tls:
         caBundleSecretName: combined-ca-bundle
     databaseAccount: cloudkitty
