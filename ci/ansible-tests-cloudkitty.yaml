@@ -6,8 +6,8 @@ metadata:
 spec:
   ansibleGitRepo: 'http://github.com/elfiesmelfie/feature-verification-tests'
   debug: true
-  #containerImage: quay.io/podified-antelope-centos9/openstack-ansible-tests:current-podified
-  containerImage: quay.io/efoley/openstack-ansible-tests@sha256:9080fa1a359de1d824585ae99bcc4f34a7400fc0a29550ea6b92c44f2975901c
+  containerImage: quay.io/podified-antelope-centos9/openstack-ansible-tests:current-podified
+  #containerImage: quay.io/efoley/openstack-ansible-tests@sha256:9080fa1a359de1d824585ae99bcc4f34a7400fc0a29550ea6b92c44f2975901c
   #ansiblePlaybookPath: ci/run_verify_metrics_osp18.yml
   storageClass: crc-csi-hostpath-provisioner
   computeSSHKeySecretName: dataplane-ansible-ssh-private-key-secret
