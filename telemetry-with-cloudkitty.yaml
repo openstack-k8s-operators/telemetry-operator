@@ -1,0 +1,60 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Telemetry
+metadata:
+  name: telemetry-ck
+spec:
+  metricStorage:
+    enabled: true
+    monitoringStack:
+      alertingEnabled: true
+      scrapeInterval: 30s
+      storage:
+        strategy: persistent
+        retention: 24h
+        persistent:
+          pvcStorageRequest: 20G
+  autoscaling:
+    enabled: false
+    aodh:
+      passwordSelectors:
+      databaseAccount: aodh
+      databaseInstance: openstack
+      memcachedInstance: memcached
+      secret: osp-secret
+    heatInstance: heat
+  ceilometer:
+    enabled: true
+    secret: osp-secret
+  cloudkitty:
+    enabled: true
+    cloudKittyAPI:
+      containerImage: "quay.io/efoley/cloudkitty-api@sha256:9cfa630cd297b09fe77c0eedfcdf464bb9c3f5398357dbb1d8343a494900e6d1"
+      #containerImage: "quay.io/efoley/cloudkitty-api:epoxy-loki"
+      customServiceConfig: |
+          [storage_loki]
+          url = lokistack-openstack.apps-crc.testing
+      tls:
+        caBundleSecretName: combined-ca-bundle
+    cloudKittyProc:
+      containerImage: "quay.io/efoley/cloudkitty-processor@sha256:a6c9caed1b0baeda3df710686ae9e8cf4c915eb59c845072eb91c13de0f68450"
+      #containerImage: "quay.io/efoley/cloudkitty-processor:epoxy-loki"
+      customServiceConfig: |
+          [storage_loki]
+          url = lokistack-openstack.apps-crc.testing
+      tls:
+        caBundleSecretName: combined-ca-bundle
+    databaseAccount: cloudkitty
+    databaseInstance: openstack
+    memcachedInstance: memcached
+    passwordSelector:
+      aodhService: AodhPassword
+      ceilometerService: CeilometerPassword
+      cloudKittyService: CloudKittyPassword
+    preserveJobs: false
+    rabbitMqClusterName: rabbitmq
+    secret: "osp-secret"
+    serviceUser: cloudkitty
+
+  logging:
+    enabled: false
+    port: 10514
