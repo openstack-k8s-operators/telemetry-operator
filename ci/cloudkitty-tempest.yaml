@@ -11,7 +11,8 @@ spec:
   parallel: false
   privileged: true
   rerunFailedTests: false
-  storageClass: local-storage
+  #storageClass: local-storage
+  storageClass: crc-csi-hostpath-provisioner
   tempestRun:
     concurrency: 2
     excludeList: |
