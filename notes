@@ -1,0 +1,75 @@
+* I can get to trying to init storage.
+  I don't have the right version of CK
+
+oc logs job/cloudkitty-storageinit
+    + sudo -E kolla_set_configs
+    sudo: unable to send audit message: Operation not permitted
+    <snip>
+    ++ cat /run_command
+    + CMD=/usr/bin/cloudkitty-storage-init
+    + ARGS=
+    + sudo kolla_copy_cacerts
+    sudo: unable to send audit message: Operation not permitted
+    <snip>
+    + exec /usr/bin/cloudkitty-storage-init
+    2025-09-08 11:47:36.433 1 WARNING cloudkitty.storage [-] V2 Storage is in beta. Its API is considered stable but its implementation may still evolve.
+    2025-09-08 11:47:36.641 1 WARNING stevedore.named [-] Could not load loki
+    2025-09-08 11:47:36.641 1 CRITICAL cloudkitty [-] Unhandled error: stevedore.exception.NoMatches: No 'cloudkitty.storage.v2.backends' driver found, looking for 'loki'
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty Traceback (most recent call last):
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty   File "/usr/bin/cloudkitty-storage-init", line 8, in <module>
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty     sys.exit(main())
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty              ^^^^^^
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty   File "/usr/lib/python3.12/site-packages/cloudkitty/cli/storage.py", line 30, in main
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty     init_storage_backend()
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty   File "/usr/lib/python3.12/site-packages/cloudkitty/cli/storage.py", line 22, in init_storage_backend
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty     backend = storage.get_storage()
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty               ^^^^^^^^^^^^^^^^^^^^^
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty   File "/usr/lib/python3.12/site-packages/cloudkitty/storage/__init__.py", line 211, in get_storage
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty     return _get_storage_instance(
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty            ^^^^^^^^^^^^^^^^^^^^^^
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty   File "/usr/lib/python3.12/site-packages/cloudkitty/storage/__init__.py", line 56, in _get_storage_instance
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty     return driver.DriverManager(
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty            ^^^^^^^^^^^^^^^^^^^^^
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty   File "/usr/lib/python3.12/site-packages/stevedore/driver.py", line 54, in __init__
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty     super().__init__(
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty   File "/usr/lib/python3.12/site-packages/stevedore/named.py", line 89, in __init__
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty     self._init_plugins(extensions)
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty   File "/usr/lib/python3.12/site-packages/stevedore/driver.py", line 113, in _init_plugins
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty     raise NoMatches('No %r driver found, looking for %r' %
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty stevedore.exception.NoMatches: No 'cloudkitty.storage.v2.backends' driver found, looking for 'loki'
+    2025-09-08 11:47:36.641 1 ERROR cloudkitty 
+
+
+
+Tempest
+=======
+To run tempest, you need to do a hack until https://github.com/openstack-k8s-operators/tcib/pull/328 is merged.
+This is required because the upper constraints file is incorrect for the master-centos10 containers.
+
+To work around this locally, you can create the tempest CR to get the pods running.
+  [telemetry-operator] $ oc apply -f telemetry-with-cloudkitty.yaml 
+Once the pod is up and running,rsh into the container
+
+  $ oc rsh tempest-tests-cloudkitty
+
+Then, edit the run_tempest.sh script as root and update it to match this: https://github.com/openstack-k8s-operators/tcib/pull/328/files
+
+To re-run the tests, you need to clean up a little:
+ 
+  $ rm -rf cloudkitty-tempest-plugin/ /var/lib/tempest/openshift
+
+Then re-run the tests:
+  $  /usr/local/bin/run_tempest.sh
+
+The results will be available in /var/lib/tempest/external_files//tempest-tests-cloudkitty//tempest_results.xml
+
+Updating the config
+===================
+BUG
+When the config for CK is updated, the pods don't automatically get restarted with the new config.
+
+Manually test by editing the telemetry to add e.g. a new custom service config value
+Automatically test with envtest
+
+Either changes top the configmap/secret is not being added to the hash, or there needs to be a watch added for changes to configmap/secret.
+
