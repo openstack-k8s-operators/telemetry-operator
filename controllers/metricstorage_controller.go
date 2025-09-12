@@ -868,6 +868,12 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
+	// ScrapeConfig for OVN Controller metrics
+	err = r.createOVNControllerScrapeConfig(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 	return ctrl.Result{}, nil
 }
@@ -1000,6 +1006,73 @@ func (r *MetricStorageReconciler) createOVNNorthdScrapeConfig(
 	)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "OVN Northd",
 		ovnNorthdCfgName, desiredScrapeConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// createOVNControllerScrapeConfig creates a scrape configuration for OVN Controller metrics
+// This function discovers OVN Controller metrics services using label selectors
+func (r *MetricStorageReconciler) createOVNControllerScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) error {
+	Log := r.GetLogger(ctx)
+
+	// Discover OVN Controller metrics services using label selectors
+	serviceList := &corev1.ServiceList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.Namespace),
+		client.MatchingLabels{
+			"type":    "metrics",
+			"service": "ovn-controller-metrics",
+		},
+	}
+	err := helper.GetClient().List(ctx, serviceList, listOpts...)
+	if err != nil {
+		Log.Info(fmt.Sprintf("Cannot get OVN Controller metrics services. Scrape configs not created. Error: %s", err))
+		return nil
+	}
+
+	if len(serviceList.Items) == 0 {
+		Log.Info("No OVN Controller metrics services found")
+		return nil
+	}
+
+	// Create targets from discovered services
+	var ovnControllerTargets []string
+	for _, svc := range serviceList.Items {
+		// Find the metrics port (should be named "metrics" with the configured port)
+		for _, port := range svc.Spec.Ports {
+			if port.Name == "metrics" {
+				serviceRoute := fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace)
+				target := net.JoinHostPort(serviceRoute, strconv.Itoa(int(port.Port)))
+				ovnControllerTargets = append(ovnControllerTargets, target)
+				Log.Info(fmt.Sprintf("Found OVN Controller metrics service: %s", target))
+				break
+			}
+		}
+	}
+
+	if len(ovnControllerTargets) == 0 {
+		Log.Info("No valid OVN Controller metrics targets found")
+		return nil
+	}
+
+	// Create scrape config for OVN Controller metrics
+	ovnControllerCfgName := fmt.Sprintf("%s-ovn-controller", telemetry.ServiceName)
+	desiredScrapeConfig := metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		ovnControllerTargets,
+		instance.Spec.PrometheusTLS.Enabled(),
+	)
+	err = r.createServiceScrapeConfig(ctx, instance, Log, "OVN Controller",
+		ovnControllerCfgName, desiredScrapeConfig)
 	if err != nil {
 		return err
 	}
@@ -1423,9 +1496,9 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	ovnMetricsServiceWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
-		// Only watch OVN northd metrics services
+		// Watch OVN metrics services
 		if labels := o.GetLabels(); labels != nil {
-			if labels["type"] == "metrics" && labels["service"] == "ovn-northd" {
+			if labels["type"] == "metrics" && (labels["service"] == "ovn-northd" || labels["service"] == "ovn-controller-metrics") {
 				// get all metricstorage CRs in the same namespace
 				metricStorages := &telemetryv1.MetricStorageList{}
 				listOpts := []client.ListOption{
