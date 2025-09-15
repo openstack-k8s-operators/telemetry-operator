@@ -162,7 +162,12 @@
     github-check:
       #debug: true
       jobs:
-        - telemetry-operator-multinode-cloudkitty
+        - telemetry-operator-multinode-cloudkitty:
+            dependencies:
+              - openstack-k8s-operators-content-provider
+          # temperorily use the regular content provider since CK rpm builds are failing
+        - openstack-k8s-operators-content-provider
+          # Keep the metacontent provider in the pipeline so we know when it is working again
         - telemetry-openstack-meta-content-provider-master
         #- telemetry-operator-multinode-default-telemetry
         #- functional-tests-osp18: &fvt_jobs_config
