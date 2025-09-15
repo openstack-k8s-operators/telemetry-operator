@@ -30,6 +30,14 @@ func GetVolumes(name string) []corev1.Volume {
 					SecretName:  name + "-config-data",
 				},
 			},
+		}, {
+			Name: "client-cert",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &configMode,
+					SecretName:  ClientCertSecretName,
+				},
+			},
 		},
 	}
 }
@@ -51,6 +59,11 @@ func GetVolumeMounts(serviceName string) []corev1.VolumeMount {
 			Name:      "config-data",
 			MountPath: "/var/lib/kolla/config_files/config.json",
 			SubPath:   serviceName + "-config.json",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "client-cert",
+			MountPath: "/etc/cloudkitty/certs",
 			ReadOnly:  true,
 		},
 	}

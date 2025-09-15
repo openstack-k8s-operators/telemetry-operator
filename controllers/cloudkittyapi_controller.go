@@ -270,6 +270,18 @@ func (r *CloudKittyAPIReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				}
 			}
 		}
+
+		// Watch for changes to the client cert secret
+		if secretName == cloudkitty.ClientCertSecretName {
+			for _, cr := range apis.Items {
+				name := client.ObjectKey{
+					Namespace: namespace,
+					Name:      cr.Name,
+				}
+				Log.Info(fmt.Sprintf("Secret %s is used by CloudKittyAPI CR %s", secretName, cr.Name))
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
 		if len(result) > 0 {
 			return result
 		}
@@ -888,6 +900,26 @@ func (r *CloudKittyAPIReconciler) reconcileNormal(ctx context.Context, instance 
 	//
 	// normal reconcile tasks
 	//
+
+	// Add client cert secret hash to all the other config data, so that
+	// restart is triggered on certificate changes (e.g. when they
+	// rotate)
+	_, clientCertHash, err := secret.GetSecret(
+		ctx,
+		helper,
+		cloudkitty.ClientCertSecretName,
+		instance.Namespace,
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	configVars["client-cert"] = env.SetValue(clientCertHash)
 
 	//
 	// create hash over all the different input resources to identify if any those changed
