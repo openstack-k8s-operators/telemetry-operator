@@ -50,9 +50,11 @@
               ceilometerService: CeilometerPassword
               cloudKittyService: CloudKittyPassword
             cloudKittyAPI:
-              containerImage: "{{ cloudkitty_api_image }}"
+              # containerImage: "{{ cloudkitty_api_image }}"
+              containerImage: "quay.io/efoley/cloudkitty-api"
             cloudKittyProc:
-              containerImage: "{{ cloudkitty_proc_image }}"
+              # containerImage: "{{ cloudkitty_proc_image }}"
+              containerImage: "quay.io/efoley/cloudkitty-processor"
             preserveJobs: true
             databaseAccount: cloudkitty
             databaseInstance: openstack
