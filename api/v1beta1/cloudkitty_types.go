@@ -22,6 +22,7 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	lokistackv1 "github.com/grafana/loki/operator/api/loki/v1"
 )
 
 const (
@@ -105,6 +106,14 @@ type CloudKittySpecBase struct {
 	// +kubebuilder:validation:Optional
 	// +nullable
 	PrometheusTLSCaCertSecret *corev1.SecretKeySelector `json:"prometheusTLSCaCertSecret,omitempty"`
+
+	// S3 related configuration passed to Loki
+	// +kubebuilder:validation:Optional
+	S3StorageConfig lokistackv1.ObjectStorageSpec `json:"s3StorageConfig"`
+
+	// Storage class used for Loki
+	// +kubebuilder:validation:Optional
+	StorageClass string `json:"storageClass,omitempty"`
 }
 
 // CloudKittySpecCore the same as CloudKittySpec without ContainerImage references
