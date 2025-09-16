@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: prometheus-telemetry-kuttl-metricstorage-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: prometheus-telemetry-kuttl-metricstorage
+  annotations:
+    k8s.v1.cni.cncf.io/networks: '[{"name":"ctlplane","namespace":"openstack","interface":"ctlplane"}]'
+spec:
+    containers:
+    - name: prometheus
+      volumeMounts:
+      - mountPath: /etc/prometheus/config_out
+        name: config-out
+        readOnly: true
+      - mountPath: /etc/prometheus/certs
+        name: tls-assets
+        readOnly: true
+      - mountPath: /prometheus
+        name: prometheus-telemetry-kuttl-metricstorage-db
+      - mountPath: /etc/prometheus/secrets/combined-ca-bundle
+        name: secret-combined-ca-bundle
+        readOnly: true
+      - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-0
+        name: prometheus-telemetry-kuttl-metricstorage-rulefiles-0
+      - mountPath: /etc/prometheus/web_config/web-config.yaml
+        name: web-config
+        readOnly: true
+        subPath: web-config.yaml
+      - mountPath: /etc/prometheus/web_config/secret/cert-metric-storage-prometheus-svc-key
+        readOnly: true
+      - mountPath: /etc/prometheus/web_config/secret/cert-metric-storage-prometheus-svc-cert
+        readOnly: true
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        readOnly: true
+    - name: config-reloader
+    - name: thanos-sidecar
