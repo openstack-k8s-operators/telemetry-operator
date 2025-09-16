@@ -61,7 +61,7 @@
             memcachedInstance: memcached
             rabbitMqClusterName: rabbitmq
             serviceUser: cloudkitty
-           EOF
+          EOF
       register: output
 
     - name: wait for the update to telemetry
