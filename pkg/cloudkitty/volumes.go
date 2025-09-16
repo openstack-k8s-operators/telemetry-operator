@@ -8,7 +8,7 @@ var (
 	// scriptMode is the default permissions mode for Scripts volume
 	scriptMode int32 = 0740
 	// configMode is the 640 permissions mode
-	configMode int32 = 0640
+	configMode int32 = 0644
 )
 
 // GetVolumes - service volumes
@@ -31,11 +31,25 @@ func GetVolumes(name string) []corev1.Volume {
 				},
 			},
 		}, {
-			Name: "client-cert",
+			Name: "certs",
 			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							Secret: &corev1.SecretProjection{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: ClientCertSecretName,
+								},
+							},
+						}, {
+							ConfigMap: &corev1.ConfigMapProjection{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: name + "-lokistack-gateway-ca-bundle",
+								},
+							},
+						},
+					},
 					DefaultMode: &configMode,
-					SecretName:  ClientCertSecretName,
 				},
 			},
 		},
@@ -62,7 +76,7 @@ func GetVolumeMounts(serviceName string) []corev1.VolumeMount {
 			ReadOnly:  true,
 		},
 		{
-			Name:      "client-cert",
+			Name:      "certs",
 			MountPath: "/etc/cloudkitty/certs",
 			ReadOnly:  true,
 		},

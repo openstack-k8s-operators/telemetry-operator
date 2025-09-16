@@ -8,6 +8,12 @@
       "perm": "0600"
     },
     {
+      "source": "/var/lib/openstack/config/metrics.yaml",
+      "dest": "/etc/cloudkitty/metrics.yaml",
+      "owner": "cloudkitty",
+      "perm": "0600"
+    },
+    {
       "source": "/var/lib/openstack/config/custom.conf",
       "dest": "/etc/aodh/cloudkitty.conf.d/01-cloudkitty-custom.conf",
       "owner": "cloudkitty",
