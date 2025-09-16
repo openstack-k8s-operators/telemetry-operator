@@ -21,6 +21,12 @@
       "optional": true
     },
     {
+      "source": "/var/lib/openstack/config/metrics.yaml",
+      "dest": "/etc/cloudkitty/metrics.yaml",
+      "owner": "cloudkitty",
+      "perm": "0600"
+    },
+    {
       "source": "/var/lib/openstack/config/wsgi-cloudkitty.conf",
       "dest": "/etc/httpd/conf.d/00wsgi-cloudkitty.conf",
       "owner": "cloudkitty",
