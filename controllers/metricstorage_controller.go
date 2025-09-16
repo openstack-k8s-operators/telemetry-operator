@@ -1021,7 +1021,7 @@ func (r *MetricStorageReconciler) createOVNNorthdScrapeConfig(
 	serviceLabels map[string]string,
 ) error {
 	labelSelector := map[string]string{
-		"type":    "metrics",
+		"metrics": "enabled",
 		"service": "ovn-northd",
 	}
 	ovnNorthdCfgName := fmt.Sprintf("%s-ovn-northd", telemetry.ServiceName)
@@ -1040,7 +1040,7 @@ func (r *MetricStorageReconciler) createOVNControllerScrapeConfig(
 	serviceLabels map[string]string,
 ) error {
 	labelSelector := map[string]string{
-		"type":    "metrics",
+		"metrics": "enabled",
 		"service": "ovn-controller-metrics",
 	}
 	ovnControllerCfgName := fmt.Sprintf("%s-ovn-controller", telemetry.ServiceName)
@@ -1468,7 +1468,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 
 		// Watch OVN metrics services
 		if labels := o.GetLabels(); labels != nil {
-			if labels["type"] == "metrics" && (labels["service"] == "ovn-northd" || labels["service"] == "ovn-controller-metrics") {
+			if labels["metrics"] == "enabled" && (labels["service"] == "ovn-northd" || labels["service"] == "ovn-controller-metrics") {
 				// get all metricstorage CRs in the same namespace
 				metricStorages := &telemetryv1.MetricStorageList{}
 				listOpts := []client.ListOption{
