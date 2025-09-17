@@ -57,7 +57,10 @@ post_deploy_enable_cloudkitty:
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
 # TODO: Consider switching to podified-master-centos10 for features that patch master
-cifmw_test_operator_tempest_namespace: podified-master-centos10
+# This also needs the registry_url configured.
+# The master container is using an old constraints file, so revertng to antelope until https://github.com/openstack-k8s-operators/tcib/pull/328 is merged
+#cifmw_test_operator_tempest_namespace: podified-master-centos10
+#
 # cloudkitty tempest plugin is not part of the tempest rpm.
 # https://review.rdoproject.org/cgit/openstack/tempest-distgit/tree/openstack-tempest.spec
 # We need to add the cloudkitty-tempest-plugin package to RDO, same as TTTP
