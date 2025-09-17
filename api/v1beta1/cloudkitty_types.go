@@ -109,6 +109,7 @@ type CloudKittySpecBase struct {
 
 	// S3 related configuration passed to Loki
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={secret: {name: "cloudkitty-loki-s3", type: "s3"}}
 	S3StorageConfig lokistackv1.ObjectStorageSpec `json:"s3StorageConfig"`
 
 	// Storage class used for Loki
