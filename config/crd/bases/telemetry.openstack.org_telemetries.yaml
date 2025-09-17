@@ -1141,6 +1141,10 @@ spec:
                       Needed to request a transportURL that is created and used in CloudKitty
                     type: string
                   s3StorageConfig:
+                    default:
+                      secret:
+                        name: cloudkitty-loki-s3
+                        type: s3
                     description: S3 related configuration passed to Loki
                     properties:
                       schemas:
