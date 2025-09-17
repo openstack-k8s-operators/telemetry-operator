@@ -25,46 +25,51 @@
                 name: unused
               spec:
                 telemetry:
-                  enabled: true
+                  enabled: false
                   template:
                     cloudkitty:
-                      enabled: true
+                      s3StorageConfig:
+                        secret:
+                          type: "s3"
+                          name: "cloudkitty-loki-s3"
             target:
               kind: OpenStackControlPlane
 
       # This probably won't actually work, since there's no telemetry object yet at this point.
       # The kustomization needs to be done post_deploy
-    - name: Copy telemetry kustomization
-      ansible.builtin.copy:
-        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-telemetry-cloudkitty.yaml"
-        content: |-
-          apiVersion: kustomize.config.k8s.io/v1beta1
-          kind: Kustomization
-          namespace: openstack
-          patches:
-          - patch: |-
-              apiVersion: core.openstack.org/v1beta1
-              kind: Telemetry
-              metadata:
-                name: unused
-              spec:
-                cloudkitty:
-                  enabled: true
-                  secret: osp-secret
-                  passwordSelector:
-                    aodhService: AodhPassword
-                    ceilometerService: CeilometerPassword
-                    cloudKittyService: CloudKittyPassword
-                  # WORKAROUND
-                  # Need to set the images, since the defaulting is not working at the moment.
-                  # The container image is not being set, so the dbsync is failing.
-                  # The defaulting will not be done in the webhook until CK is added to the openstack-operator.
-                  # If I change the name of the CK, I can just configure using the CK CRD.
-                  # If I don't change the name, and disable it in telemetry, then the telemetry-operator will delete the telemetry telemetry.
-                  cloudKittyAPI:
-                    containerImage: "{{ cloudkitty_api_image }}"
-                  cloudKittyProc:
-                    containerImage: "{{ cloudkitty_proc_image }}"
-            target:
-              kind: Telemetry
-
+      #    - name: Copy telemetry kustomization
+      #      ansible.builtin.copy:
+      #        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-telemetry-cloudkitty.yaml"
+      #        content: |-
+      #          apiVersion: kustomize.config.k8s.io/v1beta1
+      #          kind: Kustomization
+      #          namespace: openstack
+      #          patches:
+      #          - patch: |-
+      #              apiVersion: core.openstack.org/v1beta1
+      #              kind: Telemetry
+      #              metadata:
+      #                name: telemetry-ck
+      #              spec:
+      #                cloudkitty:
+      #                  enabled: true
+      #                  secret: osp-secret
+      #                  passwordSelector:
+      #                    aodhService: AodhPassword
+      #                    ceilometerService: CeilometerPassword
+      #                    cloudKittyService: CloudKittyPassword
+      #                  # WORKAROUND
+      #                  # Need to set the images, since the defaulting is not working at the moment.
+      #                  # The container image is not being set, so the dbsync is failing.
+      #                  # The defaulting will not be done in the webhook until CK is added to the openstack-operator.
+      #                  # If I change the name of the CK, I can just configure using the CK CRD.
+      #                  # If I don't change the name, and disable it in telemetry, then the telemetry-operator will delete the telemetry telemetry.
+      #                  cloudKittyAPI:
+      #                    # containerImage: "{{ cloudkitty_api_image }}"
+      #                    containerImage: "quay.io/efoley/cloudkitty-api@sha256:baf3f44225be4ac55eef6e45ab4095a8284fc186da5916408dbf95767a1eb5e9"
+      #                  cloudKittyProc:
+      #                    # containerImage: "{{ cloudkitty_proc_image }}"
+      #                    containerImage: "quay.io/efoley/cloudkitty-processor@sha256:4ddd2f824b17c0c2fb39363369a16af49cb2d95c07916f52e2c509ceca677de9"
+      #            target:
+      #              kind: Telemetry
+      #
