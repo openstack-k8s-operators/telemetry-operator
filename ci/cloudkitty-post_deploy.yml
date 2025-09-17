@@ -7,6 +7,17 @@
     KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
     PATH: "{{ cifmw_path }}"
   tasks:
+    - name: Disable telemetry in the openstack controlplane
+      ansible.builtin.shell:
+        cmd: |
+          oc patch oscp $(oc get oscp -ojsonpath='{ .items[].metadata.name }') --type=json -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value": false} ]'
+
+    - name: Create the new telemetry
+      ansible.builtin.shell:
+        cmd: |
+          oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/telemetry-with-cloudkitty.yaml
+
+
   # WORKAROUND
   # Need to set the images, since the defaulting is not working at the moment.
   # The container image is not being set, so the dbsync is failing.
@@ -32,40 +43,45 @@
   # Since the memcached instance is not omitted when empty, CK tries to resolve it and connect.
   # The serviceUser should not be omitted when it is unset, since the values is used to create the cloudkitty.conf file.
   # BUG: serviceUser value is not being defaulted correctly when it is omitted from the CR: expected "cloudkitty", got "" (same for the other config values mentioned above, all were set to "".
+  # I think this is because of the openstack operator. I need to create a new telemetry, with a different name... But I tried that before...
   # # set the CK enabled to false in telemetry and create a CloudKitty CR
-    - name: Patch telemetry CR to enable CK
-      ansible.builtin.shell:
-        cmd: |
-          oc apply -f - <<EOF
-          apiVersion: telemetry.openstack.org/v1beta1
-          kind: CloudKitty
-          metadata:
-            name: cloudkitty-test
-            namespace: openstack
-          spec:
-            enabled: true
-            secret: osp-secret
-            passwordSelector:
-              aodhService: AodhPassword
-              ceilometerService: CeilometerPassword
-              cloudKittyService: CloudKittyPassword
-            cloudKittyAPI:
-              # containerImage: "{{ cloudkitty_api_image }}"
-              containerImage: "quay.io/efoley/cloudkitty-api"
-            cloudKittyProc:
-              # containerImage: "{{ cloudkitty_proc_image }}"
-              containerImage: "quay.io/efoley/cloudkitty-processor"
-            preserveJobs: true
-            databaseAccount: cloudkitty
-            databaseInstance: openstack
-            memcachedInstance: memcached
-            rabbitMqClusterName: rabbitmq
-            serviceUser: cloudkitty
-          EOF
-      register: output
+  #  - name: Patch telemetry CR to enable CK
+  #    ansible.builtin.shell:
+  #      cmd: |
+  #        oc apply -f - <<EOF
+  #        apiVersion: telemetry.openstack.org/v1beta1
+  #        kind: CloudKitty
+  #        metadata:
+  #          name: cloudkitty-test
+  #          namespace: openstack
+  #        spec:
+  #          enabled: true
+  #          secret: osp-secret
+  #          passwordSelector:
+  #            aodhService: AodhPassword
+  #            ceilometerService: CeilometerPassword
+  #            cloudKittyService: CloudKittyPassword
+  #          cloudKittyAPI:
+  #            # containerImage: "{{ cloudkitty_api_image }}"
+  #            containerImage: "quay.io/efoley/cloudkitty-api"
+  #          cloudKittyProc:
+  #            # containerImage: "{{ cloudkitty_proc_image }}"
+  #            containerImage: "quay.io/efoley/cloudkitty-processor"
+  #          preserveJobs: true
+  #          databaseAccount: cloudkitty
+  #          databaseInstance: openstack
+  #          memcachedInstance: memcached
+  #          rabbitMqClusterName: rabbitmq
+  #          serviceUser: cloudkitty
+  #        EOF
+  #    register: output
 
     - name: wait for the update to telemetry
       ansible.builtin.shell:
         cmd: |
-          oc wait --for=condition=Ready telemetry telemetry
+          oc wait --for=condition=Ready telemetry telemetry-ck
 
+    - name: Check for secrets
+      ansible.builtin.shell:
+        cmd: |
+          oc get secrets -n openstack | grep "cloudkitty"
