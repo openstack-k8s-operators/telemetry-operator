@@ -36,13 +36,16 @@ _ck_proc_image: "{{ telemetry_registry }}/openstack-cloudkitty-processor:{{ tele
 
 # This is removed for now.
 #pre_deploy_kustomize_cloudkitty:
-#  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
-#  type: playbook
+pre_deploy_disable_telemetry:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
+  type: playbook
 #  extra_vars:
 #    cloudkitty_api_image: "{{ _ck_api_image }}
 #    cloudkitty_proc_image: "{{ _ck_proc_image }}"
 # TODO: Adapt the deploy-logging-dependencies role to allow config necessary for CK
 # # I can remove the vars-logging from the job definition.
+# Need to skip creating the lokistack for CK, and add another secret for CK/lokistack
+# This is already being run in the CI job in the vars-logging cifmw-extras
 #pre_deploy_deploy_logging_dependencies:
 #  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-logging-dependencies.yml"
 #  type: playbook
