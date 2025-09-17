@@ -17,9 +17,9 @@ spec:
     enabled: false
     aodh:
       passwordSelectors:
-      databaseAccount: aodh
-      databaseInstance: openstack
-      memcachedInstance: memcached
+        databaseAccount: aodh
+        databaseInstance: openstack
+        memcachedInstance: memcached
       secret: osp-secret
     heatInstance: heat
   ceilometer:
@@ -28,21 +28,22 @@ spec:
   cloudkitty:
     enabled: true
     cloudKittyAPI:
-      containerImage: "quay.io/efoley/cloudkitty-api@sha256:9cfa630cd297b09fe77c0eedfcdf464bb9c3f5398357dbb1d8343a494900e6d1"
+      # latest, with mTLS patch to CK
+      containerImage: "quay.io/efoley/cloudkitty-api@sha256:baf3f44225be4ac55eef6e45ab4095a8284fc186da5916408dbf95767a1eb5e9"
       #containerImage: "quay.io/efoley/cloudkitty-api:epoxy-loki"
       customServiceConfig: |
-          [storage_loki]
-          url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
-          #url = https://lokistack-openstack.apps-crc.testing
+          #[storage_loki]
+          #url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
+          ##url = https://lokistack-openstack.apps-crc.testing
       tls:
         caBundleSecretName: combined-ca-bundle
     cloudKittyProc:
-      containerImage: "quay.io/efoley/cloudkitty-processor@sha256:a6c9caed1b0baeda3df710686ae9e8cf4c915eb59c845072eb91c13de0f68450"
+      containerImage: "quay.io/efoley/cloudkitty-processor@sha256:4ddd2f824b17c0c2fb39363369a16af49cb2d95c07916f52e2c509ceca677de9"
       #containerImage: "quay.io/efoley/cloudkitty-processor:epoxy-loki"
       customServiceConfig: |
-          [storage_loki]
-          url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
-          #url = https://lokistack-openstack.apps-crc.testing
+          #[storage_loki]
+          #url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
+          ##url = https://lokistack-openstack.apps-crc.testing
       tls:
         caBundleSecretName: combined-ca-bundle
     databaseAccount: cloudkitty
@@ -54,8 +55,16 @@ spec:
       cloudKittyService: CloudKittyPassword
     preserveJobs: false
     rabbitMqClusterName: rabbitmq
+    s3StorageConfig:
+        schemas:
+        - effectiveDate: "2024-11-18"
+          version: v13
+        secret:
+          name: loki-secret-s3
+          type: "s3"
     secret: "osp-secret"
     serviceUser: cloudkitty
+    storageClass: crc-csi-hostpath-provisioner
 
   logging:
     enabled: false
