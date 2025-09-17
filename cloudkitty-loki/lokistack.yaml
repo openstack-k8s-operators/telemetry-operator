@@ -11,7 +11,7 @@ spec:
     - version: v13
       effectiveDate: "2024-11-18"
     secret:
-      name: loki-secret-s3
+      name: cloudkitty-loki-s3
       type: s3
   storageClassName: crc-csi-hostpath-provisioner
   tenants:
