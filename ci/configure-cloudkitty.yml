@@ -25,9 +25,11 @@
                 name: unused
               spec:
                 telemetry:
-                  enabled: false
+                  # this is needed so the secrets are created for dataplane deployment
+                  enabled: true
                   template:
                     cloudkitty:
+                      enabled: false
                       s3StorageConfig:
                         secret:
                           type: "s3"
