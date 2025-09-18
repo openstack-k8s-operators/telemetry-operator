@@ -1,6 +1,6 @@
 resources:
 - bases/config.yaml
-patches:
+patchesJson6902:
 - path: patches/basic.config.yaml
   target:
     group: scorecard.operatorframework.io
@@ -13,4 +13,4 @@ patches:
     version: v1alpha3
     kind: Configuration
     name: config
-#+kubebuilder:scaffold:patches
+#+kubebuilder:scaffold:patchesJson6902

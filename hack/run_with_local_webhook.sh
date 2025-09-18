@@ -15,11 +15,10 @@ TMPDIR=${TMPDIR:-"/tmp/k8s-webhook-server/serving-certs"}
 SKIP_CERT=${SKIP_CERT:-false}
 CRC_IP=${CRC_IP:-$(/sbin/ip -o -4 addr list crc | awk '{print $4}' | cut -d/ -f1)}
 FIREWALL_ZONE=${FIREWALL_ZONE:-"libvirt"}
-WEBHOOK_PORT=${WEBHOOK_PORT:-${WEBHOOK_PORT}}
 
-#Open ${WEBHOOK_PORT}
+#Open 9443
 if systemctl is-enabled firewalld; then
-    sudo firewall-cmd --zone=${FIREWALL_ZONE} --add-port=${WEBHOOK_PORT}/tcp
+    sudo firewall-cmd --zone=${FIREWALL_ZONE} --add-port=9443/tcp
     sudo firewall-cmd --runtime-to-permanent
 fi
 
@@ -51,7 +50,7 @@ webhooks:
   - v1
   clientConfig:
     caBundle: ${CA_BUNDLE}
-    url: https://${CRC_IP}:${WEBHOOK_PORT}/validate-telemetry-openstack-org-v1beta1-autoscaling
+    url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-autoscaling
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: vautoscaling.kb.io
@@ -79,7 +78,7 @@ webhooks:
   - v1
   clientConfig:
     caBundle: ${CA_BUNDLE}
-    url: https://${CRC_IP}:${WEBHOOK_PORT}/mutate-telemetry-openstack-org-v1beta1-autoscaling
+    url: https://${CRC_IP}:9443/mutate-telemetry-openstack-org-v1beta1-autoscaling
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: mautoscaling.kb.io
@@ -107,7 +106,7 @@ webhooks:
   - v1
   clientConfig:
     caBundle: ${CA_BUNDLE}
-    url: https://${CRC_IP}:${WEBHOOK_PORT}/validate-telemetry-openstack-org-v1beta1-ceilometer
+    url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-ceilometer
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: vtelemetry.kb.io
@@ -135,7 +134,7 @@ webhooks:
   - v1
   clientConfig:
     caBundle: ${CA_BUNDLE}
-    url: https://${CRC_IP}:${WEBHOOK_PORT}/mutate-telemetry-openstack-org-v1beta1-ceilometer
+    url: https://${CRC_IP}:9443/mutate-telemetry-openstack-org-v1beta1-ceilometer
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: mtelemetry.kb.io
@@ -163,7 +162,7 @@ webhooks:
   - v1
   clientConfig:
     caBundle: ${CA_BUNDLE}
-    url: https://${CRC_IP}:${WEBHOOK_PORT}/validate-telemetry-openstack-org-v1beta1-telemetry
+    url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-telemetry
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: vtelemetry.kb.io
@@ -191,7 +190,7 @@ webhooks:
   - v1
   clientConfig:
     caBundle: ${CA_BUNDLE}
-    url: https://${CRC_IP}:${WEBHOOK_PORT}/mutate-telemetry-openstack-org-v1beta1-telemetry
+    url: https://${CRC_IP}:9443/mutate-telemetry-openstack-org-v1beta1-telemetry
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: mtelemetry.kb.io
@@ -219,7 +218,7 @@ webhooks:
   - v1
   clientConfig:
     caBundle: ${CA_BUNDLE}
-    url: https://${CRC_IP}:${WEBHOOK_PORT}/validate-telemetry-openstack-org-v1beta1-metricstorage
+    url: https://${CRC_IP}:9443/validate-telemetry-openstack-org-v1beta1-metricstorage
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: vmetricstorage.kb.io
@@ -247,7 +246,7 @@ webhooks:
   - v1
   clientConfig:
     caBundle: ${CA_BUNDLE}
-    url: https://${CRC_IP}:${WEBHOOK_PORT}/mutate-telemetry-openstack-org-v1beta1-metricstorage
+    url: https://${CRC_IP}:9443/mutate-telemetry-openstack-org-v1beta1-metricstorage
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: mmetricstorage.kb.io
@@ -303,4 +302,4 @@ else
     oc scale --replicas=0 -n openstack-operators deploy/telemetry-operator-controller-manager
 fi
 
-go run ./main.go -metrics-bind-address ":${METRICS_PORT}" -health-probe-bind-address ":${HEALTH_PORT}" -pprof-bind-address ":${PPROF_PORT}" -webhook-bind-address "${WEBHOOK_PORT}"
+go run ./main.go -metrics-bind-address ":${METRICS_PORT}" -health-probe-bind-address ":${HEALTH_PORT}" -pprof-bind-address ":${PPROF_PORT}"

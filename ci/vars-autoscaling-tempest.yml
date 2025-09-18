@@ -1,7 +1,9 @@
 ---
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
+cifmw_test_operator_tempest_namespace: podified-antelope-centos9
 cifmw_test_operator_tempest_container: openstack-tempest-all
+cifmw_test_operator_tempest_image_tag: 'current-podified'
 # This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
 # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
 # Cinder is disabled because the number of replicas is set to 0 by default for cinder volumes.
