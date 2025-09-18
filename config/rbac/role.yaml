@@ -59,6 +59,26 @@ rules:
   - update
   - watch
 - apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - issuers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - cloudkitty.openstack.org
   resources:
   - cloudkittyprocs
@@ -173,6 +193,18 @@ rules:
   - keystone.openstack.org
   resources:
   - keystoneservices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - loki.grafana.com
+  resources:
+  - lokistacks
   verbs:
   - create
   - delete
