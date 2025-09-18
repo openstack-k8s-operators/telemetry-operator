@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package autoscaling provides functionality for managing OpenStack telemetry autoscaling components
 package autoscaling
 
 import (
@@ -98,7 +99,7 @@ func AodhStatefulSet(
 
 	// add prometheus CA cert if defined
 	if instance.Spec.PrometheusTLSCaCertSecret != nil {
-		volumes = append(volumes, getCustomPrometheusCaVolume(instance.Spec.PrometheusTLSCaCertSecret.LocalObjectReference.Name))
+		volumes = append(volumes, getCustomPrometheusCaVolume(instance.Spec.PrometheusTLSCaCertSecret.Name))
 		evaluatorVolumeMounts = append(evaluatorVolumeMounts, getCustomPrometheusCaVolumeMount(instance.Spec.PrometheusTLSCaCertSecret.Key))
 	}
 
