@@ -57,6 +57,12 @@ const (
 	// CloudKittyStorageInitReadyCondition Status=True condition which indicates if the CloudKitty Storage Init process has ran
 	CloudKittyStorageInitReadyCondition condition.Type = "CloudKittyStorageInitReady"
 
+	// CloudKittyClientCertReadyCondition Status=True condition which indicates if the CloudKitty client certificate is ready for use
+	CloudKittyClientCertReadyCondition condition.Type = "CloudKittyClientCertReady"
+
+	// CloudKittyLokiStackReadyCondition Status=True condition which indicates if the CloudKitty LokiStack is ready
+	CloudKittyLokiStackReadyCondition condition.Type = "CloudKittyLokiStackReady"
+
 	// LoggingCLONamespaceReadyCondition Status=True condition which indicates if the cluster-logging-operator namespace is created
 	LoggingCLONamespaceReadyCondition condition.Type = "LoggingCLONamespaceReady"
 
@@ -270,6 +276,38 @@ const (
 
 	// CloudKittyProcReadyRunningMessage
 	CloudKittyProcReadyRunningMessage = "CloudKittyProc in progress"
+
+	//
+	// CloudKittyClientCertReady condition messages
+	//
+	// CloudKittyClientCertReadyInitMessage
+	CloudKittyClientCertReadyInitMessage = "CloudKittyClientCert not created"
+
+	// CloudKittyClientCertReadyMessage
+	CloudKittyClientCertReadyMessage = "CloudKittyClientCert ready for use"
+
+	// CloudKittyClientCertReadyErrorMessage
+	CloudKittyClientCertReadyErrorMessage = "CloudKittyClientCert error occured %s"
+
+	// CloudKittyClientCertReadyRunningMessage
+	CloudKittyClientCertReadyRunningMessage = "CloudKittyClientCert in progress"
+
+	//
+	// CloudKittyLokiStackReady condition messages
+	//
+	// CloudKittyLokiStackReadyInitMessage
+	CloudKittyLokiStackReadyInitMessage = "CloudKittyLokiStack not created"
+
+	// CloudKittyLokiStackReadyMessage
+	CloudKittyLokiStackReadyMessage = "CloudKittyLokiStack ready for use"
+
+	// CloudKittyLokiStackReadyErrorMessage
+	CloudKittyLokiStackReadyErrorMessage = "CloudKittyLokiStack error occured %s"
+
+	// CloudKittyLokiStackReadyRunningMessage
+	CloudKittyLokiStackReadyRunningMessage = "CloudKittyLokiStack in progress"
+	// CloudKittyLokiStackReadyRunningMessage
+	CloudKittyLokiStackUnableToOwnMessage = "Error occured when trying to own %s"
 
 	DashboardsNotEnabledMessage = "Dashboarding was not enabled, so no actions required"
 

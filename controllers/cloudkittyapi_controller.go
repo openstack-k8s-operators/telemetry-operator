@@ -270,6 +270,51 @@ func (r *CloudKittyAPIReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				}
 			}
 		}
+
+		// Watch for changes to the client cert secret
+		if secretName == cloudkitty.ClientCertSecretName {
+			for _, cr := range apis.Items {
+				name := client.ObjectKey{
+					Namespace: namespace,
+					Name:      cr.Name,
+				}
+				Log.Info(fmt.Sprintf("Secret %s is used by CloudKittyAPI CR %s", secretName, cr.Name))
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
+
+	// Watch for changes to configmaps we don't own.
+	configMapFn := func(_ context.Context, o client.Object) []reconcile.Request {
+		var namespace string = o.GetNamespace()
+		var configMapName string = o.GetName()
+		result := []reconcile.Request{}
+
+		// get all API CRs
+		apis := &telemetryv1.CloudKittyAPIList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(namespace),
+		}
+		if err := r.Client.List(context.Background(), apis, listOpts...); err != nil {
+			Log.Error(err, "Unable to retrieve API CRs %v")
+			return nil
+		}
+
+		// Watch for changes to the ca cert config map
+		for _, cr := range apis.Items {
+			if configMapName == fmt.Sprintf("%s-lokistack-gateway-ca-bundle", cloudkitty.GetOwningCloudKittyName(&cr)) {
+				name := client.ObjectKey{
+					Namespace: namespace,
+					Name:      cr.Name,
+				}
+				Log.Info(fmt.Sprintf("ConfigMap %s is used by CloudKittyAPI CR %s", configMapName, cr.Name))
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
 		if len(result) > 0 {
 			return result
 		}
@@ -350,6 +395,8 @@ func (r *CloudKittyAPIReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
+		Watches(&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(configMapFn)).
 		Watches(&topologyv1.Topology{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
@@ -888,6 +935,26 @@ func (r *CloudKittyAPIReconciler) reconcileNormal(ctx context.Context, instance 
 	//
 	// normal reconcile tasks
 	//
+
+	// Add client cert secret hash to all the other config data, so that
+	// restart is triggered on certificate changes (e.g. when they
+	// rotate)
+	_, clientCertHash, err := secret.GetSecret(
+		ctx,
+		helper,
+		cloudkitty.ClientCertSecretName,
+		instance.Namespace,
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	configVars["client-cert"] = env.SetValue(clientCertHash)
 
 	//
 	// create hash over all the different input resources to identify if any those changed
