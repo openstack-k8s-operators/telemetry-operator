@@ -1,0 +1,84 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Telemetry
+metadata:
+  name: telemetry-ck
+spec:
+  metricStorage:
+    enabled: true
+    monitoringStack:
+      alertingEnabled: true
+      scrapeInterval: 30s
+      storage:
+        strategy: persistent
+        retention: 24h
+        persistent:
+          pvcStorageRequest: 20G
+  autoscaling:
+    enabled: false
+    aodh:
+      # The images are added because when they are omitted in the CI env, telemetry-operator complains that the required values are missing.
+      # This doesn't occur locally when runnign with the webhook
+      apiImage: "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
+      evaluatorImage: "quay.io/podified-antelope-centos9/openstack-aodh-evaluator:current-podified"
+      listenerImage: "quay.io/podified-antelope-centos9/openstack-aodh-listener:current-podified"
+      notifierImage: "quay.io/podified-antelope-centos9/openstack-aodh-notifier:current-podified"
+      passwordSelectors:
+        databaseAccount: aodh
+        databaseInstance: openstack
+        memcachedInstance: memcached
+      secret: osp-secret
+    heatInstance: heat
+  ceilometer:
+    enabled: true
+    secret: osp-secret
+    # The images are added because when they are omitted in the CI env, telemetry-operator complains that the required values are missing.
+    centralImage: "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+    computeImage: "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
+    ipmiImage: "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
+    notificationImage: "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
+    proxyImage: "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
+    sgCoreImage: "quay.io/openstack-k8s-operators/sg-core:latest"
+  cloudkitty:
+    enabled: true
+    cloudKittyAPI:
+      # latest, with mTLS patch to CK
+      containerImage: "quay.io/efoley/cloudkitty-api@sha256:baf3f44225be4ac55eef6e45ab4095a8284fc186da5916408dbf95767a1eb5e9"
+      #containerImage: "quay.io/efoley/cloudkitty-api:epoxy-loki"
+      customServiceConfig: |
+          #[storage_loki]
+          #url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
+          ##url = https://lokistack-openstack.apps-crc.testing
+      tls:
+        caBundleSecretName: combined-ca-bundle
+    cloudKittyProc:
+      containerImage: "quay.io/efoley/cloudkitty-processor@sha256:4ddd2f824b17c0c2fb39363369a16af49cb2d95c07916f52e2c509ceca677de9"
+      #containerImage: "quay.io/efoley/cloudkitty-processor:epoxy-loki"
+      customServiceConfig: |
+          #[storage_loki]
+          #url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
+          ##url = https://lokistack-openstack.apps-crc.testing
+      tls:
+        caBundleSecretName: combined-ca-bundle
+    databaseAccount: cloudkitty
+    databaseInstance: openstack
+    memcachedInstance: memcached
+    passwordSelector:
+      aodhService: AodhPassword
+      ceilometerService: CeilometerPassword
+      cloudKittyService: CloudKittyPassword
+    preserveJobs: false
+    rabbitMqClusterName: rabbitmq
+    s3StorageConfig:
+        schemas:
+        - effectiveDate: "2024-11-18"
+          version: v13
+        secret:
+          name: cloudkitty-loki-s3
+          type: "s3"
+    secret: "osp-secret"
+    serviceUser: cloudkitty
+    storageClass: crc-csi-hostpath-provisioner
+
+  logging:
+    enabled: false
+    port: 10514
