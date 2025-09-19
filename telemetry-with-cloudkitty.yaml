@@ -16,6 +16,12 @@ spec:
   autoscaling:
     enabled: false
     aodh:
+      # The images are added because when they are omitted in the CI env, telemetry-operator complains that the required values are missing.
+      # This doesn't occur locally when runnign with the webhook
+      apiImage: "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
+      evaluatorImage: "quay.io/podified-antelope-centos9/openstack-aodh-evaluator:current-podified"
+      listenerImage: "quay.io/podified-antelope-centos9/openstack-aodh-listener:current-podified"
+      notifierImage: "quay.io/podified-antelope-centos9/openstack-aodh-notifier:current-podified"
       passwordSelectors:
         databaseAccount: aodh
         databaseInstance: openstack
@@ -25,6 +31,13 @@ spec:
   ceilometer:
     enabled: true
     secret: osp-secret
+    # The images are added because when they are omitted in the CI env, telemetry-operator complains that the required values are missing.
+    centralImage: "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
+    computeImage: "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
+    ipmiImage: "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
+    notificationImage: "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
+    proxyImage: "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
+    sgCoreImage: "quay.io/openstack-k8s-operators/sg-core:latest"
   cloudkitty:
     enabled: true
     cloudKittyAPI:
