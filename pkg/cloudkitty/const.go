@@ -52,6 +52,11 @@ const (
 
 	// PrometheusEndpointSecret - The name of the secret that contains the Prometheus endpoint configuration.
 	PrometheusEndpointSecret = "metric-storage-prometheus-endpoint"
+
+	ClientCertSecretName = "cert-cloudkitty-client-internal"
+
+	CaConfigmapName = "lokistack-ca"
+	CaConfigmapKey  = "ca.crt"
 )
 
 var ResultRequeue = ctrl.Result{RequeueAfter: NormalDuration}

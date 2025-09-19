@@ -19,10 +19,15 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
+	"time"
+
+	lokistackv1 "github.com/grafana/loki/operator/api/loki/v1"
 
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/cloudkitty"
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/metricstorage"
+	"github.com/openstack-k8s-operators/telemetry-operator/pkg/utils"
 
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,13 +41,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	certmgrv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
 	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
+	"github.com/openstack-k8s-operators/lib-common/modules/certmanager"
 	"github.com/openstack-k8s-operators/lib-common/modules/common"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/helper"
@@ -79,11 +87,7 @@ func (r *CloudKittyReconciler) GetScheme() *runtime.Scheme {
 }
 
 // CloudKittyReconciler reconciles a CloudKitty object
-type CloudKittyReconciler struct {
-	client.Client
-	Kclient kubernetes.Interface
-	Scheme  *runtime.Scheme
-}
+type CloudKittyReconciler utils.ConditionalWatchingReconciler
 
 // GetLogger returns a logger object with a logging prefix of "controller.name" and additional controller context fields
 func (r *CloudKittyReconciler) GetLogger(ctx context.Context) logr.Logger {
@@ -191,6 +195,8 @@ func (r *CloudKittyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.CloudKittyAPIReadyCondition, condition.InitReason, telemetryv1.CloudKittyAPIReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.CloudKittyProcReadyCondition, condition.InitReason, telemetryv1.CloudKittyProcReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.CloudKittyClientCertReadyCondition, condition.InitReason, telemetryv1.CloudKittyClientCertReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.CloudKittyLokiStackReadyCondition, condition.InitReason, telemetryv1.CloudKittyLokiStackReadyInitMessage),
 		condition.UnknownCondition(condition.NetworkAttachmentsReadyCondition, condition.InitReason, condition.NetworkAttachmentsReadyInitMessage),
 		// service account, role, rolebinding conditions
 		condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
@@ -327,7 +333,7 @@ func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return nil
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	control, err := ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CloudKitty{}).
 		Owns(&mariadbv1.MariaDBDatabase{}).
 		Owns(&mariadbv1.MariaDBAccount{}).
@@ -336,9 +342,11 @@ func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rabbitmqv1.TransportURL{}).
 		Owns(&batchv1.Job{}).
 		Owns(&corev1.Secret{}).
+		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
+		Owns(&certmgrv1.Certificate{}).
 		// Watch for TransportURL Secrets which belong to any TransportURLs created by CloudKitty CRs
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
@@ -347,7 +355,10 @@ func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&keystonev1.KeystoneAPI{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectForSrc),
 			builder.WithPredicates(keystonev1.KeystoneAPIStatusChangedPredicate)).
-		Complete(r)
+		// LokiStack watch added dynamically inside the controller code.
+		Build(r)
+	r.Controller = control
+	return err
 }
 
 func (r *CloudKittyReconciler) findObjectForSrc(ctx context.Context, src client.Object) []reconcile.Request {
@@ -507,10 +518,202 @@ func (r *CloudKittyReconciler) reconcileInit(
 	return ctrl.Result{}, nil
 }
 
+// Original source:
+// https://github.com/openstack-k8s-operators/openstack-operator/blob/cf133b39e91c05f53c57725d7c6f5a627d98dccd/pkg/openstack/ca.go#L687
+func getCAFromSecret(
+	ctx context.Context,
+	instance *telemetryv1.CloudKitty,
+	helper *helper.Helper,
+	secretName string,
+) (string, ctrl.Result, error) {
+	caSecret, ctrlResult, err := secret.GetDataFromSecret(ctx, helper, secretName, time.Duration(5), "ca.crt")
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyLokiStackReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.CloudKittyLokiStackReadyErrorMessage,
+			err.Error()))
+
+		return "", ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyLokiStackReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.CloudKittyLokiStackReadyRunningMessage))
+
+		return "", ctrlResult, nil
+	}
+
+	return caSecret, ctrl.Result{}, nil
+}
+
 func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *telemetryv1.CloudKitty, helper *helper.Helper) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
+
+	// Create cloudkitty client cert / key
+	certIssuer, err := certmanager.GetIssuerByLabels(
+		ctx, helper, instance.Namespace,
+		map[string]string{certmanager.RootCAIssuerInternalLabel: ""},
+	)
+	if err != nil {
+		Log.Error(err, "Failed to determine certificate issuer")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyClientCertReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			telemetryv1.CloudKittyClientCertReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	certDefinition := cloudkitty.Certificate(
+		instance, serviceLabels, certIssuer,
+	)
+	cert := certmanager.NewCertificate(certDefinition, 5)
+	ctrlResult, _, err := cert.CreateOrPatch(ctx, helper, nil)
+
+	if err != nil {
+		Log.Error(err, "Failed to create or patch cloudkitty client certificate")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyClientCertReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			telemetryv1.CloudKittyClientCertReadyErrorMessage,
+			err.Error()))
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		Log.Info("CloudKitty client certificate is being created")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyClientCertReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.CloudKittyClientCertReadyRunningMessage))
+		return ctrlResult, nil
+	}
+
+	caData, ctrlResult, err := getCAFromSecret(
+		ctx, instance, helper, certDefinition.Spec.SecretName,
+	)
+	if err != nil {
+		Log.Error(err, "Failed to get cloudkitty client certificate CA data")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyClientCertReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			telemetryv1.CloudKittyClientCertReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	cms := []util.Template{
+		{
+			Name:         fmt.Sprintf("%s-%s", instance.Name, cloudkitty.CaConfigmapName),
+			Namespace:    instance.Namespace,
+			Type:         util.TemplateTypeNone,
+			InstanceType: "cloudkitty",
+			CustomData: map[string]string{
+				cloudkitty.CaConfigmapKey: caData,
+			},
+		},
+	}
+
+	err = configmap.EnsureConfigMaps(
+		ctx, helper, instance, cms, nil,
+	)
+	if err != nil {
+		Log.Error(err, "Failed to create CA configmap for cloudkitty client cert verification")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyClientCertReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			telemetryv1.CloudKittyClientCertReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	instance.Status.Conditions.MarkTrue(telemetryv1.CloudKittyClientCertReadyCondition, telemetryv1.CloudKittyClientCertReadyMessage)
+
+	// Deploy Loki
+	var eventHandler handler.EventHandler = handler.EnqueueRequestForOwner(
+		r.Scheme,
+		r.RESTMapper,
+		&telemetryv1.CloudKitty{},
+		handler.OnlyControllerOwner(),
+	)
+
+	err = utils.EnsureWatches(
+		(*utils.ConditionalWatchingReconciler)(r), ctx,
+		"lokistacks.loki.grafana.com",
+		&lokistackv1.LokiStack{}, eventHandler, helper,
+	)
+	if err != nil {
+		instance.Status.Conditions.MarkFalse(telemetryv1.CloudKittyLokiStackReadyCondition,
+			condition.Reason("Can't own LokiStack resource. The loki-operator probably isn't installed"),
+			condition.SeverityError,
+			telemetryv1.CloudKittyLokiStackUnableToOwnMessage, err)
+		Log.Info("Can't own LokiStack resource. The loki-operator probably isn't installed")
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	}
+
+	lokiStack := &lokistackv1.LokiStack{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-lokistack", instance.Name),
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err := controllerutil.CreateOrPatch(ctx, r.Client, lokiStack, func() error {
+		desiredLokiStack := cloudkitty.LokiStack(instance, serviceLabels)
+		desiredLokiStack.Spec.DeepCopyInto(&lokiStack.Spec)
+		lokiStack.ObjectMeta.Labels = serviceLabels
+		err = controllerutil.SetControllerReference(instance, lokiStack, r.Scheme)
+		return err
+	})
+	if err != nil {
+		Log.Error(err, "Failed to create or patch LokiStack")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyLokiStackReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			telemetryv1.CloudKittyLokiStackReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("LokiStack %s successfully changed - operation: %s", lokiStack.Name, string(op)))
+	}
+
+	// Mirror LokiStacks's condition here. LokiStack uses conditions
+	// a little differently than o-k-o. Whats more, it can have
+	// multiple 'active' conditions, while we have only one 'master'
+	// condition LokiStack here. So we mirror hopefully the one most
+	// relevant active condition in this order of
+	// priority: Ready > Failed > Degraded > Pending > Warning.
+
+	order := []string{"Ready", "Failed", "Degraded", "Pending", "Warning"}
+	index := len(order)
+	reason := condition.InitReason
+	message := telemetryv1.CloudKittyLokiStackReadyInitMessage
+	for _, c := range lokiStack.Status.Conditions {
+		conditionIndex := slices.Index(order, c.Type)
+		if c.Status == "True" && conditionIndex < index {
+			index = conditionIndex
+			reason = c.Reason
+			message = c.Message
+		}
+	}
+	if index < len(order) && order[index] == "Ready" {
+		instance.Status.Conditions.MarkTrue(telemetryv1.CloudKittyLokiStackReadyCondition, telemetryv1.CloudKittyLokiStackReadyMessage)
+	} else {
+		Log.Info("LokiStack not ready")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.CloudKittyLokiStackReadyCondition,
+			condition.Reason(reason),
+			condition.SeverityWarning,
+			fmt.Sprintf("LokiStack issue: %s", message)))
+	}
 
 	// Service account, role, binding
 	rbacRules := []rbacv1.PolicyRule{
@@ -726,7 +929,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	}
 
 	// Handle service init
-	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels, serviceAnnotations)
+	ctrlResult, err = r.reconcileInit(ctx, instance, helper, serviceLabels, serviceAnnotations)
 	if err != nil {
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
@@ -902,6 +1105,8 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	databaseAccount := db.GetAccount()
 	dbSecret := db.GetSecret()
 
+	lokiHost := fmt.Sprintf("%s-lokistack-gateway-http.%s.svc", instance.Name, instance.Namespace)
+
 	templateParameters := make(map[string]interface{})
 	templateParameters["ServiceUser"] = instance.Spec.ServiceUser
 	templateParameters["ServicePassword"] = string(ospSecret.Data[instance.Spec.PasswordSelectors.CloudKittyService])
@@ -910,6 +1115,8 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	templateParameters["TransportURL"] = string(transportURLSecret.Data["transport_url"])
 	templateParameters["PrometheusHost"] = instance.Status.PrometheusHost
 	templateParameters["PrometheusPort"] = instance.Status.PrometheusPort
+	templateParameters["LokiHost"] = lokiHost
+	templateParameters["LokiPort"] = 8080
 	templateParameters["DatabaseConnection"] = fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
 		databaseAccount.Spec.UserName,
 		string(dbSecret.Data[mariadbv1.DatabasePasswordSelector]),
