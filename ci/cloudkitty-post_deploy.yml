@@ -1,4 +1,18 @@
 ---
+# When running in CI, with a differently named CR, the defaults are not set for Telemetry
+#    - 'The Telemetry "telemetry-ck" is invalid: '
+#    - '* spec.autoscaling.aodh.apiImage: Required value'
+#    - '* spec.autoscaling.aodh.evaluatorImage: Required value'
+#    - '* spec.autoscaling.aodh.listenerImage: Required value'
+#    - '* spec.autoscaling.aodh.notifierImage: Required value'
+#    - '* spec.ceilometer.centralImage: Required value'
+#    - '* spec.ceilometer.computeImage: Required value'
+#    - '* spec.ceilometer.ipmiImage: Required value'
+#    - '* spec.ceilometer.notificationImage: Required value'
+#    - '* spec.ceilometer.proxyImage: Required value'
+#    - '* spec.ceilometer.sgCoreImage: Required value'
+# WORKAROUND: telemetry-with-cloudkitty is updated to explicitly add these values
+
 # This should get to the point where we have must-gather running so that there is more information available.
 - name: "Create the kustomization for deploying CloudKitty"
   hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
