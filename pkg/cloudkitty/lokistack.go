@@ -50,7 +50,7 @@ func LokiStack(
 						MTLS: &lokistackv1.MTLSSpec{
 							CA: &lokistackv1.CASpec{
 								CAKey: CaConfigmapKey,
-								CA:    CaConfigmapName,
+								CA:    fmt.Sprintf("%s-%s", instance.Name, CaConfigmapName),
 							},
 						},
 					},

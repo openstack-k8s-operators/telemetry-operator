@@ -12,6 +12,13 @@
       "dest": "/etc/cloudkitty/metrics.yaml",
       "owner": "cloudkitty",
       "perm": "0600"
+    },
+    {
+      "source": "/var/lib/openstack/loki-certs/*",
+      "dest": "/etc/cloudkitty/certs/",
+      "owner": "cloudkitty:cloudkitty",
+      "perm": "0400",
+      "merge": true
     }
   ]
 }

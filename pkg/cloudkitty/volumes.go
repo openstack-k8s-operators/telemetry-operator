@@ -8,7 +8,9 @@ var (
 	// scriptMode is the default permissions mode for Scripts volume
 	scriptMode int32 = 0740
 	// configMode is the 640 permissions mode
-	configMode int32 = 0644
+	configMode int32 = 0640
+	// certMode is the 400 permissions mode
+	certMode int32 = 0400
 )
 
 // GetVolumes - service volumes
@@ -49,7 +51,7 @@ func GetVolumes(name string) []corev1.Volume {
 							},
 						},
 					},
-					DefaultMode: &configMode,
+					DefaultMode: &certMode,
 				},
 			},
 		},
@@ -77,7 +79,7 @@ func GetVolumeMounts(serviceName string) []corev1.VolumeMount {
 		},
 		{
 			Name:      "certs",
-			MountPath: "/etc/cloudkitty/certs",
+			MountPath: "/var/lib/openstack/loki-certs",
 			ReadOnly:  true,
 		},
 	}

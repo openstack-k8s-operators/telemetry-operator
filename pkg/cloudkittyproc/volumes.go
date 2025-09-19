@@ -25,7 +25,7 @@ func GetVolumes(parentName string, name string) []corev1.Volume {
 }
 
 // GetVolumeMounts - CloudKitty API VolumeMounts
-func GetVolumeMounts(parentName string) []corev1.VolumeMount {
+func GetVolumeMounts() []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "config-data-custom",
@@ -34,5 +34,5 @@ func GetVolumeMounts(parentName string) []corev1.VolumeMount {
 		},
 	}
 
-	return append(cloudkitty.GetVolumeMounts(parentName), volumeMounts...)
+	return append(cloudkitty.GetVolumeMounts(cloudkitty.ServiceName+"-proc"), volumeMounts...)
 }

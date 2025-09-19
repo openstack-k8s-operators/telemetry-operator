@@ -261,6 +261,39 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		return nil
 	}
 
+	// Watch for changes to configmaps we don't own.
+	configMapFn := func(_ context.Context, o client.Object) []reconcile.Request {
+		var namespace string = o.GetNamespace()
+		var configMapName string = o.GetName()
+		result := []reconcile.Request{}
+
+		// get all Proc CRs
+		procs := &telemetryv1.CloudKittyProcList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(namespace),
+		}
+		if err := r.Client.List(context.Background(), procs, listOpts...); err != nil {
+			Log.Error(err, "Unable to retrieve Proc CRs %v")
+			return nil
+		}
+
+		// Watch for changes to the ca cert config map
+		for _, cr := range procs.Items {
+			if configMapName == fmt.Sprintf("%s-lokistack-gateway-ca-bundle", cloudkitty.GetOwningCloudKittyName(&cr)) {
+				name := client.ObjectKey{
+					Namespace: namespace,
+					Name:      cr.Name,
+				}
+				Log.Info(fmt.Sprintf("ConfigMap %s is used by CloudKittyProc CR %s", configMapName, cr.Name))
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
+
 	// index passwordSecretField
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.CloudKittyProc{}, cloudKittyPasswordSecretField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
@@ -308,6 +341,8 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
+		Watches(&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(configMapFn)).
 		Watches(&topologyv1.Topology{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).

@@ -40,7 +40,7 @@ func StorageInitJob(instance *telemetryv1.CloudKitty, labels map[string]string, 
 	args := []string{"-c", storageInitCommand}
 
 	// create Volume and VolumeMounts
-	volumes := GetVolumes("cloudkitty")
+	volumes := GetVolumes(instance.Name)
 	volumeMounts := GetVolumeMounts("cloudkitty-storageinit")
 	// add CA cert if defined
 	if instance.Spec.CloudKittyAPI.TLS.CaBundleSecretName != "" {

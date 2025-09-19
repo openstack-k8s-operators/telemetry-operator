@@ -1,0 +1,52 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKitty
+metadata:
+  name: telemetry-kuttl-cloudkitty
+spec:
+  apiTimeout: 0
+  cloudKittyAPI:
+    containerImage: quay.io/jwysogla/cloudkitty-api:latest
+    override:
+      service:
+        internal:
+          metadata:
+            labels:
+              osctlplane: ""
+              osctlplane-service: telemetry
+        public:
+          metadata:
+            labels:
+              osctlplane: ""
+              osctlplane-service: telemetry
+    replicas: 1
+    resources: {}
+    tls:
+      api:
+        internal: {}
+        public: {}
+      caBundleSecretName: combined-ca-bundle
+  cloudKittyProc:
+    containerImage: quay.io/jwysogla/cloudkitty-processor:latest
+    replicas: 1
+    resources: {}
+    tls:
+      caBundleSecretName: combined-ca-bundle
+  databaseAccount: cloudkitty
+  databaseInstance: openstack
+  memcachedInstance: memcached
+  passwordSelector:
+    aodhService: AodhPassword
+    ceilometerService: CeilometerPassword
+    cloudKittyService: CloudKittyPassword
+  preserveJobs: false
+  rabbitMqClusterName: rabbitmq
+  s3StorageConfig:
+    schemas:
+    - effectiveDate: "2024-11-18"
+      version: v13
+    secret:
+      name: logging-loki-s3
+      type: s3
+  secret: osp-secret
+  serviceUser: cloudkitty
+  storageClass: local-storage

@@ -1,0 +1,15 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestSuite
+reportFormat: JSON
+reportName: kuttl-cloudkitty-results
+namespace: telemetry-kuttl-cloudkitty
+# we could set this lower, but the initial image pull can take a while
+# TODO 300
+timeout: 300
+parallel: 1
+skipDelete: true
+testDirs:
+  - tests/kuttl/suites/cloudkitty/
+suppress:
+  - events
+artifactsDir: tests/kuttl/suites/cloudkitty/output

@@ -610,7 +610,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 
 	cms := []util.Template{
 		{
-			Name:         cloudkitty.CaConfigmapName,
+			Name:         fmt.Sprintf("%s-%s", instance.Name, cloudkitty.CaConfigmapName),
 			Namespace:    instance.Namespace,
 			Type:         util.TemplateTypeNone,
 			InstanceType: "cloudkitty",
