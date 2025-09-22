@@ -1,0 +1,19 @@
+---
+cifmw_run_tests: false
+cifmw_edpm_prepare_timeout: 60
+cifmw_deploy_obs: true
+cifmw_openshift_obs_definition:
+  apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: observability-operator
+    namespace: openshift-operators
+  spec:
+    channel: stable
+    installPlanApproval: Automatic
+    name: cluster-observability-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+pre_deploy_deploy_telemetry_services:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-telemetry-with-ceph.yml"
+  type: playbook

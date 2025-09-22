@@ -325,6 +325,7 @@ spec:
                     type: object
                 type: object
               secret:
+                default: osp-secret
                 description: Secret containing OpenStack password information
                 type: string
               serviceAccount:

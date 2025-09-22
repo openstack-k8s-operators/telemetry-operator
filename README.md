@@ -66,7 +66,9 @@ This operator deploys a multiple telemetry agents, both in the control plane and
 7. Scale down telemetry-operator and openstack-operator
 
     ```bash
-    oc patch csv openstack-operator.v0.3.0 --type='json' -p='[{"op": "replace", "path": "/spec/install/spec/deployments/0/spec/replicas", "value":0}]' -n openstack-operators
+    oc scale deployments/openstack-operator-controller-operator --replicas 0 -n openstack-operators
+
+    oc scale deployments/openstack-operator-controller-manager --replicas 0 -n openstack-operators
 
     oc scale deployments/telemetry-operator-controller-manager --replicas 0 -n openstack-operators
     ```

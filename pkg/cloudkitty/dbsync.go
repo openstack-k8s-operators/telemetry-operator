@@ -41,7 +41,7 @@ func DbSyncJob(instance *telemetryv1.CloudKitty, labels map[string]string, annot
 	args = append(args, dbSyncCommand)
 
 	// create Volume and VolumeMounts
-	volumes := GetVolumes("cloudkitty")
+	volumes := GetVolumes(instance.Name)
 	volumeMounts := GetVolumeMounts("cloudkitty-dbsync")
 	// add CA cert if defined
 	if instance.Spec.CloudKittyAPI.TLS.CaBundleSecretName != "" {

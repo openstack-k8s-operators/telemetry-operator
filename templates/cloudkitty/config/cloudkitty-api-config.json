@@ -75,6 +75,13 @@
       "perm": "0640",
       "optional": true,
       "merge": true
+    },
+    {
+      "source": "/var/lib/openstack/loki-certs/*",
+      "dest": "/etc/cloudkitty/certs/",
+      "owner": "cloudkitty:cloudkitty",
+      "perm": "0400",
+      "merge": true
     }
   ],
   "permissions": [

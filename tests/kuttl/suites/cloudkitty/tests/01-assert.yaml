@@ -1,0 +1,81 @@
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: telemetry-kuttl-cloudkitty-lokistack
+  ownerReferences:
+  - kind: CloudKitty
+    name: telemetry-kuttl-cloudkitty
+spec:
+  tenants:
+    authentication:
+    - tenantId: telemetry-kuttl-cloudkitty
+      tenantName: telemetry-kuttl-cloudkitty
+# NOTE: It's hard to assert LokiStack condition with kuttl-tests, because
+#       their number can change even when LokiStack as whole is actually ready.
+#       And because kuttl-tests will compare the number of conditions defined
+#       here vs. the number of conditions inside the real CR, it could fail
+#       even when it shouldn't.
+#       But LokiStack condition is being copied into the master CloudKitty CR,
+#       so we can ensure that LokiStack is ready by checking that Cloudkitty
+#       is Ready
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKitty
+metadata:
+  name: telemetry-kuttl-cloudkitty
+status:
+  conditions:
+  - status: "True"
+    type: Ready
+  - status: "True"
+    type: CloudKittyAPIReady
+  - status: "True"
+    type: CloudKittyClientCertReady
+  - status: "True"
+    type: CloudKittyLokiStackReady
+  - status: "True"
+    type: CloudKittyProcReady
+  - status: "True"
+    type: CloudKittyStorageInitReady
+  - status: "True"
+    type: DBReady
+  - status: "True"
+    type: DBSyncReady
+  - status: "True"
+    type: InputReady
+  - status: "True"
+    type: MariaDBAccountReady
+  - status: "True"
+    type: MemcachedReady
+  - status: "True"
+    type: NetworkAttachmentsReady
+  - status: "True"
+    type: RabbitMqTransportURLReady
+  - status: "True"
+    type: RoleBindingReady
+  - status: "True"
+    type: RoleReady
+  - status: "True"
+    type: ServiceAccountReady
+  - status: "True"
+    type: ServiceConfigReady
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-cloudkitty-client-internal
+  ownerReferences:
+  - kind: CloudKitty
+    name: telemetry-kuttl-cloudkitty
+spec:
+  subject:
+    organizationalUnits:
+    - telemetry-kuttl-cloudkitty
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+status:
+  conditions:
+  - status: "True"
+    type: Ready

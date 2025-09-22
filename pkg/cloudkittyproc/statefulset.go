@@ -72,7 +72,7 @@ func StatefulSet(
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 
 	volumes := GetVolumes(cloudkitty.GetOwningCloudKittyName(instance), instance.Name)
-	volumeMounts := GetVolumeMounts(instance.Name)
+	volumeMounts := GetVolumeMounts()
 
 	// Add the CA bundle
 	if instance.Spec.TLS.CaBundleSecretName != "" {

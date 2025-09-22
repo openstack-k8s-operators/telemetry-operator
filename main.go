@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	certmgrv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -39,6 +40,7 @@ import (
 
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	lokistackv1 "github.com/grafana/loki/operator/api/loki/v1"
 	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
@@ -48,6 +50,7 @@ import (
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/operator"
 	mariadbv1beta1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
+	ovnv1 "github.com/openstack-k8s-operators/ovn-operator/api/v1beta1"
 	rabbitmqclusterv1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
@@ -77,10 +80,13 @@ func init() {
 	utilruntime.Must(mariadbv1beta1.AddToScheme(scheme))
 	utilruntime.Must(memcachedv1.AddToScheme(scheme))
 	utilruntime.Must(heatv1.AddToScheme(scheme))
+	utilruntime.Must(ovnv1.AddToScheme(scheme))
 	utilruntime.Must(infranetworkv1.AddToScheme(scheme))
 	utilruntime.Must(rabbitmqclusterv1.AddToScheme(scheme))
 	utilruntime.Must(networkv1.AddToScheme(scheme))
 	utilruntime.Must(topologyv1.AddToScheme(scheme))
+	utilruntime.Must(lokistackv1.AddToScheme(scheme))
+	utilruntime.Must(certmgrv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -89,11 +95,13 @@ func main() {
 	var enableLeaderElection bool
 	var probeAddr string
 	var pprofBindAddress string
+	var webhookPort int
 	var enableHTTP2 bool
 	flag.BoolVar(&enableHTTP2, "enable-http2", enableHTTP2, "If HTTP/2 should be enabled for the metrics and webhook servers.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8083", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8084", "The address the probe endpoint binds to.")
 	flag.StringVar(&pprofBindAddress, "pprof-bind-address", "", "The address the pprof endpoint binds to. Set to empty to disable pprof.")
+	flag.IntVar(&webhookPort, "webhook-bind-address", 9443, "The port the webhook server binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -123,7 +131,7 @@ func main() {
 		PprofBindAddress:       pprofBindAddress,
 		WebhookServer: webhook.NewServer(
 			webhook.Options{
-				Port:    9443,
+				Port:    webhookPort,
 				TLSOpts: []func(config *tls.Config){disableHTTP2},
 			}),
 	}
@@ -199,9 +207,11 @@ func main() {
 	}
 
 	if err = (&controllers.CloudKittyReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Kclient: kclient,
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Kclient:    kclient,
+		RESTMapper: mgr.GetRESTMapper(),
+		Cache:      mgr.GetCache(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CloudKitty controller")
 		os.Exit(1)
