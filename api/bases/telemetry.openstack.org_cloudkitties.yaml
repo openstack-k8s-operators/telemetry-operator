@@ -576,6 +576,7 @@ spec:
                   Needed to request a transportURL that is created and used in CloudKitty
                 type: string
               secret:
+                default: osp-secret
                 description: Secret containing OpenStack password information
                 type: string
               serviceUser:
