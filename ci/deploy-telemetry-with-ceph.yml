@@ -1,0 +1,90 @@
+---
+- name: "Deploy telemetry in a job with ceph"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+    - name: Deploy logging dependencies
+      ansible.builtin.import_role:
+        name: deploy-logging-dependencies
+    - name: Copy controlplane kustomization
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-controlplane-telemetry.yaml"
+        content: |-
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          namespace: openstack
+          patches:
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: OpenStackControlPlane
+              metadata:
+                name: unused
+              spec:
+                swift: # required for smoketests to pass
+                  enabled: true
+                heat: # required for autoscaling
+                  enabled: true
+                telemetry: # enable all telemetry controlplane services
+                  enabled: true
+                  template:
+                    metricStorage:
+                      enabled: true
+                      monitoringStack:
+                        alertingEnabled: false
+                    autoscaling:
+                      enabled: true
+                    logging:
+                      enabled: true
+                    ceilometer:
+                      enabled: true
+                      mysqldExporterEnabled: true
+            target:
+              kind: OpenStackControlPlane
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: OpenStackControlPlane
+              metadata:
+                name: unused
+              spec:
+                telemetry:
+                  template:
+                    metricStorage:
+                      dashboardsEnabled: true
+            target:
+              kind: OpenStackControlPlane
+
+    # Deploy telemetry services and all their prerequisities on the dataplane
+    - name: Copy dataplane nodeset kustomization
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/dataplane/60-kustomize-dataplane-telemetry-service.yaml"
+        content: |-
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          resources:
+          namespace: {{ cifmw_install_yamls_defaults['NAMESPACE'] }}
+          patches:
+          - target:
+              kind: OpenStackDataPlaneNodeSet
+              name: .*
+            patch: |-
+              - op: add
+                path: /spec/services/-
+                value: install-certs
+              - op: add
+                path: /spec/services/-
+                value: ovn
+              - op: add
+                path: /spec/services/-
+                value: libvirt
+              - op: add
+                path: /spec/services/-
+                value: telemetry
+              - op: add
+                path: /spec/services/-
+                value: telemetry-power-monitoring
+              - op: add
+                path: /spec/services/-
+                value: logging
