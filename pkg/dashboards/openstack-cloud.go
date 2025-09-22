@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// OpenstackCloud creates a ConfigMap containing the OpenStack Cloud dashboard
 func OpenstackCloud(dsName string) *corev1.ConfigMap {
 
 	dashboardCM := &corev1.ConfigMap{

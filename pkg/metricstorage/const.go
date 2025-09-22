@@ -16,10 +16,15 @@ limitations under the License.
 package metricstorage
 
 const (
+	// RabbitMQPrometheusPort is the port number for RabbitMQ Prometheus metrics
 	RabbitMQPrometheusPort = 15691
 
-	PrometheusHost         = "host"
-	PrometheusPort         = "port"
+	// PrometheusHost is the key for Prometheus host configuration
+	PrometheusHost = "host"
+	// PrometheusPort is the key for Prometheus port configuration
+	PrometheusPort = "port"
+	// PrometheusCaCertSecret is the key for Prometheus CA certificate secret
 	PrometheusCaCertSecret = "ca_secret"
-	PrometheusCaCertKey    = "ca_key"
+	// PrometheusCaCertKey is the key for Prometheus CA certificate key
+	PrometheusCaCertKey = "ca_key"
 )

@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// DashboardDatasourceData creates the data map for dashboard datasource configuration
 func DashboardDatasourceData(ctx context.Context, c client.Client, instance *telemetryv1.MetricStorage, datasourceName string, namespace string) (map[string]string, error) {
 
 	scheme := "http"

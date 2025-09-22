@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package metricstorage provides functionality for managing telemetry metrics storage components
 package metricstorage
 
 import (
