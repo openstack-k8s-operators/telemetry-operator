@@ -136,7 +136,10 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
-        - telemetry-openstack-meta-content-provider-master
+        - telemetry-openstack-meta-content-provider-master:
+            vars:
+              # temp workaround for expired :current-tested tag on ceilometer-compute images
+              cifmw_build_containers_force: true
         - telemetry-operator-multinode-default-telemetry
         - functional-tests-osp18: &fvt_jobs_config
             voting: true
