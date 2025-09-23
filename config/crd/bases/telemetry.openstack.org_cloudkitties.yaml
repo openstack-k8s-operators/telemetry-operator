@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: cloudkitties.telemetry.openstack.org
 spec:
   group: telemetry.openstack.org
@@ -104,7 +104,7 @@ spec:
                                     Annotations is an unstructured key value map stored with a resource that may be
                                     set by external tools to store and retrieve arbitrary metadata. They are not
                                     queryable and should be preserved when modifying objects.
-                                    More info: http://kubernetes.io/docs/user-guide/annotations
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
                                   type: object
                                 labels:
                                   additionalProperties:
@@ -113,7 +113,7 @@ spec:
                                     Map of string keys and values that can be used to organize and categorize
                                     (scope and select) objects. May match selectors of replication controllers
                                     and services.
-                                    More info: http://kubernetes.io/docs/user-guide/labels
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
                                   type: object
                               type: object
                             spec:
@@ -255,10 +255,8 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-
                           This is an alpha field and requires enabling the
                           DynamicResourceAllocation feature gate.
-
 
                           This field is immutable. It can only be set for containers.
                         items:
@@ -269,6 +267,12 @@ spec:
                                 Name must match the name of one entry in pod.spec.resourceClaims of
                                 the Pod where this field is used. It makes that resource available
                                 inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
                               type: string
                           required:
                           - name
@@ -404,10 +408,8 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-
                           This is an alpha field and requires enabling the
                           DynamicResourceAllocation feature gate.
-
 
                           This field is immutable. It can only be set for containers.
                         items:
@@ -418,6 +420,12 @@ spec:
                                 Name must match the name of one entry in pod.spec.resourceClaims of
                                 the Pod where this field is used. It makes that resource available
                                 inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
                               type: string
                           required:
                           - name
@@ -557,10 +565,13 @@ spec:
                       valid secret key.
                     type: string
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Add other useful fields. apiVersion, kind, uid?
                     type: string
                   optional:
                     description: Specify whether the Secret or its key must be defined
@@ -594,7 +605,6 @@ spec:
                         effectiveDate:
                           description: |-
                             EffectiveDate contains a date in YYYY-MM-DD format which is interpreted in the UTC time zone.
-
 
                             The configuration always needs at least one schema that is currently valid. This means that when creating a new
                             LokiStack it is recommended to add a schema with the latest available version and an effective date of "yesterday".

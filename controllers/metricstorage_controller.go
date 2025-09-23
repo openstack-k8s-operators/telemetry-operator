@@ -31,7 +31,9 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -41,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	logr "github.com/go-logr/logr"
 	"github.com/openstack-k8s-operators/lib-common/modules/ansible"
@@ -122,7 +125,7 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Fetch the MetricStorage instance
 	instance := &telemetryv1.MetricStorage{}
-	err := r.Client.Get(ctx, req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -285,7 +288,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 
-	var eventHandler handler.EventHandler = handler.EnqueueRequestForOwner(
+	eventHandler := handler.EnqueueRequestForOwner(
 		r.Scheme,
 		r.RESTMapper,
 		&telemetryv1.MetricStorage{},
@@ -335,7 +338,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			Log.Info(fmt.Sprintf("Using CustomMonitoringStack for MonitoringStack %s definition", monitoringStack.Name))
 			instance.Spec.CustomMonitoringStack.DeepCopyInto(&monitoringStack.Spec)
 		}
-		monitoringStack.ObjectMeta.Labels = serviceLabels
+		monitoringStack.Labels = serviceLabels
 		err := controllerutil.SetControllerReference(instance, monitoringStack, r.Scheme)
 		return err
 	})
@@ -371,7 +374,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 		}
 		prometheusTLSPatch := metricstorage.PrometheusTLS(instance)
-		err = r.Client.Patch(context.Background(), &prometheusTLSPatch, client.Merge, client.FieldOwner("telemetry-operator"))
+		err = r.Patch(context.Background(), &prometheusTLSPatch, client.Merge, client.FieldOwner("telemetry-operator"))
 		if err != nil {
 			Log.Error(err, "Can't patch Prometheus resource")
 			return ctrl.Result{}, err
@@ -385,7 +388,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 				Name:      instance.Name,
 			},
 		}
-		err = r.Client.Delete(context.Background(), &prometheus)
+		err = r.Delete(context.Background(), &prometheus)
 		if err != nil && !k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
 				condition.Reason("Can't delete old Prometheus CR to remove TLS configuration"),
@@ -406,7 +409,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 
 	// Patch Prometheus service to add route creation
 	prometheusServicePatch := metricstorage.PrometheusService(instance)
-	err = r.Client.Patch(context.Background(), &prometheusServicePatch, client.Apply, client.FieldOwner("telemetry-operator"))
+	err = r.Patch(context.Background(), &prometheusServicePatch, client.Apply, client.FieldOwner("telemetry-operator"))
 	if err != nil {
 		Log.Error(err, "Can't patch Prometheus service resource")
 		return ctrl.Result{}, err
@@ -415,7 +418,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	// Patch Alertmanager service to add route creation
 	if instance.Spec.MonitoringStack != nil && instance.Spec.MonitoringStack.AlertingEnabled {
 		alertmanagerServicePatch := metricstorage.AlertmanagerService(instance)
-		err = r.Client.Patch(context.Background(), &alertmanagerServicePatch, client.Apply, client.FieldOwner("telemetry-operator"))
+		err = r.Patch(context.Background(), &alertmanagerServicePatch, client.Apply, client.FieldOwner("telemetry-operator"))
 		if err != nil {
 			Log.Error(err, "Can't patch Alertmanager service resource")
 			return ctrl.Result{}, err
@@ -428,7 +431,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			instance.Status.Conditions.MarkFalse(telemetryv1.MonitoringStackReadyCondition,
 				condition.Reason(c.Reason),
 				condition.SeverityError,
-				c.Message)
+				"%s", c.Message)
 			monitoringStackReady = false
 			break
 		}
@@ -477,7 +480,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.PrometheusTLS.CaBundleSecretName)))
+					condition.TLSInputReadyWaitingMessage, instance.Spec.PrometheusTLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -499,7 +502,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, err.Error())))
+					condition.TLSInputReadyWaitingMessage, err.Error()))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -532,7 +535,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 					condition.SeverityInfo,
 					condition.NetworkAttachmentsReadyWaitingMessage,
 					netAtt))
-				return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("network-attachment-definition %s not found", netAtt)
+				return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("%w: %s", telemetry.ErrNetworkAttachmentDefinitionNotFound, netAtt)
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				condition.NetworkAttachmentsReadyCondition,
@@ -548,7 +551,6 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 
 	networkAnnotations, err := nad.EnsureNetworksAnnotation(nadList)
-
 	if err != nil {
 		err = fmt.Errorf("failed create network annotation from %s: %w", instance.Spec.NetworkAttachments, err)
 		instance.Status.Conditions.MarkFalse(
@@ -586,7 +588,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 		}
 		prometheusNADPatch := metricstorage.PrometheusNAD(instance, networkAnnotations)
-		err = r.Client.Patch(context.Background(), &prometheusNADPatch, client.Merge, client.FieldOwner("telemetry-operator"))
+		err = r.Patch(context.Background(), &prometheusNADPatch, client.Merge, client.FieldOwner("telemetry-operator"))
 		if err != nil {
 			Log.Error(err, "Can't patch Prometheus resource")
 			return ctrl.Result{}, err
@@ -600,7 +602,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 				Name:      instance.Name,
 			},
 		}
-		err = r.Client.Delete(context.Background(), &prometheus)
+		err = r.Delete(context.Background(), &prometheus)
 		if err != nil && !k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
 				condition.Reason("Can't delete old Prometheus CR to remove NAD configuration"),
@@ -669,7 +671,7 @@ func (r *MetricStorageReconciler) prometheusEndpointSecret(
 			return err
 		}
 
-		if err := r.Client.Patch(ctx, secret, client.RawPatch(types.StrategicMergePatchType, patch)); err != nil {
+		if err := r.Patch(ctx, secret, client.RawPatch(types.StrategicMergePatchType, patch)); err != nil {
 			return err
 		}
 	}
@@ -693,7 +695,7 @@ func (r *MetricStorageReconciler) createServiceScrapeConfig(
 	}
 	op, err := controllerutil.CreateOrPatch(ctx, r.Client, scrapeConfig, func() error {
 		desiredScrapeConfig.Spec.DeepCopyInto(&scrapeConfig.Spec)
-		scrapeConfig.ObjectMeta.Labels = desiredScrapeConfig.ObjectMeta.Labels
+		scrapeConfig.Labels = desiredScrapeConfig.Labels
 		err := controllerutil.SetControllerReference(instance, scrapeConfig, r.Scheme)
 		return err
 	})
@@ -765,7 +767,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.GetNamespace()),
 	}
-	err = r.Client.List(ctx, rabbitList, listOpts...)
+	err = r.List(ctx, rabbitList, listOpts...)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -794,7 +796,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 	ceilometerInstance := &telemetryv1.Ceilometer{}
 
-	err = r.Client.Get(ctx, ceilometerNamespacedName, ceilometerInstance)
+	err = r.Get(ctx, ceilometerNamespacedName, ceilometerInstance)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		Log.Info(fmt.Sprintf("Cannot get ceilometer. Scrape configs not created. Error: %s", err))
 	}
@@ -916,7 +918,7 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	targetsTLS, targetsNonTLS := getExporterTargets(connectionInfo, exporterPort)
 
 	// ScrapeConfig for non-tls nodes
-	//NOTE(mmagr): remove TLS suppression functionality once Kepler supports TLS
+	// NOTE(mmagr): remove TLS suppression functionality once Kepler supports TLS
 	targets := targetsNonTLS
 	if suppressTLS {
 		targets = targetsTLS
@@ -1100,7 +1102,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	op, err = controllerutil.CreateOrPatch(ctx, r.Client, prometheusRule, func() error {
 		desiredPrometheusRule := metricstorage.DashboardPrometheusRule(instance, serviceLabels)
 		desiredPrometheusRule.Spec.DeepCopyInto(&prometheusRule.Spec)
-		prometheusRule.ObjectMeta.Labels = desiredPrometheusRule.ObjectMeta.Labels
+		prometheusRule.Labels = desiredPrometheusRule.Labels
 		err = controllerutil.SetControllerReference(instance, prometheusRule, r.Scheme)
 		return err
 	})
@@ -1122,7 +1124,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	}
 	dataSourceSuccess := false
 	op, err = controllerutil.CreateOrPatch(ctx, r.Client, datasourceCM, func() error {
-		datasourceCM.ObjectMeta.Labels = map[string]string{
+		datasourceCM.Labels = map[string]string{
 			"console.openshift.io/dashboard-datasource": "true",
 		}
 		datasourceCM.Data, err = metricstorage.DashboardDatasourceData(ctx, r.Client, instance, datasourceName, metricstorage.DashboardArtifactsNamespace)
@@ -1181,7 +1183,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 				},
 			}
 			op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboardCM, func() error {
-				dashboardCM.ObjectMeta.Labels = desiredCM.ObjectMeta.Labels
+				dashboardCM.Labels = desiredCM.Labels
 				dashboardCM.Data = desiredCM.Data
 				return nil
 			})
@@ -1200,6 +1202,41 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		}
 	}
 	return ctrl.Result{}, err
+}
+
+func (r *MetricStorageReconciler) ensureWatches(
+	ctx context.Context,
+	name string,
+	kind client.Object,
+	handler handler.EventHandler,
+) error {
+	Log := r.GetLogger(ctx)
+	for _, item := range r.Watching {
+		if item == name {
+			// We are already watching the resource
+			return nil
+		}
+	}
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "apiextensions.k8s.io",
+		Kind:    "CustomResourceDefinition",
+		Version: "v1",
+	})
+
+	err := r.Get(context.Background(), client.ObjectKey{
+		Name: name,
+	}, u)
+	if err != nil {
+		return err
+	}
+
+	Log.Info(fmt.Sprintf("Starting to watch %s", name))
+	err = r.Controller.Watch(source.Kind(r.Cache, kind, handler))
+	if err == nil {
+		r.Watching = append(r.Watching, name)
+	}
+	return err
 }
 
 func getComputeNodesConnectionInfo(
@@ -1255,11 +1292,11 @@ func getComputeNodesConnectionInfo(
 				address, _ = getAddressFromAnsibleHost(&item)
 			} else {
 				// we were unable to find an IP or HostName for a node, so we do not go further
-				return connectionInfo, fmt.Errorf("failed to find an IP or HostName for node %s", name)
+				return connectionInfo, fmt.Errorf("%w %s", telemetry.ErrNodeIPOrHostnameNotFound, name)
 			}
 			if address == "" {
 				// we were unable to find an IP or HostName for a node, so we do not go further
-				return connectionInfo, fmt.Errorf("failed to find an IP or HostName for node %s", name)
+				return connectionInfo, fmt.Errorf("%w %s", telemetry.ErrNodeIPOrHostnameNotFound, name)
 			}
 
 			fqdn, _ := getCanonicalHostname(&item)
@@ -1412,7 +1449,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), metricStorages, listOpts...); err != nil {
+		if err := r.List(context.Background(), metricStorages, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve MetricStorage CRs %w")
 			return nil
 		}
@@ -1444,7 +1481,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				listOpts := []client.ListOption{
 					client.InNamespace(o.GetNamespace()),
 				}
-				if err := r.Client.List(context.Background(), metricStorages, listOpts...); err != nil {
+				if err := r.List(context.Background(), metricStorages, listOpts...); err != nil {
 					Log.Error(err, "Unable to retrieve MetricStorage CRs %w")
 					return nil
 				}
@@ -1470,7 +1507,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), metricStorages, listOpts...); err != nil {
+		if err := r.List(context.Background(), metricStorages, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve MetricStorage CRs %w")
 			return nil
 		}
@@ -1569,7 +1606,7 @@ func (r *MetricStorageReconciler) findObjectsForSrc(ctx context.Context, src cli
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
 			Namespace:     src.GetNamespace(),
 		}
-		err := r.Client.List(ctx, crList, listOps)
+		err := r.List(ctx, crList, listOps)
 		if err != nil {
 			return []reconcile.Request{}
 		}
@@ -1601,7 +1638,7 @@ func (r *MetricStorageReconciler) nodeSetWatchFn(ctx context.Context, o client.O
 	listOpts := []client.ListOption{
 		client.InNamespace(o.GetNamespace()),
 	}
-	if err := r.Client.List(ctx, metricstorages, listOpts...); err != nil {
+	if err := r.List(ctx, metricstorages, listOpts...); err != nil {
 		Log.Error(err, "Unable to retrieve MetricStorage CRs %v")
 		return nil
 	}

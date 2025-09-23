@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// LabeledTarget represents a monitoring target with IP and FQDN labels
 type LabeledTarget struct {
 	IP   string
 	FQDN string

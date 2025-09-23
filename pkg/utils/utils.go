@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+// Package utils provides utility functions for telemetry operator components
+package utils //nolint:revive // utils is a legitimate package name for utility functions
 
 import (
 	"context"
@@ -95,9 +96,7 @@ func EnsureWatches(
 	}
 
 	Log.Info(fmt.Sprintf("Starting to watch %s", name))
-	err = r.Controller.Watch(source.Kind(r.Cache, kind),
-		handler,
-	)
+	err = r.Controller.Watch(source.Kind(r.Cache, kind, handler))
 	if err == nil {
 		r.Watching = append(r.Watching, name)
 	}

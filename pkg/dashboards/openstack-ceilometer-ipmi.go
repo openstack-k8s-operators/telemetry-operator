@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package dashboards provides OpenStack monitoring dashboard configurations
 package dashboards
 
 import (
@@ -21,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// OpenstackCeilometerIpmi creates a ConfigMap containing the OpenStack Ceilometer IPMI dashboard
 func OpenstackCeilometerIpmi(dsName string) *corev1.ConfigMap {
 	dashboardCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

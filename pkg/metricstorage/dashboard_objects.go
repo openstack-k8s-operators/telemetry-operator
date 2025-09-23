@@ -29,8 +29,10 @@ import (
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 )
 
+// DashboardArtifactsNamespace is the namespace where dashboard artifacts are stored
 const DashboardArtifactsNamespace = "openshift-config-managed"
 
+// DeleteDashboardObjects removes dashboard-related objects for the MetricStorage instance
 func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper) (ctrl.Result, error) {
 	promRule := &monv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{

@@ -17,10 +17,10 @@ limitations under the License.
 package metricstorage
 
 import (
-	"fmt"
 	"reflect"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	telemetry "github.com/openstack-k8s-operators/telemetry-operator/pkg/telemetry"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,7 +34,7 @@ func MonitoringStack(
 	labels map[string]string,
 ) (*obov1.MonitoringStack, error) {
 	if instance.Spec.MonitoringStack == nil {
-		return nil, fmt.Errorf("monitoringStack is set to nil")
+		return nil, telemetry.ErrMonitoringStackNil
 	}
 	pvc, err := getPVCSpec(instance)
 	if err != nil {
@@ -56,7 +56,7 @@ func MonitoringStack(
 				ScrapeInterval:        &scrapeInterval,
 				PersistentVolumeClaim: pvc,
 			},
-			Retention: monv1.Duration(instance.Spec.MonitoringStack.Storage.Retention),
+			Retention: monv1.Duration(instance.Spec.MonitoringStack.Retention),
 			ResourceSelector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -66,10 +66,10 @@ func MonitoringStack(
 }
 
 func getPVCSpec(instance *telemetryv1.MetricStorage) (*corev1.PersistentVolumeClaimSpec, error) {
-	if instance.Spec.MonitoringStack.Storage.Strategy == "persistent" {
-		persistentSpec := instance.Spec.MonitoringStack.Storage.Persistent
+	if instance.Spec.MonitoringStack.Strategy == "persistent" {
+		persistentSpec := instance.Spec.MonitoringStack.Persistent
 		if persistentSpec == nil {
-			return nil, fmt.Errorf("Received a nil value in persistent storage config")
+			return nil, telemetry.ErrPersistentStorageConfigNil
 		}
 		pvc := corev1.PersistentVolumeClaimSpec{}
 		if !reflect.DeepEqual(persistentSpec.PvcStorageSelector, metav1.LabelSelector{}) {

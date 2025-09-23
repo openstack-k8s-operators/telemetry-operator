@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// OpenstackNetworkTraffic creates a ConfigMap containing the OpenStack network traffic dashboard
 func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
 	dashboardCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

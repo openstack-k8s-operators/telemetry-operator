@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// OpenstackVM creates a ConfigMap containing the OpenStack virtual machine monitoring dashboard
 func OpenstackVM(dsName string) *corev1.ConfigMap {
 	dashboardCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

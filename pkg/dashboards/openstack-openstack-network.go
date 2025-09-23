@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// OpenstackOpenstackNetwork creates a ConfigMap containing the OpenStack network monitoring dashboard
 func OpenstackOpenstackNetwork(dsName string, hasDpdk bool) *corev1.ConfigMap {
 	dashBoardOVN :=
 		`{

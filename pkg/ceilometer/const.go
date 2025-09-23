@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ceilometer provides functionality for managing OpenStack Ceilometer telemetry components
 package ceilometer
 
 const (
