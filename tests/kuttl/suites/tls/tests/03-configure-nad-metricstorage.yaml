@@ -7,7 +7,7 @@ kind: TestStep
 delete:
   - apiVersion: telemetry.openstack.org/v1beta1
     kind: MetricStorage
-    name: telemetry-kuttl
+    name: telemetry-kuttl-metricstorage
 ---
 apiVersion: telemetry.openstack.org/v1beta1
 kind: MetricStorage
