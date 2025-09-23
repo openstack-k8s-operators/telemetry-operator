@@ -716,7 +716,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 			telemetryv1.CloudKittyLokiStackReadyCondition,
 			condition.Reason(reason),
 			condition.SeverityWarning,
-			fmt.Sprintf("LokiStack issue: %s", message)))
+			"LokiStack issue: %s", message))
 	}
 
 	// Service account, role, binding
