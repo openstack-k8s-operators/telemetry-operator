@@ -117,7 +117,7 @@ if __name__ == "__main__":
 
     # Load configuration from file
     try:
-        cfg.CONF(sys.argv[1:], default_config_files=['/etc/cloudkitty/cloudkitty.conf.d/cloudkitty.conf'])
+        cfg.CONF(sys.argv[1:])
     except cfg.ConfigFilesNotFoundError as e:
         print(f"Health check failed: {e}", file=sys.stderr)
         sys.exit(1)

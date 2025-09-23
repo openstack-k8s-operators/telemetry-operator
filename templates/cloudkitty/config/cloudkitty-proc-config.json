@@ -2,10 +2,17 @@
   "command": "/usr/bin/cloudkitty-processor --logfile /dev/stdout",
   "config_files": [
     {
-      "source": "/var/lib/openstack/config/cloudkitty.conf",
-      "dest": "/etc/cloudkitty/cloudkitty.conf",
+      "source": "/var/lib/openstack/service-config/cloudkitty.conf",
+      "dest": "/etc/cloudkitty/cloudkitty.conf.d/00-cloudkitty.conf",
       "owner": "cloudkitty",
       "perm": "0600"
+    },
+    {
+      "source": "/var/lib/openstack/service-config/0*.conf",
+      "dest": "/etc/cloudkitty/cloudkitty.conf.d/",
+      "owner": "cloudkitty",
+      "perm": "0600",
+      "optional": true
     },
     {
       "source": "/var/lib/openstack/config/metrics.yaml",
