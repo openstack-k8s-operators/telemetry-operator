@@ -18,17 +18,91 @@ package cloudkitty
 
 import (
 	"fmt"
+	"slices"
 
 	lokistackv1 "github.com/grafana/loki/operator/api/loki/v1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func validateObjectStorageSpec(spec telemetryv1.ObjectStorageSpec) error {
+	for _, schema := range spec.Schemas {
+		if schema.EffectiveDate == "" {
+			return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.schema.effectiveDate is required")
+		}
+		if schema.Version == "" {
+			return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.schema.version is required")
+		}
+	}
+
+	if spec.Secret.Name == "" {
+		return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.secret.name is required")
+	}
+
+	if spec.Secret.Type == "" {
+		return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.secret.type is required")
+	}
+	validTypes := []string{"azure", "gcs", "s3", "swift", "alibabacloud"}
+	if !slices.Contains(validTypes, spec.Secret.Type) {
+		return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.secret.type needs to be one of %s", validTypes)
+	}
+
+	if spec.TLS != nil && spec.TLS.CASpec.CA == "" {
+		return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.tls.caName is required")
+	}
+
+	return nil
+}
+
+func getLokiStackObjectStorageSpec(telemetryObjectStorageSpec telemetryv1.ObjectStorageSpec) lokistackv1.ObjectStorageSpec {
+	var result lokistackv1.ObjectStorageSpec
+
+	if len(telemetryObjectStorageSpec.Schemas) == 0 {
+		// NOTE: if no schema is defined, use the same as defined in loki-operator.
+		result.Schemas = []lokistackv1.ObjectStorageSchema{
+			{
+				Version:       lokistackv1.ObjectStorageSchemaVersion("v11"),
+				EffectiveDate: lokistackv1.StorageSchemaEffectiveDate("2020-10-11"),
+			},
+		}
+	} else {
+		for _, schema := range telemetryObjectStorageSpec.Schemas {
+			result.Schemas = append(result.Schemas, lokistackv1.ObjectStorageSchema{
+				Version:       lokistackv1.ObjectStorageSchemaVersion(schema.Version),
+				EffectiveDate: lokistackv1.StorageSchemaEffectiveDate(schema.EffectiveDate),
+			})
+		}
+	}
+
+	result.Secret.Type = lokistackv1.ObjectStorageSecretType(telemetryObjectStorageSpec.Secret.Type)
+	result.Secret.Name = telemetryObjectStorageSpec.Secret.Name
+	result.Secret.CredentialMode = lokistackv1.CredentialMode(telemetryObjectStorageSpec.Secret.CredentialMode)
+
+	if telemetryObjectStorageSpec.TLS != nil {
+		result.TLS = &lokistackv1.ObjectStorageTLSSpec{
+			CASpec: lokistackv1.CASpec{
+				CAKey: telemetryObjectStorageSpec.TLS.CASpec.CAKey,
+				CA:    telemetryObjectStorageSpec.TLS.CASpec.CA,
+			},
+		}
+		if result.TLS.CASpec.CAKey == "" {
+			// NOTE: if no CAKey is defined, use the same as defined in loki-operator
+			result.TLS.CASpec.CAKey = "service-ca.crt"
+		}
+	}
+
+	return result
+}
+
 // LokiStack defines a lokistack for cloudkitty
 func LokiStack(
 	instance *telemetryv1.CloudKitty,
 	labels map[string]string,
-) *lokistackv1.LokiStack {
+) (*lokistackv1.LokiStack, error) {
+	err := validateObjectStorageSpec(instance.Spec.S3StorageConfig)
+	if err != nil {
+		return nil, err
+	}
 	lokiStack := &lokistackv1.LokiStack{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-lokistack", instance.Name),
@@ -39,7 +113,7 @@ func LokiStack(
 			// TODO: What size do we even want? I assume something
 			//       smallish since only rating interact with this
 			Size:             lokistackv1.LokiStackSizeType("1x.demo"),
-			Storage:          instance.Spec.S3StorageConfig,
+			Storage:          getLokiStackObjectStorageSpec(instance.Spec.S3StorageConfig),
 			StorageClassName: instance.Spec.StorageClass,
 			Tenants: &lokistackv1.TenantsSpec{
 				Mode: lokistackv1.Static,
@@ -114,5 +188,5 @@ func LokiStack(
 			},
 		},
 	}
-	return lokiStack
+	return lokiStack, nil
 }
