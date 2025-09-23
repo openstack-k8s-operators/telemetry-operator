@@ -243,7 +243,7 @@ const (
 )
 
 var (
-	commonWatchFields = []string{
+	cloudKittyProcWatchFields = []string{
 		cloudKittyPasswordSecretField,
 		cloudKittyCaBundleSecretNameField,
 		cloudKittyTopologyField,

@@ -202,12 +202,12 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		var secretName string = o.GetName()
 		result := []reconcile.Request{}
 
-		// get all scheduler CRs
-		schedulers := &telemetryv1.CloudKittyProcList{}
+		// get all CloudKittyProc CRs
+		cloudKittyProcs := &telemetryv1.CloudKittyProcList{}
 		listOpts := []client.ListOption{
 			client.InNamespace(namespace),
 		}
-		if err := r.Client.List(context.Background(), schedulers, listOpts...); err != nil {
+		if err := r.Client.List(context.Background(), cloudKittyProcs, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve scheduler CRs %v")
 			return nil
 		}
@@ -216,7 +216,7 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		// CR.Spec.ManagingCrName label matches
 		label := o.GetLabels()
 		if l, ok := label[labels.GetOwnerNameLabelSelector(labels.GetGroupLabel(cloudkitty.ServiceName))]; ok {
-			for _, cr := range schedulers.Items {
+			for _, cr := range cloudKittyProcs.Items {
 				// return reconcile event for the CR where the owner label AND the parentCloudKittyName matches
 				if l == cloudkitty.GetOwningCloudKittyName(&cr) {
 					// return namespace and Name of CR
@@ -232,7 +232,7 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		}
 
 		// Watch for changes to any CustomServiceConfigSecrets
-		for _, cr := range schedulers.Items {
+		for _, cr := range cloudKittyProcs.Items {
 			for _, v := range cr.Spec.CustomServiceConfigSecrets {
 				if v == secretName {
 					name := client.ObjectKey{
@@ -246,7 +246,7 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		}
 		// Watch for changes to the client cert secret
 		if secretName == cloudkitty.ClientCertSecretName {
-			for _, cr := range schedulers.Items {
+			for _, cr := range cloudKittyProcs.Items {
 				name := client.ObjectKey{
 					Namespace: namespace,
 					Name:      cr.Name,
@@ -354,7 +354,7 @@ func (r *CloudKittyProcReconciler) findObjectsForSrc(ctx context.Context, src cl
 
 	l := log.FromContext(ctx).WithName("Controllers").WithName("CloudKittyProc")
 
-	for _, field := range commonWatchFields {
+	for _, field := range cloudKittyProcWatchFields {
 		crList := &telemetryv1.CloudKittyProcList{}
 		listOps := &client.ListOptions{
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
