@@ -73,7 +73,9 @@ spec:
         - effectiveDate: "2024-11-18"
           version: v13
         secret:
-          name: cloudkitty-loki-s3
+          #name: cloudkitty-loki-s3
+          #Q: Is the intention to have a separate instance of loki for logging and cloudkitty?
+          name: logging-loki-s3
           type: "s3"
     secret: "osp-secret"
     serviceUser: cloudkitty

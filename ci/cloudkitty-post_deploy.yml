@@ -26,6 +26,17 @@
         cmd: |
           oc patch oscp $(oc get oscp -ojsonpath='{ .items[].metadata.name }') --type=json -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value": false} ]'
 
+    - name: Deploy loki operator
+      ansible.builtin.shell:
+        cmd: |
+          oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/deploy-loki-for-ck.yaml
+
+    - name: Get install plan and approve the installation
+      ansible.builtin.shell:
+        cmd: |
+          export installplan=$(oc get installplan -n openshift-operators-redhat -l operators.coreos.com/loki-operator.openshift-operators-redhat="" | grep "loki-operator.v6.3.0" | awk '{print $1}')
+          oc patch -n openshift-operators-redhat installplan $installplan --type='json' -p='[{"op": "replace", "path": "/spec/approved", "value":true}]'
+
     - name: Create the new telemetry
       ansible.builtin.shell:
         cmd: |
