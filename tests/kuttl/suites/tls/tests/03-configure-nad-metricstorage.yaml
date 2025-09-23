@@ -1,8 +1,18 @@
+# Kuttl test doesn't seem to wait correctly for the metric
+# storage to reconcile when enabling the NAD
+# Deleting it here and than recreating it in the next step
+# should ensure kuttl waits long enough.
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - apiVersion: telemetry.openstack.org/v1beta1
+    kind: MetricStorage
+    name: telemetry-kuttl
 ---
 apiVersion: telemetry.openstack.org/v1beta1
 kind: MetricStorage
 metadata:
-  name: telemetry-kuttl-metricstorage
+  name: telemetry-kuttl-metricstorage-with-nad
 spec:
   monitoringStack:
     alertingEnabled: true
