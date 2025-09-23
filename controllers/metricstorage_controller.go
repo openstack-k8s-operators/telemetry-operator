@@ -873,6 +873,18 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
+	// ScrapeConfig for OVS DB Server NB metrics
+	err = r.createOVSDBServerNBScrapeConfig(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// ScrapeConfig for OVS DB Server SB metrics
+	err = r.createOVSDBServerSBScrapeConfig(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 	return ctrl.Result{}, nil
 }
@@ -1046,6 +1058,44 @@ func (r *MetricStorageReconciler) createOVNControllerScrapeConfig(
 	return r.createServiceScrapeConfigFromLabelSelector(
 		ctx, instance, helper, serviceLabels,
 		labelSelector, "metrics", ovnControllerCfgName, "OVN Controller",
+	)
+}
+
+// createOVSDBServerNBScrapeConfig creates a scrape configuration for OVS DB Server NB metrics
+// This function discovers OVS DB Server NB metrics services using label selectors
+func (r *MetricStorageReconciler) createOVSDBServerNBScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) error {
+	labelSelector := map[string]string{
+		"metrics": "enabled",
+		"service": "ovsdbserver-nb",
+	}
+	ovsdbServerNBCfgName := fmt.Sprintf("%s-ovsdbserver-nb", telemetry.ServiceName)
+	return r.createServiceScrapeConfigFromLabelSelector(
+		ctx, instance, helper, serviceLabels,
+		labelSelector, "metrics", ovsdbServerNBCfgName, "OVS DB server NB",
+	)
+}
+
+// createOVSDBServerSBScrapeConfig creates a scrape configuration for OVS DB Server SB metrics
+// This function discovers OVS DB Server SB metrics services using label selectors
+func (r *MetricStorageReconciler) createOVSDBServerSBScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) error {
+	labelSelector := map[string]string{
+		"metrics": "enabled",
+		"service": "ovsdbserver-sb",
+	}
+	ovsdbServerSBCfgName := fmt.Sprintf("%s-ovsdbserver-sb", telemetry.ServiceName)
+	return r.createServiceScrapeConfigFromLabelSelector(
+		ctx, instance, helper, serviceLabels,
+		labelSelector, "metrics", ovsdbServerSBCfgName, "OVS DB server SB",
 	)
 }
 
@@ -1465,7 +1515,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 
 		// Watch OVN metrics services
 		if labels := o.GetLabels(); labels != nil {
-			if labels["metrics"] == "enabled" && (labels["service"] == "ovn-northd" || labels["service"] == "ovn-controller-metrics") {
+			if labels["metrics"] == "enabled" && (labels["service"] == "ovn-northd" || labels["service"] == "ovn-controller-metrics" || labels["service"] == "ovsdbserver-nb" || labels["service"] == "ovsdbserver-sb") {
 				// get all metricstorage CRs in the same namespace
 				metricStorages := &telemetryv1.MetricStorageList{}
 				listOpts := []client.ListOption{
