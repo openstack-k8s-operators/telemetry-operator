@@ -282,6 +282,32 @@ func (r *CloudKittyAPIReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				result = append(result, reconcile.Request{NamespacedName: name})
 			}
 		}
+
+		// Watch for changes to the prometheus secret
+		if secretName == cloudkitty.PrometheusEndpointSecret {
+			for _, cr := range apis.Items {
+				// Get the parent CloudKitty name
+				parentCloudKittyName := cloudkitty.GetOwningCloudKittyName(&cr)
+
+				// Fetch the parent CloudKitty instance
+				parentCloudKitty := &telemetryv1.CloudKitty{}
+				_ = r.Client.Get(ctx, types.NamespacedName{
+					Name:      parentCloudKittyName,
+					Namespace: cr.Namespace,
+				}, parentCloudKitty)
+				
+				// Only return a reconcile event if we are using the prometheus secret
+				if parentCloudKitty.Spec.PrometheusHost == "" {
+					name := client.ObjectKey{
+						Namespace: namespace,
+						Name:      cr.Name,
+					}
+					Log.Info(fmt.Sprintf("Secret %s is used by CloudKittyAPI CR %s", secretName, cr.Name))
+					result = append(result, reconcile.Request{NamespacedName: name})
+				}
+			}
+		}
+
 		if len(result) > 0 {
 			return result
 		}

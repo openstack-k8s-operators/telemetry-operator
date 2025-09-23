@@ -634,7 +634,7 @@ func (r TelemetryReconciler) reconcileCloudKitty(ctx context.Context, instance *
 			telemetryv1.AutoscalingReadyRunningMessage,
 		))
 	} else {
-		// Mirror Autoscaling condition status
+		// Mirror Cloudkitty condition status
 		c := cloudKittyInstance.Status.Conditions.Mirror(telemetryv1.CloudKittyReadyCondition)
 		if c != nil {
 			instance.Status.Conditions.Set(c)
