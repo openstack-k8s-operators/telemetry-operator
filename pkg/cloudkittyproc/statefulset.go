@@ -24,12 +24,13 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
 	// ServiceCommand -
 	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	// CloudKittyHCScript is the path to the health check script
+	CloudKittyHCScript = "/var/lib/openstack/bin/healthcheck.py"
 )
 
 // StatefulSet func
@@ -52,20 +53,19 @@ func StatefulSet(
 		InitialDelaySeconds: 3,
 	}
 
-	startupProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		FailureThreshold:    12,
-		PeriodSeconds:       5,
-		InitialDelaySeconds: 5,
-	}
-
 	args := []string{"-c", ServiceCommand}
-	var probeCommand string
-	livenessProbe.HTTPGet = &corev1.HTTPGetAction{
-		Port: intstr.FromInt(8080),
+	//var probeCommand string
+
+	//probeCommand = "/usr/local/bin/kolla_set_configs && /var/lib/openstack/bin/healthcheck.py --config-dir /etc/cloudkitty/cloudkitty.conf.d/"
+
+	livenessProbe.Exec = &corev1.ExecAction{
+		Command: []string{
+			"/usr/bin/python3",
+			CloudKittyHCScript,
+			"--config-dir",
+			"/etc/cloudkitty/cloudkitty.conf.d/",
+		},
 	}
-	startupProbe.HTTPGet = livenessProbe.HTTPGet
-	probeCommand = "/usr/local/bin/kolla_set_configs && /var/lib/openstack/bin/healthcheck.py --config-dir /etc/cloudkitty/cloudkitty.conf.d/"
 
 	envVars := map[string]env.Setter{}
 	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
@@ -113,22 +113,6 @@ func StatefulSet(
 							VolumeMounts:  volumeMounts,
 							Resources:     instance.Spec.Resources,
 							LivenessProbe: livenessProbe,
-							StartupProbe:  startupProbe,
-						},
-						{
-							Name: "probe",
-							Command: []string{
-								"/bin/bash",
-							},
-							Args:  []string{"-c", probeCommand},
-							Env:   env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							Image: instance.Spec.ContainerImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &cloudKittyUser,
-								//RunAsGroup: &cloudKittyGroup,
-							},
-							VolumeMounts: volumeMounts,
-							Resources:    instance.Spec.Resources,
 						},
 					},
 					Volumes: volumes,
