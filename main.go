@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	certmgrv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -40,6 +41,7 @@ import (
 
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	lokistackv1 "github.com/grafana/loki/operator/api/loki/v1"
 	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	heatv1 "github.com/openstack-k8s-operators/heat-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
@@ -84,6 +86,8 @@ func init() {
 	utilruntime.Must(rabbitmqclusterv1.AddToScheme(scheme))
 	utilruntime.Must(networkv1.AddToScheme(scheme))
 	utilruntime.Must(topologyv1.AddToScheme(scheme))
+	utilruntime.Must(lokistackv1.AddToScheme(scheme))
+	utilruntime.Must(certmgrv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -203,10 +207,40 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.CloudKittyReconciler{
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Kclient:    kclient,
+		RESTMapper: mgr.GetRESTMapper(),
+		Cache:      mgr.GetCache(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create CloudKitty controller")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.CloudKittyAPIReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+	}).SetupWithManager(context.Background(), mgr); err != nil {
+		setupLog.Error(err, "unable to create CloudKitty API controller")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.CloudKittyProcReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+	}).SetupWithManager(context.Background(), mgr); err != nil {
+		setupLog.Error(err, "unable to create CloudKitty Processor controller")
+		os.Exit(1)
+	}
+
 	// Acquire environmental defaults and initialize defaults with them
 	telemetryv1beta1.SetupDefaultsTelemetry()
 	telemetryv1beta1.SetupDefaultsCeilometer()
 	telemetryv1beta1.SetupDefaultsAutoscaling()
+	telemetryv1beta1.SetupDefaultsCloudKitty()
 
 	// Setup webhooks if requested
 	checker := healthz.Ping
@@ -226,6 +260,10 @@ func main() {
 		}
 		if err = (&telemetryv1beta1.MetricStorage{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MetricStorage")
+			os.Exit(1)
+		}
+		if err = (&telemetryv1beta1.CloudKitty{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CloudKitty")
 			os.Exit(1)
 		}
 		checker = mgr.GetWebhookServer().StartedChecker()

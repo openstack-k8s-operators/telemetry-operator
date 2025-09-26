@@ -394,6 +394,12 @@ kuttl-test-cleanup:
 		if [ "$(KUTTL_SUITE)" == "ceilometer" ]; then \
 			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s Ceilometer; \
 		fi; \
+		if [ "$(KUTTL_SUITE)" == "metric-storage" ]; then \
+			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s MetricStorage; \
+		fi; \
+		if [ "$(KUTTL_SUITE)" == "cloudkitty" ]; then \
+			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s CloudKitty; \
+		fi; \
 		if [ "$(KUTTL_SUITE)" == "default" ]; then \
 			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s Telemetry; \
 		fi; \
@@ -418,3 +424,8 @@ PHONY: crd-schema-check
 crd-schema-check: manifests
 	INSTALL_DIR=$(LOCALBIN) CRD_SCHEMA_CHECKER_VERSION=$(CRD_SCHEMA_CHECKER_VERSION) hack/build-crd-schema-checker.sh
 	INSTALL_DIR=$(LOCALBIN) BASE_REF="$${PULL_BASE_SHA:-$(BRANCH)}" hack/crd-schema-checker.sh
+
+.PHONY: ck-build-containers
+ck-build-containers:
+	podman build -f ci/cloudkitty-api.containerfile -t $(CK_IMAGE_REGISTRY)cloudkitty-api --build-arg CK_BRANCH=$(CK_BRANCH)
+	podman build -f ci/cloudkitty-proc.containerfile -t $(CK_IMAGE_REGISTRY)cloudkitty-processor --build-arg CK_BRANCH=$(CK_BRANCH)
