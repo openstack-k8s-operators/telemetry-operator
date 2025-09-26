@@ -6,7 +6,7 @@ metadata:
   - kind: StatefulSet
     name: prometheus-telemetry-kuttl-metricstorage
   annotations:
-    k8s.v1.cni.cncf.io/networks: '[{"name":"ctlplane","namespace":"openstack","interface":"ctlplane"}]'
+    k8s.v1.cni.cncf.io/networks: '[{"name":"ctlplane","namespace":"telemetry-kuttl-tests","interface":"ctlplane"}]'
 spec:
     containers:
     - name: prometheus
