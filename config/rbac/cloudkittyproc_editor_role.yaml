@@ -1,0 +1,31 @@
+# permissions for end users to edit cloudkittyprocs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: cloudkittyproc-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: telemetry-operator
+    app.kubernetes.io/part-of: telemetry-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: cloudkittyproc-editor-role
+rules:
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkittyprocs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - telemetry.openstack.org
+  resources:
+  - cloudkittyprocs/status
+  verbs:
+  - get
