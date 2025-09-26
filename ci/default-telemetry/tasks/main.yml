@@ -29,3 +29,7 @@
 - name: Test podlevel TLS with NAD for MetricStorage
   ansible.builtin.include_tasks:
     file: test_podlevel_tls_with_nad_metricstorage.yml
+
+- name: Test Prometheus_secret values
+  ansible.builtin.include_tasks:
+    file: test_prometheus_secret.yml
