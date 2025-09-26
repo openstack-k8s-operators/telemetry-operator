@@ -17,7 +17,13 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
+	"slices"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -77,20 +83,139 @@ func (spec *CloudKittySpec) Default() {
 
 var _ webhook.Validator = &CloudKitty{}
 
+func (r *ObjectStorageSpec) Validate(basePath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// NOTE: Having 0 schemas is allowed. LokiStack has a default for that
+	for _, s := range r.Schemas {
+		if s.EffectiveDate == "" {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					basePath.Child("schemas").Child("effectiveDate"), "", "effectiveDate field should not be empty"),
+			)
+		}
+		if s.Version == "" {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					basePath.Child("schemas").Child("version"), "", "version field should not be empty"),
+			)
+		}
+	}
+
+	if r.Secret.Name == "" {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				basePath.Child("secret").Child("name"), "", "name field should not be empty"),
+		)
+	}
+
+	if r.Secret.Type == "" {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				basePath.Child("secret").Child("type"), "", "type field should not be empty"),
+		)
+	}
+	validTypes := []string{"azure", "gcs", "s3", "swift", "alibabacloud"}
+	if !slices.Contains(validTypes, r.Secret.Type) {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				basePath.Child("secret").Child("type"), r.Secret.Type, fmt.Sprintf("type field needs to be one of %s", validTypes)),
+		)
+	}
+
+	if r.TLS != nil && r.TLS.CASpec.CA == "" {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				basePath.Child("tls").Child("caName"), "", "caName field should not be empty"),
+		)
+	}
+	return allErrs
+}
+
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudKitty) ValidateCreate() (admission.Warnings, error) {
 	cloudKittyLog.Info("validate create", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object creation.
+	allErrs := r.Spec.ValidateCreate(field.NewPath("spec"), r.Namespace)
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "cloudkitties.telemetry.openstack.org", Kind: "CloudKitty"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
+}
+
+// ValidateCreate validates the CloudKittySpec during the webhook invocation.
+func (r *CloudKittySpec) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	return r.CloudKittySpecBase.ValidateCreate(basePath, namespace)
+}
+
+// ValidateCreate validates the CloudKittySpecCore during the webhook invocation. It is
+// expected to be called by the validation webhook in the higher level telemetry webhook
+func (r *CloudKittySpecCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	return r.CloudKittySpecBase.ValidateCreate(basePath, namespace)
+}
+
+// ValidateCreate validates the CloudKittySpecBase during the webhook invocation.
+func (r *CloudKittySpecBase) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, r.S3StorageConfig.Validate(basePath.Child("s3StorageConfig"))...)
+
+	// TODO: Add other CK spec field validations as needed
+
+	return allErrs
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudKitty) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	cloudKittyLog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
+	cloudKittyLog.Info("validate update", "name", r.Name)
+	oldCloudKitty, ok := old.(*CloudKitty)
+	if !ok || oldCloudKitty == nil {
+		return nil, apierrors.NewInternalError(fmt.Errorf("unable to convert existing object"))
+	}
+
+	allErrs := r.Spec.ValidateUpdate(oldCloudKitty.Spec, field.NewPath("spec"), r.Namespace)
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "cloudkitties.telemetry.openstack.org", Kind: "CloudKitty"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
+
+}
+
+// ValidateCreate validates the CloudKittySpec during the webhook invocation.
+func (r *CloudKittySpec) ValidateUpdate(old CloudKittySpec, basePath *field.Path, namespace string) field.ErrorList {
+	return r.CloudKittySpecBase.ValidateUpdate(old.CloudKittySpecBase, basePath, namespace)
+}
+
+// ValidateUpdate validates the CloudKittySpecCore during the webhook invocation. It is
+// expected to be called by the validation webhook in the higher level telemetry webhook
+func (r *CloudKittySpecCore) ValidateUpdate(old CloudKittySpecCore, basePath *field.Path, namespace string) field.ErrorList {
+	return r.CloudKittySpecBase.ValidateUpdate(old.CloudKittySpecBase, basePath, namespace)
+}
+
+// ValidateCreate validates the CloudKittySpecBase during the webhook invocation.
+func (r *CloudKittySpecBase) ValidateUpdate(old CloudKittySpecBase, basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, r.S3StorageConfig.Validate(basePath.Child("s3StorageConfig"))...)
+
+	// TODO: Add other CK spec field validations as needed
+
+	return allErrs
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
