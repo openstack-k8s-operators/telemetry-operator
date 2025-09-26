@@ -37,11 +37,24 @@
         cmd: |
           oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/coo-subscription.yaml
 
-    - name: Get install plan and approve teh installation
+    - name: Get install plan and approve the installation
       ansible.builtin.shell:
         cmd: |
-          export installplan=$(oc get installplan -n openshift-operators-redhat -l operators.coreos.com/loki-operator.openshift-operators-redhat="" | grep "loki-operator.v6.3.0" | awk '{print $1}')
-          oc patch -n openshift-operators-redhat installplan $installplan --type='json' -p='[{"op": "replace", "path": "/spec/approved", "value":true}]'
+          oc get installplan -n openshift-operators-redhat -l operators.coreos.com/loki-operator.openshift-operators-redhat="" | grep "loki-operator.v6.3.0" | awk '{print $1}'
+      retries: 10
+      delay: 10
+      register: install_plan
+      until: install_plan.stdout_lines != 0
+
+    - name: Show installplans
+      ansible.builtin.shell:
+        cmd: |
+          oc get installplan -n openshift-operators-redhat
+
+    - name: Get install plan and approve the installation
+      ansible.builtin.shell:
+        cmd: |
+          oc patch -n openshift-operators-redhat installplan {{ install_plan.stdout }} --type='json' -p='[{"op": "replace", "path": "/spec/approved", "value":true}]'
 
     - name: Create the new telemetry
       ansible.builtin.shell:
