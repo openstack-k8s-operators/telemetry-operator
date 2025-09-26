@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strconv"
 	"time"
 
@@ -611,9 +612,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		common.CustomServiceConfigFileName: instance.Spec.Aodh.CustomServiceConfig,
 		"my.cnf":                           db.GetDatabaseClientConfig(tlsCfg), //(mschuppert) for now just get the default my.cnf
 	}
-	for key, data := range instance.Spec.Aodh.DefaultConfigOverwrite {
-		customData[key] = data
-	}
+	maps.Copy(customData, instance.Spec.Aodh.DefaultConfigOverwrite)
 
 	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
 	if err != nil {
@@ -638,7 +637,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	databaseAccount := db.GetAccount()
 	databaseSecret := db.GetSecret()
 
-	templateParameters := map[string]interface{}{
+	templateParameters := map[string]any{
 		"AodhUser":                 instance.Spec.Aodh.ServiceUser,
 		"AodhPassword":             string(ospSecret.Data[instance.Spec.Aodh.PasswordSelectors.AodhService]),
 		"KeystoneInternalURL":      keystoneInternalURL,
@@ -653,7 +652,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		"Timeout": instance.Spec.Aodh.APITimeout,
 	}
 
-	prometheusParams := map[string]interface{}{
+	prometheusParams := map[string]any{
 		"Host": instance.Status.PrometheusHost,
 		"Port": instance.Status.PrometheusPort,
 		"TLS":  instance.Status.PrometheusTLS,
@@ -665,9 +664,9 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	}
 	templateParameters["Prometheus"] = prometheusParams
 
-	httpdVhostConfig := map[string]interface{}{}
+	httpdVhostConfig := map[string]any{}
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
-		endptConfig := map[string]interface{}{}
+		endptConfig := map[string]any{}
 		endptConfig["ServerName"] = fmt.Sprintf("%s-%s.%s.svc", autoscaling.ServiceName, endpt.String(), instance.Namespace)
 		endptConfig["TLS"] = false // default TLS to false, and set it bellow to true if enabled
 		if instance.Spec.Aodh.TLS.API.Enabled(endpt) {

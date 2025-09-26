@@ -23,6 +23,7 @@ import (
 	"net"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -639,7 +640,7 @@ func (r *MetricStorageReconciler) prometheusEndpointSecret(
 	}
 
 	secret.Data = map[string][]byte{
-		metricstorage.PrometheusHost: []byte(fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace)),
+		metricstorage.PrometheusHost: fmt.Appendf(nil, "%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace),
 		metricstorage.PrometheusPort: []byte(strconv.Itoa(telemetryv1.DefaultPrometheusPort)),
 	}
 
@@ -1251,11 +1252,9 @@ func (r *MetricStorageReconciler) ensureWatches(
 	handler handler.EventHandler,
 ) error {
 	Log := r.GetLogger(ctx)
-	for _, item := range r.Watching {
-		if item == name {
-			// We are already watching the resource
-			return nil
-		}
+	if slices.Contains(r.Watching, name) {
+		// We are already watching the resource
+		return nil
 	}
 	u := &unstructured.Unstructured{}
 	u.SetGroupVersionKind(schema.GroupVersionKind{
@@ -1308,7 +1307,7 @@ func getComputeNodesConnectionInfo(
 			continue // Skip if the group doesn't exist in inventory
 		}
 		containsTargetService := false
-		if services, ok := nodeSetGroup.Vars["edpm_services"].([]interface{}); ok {
+		if services, ok := nodeSetGroup.Vars["edpm_services"].([]any); ok {
 			for _, svc := range services {
 				if svcStr, ok := svc.(string); ok {
 					if svcStr == telemetryServiceName {
@@ -1397,7 +1396,7 @@ func getAddressFromIPSet(
 	canonicalHostname, _ := getCanonicalHostname(item)
 	ctlplaneDNSDomain := ""
 
-	domains, ok := item.Vars["dns_search_domains"].([]interface{})
+	domains, ok := item.Vars["dns_search_domains"].([]any)
 	if ok {
 		for _, domain := range domains {
 			domainString, ok := domain.(string)
