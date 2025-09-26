@@ -31,11 +31,53 @@
         cmd: |
           oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/deploy-loki-for-ck.yaml
 
+
+    - name: Get install plan from the list of installplans (not used)
+      ansible.builtin.shell:
+        cmd: |
+          oc get installplan -n openshift-operators-redhat | grep "loki-operator.v6.3.0" | awk '{print $1}'
+      retries: 10
+      delay: 10
+      register: install_plan
+      until: install_plan.stdout_lines != 0
+
+      # This is the better option if it produces an installplan var, since it filters by loki version
+    - name: Show the install_plan from oc get installplan
+      ansible.builtin.debug:
+        var: install_plan
+
+    - name: Get the installplan from the loki-operator subscription
+      ansible.builtin.shell:
+        cmd: |
+          oc get subscription -n openshift-operators-redhat loki-operator -ojsonpath='{ .status.installplan.name }'
+      until: loki_installplan.stdout_lines | length > 0
+      retries: 12
+      delay: 10
+      register: loki_installplan
+
+    - name: Show the loki_installplan
+      ansible.builtin.debug:
+        var: loki_installplan.stdout
+
+    - name: Get details of loki installplan
+      ansible.builtin.shell:
+        cmd: |
+          oc describe -n openshift-operators-redhat installplan {{ loki_installplan.stdout }}
+
+    - name: Show installplans
+      ansible.builtin.shell:
+        cmd: |
+          oc get installplan --all-namespaces
+      register: all_install_plans
+
+    - name: Show all install plans
+      ansible.builtin.debug:
+        var: all_install_plans
+
     - name: Get install plan and approve the installation
       ansible.builtin.shell:
         cmd: |
-          export installplan=$(oc get installplan -n openshift-operators-redhat -l operators.coreos.com/loki-operator.openshift-operators-redhat="" | grep "loki-operator.v6.3.0" | awk '{print $1}')
-          oc patch -n openshift-operators-redhat installplan $installplan --type='json' -p='[{"op": "replace", "path": "/spec/approved", "value":true}]'
+          oc patch -n openshift-operators-redhat installplan {{ loki_installplan.stdout }} --type='json' -p='[{"op": "replace", "path": "/spec/approved", "value":true}]'
 
     - name: Create the new telemetry
       ansible.builtin.shell:
@@ -101,7 +143,7 @@
   #        EOF
   #    register: output
 
-    - name: wait for the update to telemetry
+    - name: Wait for the update to telemetry
       ansible.builtin.shell:
         cmd: |
           oc wait --for=condition=Ready --timeout=600s telemetry telemetry-ck
