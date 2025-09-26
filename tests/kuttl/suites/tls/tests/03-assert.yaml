@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: prometheus-telemetry-kuttl-metricstorage-with-nad-0
+  name: prometheus-telemetry-kuttl-metricstorage-0
   ownerReferences:
   - kind: StatefulSet
-    name: prometheus-telemetry-kuttl-metricstorage-with-nad
+    name: prometheus-telemetry-kuttl-metricstorage
   annotations:
     k8s.v1.cni.cncf.io/networks: '[{"name":"ctlplane","namespace":"openstack","interface":"ctlplane"}]'
 spec:
@@ -18,12 +18,12 @@ spec:
         name: tls-assets
         readOnly: true
       - mountPath: /prometheus
-        name: prometheus-telemetry-kuttl-metricstorage-with-nad-db
+        name: prometheus-telemetry-kuttl-metricstorage-db
       - mountPath: /etc/prometheus/secrets/combined-ca-bundle
         name: secret-combined-ca-bundle
         readOnly: true
-      - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-with-nad-rulefiles-0
-        name: prometheus-telemetry-kuttl-metricstorage-with-nad-rulefiles-0
+      - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-0
+        name: prometheus-telemetry-kuttl-metricstorage-rulefiles-0
       - mountPath: /etc/prometheus/web_config/web-config.yaml
         name: web-config
         readOnly: true

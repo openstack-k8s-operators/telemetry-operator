@@ -1,18 +1,28 @@
-# Kuttl test doesn't seem to wait correctly for the metric
-# storage to reconcile when enabling the NAD
-# Deleting it here and than recreating it in the next step
-# should ensure kuttl waits long enough.
-apiVersion: kuttl.dev/v1beta1
-kind: TestStep
-delete:
-  - apiVersion: telemetry.openstack.org/v1beta1
-    kind: MetricStorage
-    name: telemetry-kuttl-metricstorage
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  labels:
+    osp/net: ctlplane
+  name: ctlplane
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "ctlplane",
+      "type": "macvlan",
+      "master": "enp7s0",
+      "ipam": {
+        "type": "whereabouts",
+        "range": "172.20.250.0/24",
+        "range_start": "172.20.250.30",
+        "range_end": "172.20.250.70"
+      }
+    }
 ---
 apiVersion: telemetry.openstack.org/v1beta1
 kind: MetricStorage
 metadata:
-  name: telemetry-kuttl-metricstorage-with-nad
+  name: telemetry-kuttl-metricstorage
 spec:
   monitoringStack:
     alertingEnabled: true
