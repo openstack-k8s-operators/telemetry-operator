@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/cloudkitty"
 	"github.com/openstack-k8s-operators/telemetry-operator/pkg/cloudkittyproc"
@@ -269,7 +270,7 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 					Name:      parentCloudKittyName,
 					Namespace: cr.Namespace,
 				}, parentCloudKitty)
-				
+
 				// Only return a reconcile event if we are using the prometheus secret
 				if parentCloudKitty.Spec.PrometheusHost == "" {
 					name := client.ObjectKey{
@@ -820,8 +821,11 @@ func (r *CloudKittyProcReconciler) generateServiceConfigs(
 			Namespace:    instance.Namespace,
 			Type:         util.TemplateTypeConfig,
 			InstanceType: instance.Kind,
-			CustomData:   customData,
-			Labels:       labels,
+			AdditionalTemplate: map[string]string{
+				"healthcheck.py": "/cloudkitty/bin/healthcheck.py",
+			},
+			CustomData: customData,
+			Labels:     labels,
 		},
 	}
 
