@@ -20,9 +20,9 @@ require (
 	github.com/rabbitmq/cluster-operator v1.14.0
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.71.0-rhobs1
 	github.com/rhobs/observability-operator v0.3.1
-	k8s.io/api v0.31.12
-	k8s.io/apimachinery v0.31.12
-	k8s.io/client-go v0.31.12
+	k8s.io/api v0.31.13
+	k8s.io/apimachinery v0.31.13
+	k8s.io/client-go v0.31.13
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
 	sigs.k8s.io/controller-runtime v0.19.7
 )
@@ -82,7 +82,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.31.12 // indirect
+	k8s.io/apiextensions-apiserver v0.31.13 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240322212309-b815d8309940 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
