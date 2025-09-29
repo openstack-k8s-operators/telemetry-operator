@@ -669,7 +669,10 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 		},
 	}
 	op, err := controllerutil.CreateOrPatch(ctx, r.Client, lokiStack, func() error {
-		desiredLokiStack := cloudkitty.LokiStack(instance, serviceLabels)
+		desiredLokiStack, err := cloudkitty.LokiStack(instance, serviceLabels)
+		if err != nil {
+			return err
+		}
 		desiredLokiStack.Spec.DeepCopyInto(&lokiStack.Spec)
 		lokiStack.ObjectMeta.Labels = serviceLabels
 		err = controllerutil.SetControllerReference(instance, lokiStack, r.Scheme)

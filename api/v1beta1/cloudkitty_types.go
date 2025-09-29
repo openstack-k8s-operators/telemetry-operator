@@ -22,7 +22,6 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	lokistackv1 "github.com/grafana/loki/operator/api/loki/v1"
 )
 
 const (
@@ -43,6 +42,85 @@ const (
 	// CloudKittyReplicas - The number of replicas per each service deployed
 	CloudKittyReplicas = 1
 )
+
+// Reimplementation of loki-operator's Object storage related API.
+// By doing this, we don't need to have a dependency on the loki-operator in
+// the API module and it allows us to have all the fields optional due to
+// worries about possible issues with upgrades when having required fields here
+
+type CASpec struct {
+	// Key is the data key of a ConfigMap containing a CA certificate.
+	// It needs to be in the same namespace as the CloudKitty custom resource.
+	// If empty, it defaults to "service-ca.crt".
+	//
+	// +kubebuilder:validation:optional
+	CAKey string `json:"caKey,omitempty"`
+	// CA is the name of a ConfigMap containing a CA certificate.
+	// It needs to be in the same namespace as the CloudKitty custom resource.
+	//
+	// +kubebuilder:validation:optional
+	CA string `json:"caName"`
+}
+
+type ObjectStorageSchema struct {
+	// Version for writing and reading logs.
+	//
+	// +kubebuilder:validation:Optional
+	Version string `json:"version"`
+
+	// EffectiveDate contains a date in YYYY-MM-DD format which is interpreted in the UTC time zone.
+	//
+	// The configuration always needs at least one schema that is currently valid. This means that when creating a new
+	// CloudKitty it is recommended to add a schema with the latest available version and an effective date of "yesterday".
+	// New schema versions added to the configuration always needs to be placed "in the future", so that Loki can start
+	// using it once the day rolls over.
+	//
+	// +kubebuilder:validation:Optional
+	EffectiveDate string `json:"effectiveDate"`
+}
+
+type ObjectStorageSecretSpec struct {
+	// Type of object storage that should be used
+	//
+	// +kubebuilder:validation:Optional
+	Type string `json:"type"`
+
+	// Name of a secret in the namespace configured for object storage secrets.
+	//
+	// +kubebuilder:validation:Optional
+	Name string `json:"name"`
+
+	// CredentialMode can be used to set the desired credential mode for authenticating with the object storage.
+	// If this is not set, then the operator tries to infer the credential mode from the provided secret and its
+	// own configuration.
+	//
+	// +kubebuilder:validation:Optional
+	CredentialMode string `json:"credentialMode,omitempty"`
+}
+
+type ObjectStorageTLSSpec struct {
+	CASpec `json:",inline"`
+}
+
+type ObjectStorageSpec struct {
+	// Schemas for reading and writing logs.
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinItems:=1
+	// +kubebuilder:default:={{version:v11,effectiveDate:"2020-10-11"}}
+	Schemas []ObjectStorageSchema `json:"schemas"`
+
+	// Secret for object storage authentication.
+	// Name of a secret in the same namespace as the CloudKitty custom resource.
+	//
+	// +kubebuilder:validation:Optional
+	Secret ObjectStorageSecretSpec `json:"secret"`
+
+	// TLS configuration for reaching the object storage endpoint.
+	//
+	// +kubebuilder:validation:Optional
+	TLS *ObjectStorageTLSSpec `json:"tls,omitempty"`
+}
 
 type CloudKittySpecBase struct {
 	CloudKittyTemplate `json:",inline"`
@@ -110,7 +188,7 @@ type CloudKittySpecBase struct {
 	// S3 related configuration passed to Loki
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={secret: {name: "cloudkitty-loki-s3", type: "s3"}}
-	S3StorageConfig lokistackv1.ObjectStorageSpec `json:"s3StorageConfig"`
+	S3StorageConfig ObjectStorageSpec `json:"s3StorageConfig,omitempty"`
 
 	// Storage class used for Loki
 	// +kubebuilder:validation:Optional
