@@ -181,7 +181,7 @@ func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, n
 	return r.ValidateCreate(basePath, namespace)
 }
 
-func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpec, basePath *field.Path, namespace string) field.ErrorList {
+func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpecCore, basePath *field.Path, namespace string) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 	return allErrs
