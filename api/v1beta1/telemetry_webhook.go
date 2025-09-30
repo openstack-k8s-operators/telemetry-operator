@@ -46,6 +46,8 @@ type TelemetryDefaults struct {
 	AodhEvaluatorContainerImageURL  string
 	AodhNotifierContainerImageURL   string
 	AodhListenerContainerImageURL   string
+	CloudKittyAPIContainerImageURL  string
+	CloudKittyProcContainerImageURL string
 }
 
 var telemetryDefaults TelemetryDefaults
@@ -115,6 +117,12 @@ func (spec *TelemetrySpec) Default() {
 	if spec.Autoscaling.AutoscalingSpec.Aodh.ListenerImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.ListenerImage = telemetryDefaults.AodhListenerContainerImageURL
 	}
+	if spec.CloudKitty.CloudKittyAPI.ContainerImage == "" {
+		spec.CloudKitty.CloudKittyAPI.ContainerImage = telemetryDefaults.CloudKittyAPIContainerImageURL
+	}
+	if spec.CloudKitty.CloudKittyProc.ContainerImage == "" {
+		spec.CloudKitty.CloudKittyProc.ContainerImage = telemetryDefaults.CloudKittyProcContainerImageURL
+	}
 }
 
 // Default - set defaults for this Telemetry spec core
@@ -148,26 +156,18 @@ func (r TelemetrySpec) ValidateCreate(basePath *field.Path, namespace string) fi
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
-	if r.TelemetrySpecBase.CloudKitty.Enabled != nil && *r.TelemetrySpecBase.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.TelemetrySpecBase.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
+	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
+		allErrs = append(allErrs, r.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
 	}
-	// TODO: Once we have CloudKittySectionCore, which uses the CloudKittySpecCore, the snippet above should be:
-	// if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-	// 	allErrs = append(allErrs, r.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
-	// }
 	return allErrs
 }
 
 func (r TelemetrySpecCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
-	if r.TelemetrySpecBase.CloudKitty.Enabled != nil && *r.TelemetrySpecBase.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.TelemetrySpecBase.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
+	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
+		allErrs = append(allErrs, r.CloudKitty.CloudKittySpecCore.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
 	}
-	// TODO: Once we have CloudKittySectionCore, which uses the CloudKittySpecCore, the snippet above should be:
-	// if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-	// 	allErrs = append(allErrs, r.CloudKitty.CloudKittySpecCore.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
-	// }
 	return allErrs
 }
 
@@ -196,26 +196,18 @@ func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, n
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 
-	if r.TelemetrySpecBase.CloudKitty.Enabled != nil && *r.TelemetrySpecBase.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.TelemetrySpecBase.CloudKitty.CloudKittySpec.ValidateUpdate(old.TelemetrySpecBase.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)...)
+	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
+		allErrs = append(allErrs, r.CloudKitty.CloudKittySpec.ValidateUpdate(old.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)...)
 	}
-	// TODO: Once we have CloudKittySectionCore, which uses the CloudKittySpecCore, the snippet above should be:
-	// if r.CloudKitty.Enabled != nil && *r.TelemetrySpecBase.CloudKitty.Enabled {
-	// 	allErrs = append(allErrs, r.CloudKitty.CloudKittySpec.ValidateUpdate(old.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)...)
-	// }
 	return allErrs
 }
 
 func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpecCore, basePath *field.Path, namespace string) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
-	if r.TelemetrySpecBase.CloudKitty.Enabled != nil && *r.TelemetrySpecBase.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.TelemetrySpecBase.CloudKitty.CloudKittySpec.ValidateUpdate(old.TelemetrySpecBase.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)...)
+	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
+		allErrs = append(allErrs, r.CloudKitty.CloudKittySpecCore.ValidateUpdate(old.CloudKitty.CloudKittySpecCore, basePath.Child("cloudkitty"), namespace)...)
 	}
-	// TODO: Once we have CloudKittySectionCore, which uses the CloudKittySpecCore, the snippet above should be:
-	// if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-	// 	allErrs = append(allErrs, r.CloudKitty.CloudKittySpecCore.ValidateUpdate(old.CloudKitty.CloudKittySpecCore, basePath.Child("cloudkitty"), namespace)...)
-	// }
 	return allErrs
 }
 

@@ -61,6 +61,10 @@ type TelemetrySpec struct {
 	// +kubebuilder:validation:Optional
 	// Ceilometer - Parameters related to the ceilometer service
 	Ceilometer CeilometerSection `json:"ceilometer,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// CloudKitty - Parameters related to the cloudkitty service
+	CloudKitty CloudKittySection `json:"cloudkitty,omitempty"`
 }
 
 // TelemetrySpecCore defines the desired state of Telemetry. This version has no image parameters and is used by OpenStackControlplane
@@ -74,6 +78,10 @@ type TelemetrySpecCore struct {
 	// +kubebuilder:validation:Optional
 	// Ceilometer - Parameters related to the ceilometer service
 	Ceilometer CeilometerSectionCore `json:"ceilometer,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// CloudKitty - Parameters related to the cloudkitty service
+	CloudKitty CloudKittySectionCore `json:"cloudkitty,omitempty"`
 }
 
 // TelemetrySpecBase -
@@ -85,10 +93,6 @@ type TelemetrySpecBase struct {
 	// +kubebuilder:validation:Optional
 	// Logging - Parameters related to the logging
 	Logging LoggingSection `json:"logging,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	// CloudKitty - Parameters related to the cloudkitty service
-	CloudKitty CloudKittySection `json:"cloudkitty,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// NodeSelector to target subset of worker nodes running this service
@@ -198,6 +202,20 @@ type CloudKittySection struct {
 	CloudKittySpec `json:",inline"`
 }
 
+// CloudKittySpec defines the desired state of the cloudkitty service
+type CloudKittySectionCore struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// Enabled - Whether OpenStack CloudKitty service should be deployed and managed
+	Enabled *bool `json:"enabled"`
+
+	// +kubebuilder:validation:Optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec
+	// Template - Overrides to use when creating the OpenStack CloudKitty service
+	CloudKittySpecCore `json:",inline"`
+}
+
 // TelemetryStatus defines the observed state of Telemetry
 type TelemetryStatus struct {
 	// Map of hashes to track e.g. job status
@@ -265,6 +283,10 @@ func SetupDefaultsTelemetry() {
 		AodhEvaluatorContainerImageURL: util.GetEnvVar("RELATED_IMAGE_AODH_EVALUATOR_IMAGE_URL_DEFAULT", AodhEvaluatorContainerImage),
 		AodhNotifierContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_NOTIFIER_IMAGE_URL_DEFAULT", AodhNotifierContainerImage),
 		AodhListenerContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_LISTENER_IMAGE_URL_DEFAULT", AodhListenerContainerImage),
+
+		// CloudKitty
+		CloudKittyAPIContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_API_IMAGE_URL_DEFAULT", CloudKittyAPIContainerImage),
+		CloudKittyProcContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_PROC_IMAGE_URL_DEFAULT", CloudKittyProcContainerImage),
 	}
 
 	SetupTelemetryDefaults(telemetryDefaults)
