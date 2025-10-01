@@ -11,9 +11,9 @@
     PATH: "{{ cifmw_path }}"
   tasks:
       # TODO: add vars to this role for loki vs logging.
-    - name: Deploy logging dependencies
-      ansible.builtin.import_role:
-        name: deploy-logging-dependencies
+      #- name: Deploy logging dependencies
+      #  ansible.builtin.import_role:
+      #    name: deploy-logging-dependencies
 
     - name: Copy controlplane kustomization
       ansible.builtin.copy:

@@ -26,11 +26,6 @@
         cmd: |
           oc patch oscp $(oc get oscp -ojsonpath='{ .items[].metadata.name }') --type=json -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value": false} ]'
 
-    - name: Delete the existing CLO
-      ansible.builtin.shell:
-        cmd: |
-          oc delete project openshift-logging
-
     - name: Deploy loki operator
       ansible.builtin.shell:
         cmd: |
