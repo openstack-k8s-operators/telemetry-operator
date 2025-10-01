@@ -37,7 +37,7 @@
         cmd: |
           oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/coo-subscription.yaml
 
-    - name: Get install plan and approve the installation
+    - name: Get install plan from the list of installplans (not used)
       ansible.builtin.shell:
         cmd: |
           oc get installplan -n openshift-operators-redhat | grep "loki-operator.v6.3.0" | awk '{print $1}'
@@ -55,6 +55,9 @@
       ansible.builtin.shell:
         cmd: |
           oc get subscription -n openshift-operators-redhat loki-operator -ojsonpath='{ .status.installplan.name }'
+      until: loki_installplan.stdout_lines | length > 0
+      retries: 12
+      delay: 10
       register: loki_installplan
 
     - name: Show the loki_installplan
