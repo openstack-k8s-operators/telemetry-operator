@@ -295,7 +295,7 @@ func (r *CloudKittyAPIReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 					Name:      parentCloudKittyName,
 					Namespace: cr.Namespace,
 				}, parentCloudKitty)
-				
+
 				// Only return a reconcile event if we are using the prometheus secret
 				if parentCloudKitty.Spec.PrometheusHost == "" {
 					name := client.ObjectKey{

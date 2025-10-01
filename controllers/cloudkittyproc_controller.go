@@ -277,7 +277,7 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 						Namespace: namespace,
 						Name:      cr.Name,
 					}
-					Log.Info(fmt.Sprintf("Secret %s is used by CloudKittyAPI CR %s", secretName, cr.Name))
+					Log.Info(fmt.Sprintf("Secret %s is used by CloudKittyProc CR %s", secretName, cr.Name))
 					result = append(result, reconcile.Request{NamespacedName: name})
 				}
 			}

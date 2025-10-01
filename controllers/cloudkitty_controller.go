@@ -1138,6 +1138,14 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 		templateParameters["CAFile"] = tls.DownstreamTLSCABundlePath
 	}
 
+	// Set Prometheus TLS configuration
+	templateParameters["PrometheusTLS"] = instance.Status.PrometheusTLS
+	if instance.Status.PrometheusTLS {
+		// For operator-managed Prometheus or user-deployed Prometheus with custom CA,
+		// use the downstream TLS CA bundle path
+		templateParameters["PrometheusCAFile"] = tls.DownstreamTLSCABundlePath
+	}
+
 	// create httpd  vhost template parameters
 	httpdVhostConfig := map[string]interface{}{}
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
