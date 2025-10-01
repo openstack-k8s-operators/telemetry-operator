@@ -617,10 +617,12 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the CA cert secret should have been manually created by the user and provided in the spec,
+				// we treat this as a warning because it means that the service will not be able to start.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					condition.TLSInputReadyCondition,
-					condition.RequestedReason,
-					condition.SeverityInfo,
+					condition.ErrorReason,
+					condition.SeverityWarning,
 					condition.TLSInputReadyWaitingMessage, instance.Spec.TLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
@@ -847,10 +849,12 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the CA cert secret should have been manually created by the user and provided in the spec,
+				// we treat this as a warning because it means that the service will not be able to start.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					telemetryv1.MysqldExporterTLSInputReadyCondition,
-					condition.RequestedReason,
-					condition.SeverityInfo,
+					condition.ErrorReason,
+					condition.SeverityWarning,
 					condition.TLSInputReadyWaitingMessage, instance.Spec.MysqldExporterTLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
@@ -873,6 +877,8 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		hash, err := instance.Spec.MysqldExporterTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the TLS cert secret should have been automatically created by the encompassing OpenStackControlPlane,
+				// we treat this as an info.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					telemetryv1.MysqldExporterTLSInputReadyCondition,
 					condition.RequestedReason,
@@ -1026,10 +1032,12 @@ func (r *CeilometerReconciler) reconcileKSM(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the CA cert secret should have been manually created by the user and provided in the spec,
+				// we treat this as a warning because it means that the service will not be able to start.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					telemetryv1.KSMTLSInputReadyCondition,
-					condition.RequestedReason,
-					condition.SeverityInfo,
+					condition.ErrorReason,
+					condition.SeverityWarning,
 					condition.TLSInputReadyWaitingMessage, instance.Spec.KSMTLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
