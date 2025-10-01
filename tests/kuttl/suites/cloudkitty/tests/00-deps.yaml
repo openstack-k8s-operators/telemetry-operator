@@ -1,0 +1,9 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |
+      oc apply -f ../deps/loki-operator.yaml
+      until oc api-resources | grep -q grafana; do sleep 1; done
+  - script: |
+      oc apply -f ../deps/minio.yaml
+      oc wait --for='jsonpath={.status.conditions[?(@.type=="Ready")].status}=True' pod/minio -n minio-dev
