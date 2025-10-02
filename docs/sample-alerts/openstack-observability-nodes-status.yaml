@@ -1,0 +1,339 @@
+apiVersion: monitoring.rhobs/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    service: metricStorage
+  name: openstack-observability-nodes-status
+  namespace: openstack
+spec:
+  groups:
+    - name: openstack-observability.nodes.status
+      rules:
+        # Disk usage alerts
+        - expr: rate(node_disk_io_time_seconds_total[5m])
+          record: job:iotime:rate_5m
+        - expr: stddev_over_time(job:iotime:rate_5m[1h])
+          record: job:iotime:rate_5m:stddev_over_time_1h
+        - expr: avg_over_time(job:iotime:rate_5m[1h])
+          record: job:iotime:rate_5m:avg_over_time_1h
+        - alert: HighIOtimeWarning
+          expr: >-
+            (abs(job:iotime:rate_5m - job:iotime:rate_5m:avg_over_time_1h) /
+            job:iotime:rate_5m:stddev_over_time_1h) > 3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk I/O time is moderately abnormal"
+            description: |
+              The time the disk is actively spending on I/O (reads or writes) has deviated more than
+              3 standard deviations from the 1-hour average. This may indicate increasing I/O load,
+              slow operations, or unusual activity patterns. Alert has been active for at least 10 minutes.
+
+        - expr: rate(node_disk_io_time_weighted_seconds_total[5m])
+          record: job:weightiotime:rate_5m
+        - expr: stddev_over_time(job:weightiotime:rate_5m[1h])
+          record: job:weightiotime:rate_5m:stddev_over_time_1h
+        - expr: avg_over_time(job:weightiotime:rate_5m[1h])
+          record: job:weightiotime:rate_5m:avg_over_time_1h
+        - alert: HighWeightedIOtimeWarning
+          expr: >-
+            (abs(job:weightiotime:rate_5m -
+            job:weightiotime:rate_5m:avg_over_time_1h) /
+            job:weightiotime:rate_5m:stddev_over_time_1h) > 3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk weighted I/O time is moderately abnormal"
+            description: |
+              The weighted disk I/O time (which reflects total time and concurrency of disk operations)
+              has deviated more than 3 standard deviations from the 1-hour average for at least 10 minutes.
+              This may indicate increasing disk load, contention, or early signs of I/O saturation.
+
+        - expr: rate(node_disk_read_time_seconds_total[5m])
+          record: job:disk:time:read:rate_5m
+        - expr: stddev_over_time(job:disk:time:read:rate_5m[1h])
+          record: job:disk:time:read:rate_5m:stddev_over_time_1h
+        - expr: avg_over_time(job:disk:time:read:rate_5m[1h])
+          record: job:disk:time:read:rate_5m:avg_over_time_1h
+        - alert: HighDiskReadTimeWarning
+          expr: >-
+            (abs(job:disk:time:read:rate_5m -
+            job:disk:time:read:rate_5m:avg_over_time_1h) /
+            job:disk:time:read:rate_5m:stddev_over_time_1h) >3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk read time is moderately abnormal"
+            description: |
+              The time spent on disk read operations is significantly higher or lower than the 1-hour average.
+              This may indicate increasing disk latency or abnormal I/O behavior.
+              Value deviates more than 3 standard deviations for at least 10 minutes.
+        - alert: HighDiskReadTimeCritical
+          expr: >-
+            (abs(job:disk:time:read:rate_5m -
+            job:disk:time:read:rate_5m:avg_over_time_1h) /
+            job:disk:time:read:rate_5m:stddev_over_time_1h) >6
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Disk read time is critically abnormal"
+            description: |
+              The time spent on disk read operations has deviated more than 6 standard deviations
+              from the 1-hour average for at least 10 minutes. This indicates a likely performance issue,
+              such as disk contention, hardware failure, or severe I/O bottleneck.
+
+        - expr: rate(node_disk_write_time_seconds_total[5m])
+          record: job:disk:time:write:rate_5m
+        - expr: stddev_over_time(job:disk:time:write:rate_5m[1h])
+          record: job:disk:time:write:rate_5m:stddev_over_time_1h
+        - expr: avg_over_time(job:disk:time:write:rate_5m[1h])
+          record: job:disk:time:write:rate_5m:avg_over_time_1h
+        - alert: HighDiskWriteTimeWarning
+          expr: >-
+            (abs(job:disk:time:write:rate_5m -
+            job:disk:time:write:rate_5m:avg_over_time_1h) /
+            job:disk:time:write:rate_5m:stddev_over_time_1h) >3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk write time is moderately abnormal"
+            description: |
+              The disk is spending more time than usual on write operations.
+              The write time has deviated more than 3 standard deviations from the 1-hour average,
+              for at least 10 minutes. This may indicate increasing disk latency or a rising write load.
+        - alert: HighDiskWriteTimeCritical
+          expr: >-
+            (abs(job:disk:time:write:rate_5m -
+            job:disk:time:write:rate_5m:avg_over_time_1h) /
+            job:disk:time:write:rate_5m:stddev_over_time_1h) >6
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Disk write time is critically abnormal"
+            description: |
+              The time the disk spends writing has deviated more than 6 standard deviations
+              from the 1-hour average for at least 10 minutes. This indicates a likely performance
+              issue such as disk write contention, a hardware bottleneck, or a heavily loaded application.
+
+        - expr: rate(node_disk_reads_completed_total[5m])
+          record: job:disk:ops:read:rate_5m
+        - expr: stddev_over_time(job:disk:ops:read:rate_5m[1h])
+          record: job:disk:ops:read:rate_5m:stddev_over_time_1h
+        - expr: avg_over_time(job:disk:ops:read:rate_5m[1h])
+          record: job:disk:ops:read:rate_5m:avg_over_time_1h
+        - alert: HighDiskReadOpsWarning
+          expr: >-
+            (abs(job:disk:ops:read:rate_5m -
+            job:disk:ops:read:rate_5m:avg_over_time_1h) /
+            job:disk:ops:read:rate_5m:stddev_over_time_1h) >3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk read rate is moderately abnormal"
+            description: |
+              The disk read operations rate has deviated more than 3 standard deviations
+              from the 1-hour average for at least 10 minutes. This may indicate a change
+              in workload or a potential disk performance issue.
+        - alert: HighDiskReadOpsCritical
+          expr: >-
+            (abs(job:disk:ops:read:rate_5m -
+            job:disk:ops:read:rate_5m:avg_over_time_1h) /
+            job:disk:ops:read:rate_5m:stddev_over_time_1h) >6
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Disk read rate is critically abnormal"
+            description: |
+              The disk read operations rate has deviated more than 6 standard deviations
+              from the 1-hour average for at least 10 minutes. This is a significant anomaly
+              and may indicate disk overload, hardware issues, or a misbehaving application.
+
+        - expr: rate(node_disk_writes_completed_total[5m])
+          record: job:disk:ops:write:rate_5m
+        - expr: stddev_over_time(job:disk:ops:write:rate_5m[1h])
+          record: job:disk:ops:write:rate_5m:stddev_over_time_1h
+        - expr: avg_over_time(job:disk:ops:write:rate_5m[1h])
+          record: job:disk:ops:write:rate_5m:avg_over_time_1h
+        - alert: HighDiskWriteOpsWarning
+          expr: >-
+            (abs(job:disk:ops:write:rate_5m -
+            job:disk:ops:write:rate_5m:avg_over_time_1h) /
+            job:disk:ops:write:rate_5m:stddev_over_time_1h) >3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk write ops rate is moderately abnormal"
+            description: |
+              The number of completed disk write operations per second has deviated
+              more than 3 standard deviations from the 1-hour average for at least 10 minutes.
+              This may indicate unexpected disk activity, workload spikes, or application issues.
+        - alert: HighDiskWriteOpsCritical
+          expr: >-
+            (abs(job:disk:ops:write:rate_5m -
+            job:disk:ops:write:rate_5m:avg_over_time_1h) /
+            job:disk:ops:write:rate_5m:stddev_over_time_1h) >6
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Disk write ops rate is critically abnormal"
+            description: |
+              The number of completed disk write operations per second has deviated
+              more than 6 standard deviations from the 1-hour baseline for at least 10 minutes.
+              This likely indicates a serious workload anomaly, disk saturation, or malfunctioning application.
+
+        # CPU usage alerts
+        # Count of CPU cores per instance
+        - record: job:cpu:count:cpu_cores_total
+          expr: count by (instance) (count by (instance, cpu) (node_cpu_seconds_total))
+        # CPU usage rate (excluding idle & iowait)
+        - record: job:cpu:rate:core_usage_seconds
+          expr: sum by (instance) (
+                  rate(node_cpu_seconds_total{mode!~"idle|iowait"}[5m])
+                )
+        # Average CPU usage per core (percentage)
+        - record: job:cpu:rate:avg_core_usage_percent
+          expr: job:cpu:rate:core_usage_seconds
+                / job:cpu:count:cpu_cores_total
+                * 100
+        - alert: HighAverageCPUUsageWarning
+          expr: job:cpu:rate:avg_core_usage_percent > 50 and job:cpu:rate:avg_core_usage_percent < 70
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High average CPU usage on instance {{ $labels.instance }}"
+            description: |
+              The average CPU usage per core is above 50% and below 70% on instance {{ $labels.instance }}
+              for more than 5 minutes. This may indicate CPU saturation and could affect performance.
+
+        - alert: HighCPUUsageCritical
+          expr: job:cpu:rate:avg_core_usage_percent >= 70
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High average CPU usage on instance {{ $labels.instance }}"
+            description: |
+              The average CPU usage per core is above 70% on instance {{ $labels.instance }}
+              for more than 10 minutes. This may indicate CPU saturation and could affect performance.
+
+        # Inode usage alerts
+        - record: job:filesystem:inode_usage_ratio
+          expr: |
+            (node_filesystem_files{fstype!~"tmpfs|devtmpfs|overlay"} - node_filesystem_files_free{fstype!~"tmpfs|devtmpfs|overlay"}) / node_filesystem_files{fstype!~"tmpfs|devtmpfs|overlay"}
+        - alert: InodeUsageWarning
+          expr: |
+            job:filesystem:inode_usage_ratio > 0.6
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Inode usage high (warning)"
+            description: "Inode usage is above 60% for more than 10 minutes on {{ $labels.instance }} (mountpoint: {{ $labels.mountpoint }}, device: {{ $labels.device }})"
+
+        # Hugepages usage alerts
+        - alert: HugepagesLowWarning
+          expr: (sum(node_memory_HugePages_Free) / sum(node_memory_HugePages_Total)) < 0.2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Hugepages free ratio is below 20% (warning)
+            description: "The ratio of free hugepages to total hugepages is below 20% for more than 10 minutes."
+
+        - alert: HugepagesLowCritical
+          expr: (sum(node_memory_HugePages_Free) / sum(node_memory_HugePages_Total)) < 0.1
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Hugepages free ratio is below 10% (critical)
+            description: "The ratio of free hugepages to total hugepages is below 10% for more than 10 minutes."
+
+        # CPU load alerts
+        # Long-term load average alerts
+        - alert: LoadLongTermWarning
+          expr: (node_load15 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) > 0.7 and (node_load15 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) < 0.9
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Load average (15m) is high (warning)
+            description: "15-minute load average is above 70% of CPU cores on {{ $labels.instance }}"
+
+        - alert: LoadLongTermCritical
+          expr: (node_load15 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) >= 0.9
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Load average (15m) is critical
+            description: "15-minute load average is above 90% of CPU cores on {{ $labels.instance }}"
+
+        # Mid-term load average alerts
+        - alert: LoadMidTermWarning
+          expr: (node_load5 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) > 0.7 and (node_load5 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) < 0.9
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Load average (5m) is high (warning)
+            description: "5-minute load average is above 70% of CPU cores on {{ $labels.instance }}"
+
+        - alert: LoadMidTermCritical
+          expr: (node_load5 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) >= 0.9
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Load average (5m) is critical
+            description: "5-minute load average is above 90% of CPU cores on {{ $labels.instance }}"
+
+        # Short-term load average alerts
+        - alert: LoadShortTermWarning
+          expr: (node_load1 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) > 0.7 and (node_load1 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) < 0.9
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Load average (1m) is high (warning)
+            description: "1-minute load average is above 70% of CPU cores on {{ $labels.instance }}"
+
+        - alert: LoadShortTermCritical
+          expr: (node_load1 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) >= 0.9
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Load average (1m) is critical
+            description: "1-minute load average is above 90% of CPU cores on {{ $labels.instance }}"
+
+        # Memory usage alerts
+        - alert: MemoryUsageWarning
+          expr: (sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)) / sum(node_memory_MemTotal_bytes) > 0.8 and
+                (sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)) / sum(node_memory_MemTotal_bytes) < 0.9
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Memory usage is high (warning)
+            description: Memory usage is above 80% but below 90% for more than 10 minutes.
+
+        - alert: MemoryUsageCritical
+          expr: (sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)) / sum(node_memory_MemTotal_bytes) >= 0.9
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Memory usage is critical
+            description: Memory usage is above 90% for more than 10 minutes.
