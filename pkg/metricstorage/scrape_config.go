@@ -37,7 +37,7 @@ type LabeledTarget struct {
 func ScrapeConfig(
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,
-	targets interface{},
+	targets any,
 	tlsEnabled bool,
 ) *monv1alpha1.ScrapeConfig {
 	var scrapeInterval monv1.Duration

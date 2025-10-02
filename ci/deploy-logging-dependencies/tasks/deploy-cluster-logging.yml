@@ -21,7 +21,16 @@
   register: output
   until: output.stdout_lines | length != 0
 
-- name: Wait for the cluster log forwarder to be ready
-  ansible.builtin.command:
-    cmd: |
-      oc wait --timeout=300s --for condition=Ready=True --namespace=openshift-logging clusterlogforwarder collector
+- name: Wait for 2 "True" and 0 "False" conditions in ClusterLogForwarder status
+  ansible.builtin.shell:
+    cmd: >
+      oc get clusterlogforwarder collector -n openshift-logging -o json | jq --raw-output '[
+        ([.status.conditions[] | select(.status == "True")] | length),
+        ([.status.conditions[] | select(.status == "False")] | length)
+      ] | @csv'
+  register: clf_condition_counts
+  until: clf_condition_counts.stdout == "2,0"
+  retries: 20
+  delay: 20
+  changed_when: false
+  check_mode: no

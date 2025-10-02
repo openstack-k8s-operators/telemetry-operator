@@ -294,7 +294,7 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 		instance.Spec.RsyslogQueueType = "linkedList"
 	}
 
-	templateParameters := map[string]interface{}{
+	templateParameters := map[string]any{
 		"RsyslogAddress":   service.Annotations["metallb.universe.tf/loadBalancerIPs"],
 		"RsyslogPort":      instance.Spec.Port,
 		"RsyslogRetries":   instance.Spec.RsyslogRetries,

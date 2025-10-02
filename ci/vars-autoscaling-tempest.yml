@@ -19,7 +19,6 @@ tempest_conf:
       telemetry.ceilometer_polling_interval 120
       telemetry.prometheus_scrape_interval 30
       telemetry.alarm_threshold 50000000000
-cifmw_tempest_tempestconf_config: "{{ tempest_conf }}"
 cifmw_test_operator_tempest_tempestconf_config: "{{ tempest_conf }}"
 cifmw_test_operator_tempest_include_list: |
   ^tempest.*\[.*\bsmoke\b.*\]
