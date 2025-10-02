@@ -49,7 +49,7 @@ func StatefulSet(
 	livenessProbe := &corev1.Probe{
 		// TODO might need tuning
 		TimeoutSeconds:      5,
-		PeriodSeconds:       3,
+		PeriodSeconds:       5,
 		InitialDelaySeconds: 3,
 	}
 
@@ -62,8 +62,6 @@ func StatefulSet(
 		Command: []string{
 			"/usr/bin/python3",
 			CloudKittyHCScript,
-			"--config-dir",
-			"/etc/cloudkitty/cloudkitty.conf.d/",
 		},
 	}
 
