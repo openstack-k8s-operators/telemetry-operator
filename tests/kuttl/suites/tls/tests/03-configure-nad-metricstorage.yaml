@@ -1,0 +1,40 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  labels:
+    osp/net: ctlplane
+  name: ctlplane
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "ctlplane",
+      "type": "macvlan",
+      "master": "enp7s0",
+      "ipam": {
+        "type": "whereabouts",
+        "range": "172.20.250.0/24",
+        "range_start": "172.20.250.30",
+        "range_end": "172.20.250.70"
+      }
+    }
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: MetricStorage
+metadata:
+  name: telemetry-kuttl-metricstorage
+spec:
+  monitoringStack:
+    alertingEnabled: true
+    scrapeInterval: 30s
+    storage:
+      strategy: persistent
+      retention: 24h
+      persistent:
+        pvcStorageRequest: 20G
+  prometheusTls:
+    caBundleSecretName: combined-ca-bundle
+    secretName: cert-metric-storage-prometheus-svc
+  dataplaneNetwork: ctlplane
+  networkAttachments:
+  - ctlplane
