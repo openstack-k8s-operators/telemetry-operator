@@ -147,8 +147,11 @@
             irrelevant-files: *irrelevant_files
         - feature-verification-tests-noop:
             files: *irrelevant_files
-        # TODO: Uncomment once the job merges in FVT
-        #- functional-periodic-telemetry-with-ceph: *fvt_jobs_config
-        #    files:
-        #      - ci/deploy-telemetry-with-ceph.yml
-        #      - ci/var-telemetry-with-ceph.yml
+        - functional-periodic-telemetry-with-ceph:
+            required-projects:
+              - name: infrawatch/feature-verification-tests
+                override-checkout: master
+            files:
+              - ci/deploy-telemetry-with-ceph.yml
+              - ci/vars-telemetry-with-ceph.yml
+              - zuul.d/projects.yaml
