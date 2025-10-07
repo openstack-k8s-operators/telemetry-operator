@@ -2,8 +2,6 @@ module github.com/openstack-k8s-operators/telemetry-operator
 
 go 1.24.4
 
-toolchain go1.24.7
-
 replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 
 require (
