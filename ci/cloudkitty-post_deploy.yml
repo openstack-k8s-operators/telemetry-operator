@@ -79,7 +79,8 @@
     - name: wait for the update to telemetry
       ansible.builtin.shell:
         cmd: |
-          oc wait --for=condition=Ready telemetry telemetry-ck
+          oc wait --for=condition=Ready --timeout=600s telemetry telemetry-ck
+      changed_when: false
 
     - name: Check for secrets
       ansible.builtin.shell:
