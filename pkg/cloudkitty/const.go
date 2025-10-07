@@ -47,16 +47,22 @@ const (
 	// CloudKittyInternalPort -
 	CloudKittyInternalPort int32 = 8889
 
-	ShortDuration  = time.Duration(5) * time.Second
+	// ShortDuration is the duration for short requeues
+	ShortDuration = time.Duration(5) * time.Second
+	// NormalDuration is the duration for normal requeues
 	NormalDuration = time.Duration(10) * time.Second
 
 	// PrometheusEndpointSecret - The name of the secret that contains the Prometheus endpoint configuration.
 	PrometheusEndpointSecret = "metric-storage-prometheus-endpoint"
 
+	// ClientCertSecretName is the name of the client certificate secret
 	ClientCertSecretName = "cert-cloudkitty-client-internal"
 
+	// CaConfigmapName is the name of the CA configmap
 	CaConfigmapName = "lokistack-ca"
-	CaConfigmapKey  = "ca.crt"
+	// CaConfigmapKey is the key in the CA configmap
+	CaConfigmapKey = "ca.crt"
 )
 
+// ResultRequeue is a ctrl.Result that requeues after NormalDuration
 var ResultRequeue = ctrl.Result{RequeueAfter: NormalDuration}

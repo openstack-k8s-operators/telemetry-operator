@@ -59,7 +59,7 @@ type CASpec struct {
 	// It needs to be in the same namespace as the CloudKitty custom resource.
 	//
 	// +kubebuilder:validation:optional
-	CA string `json:"caName"`
+	CA string `json:"caName,omitempty"`
 }
 
 type ObjectStorageSchema struct {
@@ -108,6 +108,7 @@ type ObjectStorageSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MinItems:=1
 	// +kubebuilder:default:={{version:v11,effectiveDate:"2020-10-11"}}
+	// +listType=atomic
 	Schemas []ObjectStorageSchema `json:"schemas"`
 
 	// Secret for object storage authentication.
@@ -188,7 +189,7 @@ type CloudKittySpecBase struct {
 	// S3 related configuration passed to Loki
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={secret: {name: "cloudkitty-loki-s3", type: "s3"}}
-	S3StorageConfig ObjectStorageSpec `json:"s3StorageConfig,omitempty"`
+	S3StorageConfig ObjectStorageSpec `json:"s3StorageConfig"`
 
 	// Storage class used for Loki
 	// +kubebuilder:validation:Optional

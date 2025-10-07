@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cloudkittyapi provides CloudKitty API service configuration and management utilities
 package cloudkittyapi
 
 const (

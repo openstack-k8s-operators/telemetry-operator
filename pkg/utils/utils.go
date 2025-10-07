@@ -37,6 +37,7 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 )
 
+// ConditionalWatchingReconciler is a reconciler that can conditionally watch resources
 type ConditionalWatchingReconciler struct {
 	client.Client
 	Kclient    kubernetes.Interface
@@ -66,9 +67,10 @@ func EnsureDeleted(ctx context.Context, helper *helper.Helper, obj client.Object
 
 }
 
+// EnsureWatches ensures that a watch is set up for a given resource
 func EnsureWatches(
+	_ context.Context,
 	r *ConditionalWatchingReconciler,
-	ctx context.Context,
 	name string,
 	kind client.Object,
 	handler handler.EventHandler,
@@ -88,7 +90,7 @@ func EnsureWatches(
 		Version: "v1",
 	})
 
-	err := r.Client.Get(context.Background(), client.ObjectKey{
+	err := r.Get(context.Background(), client.ObjectKey{
 		Name: name,
 	}, u)
 	if err != nil {

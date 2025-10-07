@@ -17,6 +17,7 @@ limitations under the License.
 package cloudkitty
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -25,30 +26,45 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	// ErrEffectiveDateRequired is returned when schema effectiveDate is missing
+	ErrEffectiveDateRequired = errors.New("invalid CloudKitty spec. Field .spec.s3StorageConfig.schema.effectiveDate is required")
+	// ErrSchemaVersionRequired is returned when schema version is missing
+	ErrSchemaVersionRequired = errors.New("invalid CloudKitty spec. Field .spec.s3StorageConfig.schema.version is required")
+	// ErrSecretNameRequired is returned when secret name is missing
+	ErrSecretNameRequired = errors.New("invalid CloudKitty spec. Field .spec.s3StorageConfig.secret.name is required")
+	// ErrSecretTypeRequired is returned when secret type is missing
+	ErrSecretTypeRequired = errors.New("invalid CloudKitty spec. Field .spec.s3StorageConfig.secret.type is required")
+	// ErrInvalidSecretType is returned when secret type is not valid
+	ErrInvalidSecretType = errors.New("invalid CloudKitty spec. Field .spec.s3StorageConfig.secret.type needs to be one of: azure, gcs, s3, swift, alibabacloud")
+	// ErrCANameRequired is returned when TLS CA name is missing
+	ErrCANameRequired = errors.New("invalid CloudKitty spec. Field .spec.s3StorageConfig.tls.caName is required")
+)
+
 func validateObjectStorageSpec(spec telemetryv1.ObjectStorageSpec) error {
 	for _, schema := range spec.Schemas {
 		if schema.EffectiveDate == "" {
-			return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.schema.effectiveDate is required")
+			return ErrEffectiveDateRequired
 		}
 		if schema.Version == "" {
-			return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.schema.version is required")
+			return ErrSchemaVersionRequired
 		}
 	}
 
 	if spec.Secret.Name == "" {
-		return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.secret.name is required")
+		return ErrSecretNameRequired
 	}
 
 	if spec.Secret.Type == "" {
-		return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.secret.type is required")
+		return ErrSecretTypeRequired
 	}
 	validTypes := []string{"azure", "gcs", "s3", "swift", "alibabacloud"}
 	if !slices.Contains(validTypes, spec.Secret.Type) {
-		return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.secret.type needs to be one of %s", validTypes)
+		return ErrInvalidSecretType
 	}
 
-	if spec.TLS != nil && spec.TLS.CASpec.CA == "" {
-		return fmt.Errorf("Invalid CloudKitty spec. Field .spec.s3StorageConfig.tls.caName is required")
+	if spec.TLS != nil && spec.TLS.CA == "" {
+		return ErrCANameRequired
 	}
 
 	return nil
@@ -81,13 +97,13 @@ func getLokiStackObjectStorageSpec(telemetryObjectStorageSpec telemetryv1.Object
 	if telemetryObjectStorageSpec.TLS != nil {
 		result.TLS = &lokistackv1.ObjectStorageTLSSpec{
 			CASpec: lokistackv1.CASpec{
-				CAKey: telemetryObjectStorageSpec.TLS.CASpec.CAKey,
-				CA:    telemetryObjectStorageSpec.TLS.CASpec.CA,
+				CAKey: telemetryObjectStorageSpec.TLS.CAKey,
+				CA:    telemetryObjectStorageSpec.TLS.CA,
 			},
 		}
-		if result.TLS.CASpec.CAKey == "" {
+		if result.TLS.CAKey == "" {
 			// NOTE: if no CAKey is defined, use the same as defined in loki-operator
-			result.TLS.CASpec.CAKey = "service-ca.crt"
+			result.TLS.CAKey = "service-ca.crt"
 		}
 	}
 

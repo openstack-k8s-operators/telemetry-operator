@@ -23,7 +23,6 @@ import (
 	"net"
 	"reflect"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -32,9 +31,7 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -44,7 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	logr "github.com/go-logr/logr"
 	"github.com/openstack-k8s-operators/lib-common/modules/ansible"
@@ -308,7 +304,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	// Deploy monitoring stack
 
 	err := utils.EnsureWatches(
-		(*utils.ConditionalWatchingReconciler)(r), ctx,
+		ctx, (*utils.ConditionalWatchingReconciler)(r),
 		"monitoringstacks.monitoring.rhobs",
 		&obov1.MonitoringStack{}, eventHandler, helper,
 	)
@@ -360,8 +356,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			return []reconcile.Request{{NamespacedName: name}}
 		}
 		err = utils.EnsureWatches(
-			(*utils.ConditionalWatchingReconciler)(r),
-			ctx, "prometheuses.monitoring.rhobs",
+			ctx, (*utils.ConditionalWatchingReconciler)(r),
+			"prometheuses.monitoring.rhobs",
 			&monv1.Prometheus{},
 			handler.EnqueueRequestsFromMapFunc(prometheusWatchFn),
 			helper,
@@ -580,8 +576,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			return []reconcile.Request{{NamespacedName: name}}
 		}
 		err = utils.EnsureWatches(
-			(*utils.ConditionalWatchingReconciler)(r),
-			ctx, "prometheuses.monitoring.rhobs",
+			ctx, (*utils.ConditionalWatchingReconciler)(r),
+			"prometheuses.monitoring.rhobs",
 			&monv1.Prometheus{},
 			handler.EnqueueRequestsFromMapFunc(prometheusWatchFn),
 			helper,
@@ -721,8 +717,8 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	err := utils.EnsureWatches(
-		(*utils.ConditionalWatchingReconciler)(r),
-		ctx, "scrapeconfigs.monitoring.rhobs",
+		ctx, (*utils.ConditionalWatchingReconciler)(r),
+		"scrapeconfigs.monitoring.rhobs",
 		&monv1alpha1.ScrapeConfig{}, eventHandler, helper,
 	)
 	if err != nil {
@@ -1138,8 +1134,8 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 
 	// Deploy PrometheusRule for dashboards
 	err = utils.EnsureWatches(
-		(*utils.ConditionalWatchingReconciler)(r),
-		ctx, "prometheusrules.monitoring.rhobs",
+		ctx, (*utils.ConditionalWatchingReconciler)(r),
+		"prometheusrules.monitoring.rhobs",
 		&monv1.PrometheusRule{}, eventHandler, helper,
 	)
 	if err != nil {
@@ -1259,39 +1255,6 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		}
 	}
 	return ctrl.Result{}, err
-}
-
-func (r *MetricStorageReconciler) ensureWatches(
-	ctx context.Context,
-	name string,
-	kind client.Object,
-	handler handler.EventHandler,
-) error {
-	Log := r.GetLogger(ctx)
-	if slices.Contains(r.Watching, name) {
-		// We are already watching the resource
-		return nil
-	}
-	u := &unstructured.Unstructured{}
-	u.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "apiextensions.k8s.io",
-		Kind:    "CustomResourceDefinition",
-		Version: "v1",
-	})
-
-	err := r.Get(context.Background(), client.ObjectKey{
-		Name: name,
-	}, u)
-	if err != nil {
-		return err
-	}
-
-	Log.Info(fmt.Sprintf("Starting to watch %s", name))
-	err = r.Controller.Watch(source.Kind(r.Cache, kind, handler))
-	if err == nil {
-		r.Watching = append(r.Watching, name)
-	}
-	return err
 }
 
 func getComputeNodesConnectionInfo(

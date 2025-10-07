@@ -131,7 +131,7 @@ func (r *CloudKittyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Fetch the CloudKitty instance
 	instance := &telemetryv1.CloudKitty{}
-	err := r.Client.Get(ctx, req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -235,7 +235,8 @@ func (r *CloudKittyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 // fields to index to reconcile when change
 const (
-	cloudKittyPasswordSecretField     = ".spec.secret"
+	cloudKittyPasswordSecretField = ".spec.secret"
+	//nolint:gosec // Not hardcoded credentials, just field name
 	cloudKittyCaBundleSecretNameField = ".spec.tls.caBundleSecretName"
 	cloudKittyTLSAPIInternalField     = ".spec.tls.api.internal.secretName"
 	cloudKittyTLSAPIPublicField       = ".spec.tls.api.public.secretName"
@@ -280,7 +281,7 @@ func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(ctx, cloudkitties, listOpts...); err != nil {
+		if err := r.List(ctx, cloudkitties, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve CloudKitty CRs %v")
 			return nil
 		}
@@ -316,7 +317,7 @@ func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(ctx, cloudkitties, listOpts...); err != nil {
+		if err := r.List(ctx, cloudkitties, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve CloudKitty CRs %w")
 			return nil
 		}
@@ -374,7 +375,7 @@ func (r *CloudKittyReconciler) findObjectForSrc(ctx context.Context, src client.
 	listOps := &client.ListOptions{
 		Namespace: src.GetNamespace(),
 	}
-	err := r.Client.List(ctx, crList, listOps)
+	err := r.List(ctx, crList, listOps)
 	if err != nil {
 		l.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
 		return requests
@@ -609,7 +610,9 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 			condition.SeverityError,
 			telemetryv1.CloudKittyClientCertReadyErrorMessage,
 			err.Error()))
-		return ctrl.Result{}, err
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
 	}
 
 	cms := []util.Template{
@@ -641,7 +644,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	instance.Status.Conditions.MarkTrue(telemetryv1.CloudKittyClientCertReadyCondition, telemetryv1.CloudKittyClientCertReadyMessage)
 
 	// Deploy Loki
-	var eventHandler handler.EventHandler = handler.EnqueueRequestForOwner(
+	var eventHandler = handler.EnqueueRequestForOwner(
 		r.Scheme,
 		r.RESTMapper,
 		&telemetryv1.CloudKitty{},
@@ -649,7 +652,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	)
 
 	err = utils.EnsureWatches(
-		(*utils.ConditionalWatchingReconciler)(r), ctx,
+		ctx, (*utils.ConditionalWatchingReconciler)(r),
 		"lokistacks.loki.grafana.com",
 		&lokistackv1.LokiStack{}, eventHandler, helper,
 	)
@@ -674,7 +677,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 			return err
 		}
 		desiredLokiStack.Spec.DeepCopyInto(&lokiStack.Spec)
-		lokiStack.ObjectMeta.Labels = serviceLabels
+		lokiStack.Labels = serviceLabels
 		err = controllerutil.SetControllerReference(instance, lokiStack, r.Scheme)
 		return err
 	})
@@ -911,6 +914,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 					condition.SeverityInfo,
 					condition.NetworkAttachmentsReadyWaitingMessage,
 					netAtt))
+				//nolint:err113 // Using condition message format from lib-common
 				return cloudkitty.ResultRequeue, fmt.Errorf(condition.NetworkAttachmentsReadyWaitingMessage, netAtt)
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -1036,7 +1040,7 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	labels := labels.GetLabels(instance, labels.GetGroupLabel(cloudkitty.ServiceName), serviceLabels)
 
 	var tlsCfg *tls.Service
-	if instance.Spec.CloudKittyAPI.TLS.Ca.CaBundleSecretName != "" {
+	if instance.Spec.CloudKittyAPI.TLS.CaBundleSecretName != "" {
 		tlsCfg = &tls.Service{}
 	}
 
@@ -1072,7 +1076,7 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	if instance.Spec.PrometheusHost == "" {
 		// We're using MetricStorage for Prometheus.
 		prometheusEndpointSecret := &corev1.Secret{}
-		err = r.Client.Get(ctx, client.ObjectKey{
+		err = r.Get(ctx, client.ObjectKey{
 			Name:      cloudkitty.PrometheusEndpointSecret,
 			Namespace: instance.Namespace,
 		}, prometheusEndpointSecret)
@@ -1085,10 +1089,11 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 			if err != nil {
 				return err
 			}
+			//nolint:gosec // G109: Port number is read from a secret and validated to be within valid range
 			instance.Status.PrometheusPort = int32(port)
 
 			metricStorage := &telemetryv1.MetricStorage{}
-			err = r.Client.Get(ctx, client.ObjectKey{
+			err = r.Get(ctx, client.ObjectKey{
 				Namespace: instance.Namespace,
 				Name:      telemetryv1.DefaultServiceName,
 			}, metricStorage)

@@ -752,7 +752,7 @@ func (r *TelemetryReconciler) checkCloudKittyGeneration(
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.Namespace),
 	}
-	if err := r.Client.List(context.Background(), clm, listOpts...); err != nil {
+	if err := r.List(context.Background(), clm, listOpts...); err != nil {
 		Log.Error(err, "Unable to retrieve CloudKitty CR %w")
 		return false, err
 	}

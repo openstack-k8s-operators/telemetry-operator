@@ -97,7 +97,7 @@ func (r *CloudKittyProcReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Fetch the CloudKittyProc instance
 	instance := &telemetryv1.CloudKittyProc{}
-	err := r.Client.Get(ctx, req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -199,8 +199,8 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 	// Watch for changes to secrets we don't own. Global secrets
 	// (e.g. TransportURLSecret) are handled by the main cloudkitty controller.
 	secretFn := func(_ context.Context, o client.Object) []reconcile.Request {
-		var namespace string = o.GetNamespace()
-		var secretName string = o.GetName()
+		var namespace = o.GetNamespace()
+		var secretName = o.GetName()
 		result := []reconcile.Request{}
 
 		// get all CloudKittyProc CRs
@@ -208,7 +208,7 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		listOpts := []client.ListOption{
 			client.InNamespace(namespace),
 		}
-		if err := r.Client.List(context.Background(), cloudKittyProcs, listOpts...); err != nil {
+		if err := r.List(context.Background(), cloudKittyProcs, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve scheduler CRs %v")
 			return nil
 		}
@@ -266,7 +266,7 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 
 				// Fetch the parent CloudKitty instance
 				parentCloudKitty := &telemetryv1.CloudKitty{}
-				_ = r.Client.Get(ctx, types.NamespacedName{
+				_ = r.Get(ctx, types.NamespacedName{
 					Name:      parentCloudKittyName,
 					Namespace: cr.Namespace,
 				}, parentCloudKitty)
@@ -291,8 +291,8 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 
 	// Watch for changes to configmaps we don't own.
 	configMapFn := func(_ context.Context, o client.Object) []reconcile.Request {
-		var namespace string = o.GetNamespace()
-		var configMapName string = o.GetName()
+		var namespace = o.GetNamespace()
+		var configMapName = o.GetName()
 		result := []reconcile.Request{}
 
 		// get all Proc CRs
@@ -300,7 +300,7 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		listOpts := []client.ListOption{
 			client.InNamespace(namespace),
 		}
-		if err := r.Client.List(context.Background(), procs, listOpts...); err != nil {
+		if err := r.List(context.Background(), procs, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve Proc CRs %v")
 			return nil
 		}
@@ -613,6 +613,7 @@ func (r *CloudKittyProcReconciler) reconcileNormal(ctx context.Context, instance
 					condition.SeverityInfo,
 					condition.NetworkAttachmentsReadyWaitingMessage,
 					netAtt))
+				//nolint:err113 // Dynamic error message with network attachment name
 				return cloudkitty.ResultRequeue, fmt.Errorf("network-attachment-definition %s not found", netAtt)
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -686,6 +687,7 @@ func (r *CloudKittyProcReconciler) reconcileNormal(ctx context.Context, instance
 		ssData = ss.GetStatefulSet()
 		if ssData.Generation != ssData.Status.ObservedGeneration {
 			ctrlResult = cloudkitty.ResultRequeue
+			//nolint:err113 // Dynamic error message with statefulset name
 			err = fmt.Errorf("waiting for Statefulset %s to start reconciling", ssData.Name)
 		}
 	}
@@ -736,6 +738,7 @@ func (r *CloudKittyProcReconciler) reconcileNormal(ctx context.Context, instance
 	if networkReady {
 		instance.Status.Conditions.MarkTrue(condition.NetworkAttachmentsReadyCondition, condition.NetworkAttachmentsReadyMessage)
 	} else {
+		//nolint:err113 // Dynamic error message with network attachments
 		err := fmt.Errorf("not all pods have interfaces with ips as configured in NetworkAttachments: %s", instance.Spec.NetworkAttachments)
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.NetworkAttachmentsReadyCondition,
