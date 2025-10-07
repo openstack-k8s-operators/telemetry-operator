@@ -34,7 +34,7 @@ import (
 
 type conditionUpdater interface {
 	Set(c *condition.Condition)
-	MarkTrue(t condition.Type, messageFormat string, messageArgs ...interface{})
+	MarkTrue(t condition.Type, messageFormat string, messageArgs ...any)
 }
 
 type topologyHandler interface {
@@ -118,11 +118,14 @@ func ensureSecret(
 			err.Error()))
 		return "", res, err
 	} else if (res != ctrl.Result{}) {
+		// Since some of the secrets for which the function is used should have been manually
+		// created by the user and referenced in the spec, we treat this as a warning because
+		// it means that the associated service will not be able to start.
 		log.FromContext(ctx).Info(fmt.Sprintf("OpenStack secret %s not found", secretName))
 		conditionUpdater.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
-			condition.RequestedReason,
-			condition.SeverityInfo,
+			condition.ErrorReason,
+			condition.SeverityWarning,
 			condition.InputReadyWaitingMessage))
 		return "", res, nil
 	}

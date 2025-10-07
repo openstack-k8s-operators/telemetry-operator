@@ -23,6 +23,7 @@ import (
 	"net"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -476,10 +477,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the CA cert secret should have been manually created by the user and provided in the spec,
+				// we treat this as a warning because it means that the service will not be able to start.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					condition.TLSInputReadyCondition,
-					condition.RequestedReason,
-					condition.SeverityInfo,
+					condition.ErrorReason,
+					condition.SeverityWarning,
 					condition.TLSInputReadyWaitingMessage, instance.Spec.PrometheusTLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
@@ -498,6 +501,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		_, err := instance.Spec.PrometheusTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the TLS cert secret should have been automatically created by the encompassing OpenStackControlPlane,
+				// we treat this as an info.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
@@ -529,10 +534,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		nad, err := nad.GetNADWithName(ctx, helper, netAtt, instance.Namespace)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the net-attach-def CR should have been manually created by the user and referenced in the spec,
+				// we treat this as a warning because it means that the service will not be able to start.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					condition.NetworkAttachmentsReadyCondition,
-					condition.RequestedReason,
-					condition.SeverityInfo,
+					condition.ErrorReason,
+					condition.SeverityWarning,
 					condition.NetworkAttachmentsReadyWaitingMessage,
 					netAtt))
 				return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("%w: %s", telemetry.ErrNetworkAttachmentDefinitionNotFound, netAtt)
@@ -641,7 +648,7 @@ func (r *MetricStorageReconciler) prometheusEndpointSecret(
 	}
 
 	secret.Data = map[string][]byte{
-		metricstorage.PrometheusHost: []byte(fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace)),
+		metricstorage.PrometheusHost: fmt.Appendf(nil, "%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, instance.Namespace),
 		metricstorage.PrometheusPort: []byte(strconv.Itoa(telemetryv1.DefaultPrometheusPort)),
 	}
 
@@ -879,6 +886,18 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
+	// ScrapeConfig for OVS DB Server NB metrics
+	err = r.createOVSDBServerNBScrapeConfig(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// ScrapeConfig for OVS DB Server SB metrics
+	err = r.createOVSDBServerSBScrapeConfig(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 	return ctrl.Result{}, nil
 }
@@ -1055,6 +1074,44 @@ func (r *MetricStorageReconciler) createOVNControllerScrapeConfig(
 	)
 }
 
+// createOVSDBServerNBScrapeConfig creates a scrape configuration for OVS DB Server NB metrics
+// This function discovers OVS DB Server NB metrics services using label selectors
+func (r *MetricStorageReconciler) createOVSDBServerNBScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) error {
+	labelSelector := map[string]string{
+		"metrics": "enabled",
+		"service": "ovsdbserver-nb",
+	}
+	ovsdbServerNBCfgName := fmt.Sprintf("%s-ovsdbserver-nb", telemetry.ServiceName)
+	return r.createServiceScrapeConfigFromLabelSelector(
+		ctx, instance, helper, serviceLabels,
+		labelSelector, "metrics", ovsdbServerNBCfgName, "OVS DB server NB",
+	)
+}
+
+// createOVSDBServerSBScrapeConfig creates a scrape configuration for OVS DB Server SB metrics
+// This function discovers OVS DB Server SB metrics services using label selectors
+func (r *MetricStorageReconciler) createOVSDBServerSBScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) error {
+	labelSelector := map[string]string{
+		"metrics": "enabled",
+		"service": "ovsdbserver-sb",
+	}
+	ovsdbServerSBCfgName := fmt.Sprintf("%s-ovsdbserver-sb", telemetry.ServiceName)
+	return r.createServiceScrapeConfigFromLabelSelector(
+		ctx, instance, helper, serviceLabels,
+		labelSelector, "metrics", ovsdbServerSBCfgName, "OVS DB server SB",
+	)
+}
+
 func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	uiPluginObj := &obsui.UIPlugin{
@@ -1211,11 +1268,9 @@ func (r *MetricStorageReconciler) ensureWatches(
 	handler handler.EventHandler,
 ) error {
 	Log := r.GetLogger(ctx)
-	for _, item := range r.Watching {
-		if item == name {
-			// We are already watching the resource
-			return nil
-		}
+	if slices.Contains(r.Watching, name) {
+		// We are already watching the resource
+		return nil
 	}
 	u := &unstructured.Unstructured{}
 	u.SetGroupVersionKind(schema.GroupVersionKind{
@@ -1268,7 +1323,7 @@ func getComputeNodesConnectionInfo(
 			continue // Skip if the group doesn't exist in inventory
 		}
 		containsTargetService := false
-		if services, ok := nodeSetGroup.Vars["edpm_services"].([]interface{}); ok {
+		if services, ok := nodeSetGroup.Vars["edpm_services"].([]any); ok {
 			for _, svc := range services {
 				if svcStr, ok := svc.(string); ok {
 					if svcStr == telemetryServiceName {
@@ -1357,7 +1412,7 @@ func getAddressFromIPSet(
 	canonicalHostname, _ := getCanonicalHostname(item)
 	ctlplaneDNSDomain := ""
 
-	domains, ok := item.Vars["dns_search_domains"].([]interface{})
+	domains, ok := item.Vars["dns_search_domains"].([]any)
 	if ok {
 		for _, domain := range domains {
 			domainString, ok := domain.(string)
@@ -1475,7 +1530,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 
 		// Watch OVN metrics services
 		if labels := o.GetLabels(); labels != nil {
-			if labels["metrics"] == "enabled" && (labels["service"] == "ovn-northd" || labels["service"] == "ovn-controller-metrics") {
+			if labels["metrics"] == "enabled" && (labels["service"] == "ovn-northd" || labels["service"] == "ovn-controller-metrics" || labels["service"] == "ovsdbserver-nb" || labels["service"] == "ovsdbserver-sb") {
 				// get all metricstorage CRs in the same namespace
 				metricStorages := &telemetryv1.MetricStorageList{}
 				listOpts := []client.ListOption{

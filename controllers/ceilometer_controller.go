@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -616,10 +617,12 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the CA cert secret should have been manually created by the user and provided in the spec,
+				// we treat this as a warning because it means that the service will not be able to start.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					condition.TLSInputReadyCondition,
-					condition.RequestedReason,
-					condition.SeverityInfo,
+					condition.ErrorReason,
+					condition.SeverityWarning,
 					condition.TLSInputReadyWaitingMessage, instance.Spec.TLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
@@ -846,10 +849,12 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the CA cert secret should have been manually created by the user and provided in the spec,
+				// we treat this as a warning because it means that the service will not be able to start.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					telemetryv1.MysqldExporterTLSInputReadyCondition,
-					condition.RequestedReason,
-					condition.SeverityInfo,
+					condition.ErrorReason,
+					condition.SeverityWarning,
 					condition.TLSInputReadyWaitingMessage, instance.Spec.MysqldExporterTLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
@@ -872,6 +877,8 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		hash, err := instance.Spec.MysqldExporterTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the TLS cert secret should have been automatically created by the encompassing OpenStackControlPlane,
+				// we treat this as an info.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					telemetryv1.MysqldExporterTLSInputReadyCondition,
 					condition.RequestedReason,
@@ -1025,10 +1032,12 @@ func (r *CeilometerReconciler) reconcileKSM(
 		)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
+				// Since the CA cert secret should have been manually created by the user and provided in the spec,
+				// we treat this as a warning because it means that the service will not be able to start.
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					telemetryv1.KSMTLSInputReadyCondition,
-					condition.RequestedReason,
-					condition.SeverityInfo,
+					condition.ErrorReason,
+					condition.SeverityWarning,
 					condition.TLSInputReadyWaitingMessage, instance.Spec.KSMTLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
@@ -1193,9 +1202,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 ) error {
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
-	for key, data := range instance.Spec.DefaultConfigOverwrite {
-		customData[key] = data
-	}
+	maps.Copy(customData, instance.Spec.DefaultConfigOverwrite)
 
 	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
 	if err != nil {
@@ -1217,7 +1224,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		return err
 	}
 
-	templateParameters := map[string]interface{}{
+	templateParameters := map[string]any{
 		"KeystoneInternalURL": keystoneInternalURL,
 		"TransportURL":        string(transportURLSecret.Data["transport_url"]),
 		"CeilometerPassword":  string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
@@ -1227,7 +1234,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 	}
 
 	// create httpd  vhost template parameters
-	endptConfig := map[string]interface{}{}
+	endptConfig := map[string]any{}
 	endptConfig["ServerName"] = fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
 	if instance.Spec.TLS.Enabled() {
 		templateParameters["TLS"] = true
@@ -1282,9 +1289,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
 	ipmiLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.IpmiServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
-	for key, data := range instance.Spec.DefaultConfigOverwrite {
-		customData[key] = data
-	}
+	maps.Copy(customData, instance.Spec.DefaultConfigOverwrite)
 
 	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
 	if err != nil {
@@ -1306,7 +1311,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		return err
 	}
 
-	templateParameters := map[string]interface{}{
+	templateParameters := map[string]any{
 		"KeystoneInternalURL":      keystoneInternalURL,
 		"TransportURL":             string(transportURLSecret.Data["transport_url"]),
 		"CeilometerPassword":       string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
@@ -1482,7 +1487,7 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 
 	instance.Status.MysqldExporterExportedGaleras = []string{}
 
-	databases := []map[string]interface{}{}
+	databases := []map[string]any{}
 	for _, galera := range galeras.Items {
 		galeraName := galera.GetName()
 
@@ -1508,7 +1513,7 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 		if (err != nil || result != ctrl.Result{}) {
 			return result, err
 		}
-		databaseParameters := map[string]interface{}{
+		databaseParameters := map[string]any{
 			"Name":       fmt.Sprintf("client.%s.%s.svc", galeraName, galera.GetNamespace()),
 			"Host":       hostname,
 			"User":       dbAccount.Spec.UserName,
@@ -1527,7 +1532,7 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 
 	if len(databases) > 0 {
 		// There needs to be a section called "client" in the config
-		clientParameters := map[string]interface{}{
+		clientParameters := map[string]any{
 			"Name":       "client",
 			"Host":       databases[0]["Host"],
 			"User":       databases[0]["User"],
@@ -1536,7 +1541,7 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 		}
 		databases = append(databases, clientParameters)
 	}
-	templateParameters := map[string]interface{}{
+	templateParameters := map[string]any{
 		"Databases": databases,
 		"TLS": map[string]string{
 			"Cert": fmt.Sprintf("/etc/pki/tls/certs/%s", tls.CertKey),
