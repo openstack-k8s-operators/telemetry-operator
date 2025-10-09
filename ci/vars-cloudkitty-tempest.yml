@@ -56,6 +56,9 @@ post_deploy_enable_cloudkitty:
     cloudkitty_api_image: "{{ _ck_api_image }}"
     cloudkitty_proc_image: "{{ _ck_proc_image }}"
 
+pre_tests_ansible_tests:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/ansible-tests-cloudkitty.yaml"
+  type: cr
 # test cloudkitty
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
