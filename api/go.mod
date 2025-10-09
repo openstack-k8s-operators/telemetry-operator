@@ -2,8 +2,6 @@ module github.com/openstack-k8s-operators/telemetry-operator/api
 
 go 1.24.4
 
-toolchain go1.24.6
-
 require (
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
