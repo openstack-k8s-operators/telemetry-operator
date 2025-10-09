@@ -1,0 +1,160 @@
+---
+# When running in CI, with a differently named CR, the defaults are not set for Telemetry
+#    - 'The Telemetry "telemetry-ck" is invalid: '
+#    - '* spec.autoscaling.aodh.apiImage: Required value'
+#    - '* spec.autoscaling.aodh.evaluatorImage: Required value'
+#    - '* spec.autoscaling.aodh.listenerImage: Required value'
+#    - '* spec.autoscaling.aodh.notifierImage: Required value'
+#    - '* spec.ceilometer.centralImage: Required value'
+#    - '* spec.ceilometer.computeImage: Required value'
+#    - '* spec.ceilometer.ipmiImage: Required value'
+#    - '* spec.ceilometer.notificationImage: Required value'
+#    - '* spec.ceilometer.proxyImage: Required value'
+#    - '* spec.ceilometer.sgCoreImage: Required value'
+# WORKAROUND: telemetry-with-cloudkitty is updated to explicitly add these values
+
+# This should get to the point where we have must-gather running so that there is more information available.
+- name: "Create the kustomization for deploying CloudKitty"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+    - name: Disable telemetry in the openstack controlplane
+      ansible.builtin.shell:
+        cmd: |
+          oc patch oscp $(oc get oscp -ojsonpath='{ .items[].metadata.name }') --type=json -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value": false} ]'
+
+    - name: Deploy loki operator
+      ansible.builtin.shell:
+        cmd: |
+          oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/deploy-loki-for-ck.yaml
+
+
+    - name: Get install plan from the list of installplans (not used)
+      ansible.builtin.shell:
+        cmd: |
+          oc get installplan -n openshift-operators-redhat | grep "loki-operator.v6.3.0" | awk '{print $1}'
+      retries: 10
+      delay: 10
+      register: install_plan
+      until: install_plan.stdout_lines != 0
+
+      # This is the better option if it produces an installplan var, since it filters by loki version
+    - name: Show the install_plan from oc get installplan
+      ansible.builtin.debug:
+        var: install_plan
+
+    - name: Get the installplan from the loki-operator subscription
+      ansible.builtin.shell:
+        cmd: |
+          oc get subscription -n openshift-operators-redhat loki-operator -ojsonpath='{ .status.installplan.name }'
+      until: loki_installplan.stdout_lines | length > 0
+      retries: 12
+      delay: 10
+      register: loki_installplan
+
+    - name: Show the loki_installplan
+      ansible.builtin.debug:
+        var: loki_installplan.stdout
+
+    - name: Get details of loki installplan
+      ansible.builtin.shell:
+        cmd: |
+          oc describe -n openshift-operators-redhat installplan {{ loki_installplan.stdout }}
+
+    - name: Show installplans
+      ansible.builtin.shell:
+        cmd: |
+          oc get installplan --all-namespaces
+      register: all_install_plans
+
+    - name: Show all install plans
+      ansible.builtin.debug:
+        var: all_install_plans
+
+    - name: Get install plan and approve the installation
+      ansible.builtin.shell:
+        cmd: |
+          oc patch -n openshift-operators-redhat installplan {{ loki_installplan.stdout }} --type='json' -p='[{"op": "replace", "path": "/spec/approved", "value":true}]'
+
+    - name: Render telemetry-with-cloudkitty template
+      ansible.builtin.template:
+        src: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/telemetry-with-cloudkitty.yaml.j2"
+        dest: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/telemetry-with-cloudkitty.yaml"
+
+    - name: Create the new telemetry
+      ansible.builtin.shell:
+        cmd: |
+          oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/telemetry-with-cloudkitty.yaml
+
+
+  # WORKAROUND
+  # Need to set the images, since the defaulting is not working at the moment.
+  # The container image is not being set, so the dbsync is failing.
+  # The defaulting will not be done in the webhook until CK is added to the openstack-operator.
+  # If I change the name of the CK, I can just configure using the CK CRD.
+  # If I don't change the name, and disable it in telemetry, then the telemetry-operator will delete the telemetry telemetry.
+  # WORKAROUND
+  # The databaseAccount, databaseInstance, memcachedInstance, rabbitMqClusterName and serviceUser do not set default values
+  # They should, IINM, since these are also defaulted/set for ceilometer, autoscaling, etc
+  # The databaseInstance needs to be created..
+  # The databaseAccount needs to be created...
+  # I am re-using the existing memcached and rabbitmq instances
+  # The serviceuser should be cloudkitty, and that needs to be configured/created as well.
+  # databaseAccount defaults to cloudkitty, according to api/bases/openstack.org_cloudkittyes.yaml
+  # BUG: cloudkitty.databaseAccount is not defaulting correctly
+  # databaseInstance defaults to openstack, according to api/bases/openstack.org_cloudkittyes.yaml
+  # BUG: databaseInstance is not defaulting to the right value
+  # memcachedInstance is supposed to default to memcached, but does not
+  # serviceUser is optional
+  # NOTE: The failure to set the default might be some issue between the Telemetry CR and CloudKitty, since cloudkitty_types.go defines a default for memcachedInstance, rabbitmqInstance, databaseInstance.
+  # HOWEVER, the fact that they are all optional could be why they are not defaulting when created via telemetry CR
+  # They are not set to omitEmpty, which is why the empty values are propogating.
+  # Since the memcached instance is not omitted when empty, CK tries to resolve it and connect.
+  # The serviceUser should not be omitted when it is unset, since the values is used to create the cloudkitty.conf file.
+  # BUG: serviceUser value is not being defaulted correctly when it is omitted from the CR: expected "cloudkitty", got "" (same for the other config values mentioned above, all were set to "".
+  # I think this is because of the openstack operator. I need to create a new telemetry, with a different name... But I tried that before...
+  # # set the CK enabled to false in telemetry and create a CloudKitty CR
+  #  - name: Patch telemetry CR to enable CK
+  #    ansible.builtin.shell:
+  #      cmd: |
+  #        oc apply -f - <<EOF
+  #        apiVersion: telemetry.openstack.org/v1beta1
+  #        kind: CloudKitty
+  #        metadata:
+  #          name: cloudkitty-test
+  #          namespace: openstack
+  #        spec:
+  #          enabled: true
+  #          secret: osp-secret
+  #          passwordSelector:
+  #            aodhService: AodhPassword
+  #            ceilometerService: CeilometerPassword
+  #            cloudKittyService: CloudKittyPassword
+  #          cloudKittyAPI:
+  #            # containerImage: "{{ cloudkitty_api_image }}"
+  #            containerImage: "quay.io/efoley/cloudkitty-api"
+  #          cloudKittyProc:
+  #            # containerImage: "{{ cloudkitty_proc_image }}"
+  #            containerImage: "quay.io/efoley/cloudkitty-processor"
+  #          preserveJobs: true
+  #          databaseAccount: cloudkitty
+  #          databaseInstance: openstack
+  #          memcachedInstance: memcached
+  #          rabbitMqClusterName: rabbitmq
+  #          serviceUser: cloudkitty
+  #        EOF
+  #    register: output
+
+    - name: Wait for the update to telemetry
+      ansible.builtin.shell:
+        cmd: |
+          oc wait --for=condition=Ready --timeout=600s telemetry telemetry-ck
+      changed_when: false
+
+    - name: Check for secrets
+      ansible.builtin.shell:
+        cmd: |
+          oc get secrets -n openstack | grep "cloudkitty"
