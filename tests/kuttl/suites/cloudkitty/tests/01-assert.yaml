@@ -79,3 +79,119 @@ status:
   conditions:
   - status: "True"
     type: Ready
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-api
+  ownerReferences:
+  - kind: CloudKittyAPI
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: cloudkitty-api
+      service: cloudkitty
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-api-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  containers:
+  - name: cloudkitty-api
+  hostname: telemetry-kuttl-cloudkitty-api-0
+status:
+  containerStatuses:
+  - name: cloudkitty-api
+    ready: true
+    started: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: cloudkitty-internal
+  ownerReferences:
+  - kind: CloudKittyAPI
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  ports:
+  - port: 8889
+    protocol: TCP
+    targetPort: 8889
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: cloudkitty-public
+  ownerReferences:
+  - kind: CloudKittyAPI
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  ports:
+  - port: 8889
+    protocol: TCP
+    targetPort: 8889
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    component: cloudkitty-proc
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-proc
+  ownerReferences:
+  - kind: CloudKittyProc
+    name: telemetry-kuttl-cloudkitty-proc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: cloudkitty-proc
+      service: cloudkitty
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: cloudkitty-proc
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-proc-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: telemetry-kuttl-cloudkitty-proc
+spec:
+  containers:
+  - name: cloudkitty-processor
+  hostname: telemetry-kuttl-cloudkitty-proc-0
+status:
+  containerStatuses:
+  - name: cloudkitty-processor
+    ready: true
+    started: true
