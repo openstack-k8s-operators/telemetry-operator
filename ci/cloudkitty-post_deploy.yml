@@ -14,17 +14,17 @@
 # WORKAROUND: telemetry-with-cloudkitty is updated to explicitly add these values
 
 # This should get to the point where we have must-gather running so that there is more information available.
-- name: "Create the kustomization for deploying CloudKitty"
+- name: "Install loki for cloudkitty"
   hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
   gather_facts: false
   environment:
     KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
     PATH: "{{ cifmw_path }}"
   tasks:
-    - name: Disable telemetry in the openstack controlplane
-      ansible.builtin.shell:
-        cmd: |
-          oc patch oscp $(oc get oscp -ojsonpath='{ .items[].metadata.name }') --type=json -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value": false} ]'
+    #- name: Disable telemetry in the openstack controlplane
+    #  ansible.builtin.shell:
+    #    cmd: |
+    #      oc patch oscp $(oc get oscp -ojsonpath='{ .items[].metadata.name }') --type=json -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value": false} ]'
 
     - name: Deploy loki operator
       ansible.builtin.shell:
@@ -79,15 +79,15 @@
         cmd: |
           oc patch -n openshift-operators-redhat installplan {{ loki_installplan.stdout }} --type='json' -p='[{"op": "replace", "path": "/spec/approved", "value":true}]'
 
-    - name: Render telemetry-with-cloudkitty template
-      ansible.builtin.template:
-        src: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/telemetry-with-cloudkitty.yaml.j2"
-        dest: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/telemetry-with-cloudkitty.yaml"
+    #- name: Render telemetry-with-cloudkitty template
+    #  ansible.builtin.template:
+    #    src: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/telemetry-with-cloudkitty.yaml.j2"
+    #    dest: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/telemetry-with-cloudkitty.yaml"
 
-    - name: Create the new telemetry
-      ansible.builtin.shell:
-        cmd: |
-          oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/telemetry-with-cloudkitty.yaml
+    #- name: Create the new telemetry
+    #  ansible.builtin.shell:
+    #    cmd: |
+    #      oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/telemetry-with-cloudkitty.yaml
 
 
   # WORKAROUND
@@ -148,13 +148,13 @@
   #        EOF
   #    register: output
 
-    - name: Wait for the update to telemetry
-      ansible.builtin.shell:
-        cmd: |
-          oc wait --for=condition=Ready --timeout=600s telemetry telemetry-ck
-      changed_when: false
+  #  - name: Wait for the update to telemetry
+  #    ansible.builtin.shell:
+  #      cmd: |
+  #        oc wait --for=condition=Ready --timeout=600s telemetry telemetry-ck
+  #    changed_when: false
 
-    - name: Check for secrets
-      ansible.builtin.shell:
-        cmd: |
-          oc get secrets -n openstack | grep "cloudkitty"
+  #  - name: Check for secrets
+  #    ansible.builtin.shell:
+  #      cmd: |
+  #        oc get secrets -n openstack | grep "cloudkitty"
