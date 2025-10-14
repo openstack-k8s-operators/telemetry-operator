@@ -129,7 +129,8 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: logging-loki-s3
+  name: cloudkitty-loki-s3
+  namespace: openstack
 stringData:
   access_key_id: minio
   access_key_secret: minio123
