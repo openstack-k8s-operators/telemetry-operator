@@ -33,7 +33,7 @@
                     autoscaling:
                       enabled: false
                     cloudkitty:
-                      enabled: false
+                      enabled: true
                       s3StorageConfig:
                         secret:
                           type: "s3"
