@@ -79,6 +79,11 @@
         cmd: |
           oc patch -n openshift-operators-redhat installplan {{ loki_installplan.stdout }} --type='json' -p='[{"op": "replace", "path": "/spec/approved", "value":true}]'
 
+    - name: Render telemetry-with-cloudkitty template
+      ansible.builtin.template:
+        src: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/telemetry-with-cloudkitty.yaml.j2"
+        dest: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/telemetry-with-cloudkitty.yaml"
+
     - name: Create the new telemetry
       ansible.builtin.shell:
         cmd: |

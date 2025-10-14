@@ -42,7 +42,7 @@ spec:
     enabled: true
     cloudKittyAPI:
       # latest, with mTLS patch to CK
-      containerImage: quay.io/jwysogla/cloudkitty-api@sha256:5541d1160f777174a00982fde3c26a9b32ba156f9f140c9628f66d0eef834c86
+      containerImage: {{ cloudkitty_api_image }}
       customServiceConfig: |
           #[storage_loki]
           #url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
@@ -50,7 +50,7 @@ spec:
       tls:
         caBundleSecretName: combined-ca-bundle
     cloudKittyProc:
-      containerImage: "quay.io/jwysogla/cloudkitty-processor@sha256:949f386cbf54366d492d6528156f9916e44089b26c7496fc5ee89dd286633208"
+      containerImage: {{ cloudkitty_proc_image }}
       customServiceConfig: |
           #[storage_loki]
           #url = https://cloudkitty-lokistack-gateway-http.openstack.svc:8080
