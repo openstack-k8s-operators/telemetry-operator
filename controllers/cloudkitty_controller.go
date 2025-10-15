@@ -338,6 +338,43 @@ func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return nil
 	}
 
+	prometheusEndpointSecretFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+		Log := r.GetLogger(ctx)
+
+		result := []reconcile.Request{}
+
+		// Only reconcile if this is the PrometheusEndpoint secret
+		if o.GetName() != cloudkitty.PrometheusEndpointSecret {
+			return nil
+		}
+
+		// get all CloudKitty CRs
+		cloudkitties := &telemetryv1.CloudKittyList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(o.GetNamespace()),
+		}
+		if err := r.List(ctx, cloudkitties, listOpts...); err != nil {
+			Log.Error(err, "Unable to retrieve CloudKitty CRs %w")
+			return nil
+		}
+
+		for _, cr := range cloudkitties.Items {
+			// Only reconcile CloudKitty CRs that are using MetricStorage (PrometheusHost is empty)
+			if cr.Spec.PrometheusHost == "" {
+				name := client.ObjectKey{
+					Namespace: o.GetNamespace(),
+					Name:      cr.Name,
+				}
+				Log.Info(fmt.Sprintf("PrometheusEndpoint Secret %s is used by CloudKitty CR %s", o.GetName(), cr.Name))
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
+
 	control, err := ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CloudKitty{}).
 		Owns(&mariadbv1.MariaDBDatabase{}).
@@ -355,6 +392,9 @@ func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// Watch for TransportURL Secrets which belong to any TransportURLs created by CloudKitty CRs
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
+		// Watch for PrometheusEndpoint Secret created by MetricStorage
+		Watches(&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(prometheusEndpointSecretFn)).
 		Watches(&memcachedv1.Memcached{},
 			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
 		Watches(&keystonev1.KeystoneAPI{},
@@ -826,6 +866,37 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	// run check memcached - end
 
 	//
+	// Check for PrometheusEndpoint secret if using MetricStorage
+	//
+	if instance.Spec.PrometheusHost == "" {
+		prometheusEndpointSecret := &corev1.Secret{}
+		err = r.Get(ctx, client.ObjectKey{
+			Name:      cloudkitty.PrometheusEndpointSecret,
+			Namespace: instance.Namespace,
+		}, prometheusEndpointSecret)
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				Log.Info("PrometheusEndpoint Secret not found. CloudKitty will not be deployed until MetricStorage creates it.")
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.ServiceConfigReadyCondition,
+					condition.Reason("PrometheusEndpoint secret not found. The MetricStorage probably hasn't been created yet or isn't ready"),
+					condition.SeverityError,
+					"PrometheusEndpoint secret %s not found. Waiting for MetricStorage to create it",
+					cloudkitty.PrometheusEndpointSecret))
+				return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+			}
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ServiceConfigReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.ServiceConfigReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+	}
+	// run check PrometheusEndpoint secret - end
+
+	//
 	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
 	//
 
@@ -1030,7 +1101,6 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	memcached *memcachedv1.Memcached,
 	db *mariadbv1.Database,
 ) error {
-	Log := r.GetLogger(ctx)
 	//
 	// create Secret required for cloudkitty input
 	// - %-scripts holds scripts to e.g. bootstrap the service
@@ -1075,13 +1145,14 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 
 	if instance.Spec.PrometheusHost == "" {
 		// We're using MetricStorage for Prometheus.
+		// Note: The secret existence is already checked in reconcileNormal(), so we can safely get it here
 		prometheusEndpointSecret := &corev1.Secret{}
 		err = r.Get(ctx, client.ObjectKey{
 			Name:      cloudkitty.PrometheusEndpointSecret,
 			Namespace: instance.Namespace,
 		}, prometheusEndpointSecret)
 		if err != nil {
-			Log.Info("Prometheus Endpoint Secret not found")
+			return err
 		}
 		if prometheusEndpointSecret.Data != nil {
 			instance.Status.PrometheusHost = string(prometheusEndpointSecret.Data[metricstorage.PrometheusHost])
@@ -1104,6 +1175,7 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 					condition.SeverityWarning,
 					condition.ServiceConfigReadyErrorMessage,
 					err.Error()))
+				return err
 			}
 			instance.Status.PrometheusTLS = metricStorage.Spec.PrometheusTLS.Enabled()
 		}
