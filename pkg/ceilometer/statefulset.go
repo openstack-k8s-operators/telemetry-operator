@@ -35,7 +35,7 @@ import (
 
 const (
 	// ServiceCommand -
-	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	ServiceCommand = "/usr/local/bin/kolla_start"
 	// CentralHCScript is the path to the central health check script
 	CentralHCScript = "/var/lib/openstack/bin/centralhealth.py"
 	// NotificationHCScript is the path to the notification health check script
@@ -49,7 +49,7 @@ func StatefulSet(
 	labels map[string]string,
 	topology *topologyv1.Topology,
 ) (*appsv1.StatefulSet, error) {
-	runAsUser := int64(0)
+	ceilometerUser := int64(CeilometerUserID)
 
 	// container probes
 	sgRootEndpointCurl := corev1.HTTPGetAction{
@@ -141,13 +141,10 @@ func StatefulSet(
 		Command: []string{
 			"/bin/bash",
 		},
-		Args:  args,
-		Image: instance.Spec.CentralImage,
-		Name:  "ceilometer-central-agent",
-		Env:   env.MergeEnvs([]corev1.EnvVar{}, envVarsCentral),
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
-		},
+		Args:          args,
+		Image:         instance.Spec.CentralImage,
+		Name:          "ceilometer-central-agent",
+		Env:           env.MergeEnvs([]corev1.EnvVar{}, envVarsCentral),
 		VolumeMounts:  centralVolumeMounts,
 		LivenessProbe: centralLivenessProbe,
 	}
@@ -156,13 +153,10 @@ func StatefulSet(
 		Command: []string{
 			"/bin/bash",
 		},
-		Args:  args,
-		Image: instance.Spec.NotificationImage,
-		Name:  "ceilometer-notification-agent",
-		Env:   env.MergeEnvs([]corev1.EnvVar{}, envVarsNotification),
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
-		},
+		Args:          args,
+		Image:         instance.Spec.NotificationImage,
+		Name:          "ceilometer-notification-agent",
+		Env:           env.MergeEnvs([]corev1.EnvVar{}, envVarsNotification),
 		VolumeMounts:  notificationVolumeMounts,
 		LivenessProbe: notificationLivenessProbe,
 	}
@@ -170,18 +164,20 @@ func StatefulSet(
 		ImagePullPolicy: corev1.PullAlways,
 		Image:           instance.Spec.SgCoreImage,
 		Name:            "sg-core",
+		VolumeMounts:    getSgCoreVolumeMounts(),
 		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
+			AllowPrivilegeEscalation: ptr.To(false),
+			Capabilities: &corev1.Capabilities{
+				Drop: []corev1.Capability{
+					"ALL",
+				},
+			},
 		},
-		VolumeMounts: getSgCoreVolumeMounts(),
 	}
 	proxyContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullAlways,
 		Image:           instance.Spec.ProxyImage,
 		Name:            "proxy-httpd",
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
-		},
 		Ports: []corev1.ContainerPort{{
 			ContainerPort: int32(CeilometerPrometheusPort),
 			Name:          "proxy-httpd",
@@ -191,6 +187,14 @@ func StatefulSet(
 		LivenessProbe:  sgLivenessProbe,
 		Command:        []string{"/usr/sbin/httpd"},
 		Args:           []string{"-DFOREGROUND"},
+		SecurityContext: &corev1.SecurityContext{
+			AllowPrivilegeEscalation: ptr.To(false),
+			Capabilities: &corev1.Capabilities{
+				Drop: []corev1.Capability{
+					"ALL",
+				},
+			},
+		},
 	}
 
 	pod := corev1.PodTemplateSpec{
@@ -206,6 +210,12 @@ func StatefulSet(
 				notificationAgentContainer,
 				sgCoreContainer,
 				proxyContainer,
+			},
+			SecurityContext: &corev1.PodSecurityContext{
+				RunAsUser:    &ceilometerUser,
+				RunAsGroup:   &ceilometerUser,
+				RunAsNonRoot: ptr.To(true),
+				FSGroup:      &ceilometerUser,
 			},
 		},
 	}
