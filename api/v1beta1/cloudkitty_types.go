@@ -187,7 +187,6 @@ type CloudKittySpecBase struct {
 	PrometheusTLSCaCertSecret *corev1.SecretKeySelector `json:"prometheusTLSCaCertSecret,omitempty"`
 
 	// Period for collecting metrics in seconds
-	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=300
 	Period int32 `json:"period"`
