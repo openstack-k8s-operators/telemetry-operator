@@ -186,6 +186,12 @@ type CloudKittySpecBase struct {
 	// +nullable
 	PrometheusTLSCaCertSecret *corev1.SecretKeySelector `json:"prometheusTLSCaCertSecret,omitempty"`
 
+	// Period for collecting metrics in seconds
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=300
+	Period int32 `json:"period"`
+
 	// S3 related configuration passed to Loki
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={secret: {name: "cloudkitty-loki-s3", type: "s3"}}

@@ -1199,6 +1199,7 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	templateParameters["TransportURL"] = string(transportURLSecret.Data["transport_url"])
 	templateParameters["PrometheusHost"] = instance.Status.PrometheusHost
 	templateParameters["PrometheusPort"] = instance.Status.PrometheusPort
+	templateParameters["Period"] = instance.Spec.Period
 	templateParameters["LokiHost"] = lokiHost
 	templateParameters["LokiPort"] = 8080
 	templateParameters["DatabaseConnection"] = fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
