@@ -1106,6 +1106,11 @@ spec:
                           service password from the Secret
                         type: string
                     type: object
+                  period:
+                    default: 300
+                    description: Period for collecting metrics in seconds
+                    format: int32
+                    type: integer
                   preserveJobs:
                     default: false
                     description: PreserveJobs - do not delete jobs after they finished

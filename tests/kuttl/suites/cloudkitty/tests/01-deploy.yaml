@@ -36,6 +36,7 @@ spec:
     aodhService: AodhPassword
     ceilometerService: CeilometerPassword
     cloudKittyService: CloudKittyPassword
+  period: 300
   preserveJobs: false
   rabbitMqClusterName: rabbitmq
   s3StorageConfig:
