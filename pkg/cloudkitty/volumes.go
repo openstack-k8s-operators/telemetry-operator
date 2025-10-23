@@ -6,7 +6,7 @@ import (
 
 var (
 	// scriptMode is the default permissions mode for Scripts volume
-	scriptMode int32 = 0740
+	scriptMode int32 = 0755
 	// configMode is the 640 permissions mode
 	configMode int32 = 0640
 	// certMode is the 400 permissions mode

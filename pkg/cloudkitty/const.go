@@ -62,6 +62,9 @@ const (
 	CaConfigmapName = "lokistack-ca"
 	// CaConfigmapKey is the key in the CA configmap
 	CaConfigmapKey = "ca.crt"
+
+	// CloudKittyUserID -
+	CloudKittyUserID = 42406
 )
 
 // ResultRequeue is a ctrl.Result that requeues after NormalDuration
