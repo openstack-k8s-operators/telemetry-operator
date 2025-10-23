@@ -38,6 +38,8 @@
                         secret:
                           type: "s3"
                           name: "cloudkitty-loki-s3"
+                    metricStorage:
+                      enabled: true
             target:
               kind: OpenStackControlPlane
 
