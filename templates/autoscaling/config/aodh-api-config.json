@@ -29,7 +29,7 @@
       {
         "source": "/var/lib/openstack/config/ssl.conf",
         "dest": "/etc/httpd/conf.d/ssl.conf",
-        "owner": "root",
+        "owner": "aodh",
         "perm": "0644"
     },
     {
@@ -70,5 +70,12 @@
         "optional": true,
         "merge": true
     }
+  ],
+    "permissions": [
+      {
+	  "path": "/etc/httpd/run",
+	  "owner": "aodh:apache",
+	  "recurse": true
+      }
   ]
 }

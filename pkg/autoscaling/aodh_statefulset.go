@@ -30,6 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
@@ -38,7 +39,7 @@ import (
 
 const (
 	// ServiceCommand -
-	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	ServiceCommand = "/usr/local/bin/kolla_start"
 )
 
 // AodhStatefulSet func
@@ -49,7 +50,7 @@ func AodhStatefulSet(
 	topology *topologyv1.Topology,
 	memcached *memcachedv1.Memcached,
 ) (*appsv1.StatefulSet, error) {
-	runAsUser := int64(0)
+	aodhUser := int64(AodhUserID)
 
 	livenessProbe := &corev1.Probe{
 		// TODO might need tuning
@@ -139,13 +140,10 @@ func AodhStatefulSet(
 		Command: []string{
 			"/bin/bash",
 		},
-		Args:  args,
-		Image: instance.Spec.Aodh.APIImage,
-		Name:  "aodh-api",
-		Env:   env.MergeEnvs([]corev1.EnvVar{}, envVarsAodh),
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
-		},
+		Args:         args,
+		Image:        instance.Spec.Aodh.APIImage,
+		Name:         "aodh-api",
+		Env:          env.MergeEnvs([]corev1.EnvVar{}, envVarsAodh),
 		VolumeMounts: apiVolumeMounts,
 	}
 
@@ -154,13 +152,10 @@ func AodhStatefulSet(
 		Command: []string{
 			"/bin/bash",
 		},
-		Args:  args,
-		Image: instance.Spec.Aodh.EvaluatorImage,
-		Name:  "aodh-evaluator",
-		Env:   env.MergeEnvs([]corev1.EnvVar{}, envVarsAodh),
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
-		},
+		Args:         args,
+		Image:        instance.Spec.Aodh.EvaluatorImage,
+		Name:         "aodh-evaluator",
+		Env:          env.MergeEnvs([]corev1.EnvVar{}, envVarsAodh),
 		VolumeMounts: evaluatorVolumeMounts,
 	}
 
@@ -169,13 +164,10 @@ func AodhStatefulSet(
 		Command: []string{
 			"/bin/bash",
 		},
-		Args:  args,
-		Image: instance.Spec.Aodh.NotifierImage,
-		Name:  "aodh-notifier",
-		Env:   env.MergeEnvs([]corev1.EnvVar{}, envVarsAodh),
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
-		},
+		Args:         args,
+		Image:        instance.Spec.Aodh.NotifierImage,
+		Name:         "aodh-notifier",
+		Env:          env.MergeEnvs([]corev1.EnvVar{}, envVarsAodh),
 		VolumeMounts: notifierVolumeMounts,
 	}
 
@@ -184,13 +176,10 @@ func AodhStatefulSet(
 		Command: []string{
 			"/bin/bash",
 		},
-		Args:  args,
-		Image: instance.Spec.Aodh.ListenerImage,
-		Name:  "aodh-listener",
-		Env:   env.MergeEnvs([]corev1.EnvVar{}, envVarsAodh),
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
-		},
+		Args:         args,
+		Image:        instance.Spec.Aodh.ListenerImage,
+		Name:         "aodh-listener",
+		Env:          env.MergeEnvs([]corev1.EnvVar{}, envVarsAodh),
 		VolumeMounts: listenerVolumeMounts,
 	}
 
@@ -207,6 +196,10 @@ func AodhStatefulSet(
 				evaluatorContainer,
 				notifierContainer,
 				listenerContainer,
+			},
+			SecurityContext: &corev1.PodSecurityContext{
+				RunAsUser:    &aodhUser,
+				RunAsNonRoot: ptr.To(true),
 			},
 		},
 	}

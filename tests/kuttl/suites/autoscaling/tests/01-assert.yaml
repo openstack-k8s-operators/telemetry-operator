@@ -11,25 +11,25 @@ spec:
   containers:
   - args:
     - -c
-    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    - /usr/local/bin/kolla_start
     command:
     - /bin/bash
     name: aodh-api
   - args:
     - -c
-    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    - /usr/local/bin/kolla_start
     command:
     - /bin/bash
     name: aodh-evaluator
   - args:
     - -c
-    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    - /usr/local/bin/kolla_start
     command:
     - /bin/bash
     name: aodh-notifier
   - args:
     - -c
-    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    - /usr/local/bin/kolla_start
     command:
     - /bin/bash
     name: aodh-listener
@@ -68,25 +68,25 @@ spec:
       containers:
       - args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
         command:
         - /bin/bash
         name: aodh-api
       - args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
         command:
         - /bin/bash
         name: aodh-evaluator
       - args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
         command:
         - /bin/bash
         name: aodh-notifier
       - args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
         command:
         - /bin/bash
         name: aodh-listener

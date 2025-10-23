@@ -11,7 +11,7 @@ spec:
   containers:
   - args:
     - -c
-    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    - /usr/local/bin/kolla_start
     command:
     - /bin/bash
     livenessProbe:
@@ -22,7 +22,7 @@ spec:
     name: ceilometer-central-agent
   - args:
     - -c
-    - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+    - /usr/local/bin/kolla_start
     command:
     - /bin/bash
     livenessProbe:
@@ -80,13 +80,13 @@ spec:
       containers:
       - args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
         command:
         - /bin/bash
         name: ceilometer-central-agent
       - args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
         command:
         - /bin/bash
         name: ceilometer-notification-agent

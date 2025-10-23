@@ -42,8 +42,6 @@ func StatefulSet(
 	labels map[string]string,
 	topology *topologyv1.Topology,
 ) (*appsv1.StatefulSet, error) {
-	runAsUser := int64(0)
-
 	envVars := map[string]env.Setter{}
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 
@@ -108,7 +106,12 @@ func StatefulSet(
 		Name:            ServiceName,
 		Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
 		SecurityContext: &corev1.SecurityContext{
-			RunAsUser: &runAsUser,
+			AllowPrivilegeEscalation: ptr.To(false),
+			Capabilities: &corev1.Capabilities{
+				Drop: []corev1.Capability{
+					"ALL",
+				},
+			},
 		},
 		VolumeMounts: volumeMounts,
 	}
@@ -125,6 +128,12 @@ func StatefulSet(
 				mysqldExporterContainer,
 			},
 			Volumes: volumes,
+			SecurityContext: &corev1.PodSecurityContext{
+				RunAsNonRoot: ptr.To(true),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+			},
 		},
 	}
 

@@ -44,6 +44,9 @@ const (
 
 	// PrometheusEndpointSecret is the name of the secret containing Prometheus endpoint configuration
 	PrometheusEndpointSecret = "metric-storage-prometheus-endpoint"
+
+	// AodhUserID -
+	AodhUserID = 42402
 )
 
 // PrometheusReplicas -
