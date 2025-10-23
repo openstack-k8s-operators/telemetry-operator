@@ -5,4 +5,7 @@ resources:
 - telemetry_v1beta1_autoscaling.yaml
 - telemetry_v1beta1_logging.yaml
 - telemetry_v1beta1_metricstorage.yaml
+- telemetry_v1beta1_cloudkittyapi.yaml
+- telemetry_v1beta1_cloudkittyproc.yaml
+- telemetry_v1beta1_cloudkitty.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
