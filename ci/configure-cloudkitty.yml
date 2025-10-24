@@ -24,6 +24,11 @@
               metadata:
                 name: unused
               spec:
+                # Set overall storage class so we don't need to increase the
+                # number of PVCs that install_yamls creates
+                # this is only applicable to crc-based jobs, it is not in
+                # openshift by default, but is included in the crc distribution
+                storageClass: crc-csi-hostpath-provisioner
                 telemetry:
                   # this is needed so the secrets are created for dataplane deployment
                   enabled: true
