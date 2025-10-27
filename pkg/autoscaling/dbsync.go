@@ -22,10 +22,11 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 const (
-	dbSyncCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	dbSyncCommand = "/usr/local/bin/kolla_start"
 )
 
 // DbSyncJob func
@@ -42,7 +43,7 @@ func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]strin
 		volumeMounts = append(volumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
 	}
 
-	runAsUser := int64(0)
+	runAsUser := int64(AodhUserID)
 	envVars := map[string]env.Setter{}
 	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
 	envVars["KOLLA_BOOTSTRAP"] = env.SetValue("TRUE")
@@ -80,7 +81,8 @@ func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]strin
 							Args:  args,
 							Image: instance.Spec.Aodh.APIImage,
 							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &runAsUser,
+								RunAsUser:    &runAsUser,
+								RunAsNonRoot: ptr.To(true),
 							},
 							Env:          env.MergeEnvs(aodhPassword, envVars),
 							VolumeMounts: volumeMounts,

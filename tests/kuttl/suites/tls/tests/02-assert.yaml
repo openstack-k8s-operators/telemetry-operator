@@ -14,7 +14,7 @@ spec:
         - /bin/bash
       args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
       volumeMounts:
         - mountPath: /var/lib/openstack/bin
           name: scripts
@@ -53,7 +53,7 @@ spec:
         - /bin/bash
       args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
       volumeMounts:
         - mountPath: /var/lib/openstack/bin
           name: scripts
@@ -76,7 +76,7 @@ spec:
         - /bin/bash
       args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
       volumeMounts:
         - mountPath: /var/lib/openstack/bin
           name: scripts
@@ -99,7 +99,7 @@ spec:
         - /bin/bash
       args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
       volumeMounts:
         - mountPath: /var/lib/openstack/bin
           name: scripts
@@ -132,7 +132,7 @@ spec:
     - name: ceilometer-central-agent
       args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
       command:
         - /bin/bash
       volumeMounts:
@@ -155,7 +155,7 @@ spec:
     - name: ceilometer-notification-agent
       args:
         - -c
-        - /usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start
+        - /usr/local/bin/kolla_start
       command:
         - /bin/bash
       volumeMounts:
