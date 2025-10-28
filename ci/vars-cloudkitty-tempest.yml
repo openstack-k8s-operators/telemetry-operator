@@ -16,23 +16,23 @@ cifmw_openshift_obs_definition:
 
 # TODO: To use the images created by the content provider, we need to add in the images here until there's support in openstack operator to pull them in the expected way.
 
-# from fvt/ci/vars/common.yml should be used from there eventually.
-telemetry_registry: >-
-  {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
-  {{ content_provider_os_registry_url  }}
-  {%- else -%}
-  quay.rdoproject.org/podified-master-centos10
-  {%- endif -%}
-
-telemetry_tag: >-
-  {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
-  telemetry_latest
-  {%- else -%}
-  current-tested
-  {%- endif -%}
-
-_ck_api_image: "{{ telemetry_registry }}/openstack-cloudkitty-api:{{ telemetry_tag }}"
-_ck_proc_image: "{{ telemetry_registry }}/openstack-cloudkitty-processor:{{ telemetry_tag }}"
+## from fvt/ci/vars/common.yml should be used from there eventually.
+#telemetry_registry: >-
+#  {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
+#  {{ content_provider_os_registry_url  }}
+#  {%- else -%}
+#  quay.rdoproject.org/podified-master-centos10
+#  {%- endif -%}
+#
+#telemetry_tag: >-
+#  {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
+#  telemetry_latest
+#  {%- else -%}
+#  current-tested
+#  {%- endif -%}
+#
+#_ck_api_image: "{{ telemetry_registry }}/openstack-cloudkitty-api:{{ telemetry_tag }}"
+#_ck_proc_image: "{{ telemetry_registry }}/openstack-cloudkitty-processor:{{ telemetry_tag }}"
 
 # This is removed for now.
 #pre_deploy_kustomize_cloudkitty:
@@ -52,9 +52,9 @@ pre_deploy_disable_telemetry:
 pre_deploy_loki_setup:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/cloudkitty-post_deploy.yml"
   type: playbook
-  extra_vars:
-    cloudkitty_api_image: "{{ _ck_api_image }}"
-    cloudkitty_proc_image: "{{ _ck_proc_image }}"
+  #extra_vars:
+  #  cloudkitty_api_image: "{{ _ck_api_image }}"
+  #  cloudkitty_proc_image: "{{ _ck_proc_image }}"
 
 pre_tests_ansible_tests:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/ansible-tests-cloudkitty.yaml"
