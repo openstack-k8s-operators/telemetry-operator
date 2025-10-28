@@ -50,7 +50,7 @@ pre_deploy_disable_telemetry:
 #  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-logging-dependencies.yml"
 #  type: playbook
 pre_deploy_loki_setup:
-  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/cloudkitty-post_deploy.yml"
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/cloudkitty-pre_deploy-install_loki.yml"
   type: playbook
   #extra_vars:
   #  cloudkitty_api_image: "{{ _ck_api_image }}"
