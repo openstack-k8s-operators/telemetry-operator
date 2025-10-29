@@ -5,7 +5,9 @@ go 1.24.4
 replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 
 require (
+	github.com/cert-manager/cert-manager v1.16.5
 	github.com/go-logr/logr v1.4.3
+	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/ginkgo/v2 v2.27.1
 	github.com/onsi/gomega v1.38.2
@@ -13,6 +15,7 @@ require (
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20251002120642-c2d58c6fc03e
 	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20251027074845-ed8154b20ad1
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20250929092825-4c2402451077
+	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.0
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20250929092825-4c2402451077
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20251002102126-84fdf59cb2fb
 	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20251002145853-52dcb63c343b
@@ -90,6 +93,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.33.2 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250902184714-7fc278399c7f // indirect
+	sigs.k8s.io/gateway-api v1.2.1 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect

@@ -1,0 +1,77 @@
+metrics:
+  ceilometer_cpu:
+    unit: instance
+    alt_name: instance
+    groupby:
+      - id
+      - user_id
+      - project
+    metadata:
+      - flavor_name
+      - flavor_id
+      - vcpus
+    mutate: NUMBOOL
+    extra_args:
+      aggregation_method: max
+
+  ceilometer_image_size:
+    unit: MiB
+    factor: 1/1048576
+    groupby:
+      - id
+      - user_id
+      - project
+    metadata:
+      - container_format
+      - disk_format
+    extra_args:
+      aggregation_method: max
+
+  ceilometer_volume_size:
+    unit: GiB
+    groupby:
+      - id
+      - user_id
+      - project
+    metadata:
+      - volume_type
+    extra_args:
+      aggregation_method: max
+
+  ceilometer_network_outgoing_bytes_rate:
+    unit: MB
+    groupby:
+      - id
+      - project
+      - user_id
+    # Converting B/s to MB/h
+    factor: 3600/1000000
+    metadata:
+      - instance_id
+    extra_args:
+      aggregation_method: max
+
+  ceilometer_network_incoming_bytes_rate:
+    unit: MB
+    groupby:
+      - id
+      - project
+      - user_id
+    # Converting B/s to MB/h
+    factor: 3600/1000000
+    metadata:
+      - instance_id
+    extra_args:
+      aggregation_method: max
+
+  ceilometer_ip_floating:
+    unit: ip
+    groupby:
+      - id
+      - user_id
+      - project
+    metadata:
+      - state
+    mutate: NUMBOOL
+    extra_args:
+      aggregation_method: max
