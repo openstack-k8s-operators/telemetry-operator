@@ -1917,7 +1917,7 @@ func (r CeilometerReconciler) roleExists(
 		return false
 	}
 
-	role, err := os.GetRole(log, roleName)
+	role, err := os.GetRole(ctx, log, roleName)
 	if err != nil || role == nil {
 		return false
 	}
@@ -1945,18 +1945,19 @@ func (r *CeilometerReconciler) ensureSwiftRole(
 	}
 
 	// We are using the fixed domainID "default" because it is also fixed in ceilometer.conf
-	user, err := os.GetUser(log, instance.Spec.ServiceUser, "default")
+	user, err := os.GetUser(ctx, log, instance.Spec.ServiceUser, "default")
 	if err != nil {
 		return err
 	}
 
 	// We are using the fixed domainID "default" because it is also fixed in ceilometer.conf
-	project, err := os.GetProject(log, "service", "default")
+	project, err := os.GetProject(ctx, log, "service", "default")
 	if err != nil {
 		return err
 	}
 
 	err = os.AssignUserRole(
+		ctx,
 		log,
 		"SwiftSystemReader",
 		user.ID,
