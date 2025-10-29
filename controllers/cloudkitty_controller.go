@@ -617,7 +617,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	certDefinition := cloudkitty.Certificate(
 		instance, serviceLabels, certIssuer,
 	)
-	cert := certmanager.NewCertificate(certDefinition, 5)
+	cert := certmanager.NewCertificate(certDefinition, 5*time.Second)
 	ctrlResult, _, err := cert.CreateOrPatch(ctx, helper, nil)
 
 	if err != nil {
