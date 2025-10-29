@@ -202,7 +202,7 @@ type CloudKittySpecBase struct {
 
 	// Size of the LokiStack. Supported are "1x.demo" (default), "1x.pico", "1x.extra-small", "1x.small", "1x.medium"
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Enum="1x.demo";"1x.pico";"1x.extra-small";"1x.small";"1x.medium"
+	// +kubebuilder:validation:Enum="";"1x.demo";"1x.pico";"1x.extra-small";"1x.small";"1x.medium"
 	// +kubebuilder:default="1x.demo"
 	LokiStackSize string `json:"lokiStackSize"`
 }

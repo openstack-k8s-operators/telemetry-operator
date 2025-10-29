@@ -1077,6 +1077,7 @@ spec:
                     description: Size of the LokiStack. Supported are "1x.demo" (default),
                       "1x.pico", "1x.extra-small", "1x.small", "1x.medium"
                     enum:
+                    - ""
                     - 1x.demo
                     - 1x.pico
                     - 1x.extra-small
