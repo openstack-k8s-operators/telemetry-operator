@@ -24,11 +24,12 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 const (
 	// ServiceCommand -
-	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	ServiceCommand = "/usr/local/bin/kolla_start"
 	// CloudKittyHCScript is the path to the health check script
 	CloudKittyHCScript = "/var/lib/openstack/bin/healthcheck.py"
 )
@@ -41,9 +42,7 @@ func StatefulSet(
 	annotations map[string]string,
 	topology *topologyv1.Topology,
 ) *appsv1.StatefulSet {
-	cloudKittyUser := int64(0)
-	// cloudKittyUser := int64(telemetryv1.CloudKittyUserID)
-	// cloudKittyGroup := int64(telemetryv1.CloudKittyGroupID)
+	runAsUser := int64(cloudkitty.CloudKittyUserID)
 
 	// TODO until we determine how to properly query for these
 	livenessProbe := &corev1.Probe{
@@ -105,7 +104,8 @@ func StatefulSet(
 							Args:  args,
 							Image: instance.Spec.ContainerImage,
 							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &cloudKittyUser,
+								RunAsUser:    &runAsUser,
+								RunAsNonRoot: ptr.To(true),
 							},
 							Env:           env.MergeEnvs([]corev1.EnvVar{}, envVars),
 							VolumeMounts:  volumeMounts,

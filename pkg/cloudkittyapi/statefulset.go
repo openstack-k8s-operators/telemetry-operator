@@ -27,11 +27,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 )
 
 const (
 	// ServiceCommand -
-	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	ServiceCommand = "/usr/local/bin/kolla_start"
 )
 
 // StatefulSet func
@@ -42,8 +43,7 @@ func StatefulSet(
 	annotations map[string]string,
 	topology *topologyv1.Topology,
 ) (*appsv1.StatefulSet, error) {
-	runAsUser := int64(0)
-	//cloudKittyUser := int64(telemetryv1.CloudKittyUserID)
+	runAsUser := int64(cloudkitty.CloudKittyUserID)
 
 	livenessProbe := &corev1.Probe{
 		// TODO might need tuning
@@ -140,10 +140,7 @@ func StatefulSet(
 								"-c",
 								"/usr/bin/tail -n+1 -F " + LogFile + " 2>/dev/null",
 							},
-							Image: instance.Spec.ContainerImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &runAsUser,
-							},
+							Image:        instance.Spec.ContainerImage,
 							Env:          env.MergeEnvs([]corev1.EnvVar{}, envVars),
 							VolumeMounts: []corev1.VolumeMount{GetLogVolumeMount()},
 							Resources:    instance.Spec.Resources,
@@ -153,17 +150,18 @@ func StatefulSet(
 							Command: []string{
 								"/bin/bash",
 							},
-							Args:  args,
-							Image: instance.Spec.ContainerImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &runAsUser,
-							},
+							Args:           args,
+							Image:          instance.Spec.ContainerImage,
 							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
 							VolumeMounts:   volumeMounts,
 							Resources:      instance.Spec.Resources,
 							ReadinessProbe: readinessProbe,
 							LivenessProbe:  livenessProbe,
 						},
+					},
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsUser:    &runAsUser,
+						RunAsNonRoot: ptr.To(true),
 					},
 					Volumes: volumes,
 				},

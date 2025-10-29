@@ -23,6 +23,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -34,7 +35,7 @@ const (
 	//       If we are doing rolling upgrades we'll need to use the flag
 	//       conditionally (only for adoption) and do the restart cycle of
 	//       services as described in the upstream rolling upgrades process.
-	storageInitCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	storageInitCommand = "/usr/local/bin/kolla_start"
 )
 
 // StorageInitJob func
@@ -50,7 +51,7 @@ func StorageInitJob(instance *telemetryv1.CloudKitty, labels map[string]string, 
 		volumeMounts = append(volumeMounts, instance.Spec.CloudKittyAPI.TLS.CreateVolumeMounts(nil)...)
 	}
 
-	runAsUser := int64(0)
+	runAsUser := int64(CloudKittyUserID)
 	envVars := map[string]env.Setter{}
 	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
 	envVars["KOLLA_BOOTSTRAP"] = env.SetValue("TRUE")
@@ -91,7 +92,8 @@ func StorageInitJob(instance *telemetryv1.CloudKitty, labels map[string]string, 
 							Args:  args,
 							Image: instance.Spec.CloudKittyAPI.ContainerImage,
 							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &runAsUser,
+								RunAsUser:    &runAsUser,
+								RunAsNonRoot: ptr.To(true),
 							},
 							Env:          env.MergeEnvs(cloudKittyPassword, envVars),
 							VolumeMounts: volumeMounts,
