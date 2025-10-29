@@ -111,6 +111,7 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=ovn.openstack.org,resources=ovnnorthds,verbs=get;list;watch
 //+kubebuilder:rbac:groups=observability.openshift.io,resources=uiplugins,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
 // Reconcile reconciles MetricStorage
@@ -765,9 +766,6 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// ScrapeConfigs for RabbitMQ monitoring
-	// NOTE: We're watching Rabbits and reconciling with each of their change
-	//       that should keep the targets inside the ScrapeConfig always
-	//       up to date.
 	rabbitList := &rabbitmqv1.RabbitmqClusterList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(instance.GetNamespace()),
@@ -776,22 +774,25 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
-	rabbitTargets := []string{}
 	for _, rabbit := range rabbitList.Items {
-		rabbitServerName := fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)
-		rabbitTargets = append(rabbitTargets, net.JoinHostPort(rabbitServerName, strconv.Itoa(metricstorage.RabbitMQPrometheusPort)))
-	}
-	rabbitCfgName := fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName)
-	desiredScrapeConfig = metricstorage.ScrapeConfig(
-		instance,
-		serviceLabels,
-		rabbitTargets,
-		instance.Spec.PrometheusTLS.Enabled(),
-	)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, "RabbitMQ",
-		rabbitCfgName, desiredScrapeConfig)
-	if err != nil {
-		return ctrl.Result{}, err
+		desiredScrapeConfig, err = metricstorage.ScrapeConfigRabbitMQ(
+			ctx,
+			instance,
+			serviceLabels,
+			helper,
+			rabbit,
+			instance.Spec.PrometheusTLS.Enabled(),
+		)
+		if err != nil {
+			Log.Info(fmt.Sprintf("Cannot build rabbitMQ scrape config. Scrape configs not created. Error: %s", err))
+			return ctrl.Result{}, err
+		}
+		rabbitCfgName := fmt.Sprintf("%s-%s", telemetry.ServiceName, rabbit.Name)
+		err = r.createServiceScrapeConfig(ctx, instance, Log, "RabbitMQ",
+			rabbitCfgName, desiredScrapeConfig)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// mysqld exporter
@@ -1598,10 +1599,6 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			builder.WithPredicates(inventoryPredicator),
 		).
 		Watches(
-			&rabbitmqv1.RabbitmqCluster{},
-			handler.EnqueueRequestsFromMapFunc(reconcileAllMetricStoragesWatchFn),
-		).
-		Watches(
 			&ovnv1.OVNNorthd{},
 			handler.EnqueueRequestsFromMapFunc(reconcileAllMetricStoragesWatchFn),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
@@ -1610,6 +1607,18 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			&telemetryv1.Ceilometer{},
 			handler.EnqueueRequestsFromMapFunc(reconcileAllMetricStoragesWatchFn),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
+		Watches(
+			&discoveryv1.EndpointSlice{},
+			handler.EnqueueRequestsFromMapFunc(reconcileAllMetricStoragesWatchFn),
+			builder.WithPredicates(
+				predicate.ResourceVersionChangedPredicate{},
+				// Don't call the WatchFn on unrelated Endpointslices changes
+				predicate.NewPredicateFuncs(func(o client.Object) bool {
+					labels := o.GetLabels()
+					return labels["app.kubernetes.io/component"] == "rabbitmq"
+				}),
+			),
 		).
 		Build(r)
 	r.Controller = control
