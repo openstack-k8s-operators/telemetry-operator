@@ -64,12 +64,7 @@ spec:
   scrapeInterval: 30s
   metricRelabelings:
   - action: labeldrop
-    regex: pod
-  - action: labeldrop
-    regex: namespace
-  - action: labeldrop
     regex: job
-  - action: labeldrop
 ---
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
