@@ -119,6 +119,10 @@ func LokiStack(
 	if err != nil {
 		return nil, err
 	}
+	size := "1x.demo"
+	if instance.Spec.LokiStackSize != "" {
+		size = instance.Spec.LokiStackSize
+	}
 	lokiStack := &lokistackv1.LokiStack{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-lokistack", instance.Name),
@@ -128,7 +132,7 @@ func LokiStack(
 		Spec: lokistackv1.LokiStackSpec{
 			// TODO: What size do we even want? I assume something
 			//       smallish since only rating interact with this
-			Size:             lokistackv1.LokiStackSizeType("1x.demo"),
+			Size:             lokistackv1.LokiStackSizeType(size),
 			Storage:          getLokiStackObjectStorageSpec(instance.Spec.S3StorageConfig),
 			StorageClassName: instance.Spec.StorageClass,
 			Tenants: &lokistackv1.TenantsSpec{
