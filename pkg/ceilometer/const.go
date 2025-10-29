@@ -34,4 +34,7 @@ const (
 
 	// KollaConfigNotification -
 	KollaConfigNotification = "/var/lib/config-data/merged/config-notification.json"
+
+	// CeilometerUserID -
+	CeilometerUserID = 42405
 )
