@@ -16,8 +16,10 @@ limitations under the License.
 package metricstorage
 
 const (
-	// RabbitMQPrometheusPort is the port number for RabbitMQ Prometheus metrics
-	RabbitMQPrometheusPort = 15691
+	// RabbitMQPrometheusTLSPortName is the port name for RabbitMQ Prometheus metrics with TLS enabled
+	RabbitMQPrometheusTLSPortName = "prometheus-tls"
+	// RabbitMQPrometheusNoTLSPortName is the port name for RabbitMQ Prometheus metrics with TLS disabled
+	RabbitMQPrometheusNoTLSPortName = "prometheus"
 
 	// PrometheusHost is the key for Prometheus host configuration
 	PrometheusHost = "host"

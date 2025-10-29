@@ -316,6 +316,22 @@ metadata:
   - kind: MetricStorage
     name: telemetry-kuttl-metricstorage
 ---
+apiVersion: monitoring.rhobs/v1
+kind: PodMonitor
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry-rabbitmq
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl-metricstorage
+spec:
+  podMetricsEndpoints:
+  - scheme: https
+    port: prometheus-tls
+    tlsConfig:
+      serverName: rabbitmq.telemetry-kuttl-tests.svc
+---
 apiVersion: v1
 kind: Service
 metadata:

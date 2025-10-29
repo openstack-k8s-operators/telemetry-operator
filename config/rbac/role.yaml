@@ -151,6 +151,7 @@ rules:
   - monitoring.rhobs
   resources:
   - monitoringstacks
+  - podmonitors
   - prometheusrules
   - scrapeconfigs
   verbs:
@@ -169,6 +170,7 @@ rules:
   - delete
   - get
   - list
+  - watch
 - apiGroups:
   - network.openstack.org
   resources:

@@ -122,8 +122,9 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=telemetry.openstack.org,resources=metricstorages/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=telemetry.openstack.org,resources=metricstorages/finalizers,verbs=update;patch
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=monitoringstacks,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.rhobs,resources=servicemonitors,verbs=get;list;delete
+//+kubebuilder:rbac:groups=monitoring.rhobs,resources=servicemonitors,verbs=get;list;watch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=scrapeconfigs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.rhobs,resources=podmonitors,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=prometheusrules,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=prometheuses,verbs=get;list;watch;update;patch;delete
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=alertmanagers,verbs=get;list;watch;update;patch;delete
@@ -202,6 +203,7 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		condition.UnknownCondition(condition.ReadyCondition, condition.InitReason, condition.ReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.MonitoringStackReadyCondition, condition.InitReason, telemetryv1.MonitoringStackReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.ScrapeConfigReadyCondition, condition.InitReason, telemetryv1.ScrapeConfigReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.PodMonitorReadyCondition, condition.InitReason, telemetryv1.PodMonitorReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.InitReason, telemetryv1.DashboardPrometheusRuleReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardPluginReadyCondition, condition.InitReason, telemetryv1.DashboardPluginReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
@@ -247,8 +249,6 @@ func (r *MetricStorageReconciler) reconcileDelete(
 	return ctrl.Result{}, nil
 }
 
-// TODO: call the function appropriately
-//
 //nolint:all
 func (r *MetricStorageReconciler) reconcileUpdate(
 	ctx context.Context,
@@ -259,6 +259,10 @@ func (r *MetricStorageReconciler) reconcileUpdate(
 	Log.Info("Reconciling Service update")
 
 	err := r.deleteOldServiceMonitors(ctx, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = r.deleteRabbitMQScrapeConfig(ctx, instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -290,6 +294,33 @@ func (r *MetricStorageReconciler) deleteOldServiceMonitors(
 			if err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+// Delete RabbitMQ ScrapeConfig
+// A ScrapeConfig for RabbitMQ was last used at the beginning of FR4
+func (r *MetricStorageReconciler) deleteRabbitMQScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+) error {
+	namespacedName := types.NamespacedName{
+		Name:      fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName),
+		Namespace: instance.Namespace,
+	}
+	scrapeConfig := &monv1alpha1.ScrapeConfig{}
+	err := r.Get(ctx, namespacedName, scrapeConfig)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	if object.CheckOwnerRefExist(instance.UID, scrapeConfig.OwnerReferences) {
+		err = r.Delete(ctx, scrapeConfig)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -450,6 +481,11 @@ func (r *MetricStorageReconciler) reconcileNormal(
 
 	// Deploy ScrapeConfigs
 	if res, err := r.createScrapeConfigs(ctx, instance, eventHandler, helper); err != nil {
+		return res, err
+	}
+
+	// Deploy PodMonitors
+	if res, err := r.createPodMonitors(ctx, instance, eventHandler); err != nil {
 		return res, err
 	}
 
@@ -622,6 +658,14 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	// when job passed, mark NetworkAttachmentsReadyCondition ready
 	instance.Status.Conditions.MarkTrue(condition.NetworkAttachmentsReadyCondition, condition.NetworkAttachmentsReadyMessage)
 
+	// Handle service update
+	ctrlResult, err := r.reconcileUpdate(ctx, instance, helper)
+	if err != nil {
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
 	if instance.Status.Conditions.AllSubConditionIsTrue() {
 		instance.Status.Conditions.MarkTrue(
 			condition.ReadyCondition, condition.ReadyMessage)
@@ -684,6 +728,31 @@ func (r *MetricStorageReconciler) prometheusEndpointSecret(
 	return nil
 }
 
+func (r *MetricStorageReconciler) createPodMonitor(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	log logr.Logger,
+	desiredPodMonitor *monv1.PodMonitor,
+) error {
+	podMonitor := &monv1.PodMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      desiredPodMonitor.Name,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err := controllerutil.CreateOrPatch(ctx, r.Client, podMonitor, func() error {
+		desiredPodMonitor.Spec.DeepCopyInto(&podMonitor.Spec)
+		podMonitor.Labels = desiredPodMonitor.Labels
+		err := controllerutil.SetControllerReference(instance, podMonitor, r.Scheme)
+		return err
+	})
+
+	if err == nil && op != controllerutil.OperationResultNone {
+		log.Info(fmt.Sprintf("PodMonitor %s successfully changed - operation: %s", podMonitor.GetName(), string(op)))
+	}
+	return err
+}
+
 func (r *MetricStorageReconciler) createServiceScrapeConfig(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
@@ -709,6 +778,50 @@ func (r *MetricStorageReconciler) createServiceScrapeConfig(
 		log.Info(fmt.Sprintf("%s ScrapeConfig %s successfully changed - operation: %s", description, scrapeConfig.GetName(), string(op)))
 	}
 	return err
+}
+
+func (r *MetricStorageReconciler) createPodMonitors(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	eventHandler handler.EventHandler,
+) (ctrl.Result, error) {
+	Log := r.GetLogger(ctx)
+	err := r.ensureWatches(ctx, "podmonitors.monitoring.rhobs", &monv1.PodMonitor{}, eventHandler)
+	if err != nil {
+		instance.Status.Conditions.MarkFalse(telemetryv1.PodMonitorReadyCondition,
+			condition.Reason("Can't own PodMonitor resource. The Cluster Observability Operator probably isn't installed"),
+			condition.SeverityError,
+			telemetryv1.PodMonitorUnableToOwnMessage, err)
+		Log.Info("Can't own PodMonitor resource. The Cluster Observability Operator probably isn't installed")
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	}
+
+	// PodMonitors for RabbitMQ monitoring
+	// NOTE: We're watching Rabbits and reconciling with each of their change
+	//       that should keep the PodMonitors always up to date.
+	rabbitList := &rabbitmqv1.RabbitmqClusterList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.GetNamespace()),
+	}
+	err = r.List(ctx, rabbitList, listOpts...)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	for _, rabbit := range rabbitList.Items {
+		desiredPodMonitor := metricstorage.RabbitMQPodMonitor(
+			instance,
+			serviceLabels,
+			rabbit.Name,
+			instance.Spec.PrometheusTLS.Enabled(),
+		)
+		err = r.createPodMonitor(ctx, instance, Log, desiredPodMonitor)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	instance.Status.Conditions.MarkTrue(telemetryv1.PodMonitorReadyCondition, condition.ReadyMessage)
+	return ctrl.Result{}, nil
 }
 
 func (r *MetricStorageReconciler) createScrapeConfigs(
@@ -756,36 +869,6 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, "kube-state-metrics",
 		ksmCfgName, desiredScrapeConfig)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// ScrapeConfigs for RabbitMQ monitoring
-	// NOTE: We're watching Rabbits and reconciling with each of their change
-	//       that should keep the targets inside the ScrapeConfig always
-	//       up to date.
-	rabbitList := &rabbitmqv1.RabbitmqClusterList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(instance.GetNamespace()),
-	}
-	err = r.List(ctx, rabbitList, listOpts...)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	rabbitTargets := []string{}
-	for _, rabbit := range rabbitList.Items {
-		rabbitServerName := fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)
-		rabbitTargets = append(rabbitTargets, net.JoinHostPort(rabbitServerName, strconv.Itoa(metricstorage.RabbitMQPrometheusPort)))
-	}
-	rabbitCfgName := fmt.Sprintf("%s-rabbitmq", telemetry.ServiceName)
-	desiredScrapeConfig = metricstorage.ScrapeConfig(
-		instance,
-		serviceLabels,
-		rabbitTargets,
-		instance.Spec.PrometheusTLS.Enabled(),
-	)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, "RabbitMQ",
-		rabbitCfgName, desiredScrapeConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
