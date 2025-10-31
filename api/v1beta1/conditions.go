@@ -39,6 +39,9 @@ const (
 	// ScrapeConfigReadyCondition Status=True condition which indicates if the ScrapeConfig is configured and operational
 	ScrapeConfigReadyCondition condition.Type = "ScrapeConfigReady"
 
+	// PodMonitorReadyCondition Status=True condition which indicates if the PodMonitor is configured and operational
+	PodMonitorReadyCondition condition.Type = "PodMonitorReady"
+
 	// PrometheusReadyCondition Status=True condition which indicates if the Prometheus watch is operational
 	PrometheusReadyCondition condition.Type = "PrometheusReady"
 
@@ -168,6 +171,15 @@ const (
 
 	// ScrapeConfigUnableToOwnMessage
 	ScrapeConfigUnableToOwnMessage = "Error occured when trying to own %s"
+
+	//
+	// PodMonitorReady condition messages
+	//
+	// PodMonitorReadyInitMessage
+	PodMonitorReadyInitMessage = "PodMonitor not started"
+
+	// PodMonitorUnableToOwnMessage
+	PodMonitorUnableToOwnMessage = "Error occured when trying to own %s"
 
 	//
 	// PrometheusReady condition messages
