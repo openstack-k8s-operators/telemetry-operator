@@ -9,13 +9,13 @@ require (
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/ginkgo/v2 v2.26.0
 	github.com/onsi/gomega v1.38.2
-	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20251016071333-d36858cc69dc
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20251021072335-17daed095a73
+	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20251025092255-99de9b2fec74
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20251025092537-71fca7a68887
 	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20251015101310-685a40d8ed16
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20251021110625-7e9c8f3df965
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20251021110625-7e9c8f3df965
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20251015131531-3c99ee398374
-	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20251020133020-fcc7c0eb832d
+	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20251029165118-2440c8d1be34
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240529090522-c780bd90b147
 	github.com/rabbitmq/cluster-operator v1.14.0
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.71.0-rhobs1
@@ -59,7 +59,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20250929092825-4c2402451077 // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20251007102731-b786c86bffe7 // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20251021110625-7e9c8f3df965 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
