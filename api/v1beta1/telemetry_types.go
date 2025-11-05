@@ -156,7 +156,7 @@ type MetricStorageSection struct {
 // LoggingSection defines the desired state of the logging service
 type LoggingSection struct {
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
+	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	// Enabled - Whether OpenStack logging service should be deployed and managed
 	Enabled *bool `json:"enabled"`
