@@ -396,6 +396,12 @@ kuttl-test-cleanup:
 		if [ "$(KUTTL_SUITE)" == "ceilometer" ]; then \
 			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s Ceilometer; \
 		fi; \
+		if [ "$(KUTTL_SUITE)" == "metric-storage" ]; then \
+			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s MetricStorage; \
+		fi; \
+		if [ "$(KUTTL_SUITE)" == "cloudkitty" ]; then \
+			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s CloudKitty; \
+		fi; \
 		if [ "$(KUTTL_SUITE)" == "default" ]; then \
 			oc delete --wait=true --all=true -n $(KUTTL_NAMESPACE) --timeout=120s Telemetry; \
 		fi; \

@@ -1,0 +1,197 @@
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: telemetry-kuttl-cloudkitty-lokistack
+  ownerReferences:
+  - kind: CloudKitty
+    name: telemetry-kuttl-cloudkitty
+spec:
+  tenants:
+    authentication:
+    - tenantId: telemetry-kuttl-cloudkitty
+      tenantName: telemetry-kuttl-cloudkitty
+# NOTE: It's hard to assert LokiStack condition with kuttl-tests, because
+#       their number can change even when LokiStack as whole is actually ready.
+#       And because kuttl-tests will compare the number of conditions defined
+#       here vs. the number of conditions inside the real CR, it could fail
+#       even when it shouldn't.
+#       But LokiStack condition is being copied into the master CloudKitty CR,
+#       so we can ensure that LokiStack is ready by checking that Cloudkitty
+#       is Ready
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKitty
+metadata:
+  name: telemetry-kuttl-cloudkitty
+status:
+  conditions:
+  - status: "True"
+    type: Ready
+  - status: "True"
+    type: CloudKittyAPIReady
+  - status: "True"
+    type: CloudKittyClientCertReady
+  - status: "True"
+    type: CloudKittyLokiStackReady
+  - status: "True"
+    type: CloudKittyProcReady
+  - status: "True"
+    type: CloudKittyStorageInitReady
+  - status: "True"
+    type: DBReady
+  - status: "True"
+    type: DBSyncReady
+  - status: "True"
+    type: InputReady
+  - status: "True"
+    type: MariaDBAccountReady
+  - status: "True"
+    type: MemcachedReady
+  - status: "True"
+    type: NetworkAttachmentsReady
+  - status: "True"
+    type: RabbitMqTransportURLReady
+  - status: "True"
+    type: RoleBindingReady
+  - status: "True"
+    type: RoleReady
+  - status: "True"
+    type: ServiceAccountReady
+  - status: "True"
+    type: ServiceConfigReady
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-cloudkitty-client-internal
+  ownerReferences:
+  - kind: CloudKitty
+    name: telemetry-kuttl-cloudkitty
+spec:
+  subject:
+    organizationalUnits:
+    - telemetry-kuttl-cloudkitty
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+status:
+  conditions:
+  - status: "True"
+    type: Ready
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-api
+  ownerReferences:
+  - kind: CloudKittyAPI
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: cloudkitty-api
+      service: cloudkitty
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-api-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  containers:
+  - name: cloudkitty-api
+  hostname: telemetry-kuttl-cloudkitty-api-0
+status:
+  containerStatuses:
+  - name: cloudkitty-api
+    ready: true
+    started: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: cloudkitty-internal
+  ownerReferences:
+  - kind: CloudKittyAPI
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  ports:
+  - port: 8889
+    protocol: TCP
+    targetPort: 8889
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: cloudkitty-public
+  ownerReferences:
+  - kind: CloudKittyAPI
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  ports:
+  - port: 8889
+    protocol: TCP
+    targetPort: 8889
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    component: cloudkitty-proc
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-proc
+  ownerReferences:
+  - kind: CloudKittyProc
+    name: telemetry-kuttl-cloudkitty-proc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: cloudkitty-proc
+      service: cloudkitty
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: cloudkitty-proc
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-proc-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: telemetry-kuttl-cloudkitty-proc
+spec:
+  containers:
+  - name: cloudkitty-processor
+  hostname: telemetry-kuttl-cloudkitty-proc-0
+status:
+  containerStatuses:
+  - name: cloudkitty-processor
+    ready: true
+    started: true
