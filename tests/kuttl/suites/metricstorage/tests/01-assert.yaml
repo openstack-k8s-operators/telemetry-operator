@@ -51,8 +51,8 @@ spec:
   - action: labeldrop
     regex: publisher
 ---
-apiVersion: monitoring.rhobs/v1alpha1
-kind: ScrapeConfig
+apiVersion: monitoring.rhobs/v1
+kind: PodMonitor
 metadata:
   labels:
     service: metricStorage
@@ -61,15 +61,20 @@ metadata:
   - kind: MetricStorage
     name: telemetry-kuttl
 spec:
-  scrapeInterval: 30s
-  metricRelabelings:
-  - action: labeldrop
-    regex: pod
-  - action: labeldrop
-    regex: namespace
-  - action: labeldrop
-    regex: job
-  - action: labeldrop
+  podMetricsEndpoints:
+  - interval: 30s
+    metricRelabelings:
+    - action: labeldrop
+      regex: namespace
+    - action: labeldrop
+      regex: job
+    - action: labeldrop
+      regex: publisher
+    port: prometheus
+    scheme: http
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
 ---
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
