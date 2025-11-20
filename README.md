@@ -293,6 +293,31 @@ If you need to connect directly to the CRC VM just use
 ssh -i ~/.crc/machines/crc/id_ecdsa core@"192.168.130.11"
 ```
 
+## Building CloudKitty images with WIP code
+
+If you want to test a version of Cloudkitty that is not yet merged, you can build the containers locally and push them to some image registry (e.g. an account on quay.io)
+
+```bash
+export CK_BRANCH=<some branch>  # e.g. refs/changes/68/950868/9
+
+make ck-build-containers
+```
+
+Tag and push the container to your registry
+
+```bash
+podman push cloudkitty-api <image-registry>
+podman push cloudkitty-processor <image-registry>
+```
+
+To use the new images, edit the telemetry or cloudkitty CR to set the image URLs
+
+```
+oc patch telemetry telemetry --type='json' -p='[{"op": "replace", "path": "/spec/cloudkitty/cloudKittyAPI/containerImage", "value": <CK_API_IMAGE>}]'
+oc patch telemetry telemetry --type='json' -p='[{"op": "replace", "path": "/spec/cloudkitty/cloudKittyProc/containerImage", "value": <CK_PROC_IMAGE>}]'
+
+```
+
 ## License
 
 ```text
