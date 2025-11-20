@@ -293,6 +293,15 @@ If you need to connect directly to the CRC VM just use
 ssh -i ~/.crc/machines/crc/id_ecdsa core@"192.168.130.11"
 ```
 
+## Install pre-requisites
+
+To use MetricsStorage storage, the cluster-observability-operator is required.
+Use the following playbook to install it:
+
+```bash
+ansible-playbook ci/create-coo-subscription-playbook.yaml
+```
+
 ## License
 
 ```text
