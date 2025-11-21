@@ -5,6 +5,7 @@
       A meta content provider zuul job to build telemetry
       specific containers.
     vars:
+      cifmw_install_yamls_sdk_version: v1.41.1
       # Note(Chandan Kumar): image_base is the operator name without -operator.
       # It is needed by openstack-operator to include telemetry operator images
       # in the openstack-operator catalog image.
@@ -137,6 +138,9 @@
       - podified-multinode-edpm-pipeline
     github-check:
       jobs:
+        - openstack-k8s-operators-content-provider:
+            vars:
+              cifmw_install_yamls_sdk_version: v1.41.1
         - telemetry-openstack-meta-content-provider-master
         - telemetry-operator-multinode-default-telemetry
         - functional-tests-osp18: &fvt_jobs_config

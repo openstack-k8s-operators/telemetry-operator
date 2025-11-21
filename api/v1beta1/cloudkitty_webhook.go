@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -47,17 +46,6 @@ func SetupCloudKittyDefaults(defaults CloudKittyDefaults) {
 	cloudKittyLog.Info("CloudKitty defaults initialized", "defaults", defaults)
 }
 
-// SetupWebhookWithManager - setups webhook with the adequate manager
-func (r *CloudKitty) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
-
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
-//+kubebuilder:webhook:path=/mutate-telemetry-openstack-org-v1beta1-cloudkitty,mutating=true,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=cloudkitties,verbs=create;update,versions=v1beta1,name=mcloudkitty.kb.io,admissionReviewVersions=v1
-
 var _ webhook.Defaulter = &CloudKitty{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
@@ -77,9 +65,6 @@ func (spec *CloudKittySpec) Default() {
 	}
 
 }
-
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-//+kubebuilder:webhook:path=/validate-telemetry-openstack-org-v1beta1-cloudkitty,mutating=false,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=cloudkitties,verbs=create;update,versions=v1beta1,name=vcloudkitty.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &CloudKitty{}
 

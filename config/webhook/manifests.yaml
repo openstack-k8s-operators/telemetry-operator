@@ -12,7 +12,7 @@ webhooks:
       namespace: system
       path: /mutate-telemetry-openstack-org-v1beta1-autoscaling
   failurePolicy: Fail
-  name: mautoscaling.kb.io
+  name: mautoscaling-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -32,7 +32,7 @@ webhooks:
       namespace: system
       path: /mutate-telemetry-openstack-org-v1beta1-ceilometer
   failurePolicy: Fail
-  name: mceilometer.kb.io
+  name: mceilometer-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -52,7 +52,7 @@ webhooks:
       namespace: system
       path: /mutate-telemetry-openstack-org-v1beta1-cloudkitty
   failurePolicy: Fail
-  name: mcloudkitty.kb.io
+  name: mcloudkitty-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -72,7 +72,7 @@ webhooks:
       namespace: system
       path: /mutate-telemetry-openstack-org-v1beta1-metricstorage
   failurePolicy: Fail
-  name: mmetricstorage.kb.io
+  name: mmetricstorage-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -92,7 +92,7 @@ webhooks:
       namespace: system
       path: /mutate-telemetry-openstack-org-v1beta1-telemetry
   failurePolicy: Fail
-  name: mtelemetry.kb.io
+  name: mtelemetry-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -118,7 +118,7 @@ webhooks:
       namespace: system
       path: /validate-telemetry-openstack-org-v1beta1-autoscaling
   failurePolicy: Fail
-  name: vautoscaling.kb.io
+  name: vautoscaling-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -138,7 +138,7 @@ webhooks:
       namespace: system
       path: /validate-telemetry-openstack-org-v1beta1-ceilometer
   failurePolicy: Fail
-  name: vceilometer.kb.io
+  name: vceilometer-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -158,7 +158,7 @@ webhooks:
       namespace: system
       path: /validate-telemetry-openstack-org-v1beta1-cloudkitty
   failurePolicy: Fail
-  name: vcloudkitty.kb.io
+  name: vcloudkitty-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -178,7 +178,7 @@ webhooks:
       namespace: system
       path: /validate-telemetry-openstack-org-v1beta1-metricstorage
   failurePolicy: Fail
-  name: vmetricstorage.kb.io
+  name: vmetricstorage-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
@@ -198,7 +198,7 @@ webhooks:
       namespace: system
       path: /validate-telemetry-openstack-org-v1beta1-telemetry
   failurePolicy: Fail
-  name: vtelemetry.kb.io
+  name: vtelemetry-v1beta1.kb.io
   rules:
   - apiGroups:
     - telemetry.openstack.org
