@@ -21,15 +21,15 @@ package v1beta1
 
 import (
 	"fmt"
+
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 )
 
 // TelemetryDefaults -
@@ -60,15 +60,6 @@ func SetupTelemetryDefaults(defaults TelemetryDefaults) {
 	telemetryDefaults = defaults
 	telemetrylog.Info("Telemetry defaults initialized", "defaults", defaults)
 }
-
-// SetupWebhookWithManager sets up the webhook with the Manager
-func (r *Telemetry) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
-
-//+kubebuilder:webhook:path=/mutate-telemetry-openstack-org-v1beta1-telemetry,mutating=true,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=telemetries,verbs=create;update,versions=v1beta1,name=mtelemetry.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Telemetry{}
 
@@ -130,9 +121,6 @@ func (spec *TelemetrySpec) Default() {
 func (spec *TelemetrySpecCore) Default() {
 	spec.Autoscaling.Aodh.Default()
 }
-
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-//+kubebuilder:webhook:path=/validate-telemetry-openstack-org-v1beta1-telemetry,mutating=false,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=telemetries,verbs=create;update,versions=v1beta1,name=vtelemetry.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Telemetry{}
 
@@ -245,6 +233,7 @@ func (spec *TelemetrySpecCore) ValidateTelemetryTopology(basePath *field.Path, n
 
 	return allErrs
 }
+
 // ValidateTelemetryTopology - Returns an ErrorList if the Topology is referenced
 // on a different namespace
 func (spec *TelemetrySpec) ValidateTelemetryTopology(basePath *field.Path, namespace string) field.ErrorList {

@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -44,15 +43,6 @@ func SetupAutoscalingDefaults(defaults AutoscalingDefaults) {
 	autoscalingDefaults = defaults
 	autoscalinglog.Info("Autoscaling defaults initialized", "defaults", defaults)
 }
-
-// SetupWebhookWithManager - setups webhook with the adequate manager
-func (r *Autoscaling) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
-
-//+kubebuilder:webhook:path=/mutate-telemetry-openstack-org-v1beta1-autoscaling,mutating=true,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=autoscalings,verbs=create;update,versions=v1beta1,name=mautoscaling.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Autoscaling{}
 
@@ -114,9 +104,6 @@ func (spec *AutoscalingSpecCore) SetDefaultRouteAnnotations(annotations map[stri
 	annotations[aodhAnno] = timeout
 	annotations[haProxyAnno] = timeout
 }
-
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-//+kubebuilder:webhook:path=/validate-telemetry-openstack-org-v1beta1-autoscaling,mutating=false,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=autoscalings,verbs=create;update,versions=v1beta1,name=vautoscaling.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Autoscaling{}
 
