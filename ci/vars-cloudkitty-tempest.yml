@@ -40,10 +40,9 @@ tempest_conf:
       validation.run_validation true
       identity.v3_endpoint_type public
       service_available.ceilometer true
-      service_available.sg_core true
-      service_available.aodh true
+      service_available.sg_core false
+      service_available.aodh false
       service_available.cinder false
-      telemetry.sg_core_service_url "https://ceilometer-internal.openstack.svc.cluster.local:3000"
       telemetry.prometheus_service_url "https://metric-storage-prometheus.openstack.svc.cluster.local:9090"
       telemetry.ceilometer_polling_interval 120
       telemetry.prometheus_scrape_interval 30
@@ -53,6 +52,7 @@ cifmw_test_operator_tempest_include_list: |
   ^tempest.*\[.*\bsmoke\b.*\]
   cloudkitty_tempest_plugin.*
   telemetry_tempest_plugin.*
+
 # TODO: update this to allow multiple external plugins to be listed with Depends-On.
 # Potentially, this can be done via the meta content provider, by adding the tempest images to the list.
 external_plugin: "opendev.org/openstack/cloudkitty-tempest-plugin"
