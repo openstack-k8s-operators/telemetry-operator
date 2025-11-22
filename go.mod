@@ -7,7 +7,7 @@ replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 require (
 	github.com/cert-manager/cert-manager v1.16.5
 	github.com/go-logr/logr v1.4.3
-	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
+	github.com/grafana/loki/operator/api/loki v0.0.0-20251122202118-723ff2ded930
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/ginkgo/v2 v2.27.1
 	github.com/onsi/gomega v1.38.2
