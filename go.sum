@@ -143,6 +143,8 @@ github.com/rabbitmq/cluster-operator v1.14.0 h1:1/nMyd9v/8T5IHA1BVcWbV0nrzN31F+g
 github.com/rabbitmq/cluster-operator v1.14.0/go.mod h1:7XVU6ngbVJSPDXld+uMVk6nu68GH7fM6yYYY2MdYKek=
 github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.71.0-rhobs1 h1:NBdZFQUVKllUnmh6suuH02+K8VS8ibErnOhxNiH+aio=
 github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.71.0-rhobs1/go.mod h1:oDJbA/Byh5LNU7zBgBZYRM5263mgL16NtysHl/uVtGY=
+github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.86.2 h1:sZUovJ184V8VHfyzjFw9BHf/XcAdVWe7JYNeI0TzEBI=
+github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.86.2/go.mod h1:nPk0OteXBkbT0CRCa2oZQL1jRLW6RJ2fuIijHypeJdk=
 github.com/rhobs/observability-operator v0.3.1 h1:vVGCt/a7Ds5VeqikaKZJz18oOPV9p4YUaezlVlwdpIM=
 github.com/rhobs/observability-operator v0.3.1/go.mod h1:nC2YcqsTdm44agl9Fz5QzNSGtSFokIGUhS1g7OlzFrs=
 github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR38lUII=
