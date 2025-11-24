@@ -44,6 +44,27 @@ spec:
         displayName: TLS
         path: tls
       version: v1beta1
+    - description: CloudKitty is the Schema for the cloudkitties API
+      displayName: Cloud Kitty
+      kind: CloudKitty
+      name: cloudkitties.telemetry.openstack.org
+      specDescriptors:
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: cloudKittyAPI.tls
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: cloudKittyProc.tls
+      version: v1beta1
+    - description: CloudKittyProc is the Schema for the cloudkittprocs API
+      displayName: Cloud Kitty Proc
+      kind: CloudKittyProc
+      name: cloudkittyprocs.telemetry.openstack.org
+      specDescriptors:
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: tls
+      version: v1beta1
     - description: Logging is the Schema for the loggings API
       displayName: Logging
       kind: Logging
@@ -87,6 +108,18 @@ spec:
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: ceilometer.tls
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: cloudkitty.cloudKittyAPI.tls
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: cloudkitty.cloudKittyProc.tls
+      - description: Enabled - Whether OpenStack CloudKitty service should be deployed
+          and managed
+        displayName: Enabled
+        path: cloudkitty.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: Enabled - Whether OpenStack logging service should be deployed
           and managed
         displayName: Enabled
@@ -125,6 +158,7 @@ spec:
   - name: Telemetry Operator
     url: https://github.com/openstack-k8s-operators/telemetry-operator
   maturity: beta
+  minKubeVersion: 0.0.0
   provider:
     name: Red Hat Inc.
     url: https://redhat.com/

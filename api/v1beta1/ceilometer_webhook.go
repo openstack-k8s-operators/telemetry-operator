@@ -18,7 +18,6 @@ package v1beta1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -46,17 +45,6 @@ func SetupCeilometerDefaults(defaults CeilometerDefaults) {
 	ceilometerDefaults = defaults
 	ceilometerlog.Info("Ceilometer defaults initialized", "defaults", defaults)
 }
-
-// SetupWebhookWithManager - setups webhook with the adequate manager
-func (r *Ceilometer) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
-
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
-//+kubebuilder:webhook:path=/mutate-telemetry-openstack-org-v1beta1-ceilometer,mutating=true,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=ceilometers,verbs=create;update,versions=v1beta1,name=mceilometer.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Ceilometer{}
 
@@ -94,9 +82,6 @@ func (spec *CeilometerSpec) Default() {
 		spec.MysqldExporterImage = ceilometerDefaults.MysqldExporterContainerImageURL
 	}
 }
-
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-//+kubebuilder:webhook:path=/validate-telemetry-openstack-org-v1beta1-ceilometer,mutating=false,failurePolicy=fail,sideEffects=None,groups=telemetry.openstack.org,resources=ceilometers,verbs=create;update,versions=v1beta1,name=vceilometer.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Ceilometer{}
 
