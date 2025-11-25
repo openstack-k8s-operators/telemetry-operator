@@ -18,3 +18,7 @@ cifmw_openshift_obs_definition:
 pre_deploy_kustomize_autoscaling:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-autoscaling.yml"
   type: playbook
+
+pre_deploy_kustomize_increase_rabbitmq_replicas:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/increase-rabbitmq-replicas.yml"
+  type: playbook

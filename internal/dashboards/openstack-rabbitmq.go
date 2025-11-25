@@ -102,7 +102,7 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "6.7.6",
 						"targets": [
 						{
-							"expr": "sum(rabbitmq_queues{instance=\"$cluster\"})",
+							"expr": "sum(rabbitmq_queues * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
 							"legendFormat": "",
 							"refId": "A"
@@ -157,7 +157,7 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "6.7.6",
 						"targets": [
 						{
-							"expr": "sum(rabbitmq_consumers{instance=\"$cluster\"})",
+							"expr": "sum(rabbitmq_consumers * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
 							"legendFormat": "",
 							"refId": "A"
@@ -212,7 +212,7 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "6.7.6",
 						"targets": [
 						{
-							"expr": "sum(rabbitmq_connections{instance=\"$cluster\"})",
+							"expr": "sum(rabbitmq_connections * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
 							"legendFormat": "",
 							"refId": "A"
@@ -267,7 +267,7 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "6.7.6",
 						"targets": [
 						{
-							"expr": "sum(rabbitmq_channels{instance=\"$cluster\"})",
+							"expr": "sum(rabbitmq_channels * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
 							"legendFormat": "",
 							"refId": "A"
@@ -322,7 +322,7 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "6.7.6",
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_received_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_received_total[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
 							"legendFormat": "",
 							"refId": "A"
@@ -377,7 +377,7 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "6.7.6",
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_redelivered_total{instance=\"$cluster\"}[60s])) + sum(rate(rabbitmq_global_messages_delivered_consume_auto_ack_total{instance=\"$cluster\"}[60s])) + sum(rate(rabbitmq_global_messages_delivered_consume_manual_ack_total{instance=\"$cluster\"}[60s])) + sum(rate(rabbitmq_global_messages_delivered_get_auto_ack_total{instance=\"$cluster\"}[60s])) + sum(rate(rabbitmq_global_messages_delivered_get_manual_ack_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_redelivered_total[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) +sum(rate(rabbitmq_global_messages_delivered_consume_auto_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) +sum(rate(rabbitmq_global_messages_delivered_consume_manual_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) +sum(rate(rabbitmq_global_messages_delivered_get_auto_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) +sum(rate(rabbitmq_global_messages_delivered_get_manual_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
 							"legendFormat": "",
 							"refId": "A"
@@ -432,7 +432,7 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "6.7.6",
 						"targets": [
 						{
-							"expr": "sum(rabbitmq_queue_messages_ready{instance=\"$cluster\"})",
+							"expr": "sum(rabbitmq_queue_messages_ready * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
 							"legendFormat": "",
 							"refId": "A"
@@ -487,7 +487,7 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"pluginVersion": "6.7.6",
 						"targets": [
 						{
-							"expr": "sum(rabbitmq_queue_messages_unacked{instance=\"$cluster\"})",
+							"expr": "sum(rabbitmq_queue_messages_unacked * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
 							"legendFormat": "",
 							"refId": "A"
@@ -562,9 +562,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "(rabbitmq_resident_memory_limit_bytes{instance=\"$cluster\"}) -\n(rabbitmq_process_resident_memory_bytes{instance=\"$cluster\"})",
+							"expr": "(rabbitmq_resident_memory_limit_bytes * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) -(rabbitmq_process_resident_memory_bytes * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -654,9 +654,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "rabbitmq_disk_space_available_bytes{instance=\"$cluster\"}",
+							"expr": "rabbitmq_disk_space_available_bytes * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -746,9 +746,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "(rabbitmq_process_max_fds{instance=\"$cluster\"}) -\n(rabbitmq_process_open_fds{instance=\"$cluster\"})",
+							"expr": "(rabbitmq_process_max_fds * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) -(rabbitmq_process_open_fds * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -838,9 +838,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "(rabbitmq_process_max_tcp_sockets{instance=\"$cluster\"}) -\n(rabbitmq_process_open_tcp_sockets{instance=\"$cluster\"})",
+							"expr": "(rabbitmq_process_max_tcp_sockets * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) -(rabbitmq_process_open_tcp_sockets * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -950,9 +950,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rabbitmq_queue_messages_ready{instance=\"$cluster\"})",
+							"expr": "sum(rabbitmq_queue_messages_ready * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1043,9 +1043,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rabbitmq_queue_messages_unacked{instance=\"$cluster\"})",
+							"expr": "sum(rabbitmq_queue_messages_unacked * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1154,9 +1154,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_received_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_received_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1246,9 +1246,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_confirmed_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_confirmed_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1338,9 +1338,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_routed_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_routed_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1430,9 +1430,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_received_confirm_total{instance=\"$cluster\"}[60s]) - \nrate(rabbitmq_global_messages_confirmed_total{instance=\"$cluster\"}[60s])\n)",
+							"expr": "sum(rate(rabbitmq_global_messages_received_confirm_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"} - rate(rabbitmq_global_messages_confirmed_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1522,9 +1522,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_unroutable_dropped_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_unroutable_dropped_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1614,9 +1614,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_unroutable_returned_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_unroutable_returned_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1725,9 +1725,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(\n  rate(rabbitmq_global_messages_delivered_consume_auto_ack_total{instance=\"$cluster\"}[60s])+\n  rate(rabbitmq_global_messages_delivered_consume_manual_ack_total{instance=\"$cluster\"}[60s])\n)",
+							"expr": "sum(  (rate(rabbitmq_global_messages_delivered_consume_auto_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) +  (rate(rabbitmq_global_messages_delivered_consume_manual_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1817,9 +1817,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_redelivered_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_redelivered_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -1909,9 +1909,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_delivered_consume_manual_ack_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_delivered_consume_manual_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2001,9 +2001,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_delivered_consume_auto_ack_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_delivered_consume_auto_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2093,9 +2093,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_acknowledged_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_acknowledged_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2185,9 +2185,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_delivered_get_auto_ack_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_delivered_get_auto_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2277,9 +2277,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_get_empty_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_get_empty_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2369,9 +2369,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_global_messages_delivered_get_manual_ack_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_global_messages_delivered_get_manual_ack_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2480,9 +2480,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "rabbitmq_queues{instance=\"$cluster\"}",
+							"expr": "rabbitmq_queues * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2572,9 +2572,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_queues_declared_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_queues_declared_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2664,9 +2664,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_queues_created_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_queues_created_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2756,9 +2756,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_queues_deleted_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_queues_deleted_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2867,9 +2867,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "rabbitmq_channels{instance=\"$cluster\"}",
+							"expr": "rabbitmq_channels * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -2958,9 +2958,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_channels_opened_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_channels_opened_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -3050,9 +3050,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_channels_closed_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_channels_closed_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -3161,9 +3161,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "rabbitmq_connections{instance=\"$cluster\"}",
+							"expr": "rabbitmq_connections * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -3252,9 +3252,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_connections_opened_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_connections_opened_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -3344,9 +3344,9 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"steppedLine": false,
 						"targets": [
 						{
-							"expr": "sum(rate(rabbitmq_connections_closed_total{instance=\"$cluster\"}[60s]))",
+							"expr": "sum(rate(rabbitmq_connections_closed_total[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) by(rabbitmq_node)",
 							"interval": "",
-							"legendFormat": "",
+							"legendFormat": "{{rabbitmq_node}}",
 							"refId": "A"
 						}
 						],
@@ -3423,7 +3423,7 @@ func OpenstackRabbitmq(dsName string) *corev1.ConfigMap {
 						"name": "cluster",
 						"options": [
 						],
-						"query": "label_values(rabbitmq_identity_info, instance)",
+						"query": "label_values(rabbitmq_identity_info, rabbitmq_cluster)",
 						"skipUrlSync": false,
 						"type": "query"
 					}
