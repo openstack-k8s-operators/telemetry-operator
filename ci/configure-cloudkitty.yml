@@ -1,0 +1,44 @@
+---
+- name: "Create the kustomization for deploying CloudKitty"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  tasks:
+    - name: Copy controlplane kustomization
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/manifests/kustomizations/controlplane/90-kustomize-controlplane-cloudkitty.yaml"
+        content: |-
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          namespace: openstack
+          patches:
+          - patch: |-
+              apiVersion: core.openstack.org/v1beta1
+              kind: OpenStackControlPlane
+              metadata:
+                name: unused
+              spec:
+                # Set overall storage class so we don't need to increase the
+                # number of PVCs that install_yamls creates
+                # this is only applicable to crc-based jobs, it is not in
+                # openshift by default, but is included in the crc distribution
+                storageClass: crc-csi-hostpath-provisioner
+                telemetry:
+                  enabled: true
+                  template:
+                    logging:
+                      enabled: false
+                    autoscaling:
+                      enabled: false
+                    cloudkitty:
+                      enabled: true
+                      s3StorageConfig:
+                        secret:
+                          name: cloudkitty-loki-s3
+                          type: s3
+                    metricStorage:
+                      enabled: true
+            target:
+              kind: OpenStackControlPlane
