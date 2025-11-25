@@ -20,12 +20,12 @@ namespace: telemetry-kuttl-tests
 timeout: 300
 parallel: 1
 testDirs:
-  - tests/kuttl/suites/autoscaling/
-  - tests/kuttl/suites/ceilometer/
-  - tests/kuttl/suites/logging/
-  - tests/kuttl/suites/default/
-  - tests/kuttl/suites/metricstorage/
-  - tests/kuttl/suites/tls/
+  - test/kuttl/tests/autoscaling/
+  - test/kuttl/tests/ceilometer/
+  - test/kuttl/tests/logging/
+  - test/kuttl/tests/default/
+  - test/kuttl/tests/metricstorage/
+  - test/kuttl/tests/tls/
 suppress:
   - events                     # Remove spammy event logs
 commands:
