@@ -106,9 +106,9 @@ func StatefulSet(
 
 	var replicas int32 = 1
 
-	volumes := getVolumes()
-	centralVolumeMounts := getVolumeMounts("ceilometer-central")
-	notificationVolumeMounts := getVolumeMounts("ceilometer-notification")
+	volumes := getVolumes(instance)
+	centralVolumeMounts := getVolumeMounts(instance, "ceilometer-central")
+	notificationVolumeMounts := getVolumeMounts(instance, "ceilometer-notification")
 	httpdVolumeMounts := getHttpdVolumeMounts()
 
 	if instance.Spec.TLS.Enabled() {
