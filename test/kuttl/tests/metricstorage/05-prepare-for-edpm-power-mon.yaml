@@ -12,17 +12,17 @@ delete:
     name: telemetry-kuttl
 commands:
   - script: |
-      oc apply -f ../deps/rhobs.yaml
+      oc apply -f deps/rhobs.yaml
       until oc api-resources | grep -q rhobs; do sleep 1; done
   - script: |
-      oc apply -n telemetry-kuttl-tests -f ../deps/dnsmasq.yaml
+      oc apply -n telemetry-kuttl-tests -f deps/dnsmasq.yaml
       until oc get dnsmasq -n telemetry-kuttl-tests | grep True; do sleep 1; done
   - script: oc apply -n telemetry-kuttl-tests -f https://raw.githubusercontent.com/openstack-k8s-operators/infra-operator/main/config/samples/network_v1beta1_netconfig.yaml
   - script: |
       oc create secret generic dataplanenodeset-openstack-edpm-ipam \
         --save-config \
         --dry-run=client \
-        --from-file=../deps/inventory \
+        --from-file=deps/inventory \
         -n telemetry-kuttl-tests \
         -o yaml | oc apply -f -
       oc label -n telemetry-kuttl-tests secret dataplanenodeset-openstack-edpm-ipam inventory="true" openstack.org/operator-name=dataplane openstackdataplanenodeset=openstack-edpm-ipam
