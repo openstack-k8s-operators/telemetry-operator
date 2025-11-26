@@ -243,6 +243,7 @@ const (
 	ksmTLSField                           = ".spec.ksmTls.secretName"
 	mysqldExporterCaBundleSecretNameField = ".spec.mysqldExporterTls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 	mysqldExporterTLSField                = ".spec.mysqldExporterTls.secretName"
+	customConfigsSecretNameField          = ".spec.customConfigsSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 )
 
 var (
@@ -255,6 +256,7 @@ var (
 		mysqldExporterCaBundleSecretNameField,
 		mysqldExporterTLSField,
 		topologyField,
+		customConfigsSecretNameField,
 	}
 )
 
@@ -577,6 +579,18 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		return ctrlResult, err
 	}
 	// run check TransportURL secret - end
+
+	//
+	// check for custom configs secret secret holding custom configuration files
+	//
+	if instance.Spec.CustomConfigsSecretName != "" {
+		_, hash, err := secret.GetSecret(ctx, helper, instance.Spec.CustomConfigsSecretName, instance.Namespace)
+		if err != nil {
+			return ctrlResult, err
+		}
+		configMapVars["custom-configs-secret"] = env.SetValue(hash)
+	}
+	// run check custom configs secret - end
 
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
@@ -1820,6 +1834,18 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			return nil
 		}
 		return []string{cr.Spec.TopologyRef.Name}
+	}); err != nil {
+		return err
+	}
+
+	// index customConfigsSecretNameField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, customConfigsSecretNameField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Ceilometer)
+		if cr.Spec.CustomConfigsSecretName == "" {
+			return nil
+		}
+		return []string{cr.Spec.CustomConfigsSecretName}
 	}); err != nil {
 		return err
 	}

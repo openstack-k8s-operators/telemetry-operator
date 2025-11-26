@@ -1,0 +1,84 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    service: aodh
+  name: aodh-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: aodh
+spec:
+  containers:
+  - name: aodh-api
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: aodh-api-config.json
+    - mountPath: /var/lib/openstack/custom-config
+      name: custom-config
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  - name: aodh-evaluator
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: aodh-evaluator-config.json
+    - mountPath: /var/lib/openstack/custom-config
+      name: custom-config
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  - name: aodh-notifier
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: aodh-notifier-config.json
+    - mountPath: /var/lib/openstack/custom-config
+      name: custom-config
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  - name: aodh-listener
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: aodh-listener-config.json
+    - mountPath: /var/lib/openstack/custom-config
+      name: custom-config
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  volumes:
+  - name: scripts
+    secret:
+      secretName: aodh-scripts
+  - name: config-data
+    secret:
+      secretName: aodh-config-data
+  - name: custom-config
+    secret:
+      secretName: custom-config
+  - projected:
+      defaultMode: 420
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: >
+      test "$(oc -n $NAMESPACE rsh -c aodh-api aodh-0 cat /etc/aodh/policy.yaml)" = "custom config contents"
+  - script: >
+      test "$(oc -n $NAMESPACE rsh -c aodh-evaluator aodh-0 cat /etc/aodh/policy.yaml)" = "custom config contents"
+  - script: >
+      test "$(oc -n $NAMESPACE rsh -c aodh-listener aodh-0 cat /etc/aodh/policy.yaml)" = "custom config contents"
+  - script: >
+      test "$(oc -n $NAMESPACE rsh -c aodh-notifier aodh-0 cat /etc/aodh/policy.yaml)" = "custom config contents"
