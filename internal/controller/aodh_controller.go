@@ -24,7 +24,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,14 +32,12 @@ import (
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
-	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	job "github.com/openstack-k8s-operators/lib-common/modules/common/job"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	statefulset "github.com/openstack-k8s-operators/lib-common/modules/common/statefulset"
-	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 
@@ -304,9 +301,6 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		common.AppSelector: autoscaling.ServiceName,
 	}
 
-	// ConfigVars
-	configVars := make(map[string]env.Setter)
-
 	//
 	// Handle Topology
 	//
@@ -521,66 +515,6 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		return ctrlResult, nil
 	}
 
-	//
-	// TLS input validation
-	//
-	// Validate the CA cert secret if provided
-	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
-		hash, err := tls.ValidateCACertSecret(
-			ctx,
-			helper.GetClient(),
-			types.NamespacedName{
-				Name:      instance.Spec.Aodh.TLS.CaBundleSecretName,
-				Namespace: instance.Namespace,
-			},
-		)
-		if err != nil {
-			if k8s_errors.IsNotFound(err) {
-				// Since the CA cert secret should have been manually created by the user and provided in the spec,
-				// we treat this as a warning because it means that the service will not be able to start.
-				instance.Status.Conditions.Set(condition.FalseCondition(
-					condition.TLSInputReadyCondition,
-					condition.ErrorReason,
-					condition.SeverityWarning,
-					condition.TLSInputReadyWaitingMessage, instance.Spec.Aodh.TLS.CaBundleSecretName))
-				return ctrl.Result{}, nil
-			}
-			instance.Status.Conditions.Set(condition.FalseCondition(
-				condition.TLSInputReadyCondition,
-				condition.ErrorReason,
-				condition.SeverityWarning,
-				condition.TLSInputErrorMessage,
-				err.Error()))
-			return ctrl.Result{}, err
-		}
-
-		if hash != "" {
-			configVars[tls.CABundleKey] = env.SetValue(hash)
-		}
-
-		// Validate API service certs secrets
-		certsHash, err := instance.Spec.Aodh.TLS.API.ValidateCertSecrets(ctx, helper, instance.Namespace)
-		if err != nil {
-			if k8s_errors.IsNotFound(err) {
-				instance.Status.Conditions.Set(condition.FalseCondition(
-					condition.TLSInputReadyCondition,
-					condition.RequestedReason,
-					condition.SeverityInfo,
-					condition.TLSInputReadyWaitingMessage, err.Error()))
-				return ctrl.Result{}, nil
-			}
-			instance.Status.Conditions.Set(condition.FalseCondition(
-				condition.TLSInputReadyCondition,
-				condition.ErrorReason,
-				condition.SeverityWarning,
-				condition.TLSInputErrorMessage,
-				err.Error()))
-			return ctrl.Result{}, err
-		}
-
-		configVars[tls.TLSHashName] = env.SetValue(certsHash)
-	}
-
 	// remove finalizers from unused MariaDBAccount records
 	err = mariadbv1.DeleteUnusedMariaDBAccountFinalizers(
 		ctx, helper, autoscaling.DatabaseCRName,
@@ -588,9 +522,6 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	// all cert input checks out so report InputReady
-	instance.Status.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
 
 	Log.Info("Reconciled Service Aodh successfully")
 	return ctrl.Result{}, nil
