@@ -221,11 +221,12 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 // fields to index to reconcile when change
 const (
-	autoscalingPasswordSecretField     = ".spec.aodh.secret"                 //nolint:gosec // G101: Not actual credentials, just field path
-	autoscalingCaBundleSecretNameField = ".spec.aodh.tls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
-	autoscalingTLSAPIInternalField     = ".spec.aodh.tls.api.internal.secretName"
-	autoscalingTLSAPIPublicField       = ".spec.aodh.tls.api.public.secretName"
-	topologyField                      = ".spec.aodh.topologyRef.Name"
+	autoscalingPasswordSecretField      = ".spec.aodh.secret"                 //nolint:gosec // G101: Not actual credentials, just field path
+	autoscalingCaBundleSecretNameField  = ".spec.aodh.tls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
+	autoscalingTLSAPIInternalField      = ".spec.aodh.tls.api.internal.secretName"
+	autoscalingTLSAPIPublicField        = ".spec.aodh.tls.api.public.secretName"
+	topologyField                       = ".spec.aodh.topologyRef.Name"
+	autoscalingCustomConfigsSecretField = ".spec.aodh.customConfigsSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 )
 
 var (
@@ -235,6 +236,7 @@ var (
 		autoscalingTLSAPIInternalField,
 		autoscalingTLSAPIPublicField,
 		topologyField,
+		autoscalingCustomConfigsSecretField,
 	}
 )
 
@@ -597,6 +599,18 @@ func (r *AutoscalingReconciler) reconcileNormal(
 
 	// all cert input checks out so report InputReady
 	instance.Status.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
+
+	//
+	// check for custom configs secret holding custom configuration files
+	//
+	if instance.Spec.Aodh.CustomConfigsSecretName != "" {
+		_, hash, err := secret.GetSecret(ctx, helper, instance.Spec.Aodh.CustomConfigsSecretName, instance.Namespace)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		configMapVars["custom-configs-secret"] = env.SetValue(hash)
+	}
+	// run check custom configs secret - end
 
 	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
 
@@ -1004,6 +1018,18 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 			return nil
 		}
 		return []string{cr.Spec.Aodh.TopologyRef.Name}
+	}); err != nil {
+		return err
+	}
+
+	// index autoscalingCustomConfigsSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingCustomConfigsSecretField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Autoscaling)
+		if cr.Spec.Aodh.CustomConfigsSecretName == "" {
+			return nil
+		}
+		return []string{cr.Spec.Aodh.CustomConfigsSecretName}
 	}); err != nil {
 		return err
 	}
