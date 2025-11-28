@@ -503,13 +503,21 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	//
 	// Handle Topology
 	//
+	// TODO: Either move the topology into reconcileCeilometer and use the serviceLabels defined there
+	// or modify ceilometer CRD and the ceilometer controller to handle topology for ceilometer, ksm, mysqld-exporter
+	// separately (each has different service labels).
+	ceilometerServiceLabels := map[string]string{
+		common.AppSelector:   ceilometer.ServiceName,
+		common.OwnerSelector: instance.Name,
+	}
+
 	topology, err := ensureTopology(
 		ctx,
 		helper,
 		instance,      // topologyHandler
 		instance.Name, // finalizer
 		&instance.Status.Conditions,
-		labels.GetLabelSelector(serviceLabels),
+		labels.GetLabelSelector(ceilometerServiceLabels),
 	)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(

@@ -79,9 +79,6 @@ var (
 		prometheusCaBundleSecretNameField,
 		prometheusTLSField,
 	}
-	serviceLabels = map[string]string{
-		common.AppSelector: "metricStorage",
-	}
 )
 
 // MetricStorageReconciler reconciles a MetricStorage object
@@ -285,6 +282,10 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 
+	serviceLabels := map[string]string{
+		common.AppSelector: "metricStorage",
+	}
+
 	eventHandler := handler.EnqueueRequestForOwner(
 		r.Scheme,
 		r.RESTMapper,
@@ -441,7 +442,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 
 	// Deploy ScrapeConfigs
-	if res, err := r.createScrapeConfigs(ctx, instance, eventHandler, helper); err != nil {
+	if res, err := r.createScrapeConfigs(ctx, instance, eventHandler, helper, serviceLabels); err != nil {
 		return res, err
 	}
 
@@ -454,7 +455,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
-		if res, err := r.createDashboardObjects(ctx, instance, helper, eventHandler); err != nil {
+		if res, err := r.createDashboardObjects(ctx, instance, helper, eventHandler, serviceLabels); err != nil {
 			return res, err
 		}
 	}
@@ -714,6 +715,7 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	instance *telemetryv1.MetricStorage,
 	eventHandler handler.EventHandler,
 	helper *helper.Helper,
+	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	err := utils.EnsureWatches(
@@ -841,32 +843,32 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// compute nodes' exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "node-exporter", telemetryv1.DefaultNodeExporterPort, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "node-exporter", telemetryv1.DefaultNodeExporterPort, serviceLabels, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// openstack network' exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "openstack-network-exporter", telemetryv1.DefaultOpenStackNetworkExporterPort, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "openstack-network-exporter", telemetryv1.DefaultOpenStackNetworkExporterPort, serviceLabels, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// openstack Ceilometer Compute's prom exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-compute-prom-exporter", telemetryv1.DefaultCeilometerComputePromExporterPort, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-compute-prom-exporter", telemetryv1.DefaultCeilometerComputePromExporterPort, serviceLabels, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// openstack Ceilometer IPMI's prom exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-ipmi-prom-exporter", telemetryv1.DefaultCeilometerIpmiPromExporterPort, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-ipmi-prom-exporter", telemetryv1.DefaultCeilometerIpmiPromExporterPort, serviceLabels, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, serviceLabels, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// Currently Kepler doesn't support TLS
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetryv1.TelemetryPowerMonitoring, "kepler", telemetryv1.DefaultKeplerPort, true)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetryv1.TelemetryPowerMonitoring, "kepler", telemetryv1.DefaultKeplerPort, serviceLabels, true)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -922,6 +924,7 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	serviceName string,
 	exporterName string,
 	exporterPort int,
+	serviceLabels map[string]string,
 	suppressTLS bool,
 ) error {
 	Log := r.GetLogger(ctx)
@@ -1108,7 +1111,7 @@ func (r *MetricStorageReconciler) createOVSDBServerSBScrapeConfig(
 	)
 }
 
-func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler) (ctrl.Result, error) {
+func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler, serviceLabels map[string]string) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	uiPluginObj := &obsui.UIPlugin{
 		ObjectMeta: metav1.ObjectMeta{
