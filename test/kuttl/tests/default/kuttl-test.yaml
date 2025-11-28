@@ -8,7 +8,7 @@ timeout: 300
 parallel: 1
 skipDelete: true
 testDirs:
-  - test/kuttl/suites/default/
+  - test/kuttl/tests/default/
 suppress:
   - events
-artifactsDir: test/kuttl/suites/default/output
+artifactsDir: test/kuttl/tests/default/output

@@ -1,14 +1,14 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestSuite
 reportFormat: JSON
-reportName: kuttl-tls-results
-namespace: telemetry-kuttl-tls
+reportName: kuttl-ceilometer-results
+namespace: telemetry-kuttl-ceilometer
 # we could set this lower, but the initial image pull can take a while
 timeout: 300
 parallel: 1
 skipDelete: true
 testDirs:
-  - test/kuttl/suites/tls/
+  - test/kuttl/tests/ceilometer/
 suppress:
   - events
-artifactsDir: test/kuttl/suites/tls/output
+artifactsDir: test/kuttl/tests/ceilometer/output

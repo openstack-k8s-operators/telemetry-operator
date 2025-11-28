@@ -367,7 +367,7 @@ kuttl-install:
 
 KUTTL_SUITE ?= default
 KUTTL_NAMESPACE ?= telemetry-kuttl-$(KUTTL_SUITE)
-KUTTL_SUITE_DIR ?= test/kuttl/suites/$(KUTTL_SUITE)
+KUTTL_SUITE_DIR ?= test/kuttl/tests/$(KUTTL_SUITE)
 
 .PHONY: kuttl-test-prep
 kuttl-test-prep:

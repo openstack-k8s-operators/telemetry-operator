@@ -50,7 +50,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: crc-csi-hostpath-provisioner
+  storageClassName: local-storage
 ---
 apiVersion: v1
 kind: Service

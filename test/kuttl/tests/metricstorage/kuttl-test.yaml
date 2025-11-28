@@ -1,14 +1,14 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestSuite
 reportFormat: JSON
-reportName: kuttl-topology-results
-namespace: telemetry-kuttl-topology
+reportName: kuttl-metricstorage-results
+namespace: telemetry-kuttl-metricstorage
 # we could set this lower, but the initial image pull can take a while
 timeout: 300
 parallel: 1
 skipDelete: true
 testDirs:
-  - test/kuttl/suites/topology/
+  - test/kuttl/tests/metricstorage/
 suppress:
   - events
-artifactsDir: test/kuttl/suites/topology/output
+artifactsDir: test/kuttl/tests/metricstorage/output
