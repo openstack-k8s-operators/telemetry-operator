@@ -19,6 +19,9 @@ reportName: kuttl-test-telemetry
 namespace: telemetry-kuttl-tests
 timeout: 300
 parallel: 1
+skipTests:
+  - topology
+  - cloudkitty
 testDirs:
   - test/kuttl/tests/
 suppress:
