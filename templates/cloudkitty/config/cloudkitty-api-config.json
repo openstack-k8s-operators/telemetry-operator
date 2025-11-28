@@ -51,6 +51,13 @@
       "perm": "0644"
     },
     {
+      "source": "/var/lib/openstack/custom-config/*",
+      "dest": "/etc/cloudkitty/",
+      "owner": "cloudkitty",
+      "perm": "0600",
+      "optional": true
+    },
+    {
       "source": "/var/lib/config-data/tls/certs/*",
       "dest": "/etc/pki/tls/certs/",
       "owner": "cloudkitty",
