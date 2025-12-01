@@ -213,6 +213,62 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
+  name: vcloudkitty.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:${WEBHOOK_PORT}/validate-telemetry-openstack-org-v1beta1-cloudkitty
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: vcloudkitty.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cloudkitties
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mcloudkitty.kb.io
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: ${CA_BUNDLE}
+    url: https://${CRC_IP}:${WEBHOOK_PORT}/mutate-telemetry-openstack-org-v1beta1-cloudkitty
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: mcloudkitty.kb.io
+  objectSelector: {}
+  rules:
+  - apiGroups:
+    - telemetry.openstack.org
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cloudkitties
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
   name: vmetricstorage.kb.io
 webhooks:
 - admissionReviewVersions:
