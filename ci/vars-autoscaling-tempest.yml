@@ -24,8 +24,14 @@ cifmw_test_operator_tempest_include_list: |
   ^tempest.*\[.*\bsmoke\b.*\]
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh
+  ^heat_tempest_plugin.*
 cifmw_test_operator_tempest_exclude_list: |
   telemetry_tempest_plugin.scenario.test_telemetry_integration_prometheus.PrometheusGabbiTest.test_autoscaling
+  heat_tempest_plugin.tests.functional.test_os_wait_condition.OSWaitCondition
+  heat_tempest_plugin.tests.scenario.test_aodh_alarm.AodhAlarmTest
+  heat_tempest_plugin.tests.scenario.test_server_cfn_init.CfnInitIntegrationTest
+  heat_tempest_plugin.tests.scenario.test_server_signal.ServerSignalIntegrationTest
+  heat_tempest_plugin.tests.scenario.test_server_software_config.SoftwareConfigIntegrationTest
 external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
 change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
 cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + external_plugin, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
