@@ -23,12 +23,12 @@ spec:
       api:
         internal: {}
         public: {}
-      caBundleSecretName: combined-ca-bundle
+      caBundleSecretName: ""
   cloudKittyProc:
     replicas: 1
     resources: {}
     tls:
-      caBundleSecretName: combined-ca-bundle
+      caBundleSecretName: ""
   databaseAccount: cloudkitty
   databaseInstance: openstack
   memcachedInstance: memcached
