@@ -1,0 +1,57 @@
+---
+- name: "Install loki for cloudkitty"
+  hosts: "{{ cifmw_target_hook_host | default('localhost')  }}"
+  gather_facts: true
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig | default(ansible_env.HOME + '/.kube.config' ) }}"
+    PATH: "{{ cifmw_path | default(ansible_env.PATH) }}"
+  tasks:
+    - name: Set zuul
+      when: not zuul is defined
+      ansible.builtin.set_fact:
+        zuul:
+          projects:
+            github.com/openstack-k8s-operators/telemetry-operator:
+              src_dir: "{{ telemetry_operator_dir | default('telemetry-operator/') }}"
+
+      # NOTE: The value doesn't get used unless the deploy-loki-for-ck is converted into a template and rendered.
+      # TODO: Update the yaml to a template
+    - name: Set the loki-operator version to pin the version
+      ansible.builtin.set_fact:
+        loki_operator_version: "v6.3.0"
+
+    - name: Deploy loki operator
+      ansible.builtin.shell:
+        cmd: |
+          oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-loki-for-ck.yaml
+
+    - name: Get and approve the installplan when the version is pinned
+      when: loki_operator_version is defined
+      block:
+        - name: Get the installplan from the loki-operator subscription
+          ansible.builtin.shell:
+            cmd: |
+              oc get installplan -n openshift-operators-redhat | grep "loki-operator.{{ loki_operator_version }}" | awk '{print $1}'
+          retries: 10
+          delay: 10
+          register: loki_installplan
+          until: loki_installplan.stdout_lines | length != 0
+
+        - name: Show the loki_installplan from oc get installplan
+          ansible.builtin.debug:
+            var: loki_installplan
+
+        - name: Approve the installation
+          ansible.builtin.shell:
+            cmd: |
+              oc patch -n openshift-operators-redhat installplan {{ loki_installplan.stdout }} --type='json' -p='[{"op": "replace", "path": "/spec/approved", "value":true}]'
+
+    - name: Wait up to 5 minutes until the Loki CSV is Succeeded
+      ansible.builtin.shell:
+        cmd: |
+          oc get csv | grep loki-operator
+      ignore_errors: true
+      register: output
+      until: output.stdout_lines | length == 1 and "Succeeded" in output.stdout
+      retries: 30
+      delay: 10
