@@ -20,12 +20,13 @@ tempest_conf:
       telemetry.prometheus_scrape_interval 30
       telemetry.alarm_threshold 50000000000
 cifmw_test_operator_tempest_tempestconf_config: "{{ tempest_conf }}"
+cifmw_test_operator_tempest_smoke: true
 cifmw_test_operator_tempest_include_list: |
-  ^tempest.*\[.*\bsmoke\b.*\]
   telemetry_tempest_plugin.scenario
   telemetry_tempest_plugin.aodh
 cifmw_test_operator_tempest_exclude_list: |
   telemetry_tempest_plugin.scenario.test_telemetry_integration_prometheus.PrometheusGabbiTest.test_autoscaling
+  ^octavia*
 external_plugin: "opendev.org/openstack/telemetry-tempest-plugin"
 change_item: "{{ zuul['items'] | selectattr('project.canonical_name', 'equalto', external_plugin) }}"
 cifmw_test_operator_tempest_external_plugin: "{{ [] if change_item | length < 1 else [ { 'repository': 'https://' + external_plugin + '.git', 'changeRepository': 'https://review' + external_plugin, 'changeRefspec': [ 'refs/changes', change_item[0].change[-2:], change_item[0].change, change_item[0].patchset ] | join('/') } ] }}"
