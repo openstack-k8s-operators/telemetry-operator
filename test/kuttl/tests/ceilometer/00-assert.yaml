@@ -236,3 +236,10 @@ spec:
   - port: 9104
     protocol: TCP
     targetPort: 9104
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneService
+metadata:
+  labels:
+    service: ceilometer
+  name: ceilometer

@@ -6,6 +6,8 @@ metadata:
     metallb.universe.tf/allow-shared-ip: internalapi
     metallb.universe.tf/loadBalancerIPs: 172.17.0.80
   name: openstack-logging
+  labels:
+    service: logging
 spec:
   ports:
   - port: 10514

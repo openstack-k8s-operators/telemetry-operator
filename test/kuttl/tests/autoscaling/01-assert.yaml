@@ -129,3 +129,19 @@ spec:
     port: 8042
     protocol: TCP
     targetPort: 8042
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneEndpoint
+metadata:
+  labels:
+    service: aodh
+  name: aodh
+spec:
+  serviceName: aodh
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneService
+metadata:
+  labels:
+    service: aodh
+  name: aodh

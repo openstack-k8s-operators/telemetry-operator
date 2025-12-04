@@ -599,6 +599,10 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
 
+	serviceLabels := map[string]string{
+		common.AppSelector: cloudkitty.ServiceName,
+	}
+
 	// Create cloudkitty client cert / key
 	certIssuer, err := certmanager.GetIssuerByLabels(
 		ctx, helper, instance.Namespace,
@@ -784,10 +788,6 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 		return rbacResult, err
 	} else if (rbacResult != ctrl.Result{}) {
 		return rbacResult, nil
-	}
-
-	serviceLabels := map[string]string{
-		common.AppSelector: cloudkitty.ServiceName,
 	}
 
 	configVars := make(map[string]env.Setter)

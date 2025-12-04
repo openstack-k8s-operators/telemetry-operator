@@ -112,6 +112,42 @@ kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
+  name: telemetry-ksm
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+spec:
+  scrapeInterval: 30s
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry-openstack-network-exporter
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+spec:
+  scrapeInterval: 30s
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
+  name: telemetry-podman-exporter
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+spec:
+  scrapeInterval: 30s
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
   name: telemetry-mysqld-exporter
   ownerReferences:
   - kind: MetricStorage
@@ -200,3 +236,10 @@ kind: ConfigMap
 metadata:
   name: grafana-dashboard-openstack-network-traffic
   namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: telemetry-kuttl-prometheus-endpoint
+  labels:
+    service: metricStorage
