@@ -27,6 +27,8 @@ spec:
   ceilometer:
     enabled: true
     secret: osp-secret
+    mysqldExporterEnabled: true
+    ksmEnabled: true
   logging:
     enabled: false
     port: 10514

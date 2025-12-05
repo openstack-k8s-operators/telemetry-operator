@@ -27,6 +27,58 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   labels:
+    service: mysqld-exporter
+    owner: ceilometer
+  name: mysqld-exporter
+  ownerReferences:
+  - kind: Ceilometer
+    name: ceilometer
+spec:
+  template:
+    spec:
+      topologySpreadConstraints:
+       - maxSkew: 1
+         topologyKey: "topology.kubernetes.io/hostname"
+         whenUnsatisfiable: ScheduleAnyway
+         labelSelector:
+           matchLabels:
+             service: mysqld-exporter
+             owner: ceilometer
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    service: kube-state-metrics
+  name: kube-state-metrics
+  ownerReferences:
+  - kind: Ceilometer
+    name: ceilometer
+spec:
+  template:
+    spec:
+      topologySpreadConstraints:
+       - maxSkew: 1
+         topologyKey: "topology.kubernetes.io/hostname"
+         whenUnsatisfiable: ScheduleAnyway
+         labelSelector:
+           matchLabels:
+             service: kube-state-metrics
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
     service: aodh
   name: aodh
   ownerReferences:
