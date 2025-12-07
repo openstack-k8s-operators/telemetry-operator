@@ -500,55 +500,25 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		return rbacResult, nil
 	}
 
-	//
-	// Handle Topology
-	//
-	// TODO: Either move the topology into reconcileCeilometer and use the serviceLabels defined there
-	// or modify ceilometer CRD and the ceilometer controller to handle topology for ceilometer, ksm, mysqld-exporter
-	// separately (each has different service labels).
-	ceilometerServiceLabels := map[string]string{
-		common.AppSelector:   ceilometer.ServiceName,
-		common.OwnerSelector: instance.Name,
-	}
-
-	topology, err := ensureTopology(
-		ctx,
-		helper,
-		instance,      // topologyHandler
-		instance.Name, // finalizer
-		&instance.Status.Conditions,
-		labels.GetLabelSelector(ceilometerServiceLabels),
-	)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.TopologyReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.TopologyReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements: %w", err)
-	}
-
-	ksmRes, err := r.reconcileKSM(ctx, instance, helper, topology)
+	ksmRes, err := r.reconcileKSM(ctx, instance, helper)
 	if err != nil {
 		return ksmRes, err
 	}
 
-	mysqldRes, err := r.reconcileMysqldExporter(ctx, instance, helper, topology)
+	mysqldRes, err := r.reconcileMysqldExporter(ctx, instance, helper)
 	if (err != nil || mysqldRes != ctrl.Result{}) {
 		return mysqldRes, err
 	}
 
 	// NOTE(mmagr): Ceilometer reconciliation has to be the last as this is the (only) place
 	//              where condition ReadyCondition is/should be evaluated
-	return r.reconcileCeilometer(ctx, instance, helper, topology)
+	return r.reconcileCeilometer(ctx, instance, helper)
 }
 
 func (r *CeilometerReconciler) reconcileCeilometer(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
-	topology *topologyv1.Topology,
 ) (ctrl.Result, error) {
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
@@ -760,6 +730,24 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		common.OwnerSelector: instance.Name,
 	}
 
+	topology, err := ensureTopology(
+		ctx,
+		helper,
+		instance,      // topologyHandler
+		instance.Name, // finalizer
+		&instance.Status.Conditions,
+		labels.GetLabelSelector(serviceLabels),
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.TopologyReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.TopologyReadyErrorMessage, // Topology config create error occured %s
+			fmt.Sprintf("for ceilometer topology: %s", err.Error())))
+		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements (ceilometer): %w", err)
+	}
+
 	// Handle service init
 	ctrlResult, err = r.reconcileInit(ctx, instance, helper, serviceLabels)
 	if err != nil {
@@ -828,7 +816,6 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
-	topology *topologyv1.Topology,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, mysqldexporter.ServiceName))
@@ -952,6 +939,24 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 		common.OwnerSelector: instance.Name,
 	}
 
+	topology, err := ensureTopology(
+		ctx,
+		helper,
+		instance,      // topologyHandler
+		instance.Name, // finalizer
+		&instance.Status.Conditions,
+		labels.GetLabelSelector(serviceLabels),
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.TopologyReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.TopologyReadyErrorMessage, // Topology config create error occured %s
+			fmt.Sprintf("for mysqld-exporter topology: %s", err.Error())))
+		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements (mysqld-exporter): %w", err)
+	}
+
 	// Define a new StatefulSet object
 	sfsetDef, err := mysqldexporter.StatefulSet(instance, inputHash, serviceLabels, topology)
 	if err != nil {
@@ -1008,7 +1013,6 @@ func (r *CeilometerReconciler) reconcileKSM(
 	ctx context.Context,
 	instance *telemetryv1.Ceilometer,
 	helper *helper.Helper,
-	topology *topologyv1.Topology,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, availability.KSMServiceName))
@@ -1113,6 +1117,24 @@ func (r *CeilometerReconciler) reconcileKSM(
 
 	instance.Status.KSMHash[common.InputHashName] = inputHash
 	instance.Status.Conditions.MarkTrue(telemetryv1.KSMServiceConfigReadyCondition, condition.InputReadyMessage)
+
+	topology, err := ensureTopology(
+		ctx,
+		helper,
+		instance,      // topologyHandler
+		instance.Name, // finalizer
+		&instance.Status.Conditions,
+		labels.GetLabelSelector(serviceLabels),
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.TopologyReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.TopologyReadyErrorMessage, // Topology config create error occured %s
+			fmt.Sprintf("for kube-state-metrics topology: %s", err.Error())))
+		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements (kube-state-metrics): %w", err)
+	}
 
 	// create the kube-state-metrics statefulset
 	ssDef, err := availability.KSMStatefulSet(instance, tlsConfName, serviceLabels, topology)
