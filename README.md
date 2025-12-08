@@ -35,7 +35,45 @@ This operator deploys a multiple telemetry agents, both in the control plane and
     make openstack_deploy
     ```
 
-4. Deploy dataplane operator
+4. (Optional) Set-up prerequisites and update services
+
+    NOTE: Execute this step from the telemetry-operator directory
+
+    4.a. Deploy COO (required for metric-storage):
+
+    ```bash
+    ansible-playbook ci/create-coo-subscription-playbook.yaml
+    ```
+
+    4.b. Deploy loki-operator and minio (required for cloudkitty):
+
+    ```bash
+    ansible-playbook ci/cloudkitty-pre_deploy-install_loki.yml
+    ```
+
+    4.c. Deploy loki-operator, minio, CLO (required for logging):
+
+    NOTE: 4.b is a subset of this. Either one of the steps or both can be run.
+
+    ```bash
+    ansible-playbook ci/deploy-logging-dependencies.yml --tags clo
+    ```
+
+    4.d. Update openstack services
+
+    NOTE: This can be done later except for updating ceilometer, which should be done before deploying the dataplane.
+
+    ```bash
+    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-aodh-patch.yaml # required for autoscaling
+    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-ceilometer-patch.yaml # required for ceilometer compute metrics
+    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-cloudkitty-patch.yaml # required for cloudkitty
+    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-heat-patch.yaml # required for autoscaling
+    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-openstackclient-patch.yaml # required for "openstack metric" commands to work correctly
+    ```
+
+    Return to the install_yamls directory before continuing.
+
+5. Deploy dataplane operator
 
     ```bash
     DATAPLANE_TOTAL_NODES=2 DATAPLANE_NTP_SERVER=clock.redhat.com make edpm_deploy
@@ -49,7 +87,7 @@ This operator deploys a multiple telemetry agents, both in the control plane and
     DATAPLANE_TOTAL_NODES=2 DATAPLANE_NTP_SERVER=clock.redhat.com make edpm_wait_deploy
     ```
 
-5. Refresh Nova discover hosts
+6. Refresh Nova discover hosts
 
     ```bash
     make edpm_nova_discover_hosts
@@ -57,13 +95,13 @@ This operator deploys a multiple telemetry agents, both in the control plane and
 
     Now, we proceed to run our own telemetry-operator instance:
 
-6. Remove Telemetry deployment
+7. Remove Telemetry deployment
 
     ```bash
     oc patch openstackcontrolplane openstack-galera-network-isolation --type='json' -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value":false}]'
     ```
 
-7. Scale down telemetry-operator and openstack-operator
+8. Scale down telemetry-operator and openstack-operator
 
     ```bash
     oc scale deployments/openstack-operator-controller-operator --replicas 0 -n openstack-operators
@@ -73,7 +111,7 @@ This operator deploys a multiple telemetry agents, both in the control plane and
     oc scale deployments/telemetry-operator-controller-manager --replicas 0 -n openstack-operators
     ```
 
-8. Deploy custom telemetry-operator version
+9. Deploy custom telemetry-operator version
 
     NOTE: If you intend to deploy a custom telemetry object *with pre-populated image URLs*, you can use `make run` instead of `make run-with-webhook`, because the webhooks will not be required.
 
@@ -88,17 +126,17 @@ This operator deploys a multiple telemetry agents, both in the control plane and
     OPERATOR_TEMPLATES=$PWD/templates make run-with-webhook
     ```
 
-9. Deploy Telemetry
+10. Deploy Telemetry
 
     There are two options, either use the existing OpenStackControlPlane to manage the telemetry object, or manage it yourself.
 
-    9.a. To use the existing OpenStackControlPlane to manage the telemetry object, re-enable telemetry (preferred way, unless necessary for some reason):
+    10.a. To use the existing OpenStackControlPlane to manage the telemetry object, re-enable telemetry (preferred way, unless necessary for some reason):
 
     ```bash
     oc patch openstackcontrolplane openstack-galera-network-isolation --type='json' -p='[{"op": "replace", "path": "/spec/telemetry/enabled", "value":true}]'
     ```
 
-    9.b. To use a custom telemetry object
+    10.b. To use a custom telemetry object
 
     >NOTE: Make sure to use a different name other than "telemetry" in your custom object
     >
@@ -291,15 +329,6 @@ If you need to connect directly to the CRC VM just use
 
 ```bash
 ssh -i ~/.crc/machines/crc/id_ecdsa core@"192.168.130.11"
-```
-
-## Install pre-requisites
-
-To use MetricsStorage storage, the cluster-observability-operator is required.
-Use the following playbook to install it:
-
-```bash
-ansible-playbook ci/create-coo-subscription-playbook.yaml
 ```
 
 ## License
