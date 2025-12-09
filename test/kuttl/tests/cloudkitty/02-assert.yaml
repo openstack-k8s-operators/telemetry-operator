@@ -118,11 +118,15 @@ metadata:
     name: telemetry-kuttl-cloudkitty-api
 spec:
   containers:
+  - name: telemetry-kuttl-cloudkitty-api-log
   - name: cloudkitty-api
   hostname: telemetry-kuttl-cloudkitty-api-0
 status:
   containerStatuses:
   - name: cloudkitty-api
+    ready: true
+    started: true
+  - name: telemetry-kuttl-cloudkitty-api-log
     ready: true
     started: true
 ---
@@ -192,11 +196,11 @@ metadata:
     name: telemetry-kuttl-cloudkitty-proc
 spec:
   containers:
-  - name: cloudkitty-processor
+  - name: cloudkitty-proc
   hostname: telemetry-kuttl-cloudkitty-proc-0
 status:
   containerStatuses:
-  - name: cloudkitty-processor
+  - name: cloudkitty-proc
     ready: true
     started: true
 ---
