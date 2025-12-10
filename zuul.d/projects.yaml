@@ -49,6 +49,16 @@
       - roles/test_snmp_traps/.*
       - roles/test_verify_email/.*
       - test/.*
+      - ^LICENSE$
+      - ^PROJECT$
+      - ^README.md$
+      - ^renovate.json$
+      - ^kuttl-test.yaml$
+      - .pre-commit-config.yaml
+      - .ci-operator.yaml
+      - .dockerignore
+      - .gitignore
+      - .golangci.yaml
 
 - job:
     name: telemetry-operator-multinode-autoscaling-tempest
