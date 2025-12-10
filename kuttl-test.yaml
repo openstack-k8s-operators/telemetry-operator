@@ -20,8 +20,6 @@ namespace: telemetry-kuttl-tests
 # LokiStack can take a long time to get ready
 timeout: 600
 parallel: 1
-skipTests:
-  - topology
 testDirs:
   - test/kuttl/tests/
 suppress:
