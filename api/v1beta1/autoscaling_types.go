@@ -136,6 +136,12 @@ type AodhCore struct {
 	// TopologyRef to apply the Topology defined by the associated CR referenced
 	// by name
 	TopologyRef *topologyv1.TopoRef `json:"topologyRef,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// A name of a secret containing custom configuration files. Files
+	// from this secret will get copied into /etc/aodh/ and they'll
+	// overwrite any default files already present there.
+	CustomConfigsSecretName string `json:"customConfigsSecretName,omitempty"`
 }
 
 // AutoscalingSpec defines the desired state of Autoscaling

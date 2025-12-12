@@ -42,6 +42,12 @@ type CloudKittyAPITemplateCore struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
 	TLS tls.API `json:"tls,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// A name of a secret containing custom configuration files. Files
+	// from this secret will get copied into /etc/cloudkitty/ and they'll
+	// overwrite any default files already present there.
+	CustomConfigsSecretName string `json:"customConfigsSecretName,omitempty"`
 }
 
 // CloudKittyAPITemplate defines the input parameters for the CloudKitty API service

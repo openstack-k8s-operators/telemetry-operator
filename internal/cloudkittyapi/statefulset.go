@@ -74,8 +74,8 @@ func StatefulSet(
 	}
 
 	// create Volume and VolumeMounts
-	volumes := GetVolumes(cloudkitty.GetOwningCloudKittyName(instance), instance.Name)
-	volumeMounts := GetVolumeMounts()
+	volumes := GetVolumes(cloudkitty.GetOwningCloudKittyName(instance), instance.Name, instance)
+	volumeMounts := GetVolumeMounts(instance)
 
 	// add CA cert if defined
 	if instance.Spec.TLS.CaBundleSecretName != "" {

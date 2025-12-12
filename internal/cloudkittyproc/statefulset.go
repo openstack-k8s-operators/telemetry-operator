@@ -68,8 +68,8 @@ func StatefulSet(
 	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 
-	volumes := GetVolumes(cloudkitty.GetOwningCloudKittyName(instance), instance.Name)
-	volumeMounts := GetVolumeMounts()
+	volumes := GetVolumes(cloudkitty.GetOwningCloudKittyName(instance), instance.Name, instance)
+	volumeMounts := GetVolumeMounts(instance)
 
 	// Add the CA bundle
 	if instance.Spec.TLS.CaBundleSecretName != "" {
