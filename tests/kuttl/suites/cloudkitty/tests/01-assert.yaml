@@ -5,6 +5,8 @@ metadata:
   ownerReferences:
   - kind: CloudKitty
     name: telemetry-kuttl-cloudkitty
+  labels:
+    service: cloudkitty
 spec:
   tenants:
     authentication:
@@ -67,6 +69,8 @@ metadata:
   ownerReferences:
   - kind: CloudKitty
     name: telemetry-kuttl-cloudkitty
+  labels:
+    service: cloudkitty
 spec:
   subject:
     organizationalUnits:
@@ -195,3 +199,21 @@ status:
   - name: cloudkitty-processor
     ready: true
     started: true
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneEndpoint
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: cloudkitty
+spec:
+  serviceName: cloudkitty
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneService
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: cloudkitty
