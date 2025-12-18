@@ -239,6 +239,10 @@ spec:
         readOnly: true
       - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-0
         name: prometheus-telemetry-kuttl-metricstorage-rulefiles-0
+      - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-1
+        name: prometheus-telemetry-kuttl-metricstorage-rulefiles-1
+      - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-2
+        name: prometheus-telemetry-kuttl-metricstorage-rulefiles-2
       - mountPath: /etc/prometheus/web_config/web-config.yaml
         name: web-config
         readOnly: true
