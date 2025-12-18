@@ -25,6 +25,16 @@ spec:
   ceilometer:
     enabled: true
     secret: osp-secret
+  cloudkitty:
+    enabled: true
+    s3StorageConfig:
+      schemas:
+      - effectiveDate: "2024-11-18"
+        version: v13
+      secret:
+        name: logging-loki-s3
+        type: s3
+    storageClass: local-storage
   logging:
     enabled: false
     port: 10514
