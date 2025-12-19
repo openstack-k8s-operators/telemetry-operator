@@ -48,3 +48,33 @@ spec:
   prometheusTls:
     caBundleSecretName: combined-ca-bundle
     secretName: cert-metric-storage-prometheus-svc
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKitty
+metadata:
+  name: telemetry-kuttl-cloudkitty
+spec:
+  enabled: true
+  s3StorageConfig:
+    schemas:
+    - effectiveDate: "2024-11-18"
+      version: v13
+    secret:
+      name: logging-loki-s3
+      type: s3
+  storageClass: local-storage
+  prometheusHost: telemetry-kuttl-metricstorage-prometheus
+  prometheusPort: 9090
+  prometheusTLSCaCertSecret:
+    name: combined-ca-bundle
+  cloudKittyAPI:
+    tls:
+      api:
+        internal:
+          secretName: cert-cloudkitty-internal-svc
+        public:
+          secretName: cert-cloudkitty-public-svc
+      caBundleSecretName: combined-ca-bundle
+  cloudKittyProc:
+    tls:
+      caBundleSecretName: combined-ca-bundle

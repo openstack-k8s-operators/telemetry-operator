@@ -399,3 +399,134 @@ spec:
     port: 9090
     protocol: TCP
     targetPort: 9090
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKitty
+metadata:
+  name: telemetry-kuttl-cloudkitty
+status:
+  conditions:
+  - status: "True"
+    type: Ready
+  - status: "True"
+    type: CloudKittyAPIReady
+  - status: "True"
+    type: CloudKittyClientCertReady
+  - status: "True"
+    type: CloudKittyLokiStackReady
+  - status: "True"
+    type: CloudKittyProcReady
+  - status: "True"
+    type: CloudKittyStorageInitReady
+  - status: "True"
+    type: DBReady
+  - status: "True"
+    type: DBSyncReady
+  - status: "True"
+    type: InputReady
+  - status: "True"
+    type: MariaDBAccountReady
+  - status: "True"
+    type: MemcachedReady
+  - status: "True"
+    type: NetworkAttachmentsReady
+  - status: "True"
+    type: RabbitMqTransportURLReady
+  - status: "True"
+    type: RoleBindingReady
+  - status: "True"
+    type: RoleReady
+  - status: "True"
+    type: ServiceAccountReady
+  - status: "True"
+    type: ServiceConfigReady
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-api-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  containers:
+  - name: telemetry-kuttl-cloudkitty-api-log
+  - name: cloudkitty-api
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: cloudkitty-api-config.json
+    - mountPath: /var/lib/openstack/loki-certs
+      name: certs
+    - mountPath: /var/lib/openstack/service-config/
+      name: config-data-custom
+    - mountPath: /var/log/cloudkitty
+      name: logs
+    - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+      name: combined-ca-bundle
+      subPath: tls-ca-bundle.pem
+    - mountPath: /var/lib/config-data/tls/certs/internal.crt
+      name: internal-tls-certs
+      subPath: tls.crt
+    - mountPath: /var/lib/config-data/tls/private/internal.key
+      name: internal-tls-certs
+      subPath: tls.key
+    - mountPath: /var/lib/config-data/tls/certs/public.crt
+      name: public-tls-certs
+      subPath: tls.crt
+    - mountPath: /var/lib/config-data/tls/private/public.key
+      name: public-tls-certs
+      subPath: tls.key
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  hostname: telemetry-kuttl-cloudkitty-api-0
+status:
+  containerStatuses:
+  - name: cloudkitty-api
+    ready: true
+    started: true
+  - name: telemetry-kuttl-cloudkitty-api-log
+    ready: true
+    started: true
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: cloudkitty-proc
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-proc-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: telemetry-kuttl-cloudkitty-proc
+spec:
+  containers:
+  - name: cloudkitty-proc
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: cloudkitty-proc-config.json
+    - mountPath: /var/lib/openstack/loki-certs
+      name: certs
+    - mountPath: /var/lib/openstack/service-config/
+      name: config-data-custom
+    - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+      name: combined-ca-bundle
+      subPath: tls-ca-bundle.pem
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  hostname: telemetry-kuttl-cloudkitty-proc-0
+status:
+  containerStatuses:
+  - name: cloudkitty-proc
+    ready: true
+    started: true

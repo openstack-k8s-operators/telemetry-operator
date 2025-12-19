@@ -21,4 +21,14 @@ metadata:
 apiVersion: v1
 kind: Secret
 metadata:
+  name: cert-cloudkitty-internal-svc
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cert-cloudkitty-public-svc
+---
+apiVersion: v1
+kind: Secret
+metadata:
   name: combined-ca-bundle

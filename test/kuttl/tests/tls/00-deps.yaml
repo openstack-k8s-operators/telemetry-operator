@@ -5,3 +5,6 @@ commands:
       # COO is required for MetricStorage
       oc apply -f deps/rhobs.yaml
       until oc api-resources | grep -q rhobs; do sleep 1; done
+  - script: |
+      oc apply -f deps/loki-operator.yaml
+      until oc api-resources | grep -q grafana; do sleep 1; done
