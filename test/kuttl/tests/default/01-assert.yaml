@@ -337,3 +337,44 @@ status:
   currentReplicas: 1
   readyReplicas: 1
   replicas: 1
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKitty
+metadata:
+  name: cloudkitty
+status:
+  conditions:
+  - status: "True"
+    type: Ready
+  - status: "True"
+    type: CloudKittyAPIReady
+  - status: "True"
+    type: CloudKittyClientCertReady
+  - status: "True"
+    type: CloudKittyLokiStackReady
+  - status: "True"
+    type: CloudKittyProcReady
+  - status: "True"
+    type: CloudKittyStorageInitReady
+  - status: "True"
+    type: DBReady
+  - status: "True"
+    type: DBSyncReady
+  - status: "True"
+    type: InputReady
+  - status: "True"
+    type: MariaDBAccountReady
+  - status: "True"
+    type: MemcachedReady
+  - status: "True"
+    type: NetworkAttachmentsReady
+  - status: "True"
+    type: RabbitMqTransportURLReady
+  - status: "True"
+    type: RoleBindingReady
+  - status: "True"
+    type: RoleReady
+  - status: "True"
+    type: ServiceAccountReady
+  - status: "True"
+    type: ServiceConfigReady
