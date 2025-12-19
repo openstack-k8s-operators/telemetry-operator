@@ -315,6 +315,23 @@ kind: ScrapeConfig
 metadata:
   labels:
     service: metricStorage
+  name: telemetry-rabbitmq
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl-metricstorage
+spec:
+  scheme: HTTPS
+  tlsConfig:
+    ca:
+      secret:
+        key: tls-ca-bundle.pem
+        name: combined-ca-bundle
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ScrapeConfig
+metadata:
+  labels:
+    service: metricStorage
   name: telemetry-node-exporter
   ownerReferences:
   - kind: MetricStorage
