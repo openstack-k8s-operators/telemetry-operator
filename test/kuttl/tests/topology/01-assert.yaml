@@ -100,6 +100,56 @@ status:
   readyReplicas: 1
   replicas: 1
 ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    service: cloudkitty
+  name: cloudkitty-api
+  ownerReferences:
+  - kind: CloudKittyAPI
+    name: cloudkitty-api
+spec:
+  template:
+    spec:
+      topologySpreadConstraints:
+       - maxSkew: 1
+         topologyKey: "topology.kubernetes.io/hostname"
+         whenUnsatisfiable: ScheduleAnyway
+         labelSelector:
+           matchLabels:
+             service: cloudkitty
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    service: cloudkitty
+  name: cloudkitty-proc
+  ownerReferences:
+  - kind: CloudKittyProc
+    name: cloudkitty-proc
+spec:
+  template:
+    spec:
+      topologySpreadConstraints:
+       - maxSkew: 1
+         topologyKey: "topology.kubernetes.io/hostname"
+         whenUnsatisfiable: ScheduleAnyway
+         labelSelector:
+           matchLabels:
+             service: cloudkitty
+status:
+  availableReplicas: 1
+  currentReplicas: 1
+  readyReplicas: 1
+  replicas: 1
+---
 apiVersion: telemetry.openstack.org/v1beta1
 kind: Autoscaling
 metadata:
@@ -112,6 +162,22 @@ apiVersion: telemetry.openstack.org/v1beta1
 kind: Ceilometer
 metadata:
   name: ceilometer
+status:
+  lastAppliedTopology:
+    name: telemetry-topology
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKittyAPI
+metadata:
+  name: cloudkitty-api
+status:
+  lastAppliedTopology:
+    name: telemetry-topology
+---
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKittyProc
+metadata:
+  name: cloudkitty-proc
 status:
   lastAppliedTopology:
     name: telemetry-topology
