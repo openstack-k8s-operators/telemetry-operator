@@ -407,6 +407,18 @@ func (r *CloudKittyAPIReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		return err
 	}
 
+	// index cloudKittyCustomConfigsSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.CloudKittyAPI{}, cloudKittyCustomConfigsSecretField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.CloudKittyAPI)
+		if cr.Spec.CustomConfigsSecretName == "" {
+			return nil
+		}
+		return []string{cr.Spec.CustomConfigsSecretName}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CloudKittyAPI{}).
 		Owns(&keystonev1.KeystoneService{}).
@@ -984,6 +996,18 @@ func (r *CloudKittyAPIReconciler) reconcileNormal(ctx context.Context, instance 
 		return ctrl.Result{}, err
 	}
 	configVars["client-cert"] = env.SetValue(clientCertHash)
+
+	//
+	// check for custom configs secret holding custom configuration files
+	//
+	if instance.Spec.CustomConfigsSecretName != "" {
+		_, hash, err := secret.GetSecret(ctx, helper, instance.Spec.CustomConfigsSecretName, instance.Namespace)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		configVars["custom-configs-secret"] = env.SetValue(hash)
+	}
+	// run check custom configs secret - end
 
 	//
 	// create hash over all the different input resources to identify if any those changed

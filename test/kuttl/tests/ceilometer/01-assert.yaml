@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    service: ceilometer
+  name: ceilometer-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: ceilometer
+spec:
+  containers:
+  - name: ceilometer-central-agent
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: ceilometer-central-config.json
+    - mountPath: /var/lib/openstack/custom-config
+      name: custom-config
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  - name: ceilometer-notification-agent
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: ceilometer-notification-config.json
+    - mountPath: /var/lib/openstack/custom-config
+      name: custom-config
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  - name: sg-core
+  - name: proxy-httpd
+  volumes:
+  - name: scripts
+    secret:
+      secretName: ceilometer-scripts
+  - name: config-data
+    secret:
+      secretName: ceilometer-config-data
+  - name: sg-core-conf-yaml
+    secret:
+      items:
+      - key: sg-core.conf.yaml
+        path: sg-core.conf.yaml
+      secretName: ceilometer-config-data
+  - emptyDir: {}
+    name: run-httpd
+  - emptyDir: {}
+    name: log-httpd
+  - name: custom-config
+    secret:
+      secretName: custom-config
+  - projected:
+      defaultMode: 420
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+- script: >
+    test "$(oc -n $NAMESPACE rsh -c ceilometer-notification-agent ceilometer-0 cat /etc/ceilometer/polling.yaml)" = "custom config contents"
+- script: >
+    test "$(oc -n $NAMESPACE rsh -c ceilometer-central-agent ceilometer-0 cat /etc/ceilometer/polling.yaml)" = "custom config contents"

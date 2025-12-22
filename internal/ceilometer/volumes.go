@@ -16,6 +16,7 @@ limitations under the License.
 package ceilometer
 
 import (
+	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -30,8 +31,8 @@ var (
 	scriptMode int32 = 0740
 )
 
-func getVolumes() []corev1.Volume {
-	return []corev1.Volume{
+func getVolumes(instance *telemetryv1.Ceilometer) []corev1.Volume {
+	vols := []corev1.Volume{
 		{
 			Name: "scripts",
 			VolumeSource: corev1.VolumeSource{
@@ -74,11 +75,24 @@ func getVolumes() []corev1.Volume {
 			},
 		},
 	}
+
+	if instance.Spec.CustomConfigsSecretName != "" {
+		vols = append(vols, corev1.Volume{
+			Name: "custom-config",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &configMode,
+					SecretName:  instance.Spec.CustomConfigsSecretName,
+				},
+			},
+		})
+	}
+	return vols
 }
 
 // getVolumeMounts - general VolumeMounts
-func getVolumeMounts(serviceName string) []corev1.VolumeMount {
-	return []corev1.VolumeMount{
+func getVolumeMounts(instance *telemetryv1.Ceilometer, serviceName string) []corev1.VolumeMount {
+	volMounts := []corev1.VolumeMount{
 		{
 			Name:      "scripts",
 			MountPath: "/var/lib/openstack/bin",
@@ -96,6 +110,14 @@ func getVolumeMounts(serviceName string) []corev1.VolumeMount {
 			ReadOnly:  true,
 		},
 	}
+	if instance.Spec.CustomConfigsSecretName != "" {
+		volMounts = append(volMounts, corev1.VolumeMount{
+			Name:      "custom-config",
+			MountPath: "/var/lib/openstack/custom-config",
+			ReadOnly:  true,
+		})
+	}
+	return volMounts
 }
 
 // getSgCoreVolumeMounts - VolumeMounts for SGCore container

@@ -21,6 +21,13 @@
       "perm": "0600"
     },
     {
+      "source": "/var/lib/openstack/custom-config/*",
+      "dest": "/etc/cloudkitty/",
+      "owner": "cloudkitty",
+      "perm": "0600",
+      "optional": true
+    },
+    {
       "source": "/var/lib/openstack/loki-certs/*",
       "dest": "/etc/cloudkitty/certs/",
       "owner": "cloudkitty:cloudkitty",

@@ -1,0 +1,115 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: cloudkitty-api
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-api-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: telemetry-kuttl-cloudkitty-api
+spec:
+  containers:
+  - name: telemetry-kuttl-cloudkitty-api-log
+  - name: cloudkitty-api
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: cloudkitty-api-config.json
+    - mountPath: /var/lib/openstack/loki-certs
+      name: certs
+    - mountPath: /var/lib/openstack/service-config/
+      name: config-data-custom
+    - mountPath: /var/log/cloudkitty
+      name: logs
+    - mountPath: /var/lib/openstack/custom-config
+      name: custom-config
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  volumes:
+  - name: scripts
+    secret:
+      secretName: telemetry-kuttl-cloudkitty-scripts
+  - name: config-data
+    secret:
+      secretName: telemetry-kuttl-cloudkitty-config-data
+  - name: certs
+    projected:
+      sources:
+      - secret:
+          name: cert-cloudkitty-client-internal
+      - configMap:
+          name: telemetry-kuttl-cloudkitty-lokistack-gateway-ca-bundle
+  - name: config-data-custom
+    secret:
+      secretName: telemetry-kuttl-cloudkitty-api-config-data
+  - emptyDir: {}
+    name: logs
+  - name: custom-config
+    secret:
+      secretName: custom-config
+  - projected:
+      defaultMode: 420
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    component: cloudkitty-proc
+    service: cloudkitty
+  name: telemetry-kuttl-cloudkitty-proc-0
+  ownerReferences:
+  - kind: StatefulSet
+    name: telemetry-kuttl-cloudkitty-proc
+spec:
+  containers:
+  - name: cloudkitty-proc
+    volumeMounts:
+    - mountPath: /var/lib/openstack/bin
+      name: scripts
+    - mountPath: /var/lib/openstack/config
+      name: config-data
+    - mountPath: /var/lib/kolla/config_files/config.json
+      name: config-data
+      subPath: cloudkitty-proc-config.json
+    - mountPath: /var/lib/openstack/loki-certs
+      name: certs
+    - mountPath: /var/lib/openstack/service-config/
+      name: config-data-custom
+    - mountPath: /var/lib/openstack/custom-config
+      name: custom-config
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+  volumes:
+  - name: scripts
+    secret:
+      secretName: telemetry-kuttl-cloudkitty-scripts
+  - name: config-data
+    secret:
+      secretName: telemetry-kuttl-cloudkitty-config-data
+  - name: certs
+    projected:
+      sources:
+      - secret:
+          name: cert-cloudkitty-client-internal
+      - configMap:
+          name: telemetry-kuttl-cloudkitty-lokistack-gateway-ca-bundle
+  - name: config-data-custom
+    secret:
+      secretName: telemetry-kuttl-cloudkitty-proc-config-data
+  - name: custom-config
+    secret:
+      secretName: custom-config
+  - projected:
+      defaultMode: 420
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: >
+      test "$(oc -n $NAMESPACE rsh -c cloudkitty-api telemetry-kuttl-cloudkitty-api-0 cat /etc/cloudkitty/metrics.yaml)" = "custom config contents"
+  - script: >
+      test "$(oc -n $NAMESPACE rsh -c cloudkitty-proc telemetry-kuttl-cloudkitty-proc-0 cat /etc/cloudkitty/metrics.yaml)" = "custom config contents"

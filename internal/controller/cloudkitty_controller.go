@@ -237,10 +237,11 @@ func (r *CloudKittyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 const (
 	cloudKittyPasswordSecretField = ".spec.secret"
 	//nolint:gosec // Not hardcoded credentials, just field name
-	cloudKittyCaBundleSecretNameField = ".spec.tls.caBundleSecretName"
-	cloudKittyTLSAPIInternalField     = ".spec.tls.api.internal.secretName"
-	cloudKittyTLSAPIPublicField       = ".spec.tls.api.public.secretName"
-	cloudKittyTopologyField           = ".spec.topologyRef.Name"
+	cloudKittyCaBundleSecretNameField  = ".spec.tls.caBundleSecretName"
+	cloudKittyTLSAPIInternalField      = ".spec.tls.api.internal.secretName"
+	cloudKittyTLSAPIPublicField        = ".spec.tls.api.public.secretName"
+	cloudKittyTopologyField            = ".spec.topologyRef.Name"
+	cloudKittyCustomConfigsSecretField = ".spec.customConfigsSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 )
 
 var (
@@ -248,6 +249,7 @@ var (
 		cloudKittyPasswordSecretField,
 		cloudKittyCaBundleSecretNameField,
 		cloudKittyTopologyField,
+		cloudKittyCustomConfigsSecretField,
 	}
 	cloudKittyAPIWatchFields = []string{
 		cloudKittyPasswordSecretField,
@@ -255,6 +257,7 @@ var (
 		cloudKittyTLSAPIInternalField,
 		cloudKittyTLSAPIPublicField,
 		cloudKittyTopologyField,
+		cloudKittyCustomConfigsSecretField,
 	}
 )
 

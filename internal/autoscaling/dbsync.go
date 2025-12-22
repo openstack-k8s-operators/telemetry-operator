@@ -35,8 +35,8 @@ func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]strin
 	args = append(args, dbSyncCommand)
 
 	// create Volume and VolumeMounts
-	volumes := getVolumes()
-	volumeMounts := getVolumeMounts("aodh-dbsync")
+	volumes := getVolumes(instance)
+	volumeMounts := getVolumeMounts(instance, "aodh-dbsync")
 	// add CA cert if defined
 	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
 		volumes = append(volumes, instance.Spec.Aodh.TLS.CreateVolume())
