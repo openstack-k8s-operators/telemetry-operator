@@ -1196,6 +1196,7 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	templateParameters["ServicePassword"] = string(ospSecret.Data[instance.Spec.PasswordSelectors.CloudKittyService])
 	templateParameters["KeystoneInternalURL"] = keystoneInternalURL
 	templateParameters["KeystonePublicURL"] = keystonePublicURL
+	templateParameters["Region"] = keystoneAPI.GetRegion()
 	templateParameters["TransportURL"] = string(transportURLSecret.Data["transport_url"])
 	templateParameters["PrometheusHost"] = instance.Status.PrometheusHost
 	templateParameters["PrometheusPort"] = instance.Status.PrometheusPort
