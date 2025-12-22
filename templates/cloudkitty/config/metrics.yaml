@@ -3,13 +3,11 @@ metrics:
     unit: instance
     alt_name: instance
     groupby:
-      - id
-      - user_id
+      - resource
+      - user
       - project
-    metadata:
       - flavor_name
       - flavor_id
-      - vcpus
     mutate: NUMBOOL
     extra_args:
       aggregation_method: max
@@ -18,8 +16,8 @@ metrics:
     unit: MiB
     factor: 1/1048576
     groupby:
-      - id
-      - user_id
+      - resource
+      - user
       - project
     metadata:
       - container_format
@@ -27,48 +25,55 @@ metrics:
     extra_args:
       aggregation_method: max
 
-  ceilometer_volume_size:
+  ceilometer_disk_ephemeral_size:
     unit: GiB
     groupby:
-      - id
-      - user_id
+      - resource
+      - user
       - project
     metadata:
-      - volume_type
+      - type
     extra_args:
       aggregation_method: max
 
-  ceilometer_network_outgoing_bytes_rate:
-    unit: MB
+  ceilometer_disk_root_size:
+    unit: GiB
     groupby:
-      - id
+      - resource
+      - user
       - project
-      - user_id
-    # Converting B/s to MB/h
-    factor: 3600/1000000
     metadata:
-      - instance_id
+      - type
     extra_args:
       aggregation_method: max
 
-  ceilometer_network_incoming_bytes_rate:
-    unit: MB
+  ceilometer_network_outgoing_bytes:
+    unit: B
     groupby:
-      - id
+      - resource
       - project
-      - user_id
-    # Converting B/s to MB/h
-    factor: 3600/1000000
+      - user
     metadata:
-      - instance_id
+      - vm_instance
+    extra_args:
+      aggregation_method: max
+
+  ceilometer_network_incoming_bytes:
+    unit: B
+    groupby:
+      - resource
+      - project
+      - user
+    metadata:
+      - vm_instance
     extra_args:
       aggregation_method: max
 
   ceilometer_ip_floating:
     unit: ip
     groupby:
-      - id
-      - user_id
+      - resource
+      - user
       - project
     metadata:
       - state
