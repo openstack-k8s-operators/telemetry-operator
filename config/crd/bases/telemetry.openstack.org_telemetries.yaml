@@ -107,6 +107,23 @@ spec:
                         default: memcached
                         description: Memcached instance name.
                         type: string
+                      messagingBus:
+                        description: MessagingBus configuration (username, vhost,
+                          and cluster)
+                        properties:
+                          cluster:
+                            description: Name of the cluster
+                            minLength: 1
+                            type: string
+                          user:
+                            description: User - RabbitMQ username
+                            type: string
+                          vhost:
+                            description: Vhost - RabbitMQ vhost name
+                            type: string
+                        required:
+                        - cluster
+                        type: object
                       networkAttachmentDefinitions:
                         description: NetworkAttachmentDefinitions list of network
                           attachment definitions the service pod gets attached to
@@ -118,6 +135,23 @@ spec:
                           type: string
                         description: NodeSelector to target subset of worker nodes
                           running this service
+                        type: object
+                      notificationsBus:
+                        description: NotificationsBus configuration (username, vhost,
+                          and cluster) for notifications
+                        properties:
+                          cluster:
+                            description: Name of the cluster
+                            minLength: 1
+                            type: string
+                          user:
+                            description: User - RabbitMQ username
+                            type: string
+                          vhost:
+                            description: Vhost - RabbitMQ vhost name
+                            type: string
+                        required:
+                        - cluster
                         type: object
                       notifierImage:
                         type: string
@@ -312,6 +346,7 @@ spec:
                         description: |-
                           RabbitMQ instance name
                           Needed to request a transportURL that is created and used in Aodh
+                          Deprecated: Use MessagingBus.Cluster instead
                         type: string
                       secret:
                         default: osp-secret
@@ -475,6 +510,23 @@ spec:
                         description: SecretName - holding the cert, key for the service
                         type: string
                     type: object
+                  messagingBus:
+                    description: MessagingBus configuration (username, vhost, and
+                      cluster)
+                    properties:
+                      cluster:
+                        description: Name of the cluster
+                        minLength: 1
+                        type: string
+                      user:
+                        description: User - RabbitMQ username
+                        type: string
+                      vhost:
+                        description: Vhost - RabbitMQ vhost name
+                        type: string
+                    required:
+                    - cluster
+                    type: object
                   mysqldExporterDatabaseAccountPrefix:
                     default: mysqld-exporter
                     description: |-
@@ -515,6 +567,23 @@ spec:
                     type: object
                   notificationImage:
                     type: string
+                  notificationsBus:
+                    description: NotificationsBus configuration (username, vhost,
+                      and cluster) for notifications
+                    properties:
+                      cluster:
+                        description: Name of the cluster
+                        minLength: 1
+                        type: string
+                      user:
+                        description: User - RabbitMQ username
+                        type: string
+                      vhost:
+                        description: Vhost - RabbitMQ vhost name
+                        type: string
+                    required:
+                    - cluster
+                    type: object
                   passwordSelector:
                     default:
                       ceilometerService: CeilometerPassword
@@ -544,6 +613,7 @@ spec:
                     description: |-
                       RabbitMQ instance name
                       Needed to request a transportURL that is created and used in Telemetry
+                      Deprecated: Use MessagingBus.Cluster instead
                     type: string
                   secret:
                     default: osp-secret
@@ -1088,6 +1158,23 @@ spec:
                     default: memcached
                     description: Memcached instance name.
                     type: string
+                  messagingBus:
+                    description: MessagingBus configuration (username, vhost, and
+                      cluster)
+                    properties:
+                      cluster:
+                        description: Name of the cluster
+                        minLength: 1
+                        type: string
+                      user:
+                        description: User - RabbitMQ username
+                        type: string
+                      vhost:
+                        description: Vhost - RabbitMQ vhost name
+                        type: string
+                    required:
+                    - cluster
+                    type: object
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -1095,6 +1182,23 @@ spec:
                       NodeSelector to target subset of worker nodes running this service. Setting
                       NodeSelector here acts as a default value and can be overridden by service
                       specific NodeSelector Settings.
+                    type: object
+                  notificationsBus:
+                    description: NotificationsBus configuration (username, vhost,
+                      and cluster) for notifications
+                    properties:
+                      cluster:
+                        description: Name of the cluster
+                        minLength: 1
+                        type: string
+                      user:
+                        description: User - RabbitMQ username
+                        type: string
+                      vhost:
+                        description: Vhost - RabbitMQ vhost name
+                        type: string
+                    required:
+                    - cluster
                     type: object
                   passwordSelector:
                     default:
@@ -1168,6 +1272,7 @@ spec:
                     description: |-
                       RabbitMQ instance name
                       Needed to request a transportURL that is created and used in CloudKitty
+                      Deprecated: Use MessagingBus.Cluster instead
                     type: string
                   s3StorageConfig:
                     default:

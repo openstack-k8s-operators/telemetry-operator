@@ -17,7 +17,11 @@ limitations under the License.
 package v1beta1
 
 import (
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -81,6 +85,16 @@ func (spec *CeilometerSpec) Default() {
 	if spec.MysqldExporterImage == "" {
 		spec.MysqldExporterImage = ceilometerDefaults.MysqldExporterContainerImageURL
 	}
+
+	spec.CeilometerSpecCore.Default()
+}
+
+// Default - set defaults for this CeilometerSpecCore. NOTE: this version is used by the OpenStackControlplane webhook
+func (spec *CeilometerSpecCore) Default() {
+	if spec.RabbitMqClusterName == "" {
+		spec.RabbitMqClusterName = "rabbitmq"
+	}
+	rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
 }
 
 var _ webhook.Validator = &Ceilometer{}
@@ -89,7 +103,19 @@ var _ webhook.Validator = &Ceilometer{}
 func (r *Ceilometer) ValidateCreate() (admission.Warnings, error) {
 	ceilometerlog.Info("validate create", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object creation.
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
+
+	if err := r.Spec.CeilometerSpecCore.ValidateCreate(basePath, r.Namespace); err != nil {
+		allErrs = append(allErrs, err...)
+	}
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Ceilometer"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
 }
 
@@ -97,7 +123,24 @@ func (r *Ceilometer) ValidateCreate() (admission.Warnings, error) {
 func (r *Ceilometer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	ceilometerlog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
+	oldCeilometer, ok := old.(*Ceilometer)
+	if !ok || oldCeilometer == nil {
+		return nil, apierrors.NewInternalError(nil)
+	}
+
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
+
+	if err := r.Spec.CeilometerSpecCore.ValidateUpdate(oldCeilometer.Spec.CeilometerSpecCore, basePath, r.Namespace); err != nil {
+		allErrs = append(allErrs, err...)
+	}
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Ceilometer"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
 }
 
@@ -105,6 +148,32 @@ func (r *Ceilometer) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 func (r *Ceilometer) ValidateDelete() (admission.Warnings, error) {
 	ceilometerlog.Info("validate delete", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
+}
+
+// ValidateCreate - Exported function wrapping non-exported validate functions,
+// this function can be called externally to validate a ceilometer spec.
+func (spec *CeilometerSpecCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+
+	return allErrs
+}
+
+// ValidateUpdate - Exported function wrapping non-exported validate functions,
+// this function can be called externally to validate a ceilometer spec.
+func (spec *CeilometerSpecCore) ValidateUpdate(old CeilometerSpecCore, basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Reject changes to deprecated RabbitMqClusterName field
+	if spec.RabbitMqClusterName != old.RabbitMqClusterName {
+		allErrs = append(allErrs, field.Forbidden(
+			basePath.Child("rabbitMqClusterName"),
+			"rabbitMqClusterName is deprecated and cannot be changed. Please use messagingBus.cluster instead"))
+	}
+
+	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+
+	return allErrs
 }
