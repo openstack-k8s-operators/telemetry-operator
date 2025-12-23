@@ -19,10 +19,15 @@ package v1beta1
 import (
 	"fmt"
 
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	common_webhook "github.com/openstack-k8s-operators/lib-common/modules/common/webhook"
 )
 
 // AutoscalingDefaults -
@@ -73,11 +78,61 @@ func (spec *AutoscalingSpec) Default() {
 // Default - note only *Core* versions like this will have validations that are called from the
 // Controlplane webhook
 func (spec *AodhCore) Default() {
+	if spec.RabbitMqClusterName == "" {
+		spec.RabbitMqClusterName = "rabbitmq"
+	}
+	rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
+
 	if spec.MemcachedInstance == "" {
 		spec.MemcachedInstance = "memcached"
 	}
 	// NOTE: ApplicationCredentialSecret is NOT defaulted here.
 	// AppCred is opt-in: only used when explicitly configured by the user.
+}
+
+// getDeprecatedFields returns the centralized list of deprecated fields for AodhCore
+func (spec *AodhCore) getDeprecatedFields(old *AodhCore) []common_webhook.DeprecatedFieldUpdate {
+	deprecatedFields := []common_webhook.DeprecatedFieldUpdate{
+		{
+			DeprecatedFieldName: "rabbitMqClusterName",
+			NewFieldPath:        []string{"messagingBus", "cluster"},
+			NewDeprecatedValue:  &spec.RabbitMqClusterName,
+			NewValue:            &spec.MessagingBus.Cluster,
+		},
+	}
+
+	// If old spec is provided (UPDATE operation), add old values
+	if old != nil {
+		deprecatedFields[0].OldDeprecatedValue = &old.RabbitMqClusterName
+	}
+
+	return deprecatedFields
+}
+
+// validateDeprecatedFieldsCreate validates deprecated fields during CREATE operations
+func (spec *AodhCore) validateDeprecatedFieldsCreate(basePath *field.Path) ([]string, field.ErrorList) {
+	// Get deprecated fields list (without old values for CREATE)
+	deprecatedFieldsUpdate := spec.getDeprecatedFields(nil)
+
+	// Convert to DeprecatedField list for CREATE validation
+	deprecatedFields := make([]common_webhook.DeprecatedField, len(deprecatedFieldsUpdate))
+	for i, df := range deprecatedFieldsUpdate {
+		deprecatedFields[i] = common_webhook.DeprecatedField{
+			DeprecatedFieldName: df.DeprecatedFieldName,
+			NewFieldPath:        df.NewFieldPath,
+			DeprecatedValue:     df.NewDeprecatedValue,
+			NewValue:            df.NewValue,
+		}
+	}
+
+	return common_webhook.ValidateDeprecatedFieldsCreate(deprecatedFields, basePath), nil
+}
+
+// validateDeprecatedFieldsUpdate validates deprecated fields during UPDATE operations
+func (spec *AodhCore) validateDeprecatedFieldsUpdate(old AodhCore, basePath *field.Path) ([]string, field.ErrorList) {
+	// Get deprecated fields list with old values
+	deprecatedFields := spec.getDeprecatedFields(&old)
+	return common_webhook.ValidateDeprecatedFieldsUpdate(deprecatedFields, basePath)
 }
 
 // SetDefaultRouteAnnotations sets HAProxy timeout values of the route
@@ -113,7 +168,19 @@ var _ webhook.Validator = &Autoscaling{}
 func (r *Autoscaling) ValidateCreate() (admission.Warnings, error) {
 	autoscalinglog.Info("validate create", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object creation.
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
+
+	if err := r.Spec.Aodh.ValidateCreate(basePath.Child("aodh"), r.Namespace); err != nil {
+		allErrs = append(allErrs, err...)
+	}
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Autoscaling"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
 }
 
@@ -121,7 +188,24 @@ func (r *Autoscaling) ValidateCreate() (admission.Warnings, error) {
 func (r *Autoscaling) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	autoscalinglog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
+	oldAutoscaling, ok := old.(*Autoscaling)
+	if !ok || oldAutoscaling == nil {
+		return nil, apierrors.NewInternalError(nil)
+	}
+
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
+
+	if err := r.Spec.Aodh.ValidateUpdate(oldAutoscaling.Spec.Aodh.AodhCore, basePath.Child("aodh"), r.Namespace); err != nil {
+		allErrs = append(allErrs, err...)
+	}
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Autoscaling"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
 }
 
@@ -129,6 +213,33 @@ func (r *Autoscaling) ValidateUpdate(old runtime.Object) (admission.Warnings, er
 func (r *Autoscaling) ValidateDelete() (admission.Warnings, error) {
 	autoscalinglog.Info("validate delete", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
+}
+
+// ValidateCreate - Exported function wrapping non-exported validate functions,
+// this function can be called externally to validate an aodh spec.
+func (spec *AodhCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Validate deprecated fields using shared helper
+	_, errs := spec.validateDeprecatedFieldsCreate(basePath)
+	allErrs = append(allErrs, errs...)
+
+	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+
+	return allErrs
+}
+
+// ValidateUpdate - Exported function wrapping non-exported validate functions,
+// this function can be called externally to validate an aodh spec.
+func (spec *AodhCore) ValidateUpdate(old AodhCore, basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Validate deprecated fields using shared helper
+	_, errs := spec.validateDeprecatedFieldsUpdate(old, basePath)
+	allErrs = append(allErrs, errs...)
+
+	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+
+	return allErrs
 }

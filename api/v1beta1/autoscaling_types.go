@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
@@ -63,8 +64,17 @@ type AodhCore struct {
 	// APITimeout for Route and Apache
 	APITimeout int `json:"apiTimeout"`
 
+	// +kubebuilder:validation:Optional
+	// MessagingBus configuration (username, vhost, and cluster)
+	MessagingBus rabbitmqv1.RabbitMqConfig `json:"messagingBus,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// NotificationsBus configuration (username, vhost, and cluster) for notifications
+	NotificationsBus *rabbitmqv1.RabbitMqConfig `json:"notificationsBus,omitempty"`
+
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Aodh
+	// Deprecated: Use MessagingBus.Cluster instead
 	// +kubebuilder:default=rabbitmq
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
@@ -205,6 +215,9 @@ type AutoscalingStatus struct {
 
 	// TransportURLSecret - Secret containing RabbitMQ transportURL
 	TransportURLSecret string `json:"transportURLSecret,omitempty"`
+
+	// NotificationsURLSecret - Secret containing RabbitMQ notification transportURL
+	NotificationsURLSecret *string `json:"notificationsURLSecret,omitempty"`
 
 	// DatabaseHostname - Hostname for the database
 	DatabaseHostname string `json:"databaseHostname,omitempty"`

@@ -17,10 +17,15 @@ limitations under the License.
 package v1beta1
 
 import (
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	common_webhook "github.com/openstack-k8s-operators/lib-common/modules/common/webhook"
 )
 
 // CeilometerDefaults -
@@ -81,6 +86,61 @@ func (spec *CeilometerSpec) Default() {
 	if spec.MysqldExporterImage == "" {
 		spec.MysqldExporterImage = ceilometerDefaults.MysqldExporterContainerImageURL
 	}
+
+	spec.CeilometerSpecCore.Default()
+}
+
+// Default - set defaults for this CeilometerSpecCore. NOTE: this version is used by the OpenStackControlplane webhook
+func (spec *CeilometerSpecCore) Default() {
+	if spec.RabbitMqClusterName == "" {
+		spec.RabbitMqClusterName = "rabbitmq"
+	}
+	rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
+}
+
+// getDeprecatedFields returns the centralized list of deprecated fields for CeilometerSpecCore
+func (spec *CeilometerSpecCore) getDeprecatedFields(old *CeilometerSpecCore) []common_webhook.DeprecatedFieldUpdate {
+	deprecatedFields := []common_webhook.DeprecatedFieldUpdate{
+		{
+			DeprecatedFieldName: "rabbitMqClusterName",
+			NewFieldPath:        []string{"messagingBus", "cluster"},
+			NewDeprecatedValue:  &spec.RabbitMqClusterName,
+			NewValue:            &spec.MessagingBus.Cluster,
+		},
+	}
+
+	// If old spec is provided (UPDATE operation), add old values
+	if old != nil {
+		deprecatedFields[0].OldDeprecatedValue = &old.RabbitMqClusterName
+	}
+
+	return deprecatedFields
+}
+
+// validateDeprecatedFieldsCreate validates deprecated fields during CREATE operations
+func (spec *CeilometerSpecCore) validateDeprecatedFieldsCreate(basePath *field.Path) ([]string, field.ErrorList) {
+	// Get deprecated fields list (without old values for CREATE)
+	deprecatedFieldsUpdate := spec.getDeprecatedFields(nil)
+
+	// Convert to DeprecatedField list for CREATE validation
+	deprecatedFields := make([]common_webhook.DeprecatedField, len(deprecatedFieldsUpdate))
+	for i, df := range deprecatedFieldsUpdate {
+		deprecatedFields[i] = common_webhook.DeprecatedField{
+			DeprecatedFieldName: df.DeprecatedFieldName,
+			NewFieldPath:        df.NewFieldPath,
+			DeprecatedValue:     df.NewDeprecatedValue,
+			NewValue:            df.NewValue,
+		}
+	}
+
+	return common_webhook.ValidateDeprecatedFieldsCreate(deprecatedFields, basePath), nil
+}
+
+// validateDeprecatedFieldsUpdate validates deprecated fields during UPDATE operations
+func (spec *CeilometerSpecCore) validateDeprecatedFieldsUpdate(old CeilometerSpecCore, basePath *field.Path) ([]string, field.ErrorList) {
+	// Get deprecated fields list with old values
+	deprecatedFields := spec.getDeprecatedFields(&old)
+	return common_webhook.ValidateDeprecatedFieldsUpdate(deprecatedFields, basePath)
 }
 
 func (spec *CeilometerSpecCore) Default() {
@@ -94,7 +154,19 @@ var _ webhook.Validator = &Ceilometer{}
 func (r *Ceilometer) ValidateCreate() (admission.Warnings, error) {
 	ceilometerlog.Info("validate create", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object creation.
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
+
+	if err := r.Spec.CeilometerSpecCore.ValidateCreate(basePath, r.Namespace); err != nil {
+		allErrs = append(allErrs, err...)
+	}
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Ceilometer"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
 }
 
@@ -102,7 +174,24 @@ func (r *Ceilometer) ValidateCreate() (admission.Warnings, error) {
 func (r *Ceilometer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	ceilometerlog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
+	oldCeilometer, ok := old.(*Ceilometer)
+	if !ok || oldCeilometer == nil {
+		return nil, apierrors.NewInternalError(nil)
+	}
+
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
+
+	if err := r.Spec.CeilometerSpecCore.ValidateUpdate(oldCeilometer.Spec.CeilometerSpecCore, basePath, r.Namespace); err != nil {
+		allErrs = append(allErrs, err...)
+	}
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Ceilometer"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
 }
 
@@ -110,6 +199,33 @@ func (r *Ceilometer) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 func (r *Ceilometer) ValidateDelete() (admission.Warnings, error) {
 	ceilometerlog.Info("validate delete", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
+}
+
+// ValidateCreate - Exported function wrapping non-exported validate functions,
+// this function can be called externally to validate a ceilometer spec.
+func (spec *CeilometerSpecCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Validate deprecated fields using shared helper
+	_, errs := spec.validateDeprecatedFieldsCreate(basePath)
+	allErrs = append(allErrs, errs...)
+
+	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+
+	return allErrs
+}
+
+// ValidateUpdate - Exported function wrapping non-exported validate functions,
+// this function can be called externally to validate a ceilometer spec.
+func (spec *CeilometerSpecCore) ValidateUpdate(old CeilometerSpecCore, basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Validate deprecated fields using shared helper
+	_, errs := spec.validateDeprecatedFieldsUpdate(old, basePath)
+	allErrs = append(allErrs, errs...)
+
+	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+
+	return allErrs
 }

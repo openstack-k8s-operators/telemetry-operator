@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
@@ -134,9 +135,18 @@ type CloudKittySpecBase struct {
 	DatabaseInstance string `json:"databaseInstance"`
 
 	// +kubebuilder:validation:Optional
+	// MessagingBus configuration (username, vhost, and cluster)
+	MessagingBus rabbitmqv1.RabbitMqConfig `json:"messagingBus,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// NotificationsBus configuration (username, vhost, and cluster) for notifications
+	NotificationsBus *rabbitmqv1.RabbitMqConfig `json:"notificationsBus,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=rabbitmq
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in CloudKitty
+	// Deprecated: Use MessagingBus.Cluster instead
 	RabbitMqClusterName string `json:"rabbitMqClusterName"`
 
 	// +kubebuilder:validation:Optional
@@ -318,6 +328,9 @@ type CloudKittyStatus struct {
 
 	// TransportURLSecret - Secret containing RabbitMQ transportURL
 	TransportURLSecret string `json:"transportURLSecret,omitempty"`
+
+	// NotificationsURLSecret - Secret containing RabbitMQ notification transportURL
+	NotificationsURLSecret *string `json:"notificationsURLSecret,omitempty"`
 
 	// API endpoints
 	APIEndpoints map[string]map[string]string `json:"apiEndpoints,omitempty"`
