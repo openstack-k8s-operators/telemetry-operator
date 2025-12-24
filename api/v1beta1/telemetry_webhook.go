@@ -114,12 +114,20 @@ func (spec *TelemetrySpec) Default() {
 	if spec.CloudKitty.CloudKittyProc.ContainerImage == "" {
 		spec.CloudKitty.CloudKittyProc.ContainerImage = telemetryDefaults.CloudKittyProcContainerImageURL
 	}
+
+	// Call nested Default() methods to set rabbitmq cluster defaults
+	spec.Autoscaling.AutoscalingSpec.Default()
+	spec.Autoscaling.Aodh.Default()
+	spec.Ceilometer.CeilometerSpec.Default()
+	spec.CloudKitty.CloudKittySpec.Default()
 }
 
 // Default - set defaults for this Telemetry spec core
 // NOTE: only this version gets called by the Controlplane Webhook
 func (spec *TelemetrySpecCore) Default() {
 	spec.Autoscaling.Aodh.Default()
+	spec.Ceilometer.Default()
+	spec.CloudKitty.Default()
 }
 
 var _ webhook.Validator = &Telemetry{}

@@ -16,6 +16,10 @@ limitations under the License.
 
 package autoscaling
 
+import (
+	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+)
+
 const (
 	// ServiceName -
 	ServiceName = "aodh"
@@ -47,6 +51,18 @@ const (
 
 	// AodhUserID -
 	AodhUserID = 42402
+
+	// AutoscalingNotificationBusReadyCondition Status=True condition indicates if the RabbitMQ NotificationsBus TransportURL is configured
+	AutoscalingNotificationBusReadyCondition condition.Type = "AutoscalingNotificationBusReady"
+
+	// AutoscalingNotificationBusReadyMessage
+	AutoscalingNotificationBusReadyMessage = "NotificationsBus TransportURL successfully created"
+
+	// AutoscalingNotificationBusReadyRunningMessage
+	AutoscalingNotificationBusReadyRunningMessage = "NotificationsBus TransportURL creation in progress"
+
+	// AutoscalingNotificationBusReadyErrorMessage
+	AutoscalingNotificationBusReadyErrorMessage = "NotificationsBus TransportURL error occured %s"
 )
 
 // PrometheusReplicas -

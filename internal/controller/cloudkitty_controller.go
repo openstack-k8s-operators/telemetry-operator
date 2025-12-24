@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -796,7 +797,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
 	//
 
-	transportURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels)
+	transportURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, nil)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.RabbitMqTransportURLReadyCondition,
@@ -826,6 +827,55 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	instance.Status.Conditions.MarkTrue(condition.RabbitMqTransportURLReadyCondition, condition.RabbitMqTransportURLReadyMessage)
 
 	// end transportURL
+
+	//
+	// create NotificationsBus TransportURL if configured
+	//
+	if instance.Spec.NotificationsBus != nil {
+		// init .Status.NotificationsURLSecret
+		instance.Status.NotificationsURLSecret = ptr.To("")
+
+		// setting notificationBusConfig to nil ensures that we do not
+		// request a new transportURL unless the two spec fields do not match
+		var notificationBusConfig *rabbitmqv1.RabbitMqConfig
+		if instance.Spec.NotificationsBus.Cluster != instance.Spec.MessagingBus.Cluster {
+			notificationBusConfig = instance.Spec.NotificationsBus
+		}
+
+		notificationBusInstanceURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, notificationBusConfig)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				cloudkitty.CloudKittyNotificationBusReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				cloudkitty.CloudKittyNotificationBusReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("NotificationBusInstanceURL %s successfully reconciled - operation: %s", notificationBusInstanceURL.Name, string(op)))
+		}
+
+		*instance.Status.NotificationsURLSecret = notificationBusInstanceURL.Status.SecretName
+
+		if *instance.Status.NotificationsURLSecret == "" {
+			Log.Info(fmt.Sprintf("Waiting for NotificationBusInstanceURL %s secret to be created", notificationBusInstanceURL.Name))
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				cloudkitty.CloudKittyNotificationBusReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				cloudkitty.CloudKittyNotificationBusReadyRunningMessage))
+			return cloudkitty.ResultRequeue, nil
+		}
+
+		instance.Status.Conditions.MarkTrue(cloudkitty.CloudKittyNotificationBusReadyCondition, cloudkitty.CloudKittyNotificationBusReadyMessage)
+	} else {
+		// make sure we do not have an entry in the status if
+		// .Spec.NotificationsBus is not provided
+		instance.Status.NotificationsURLSecret = nil
+	}
+	// end notificationsBus
 
 	//
 	// Check for required memcached used for caching
@@ -1224,6 +1274,21 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 		templateParameters["PrometheusCAFile"] = tls.DownstreamTLSCABundlePath
 	}
 
+	// Add NotificationsURL if configured
+	if instance.Status.NotificationsURLSecret != nil {
+		// Get separate secret only if different cluster, otherwise reuse main transport_url
+		if instance.Spec.NotificationsBus.Cluster != instance.Spec.MessagingBus.Cluster {
+			notificationInstanceURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
+			if err != nil {
+				return err
+			}
+			templateParameters["NotificationsURL"] = string(notificationInstanceURLSecret.Data["transport_url"])
+		} else {
+			// Same cluster - reuse main transport_url
+			templateParameters["NotificationsURL"] = string(transportURLSecret.Data["transport_url"])
+		}
+	}
+
 	// create httpd  vhost template parameters
 	httpdVhostConfig := map[string]interface{}{}
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
@@ -1290,20 +1355,45 @@ func (r *CloudKittyReconciler) transportURLCreateOrUpdate(
 	ctx context.Context,
 	instance *telemetryv1.CloudKitty,
 	serviceLabels map[string]string,
+	rabbitmqConfig *rabbitmqv1.RabbitMqConfig,
 ) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
+	// Default values for regular messagingBus transportURL
+	rmqName := fmt.Sprintf("%s-transport", instance.Name)
+	config := &instance.Spec.MessagingBus
+
+	// When rabbitmqConfig is passed (notificationsBus use case)
+	// update the default rmqName and use the provided config
+	if rabbitmqConfig != nil {
+		rmqName = fmt.Sprintf("%s-notification-%s", instance.Name, rabbitmqConfig.Cluster)
+		config = rabbitmqConfig
+	}
+
+	// Prepare the spec values before CreateOrUpdate so webhooks see them during CREATE
+	clusterName := config.Cluster
+	username := config.User
+	vhost := config.Vhost
+
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-transport", instance.Name),
+			Name:      rmqName,
 			Namespace: instance.Namespace,
 			Labels:    serviceLabels,
+		},
+		Spec: rabbitmqv1.TransportURLSpec{
+			RabbitmqClusterName: clusterName,
+			Username:            username,
+			Vhost:               vhost,
 		},
 	}
 
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, transportURL, func() error {
-		transportURL.Spec.RabbitmqClusterName = instance.Spec.RabbitMqClusterName
-
-		err := controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
-		return err
+		transportURL.Spec.RabbitmqClusterName = clusterName
+		if username != "" {
+			transportURL.Spec.Username = username
+		}
+		// Always set Vhost - empty string means use default "/" vhost
+		transportURL.Spec.Vhost = vhost
+		return controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
 	})
 
 	return transportURL, op, err
