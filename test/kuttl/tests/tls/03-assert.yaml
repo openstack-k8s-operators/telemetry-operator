@@ -1,3 +1,35 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: MetricStorage
+metadata:
+  name: telemetry-kuttl-metricstorage
+spec:
+  networkAttachments:
+  - ctlplane
+status:
+  networkAttachments:
+    k8s.v1.cni.cncf.io/networks: '[{"name":"ctlplane","namespace":"telemetry-kuttl-tests","interface":"ctlplane"}]'
+  prometheusTLSPatched: true
+---
+apiVersion: monitoring.rhobs/v1
+kind: Prometheus
+metadata:
+  name: telemetry-kuttl-metricstorage
+spec:
+  podMetadata:
+    annotations:
+      k8s.v1.cni.cncf.io/networks: '[{"name":"ctlplane","namespace":"telemetry-kuttl-tests","interface":"ctlplane"}]'
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus-telemetry-kuttl-metricstorage
+spec:
+  template:
+    metadata:
+      annotations:
+        k8s.v1.cni.cncf.io/networks: '[{"name":"ctlplane","namespace":"telemetry-kuttl-tests","interface":"ctlplane"}]'
+        kubectl.kubernetes.io/default-container: prometheus
+---
 apiVersion: v1
 kind: Pod
 metadata:
