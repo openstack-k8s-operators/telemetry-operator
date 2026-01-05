@@ -94,7 +94,7 @@ type MetricStorageSpec struct {
 	// +kubebuilder:validation:Optional
 	// +listType=atomic
 	// +kubebuilder:default=["ctlplane"]
-	NetworkAttachments []string `json:"networkAttachments,omitempty"`
+	NetworkAttachments []string `json:"networkAttachments"`
 
 	// MonitoringStack allows to define a metric storage with
 	// options supported by Red Hat
