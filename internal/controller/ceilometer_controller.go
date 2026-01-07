@@ -241,6 +241,7 @@ const (
 	ceilometerTLSField                    = ".spec.tls.secretName"
 	ksmCaBundleSecretNameField            = ".spec.ksmTls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 	ksmTLSField                           = ".spec.ksmTls.secretName"
+	ceilometerAuthAppCredSecretField      = ".spec.auth.applicationCredentialSecret"     //nolint:gosec // G101: Not actual credentials, just field path
 	mysqldExporterCaBundleSecretNameField = ".spec.mysqldExporterTls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 	mysqldExporterTLSField                = ".spec.mysqldExporterTls.secretName"
 	customConfigsSecretNameField          = ".spec.customConfigsSecretName" //nolint:gosec // G101: Not actual credentials, just field path
@@ -251,6 +252,7 @@ var (
 		ceilometerPasswordSecretField,
 		ceilometerCaBundleSecretNameField,
 		ceilometerTLSField,
+		ceilometerAuthAppCredSecretField,
 		ksmCaBundleSecretNameField,
 		ksmTLSField,
 		mysqldExporterCaBundleSecretNameField,
@@ -1277,6 +1279,25 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		"Timeout":             instance.Spec.APITimeout,
 	}
 
+	// Try to get Application Credential from the secret specified in the CR
+	if instance.Spec.Auth.ApplicationCredentialSecret != "" {
+		acSecret := &corev1.Secret{}
+		key := types.NamespacedName{Namespace: instance.Namespace, Name: instance.Spec.Auth.ApplicationCredentialSecret}
+		if err := r.Get(ctx, key, acSecret); err != nil {
+			if !k8s_errors.IsNotFound(err) {
+				h.GetLogger().Error(err, "Failed to get ApplicationCredential secret", "secret", key)
+			}
+		} else {
+			acID, okID := acSecret.Data[keystonev1.ACIDSecretKey]
+			acSecretData, okSecret := acSecret.Data[keystonev1.ACSecretSecretKey]
+			if okID && len(acID) > 0 && okSecret && len(acSecretData) > 0 {
+				templateParameters["ACID"] = string(acID)
+				templateParameters["ACSecret"] = string(acSecretData)
+				h.GetLogger().Info("Using ApplicationCredentials auth", "secret", key)
+			}
+		}
+	}
+
 	// create httpd  vhost template parameters
 	endptConfig := map[string]any{}
 	endptConfig["ServerName"] = fmt.Sprintf("%s-internal.%s.svc", ceilometer.ServiceName, instance.Namespace)
@@ -1362,6 +1383,25 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		"ceilometer_compute_image": instance.Spec.ComputeImage,
 		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
 		"TLS":                      false,
+	}
+
+	// Try to get Application Credential from the secret specified in the CR
+	if instance.Spec.Auth.ApplicationCredentialSecret != "" {
+		acSecret := &corev1.Secret{}
+		key := types.NamespacedName{Namespace: instance.Namespace, Name: instance.Spec.Auth.ApplicationCredentialSecret}
+		if err := r.Get(ctx, key, acSecret); err != nil {
+			if !k8s_errors.IsNotFound(err) {
+				h.GetLogger().Error(err, "Failed to get ApplicationCredential secret", "secret", key)
+			}
+		} else {
+			acID, okID := acSecret.Data[keystonev1.ACIDSecretKey]
+			acSecretData, okSecret := acSecret.Data[keystonev1.ACSecretSecretKey]
+			if okID && len(acID) > 0 && okSecret && len(acSecretData) > 0 {
+				templateParameters["ACID"] = string(acID)
+				templateParameters["ACSecret"] = string(acSecretData)
+				h.GetLogger().Info("Using ApplicationCredentials auth", "secret", key)
+			}
+		}
 	}
 
 	if instance.Spec.TLS.Enabled() {
@@ -1846,6 +1886,18 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			return nil
 		}
 		return []string{cr.Spec.CustomConfigsSecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index ceilometerAuthAppCredSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Ceilometer{}, ceilometerAuthAppCredSecretField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Ceilometer)
+		if cr.Spec.Auth.ApplicationCredentialSecret == "" {
+			return nil
+		}
+		return []string{cr.Spec.Auth.ApplicationCredentialSecret}
 	}); err != nil {
 		return err
 	}

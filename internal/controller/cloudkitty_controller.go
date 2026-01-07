@@ -240,6 +240,7 @@ const (
 	cloudKittyCaBundleSecretNameField  = ".spec.tls.caBundleSecretName"
 	cloudKittyTLSAPIInternalField      = ".spec.tls.api.internal.secretName"
 	cloudKittyTLSAPIPublicField        = ".spec.tls.api.public.secretName"
+	cloudKittyAuthAppCredSecretField   = ".spec.auth.applicationCredentialSecret" //nolint:gosec // G101: Not actual credentials, just field path
 	cloudKittyTopologyField            = ".spec.topologyRef.Name"
 	cloudKittyCustomConfigsSecretField = ".spec.customConfigsSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 )
@@ -248,6 +249,7 @@ var (
 	cloudKittyProcWatchFields = []string{
 		cloudKittyPasswordSecretField,
 		cloudKittyCaBundleSecretNameField,
+		cloudKittyAuthAppCredSecretField,
 		cloudKittyTopologyField,
 		cloudKittyCustomConfigsSecretField,
 	}
@@ -256,6 +258,7 @@ var (
 		cloudKittyCaBundleSecretNameField,
 		cloudKittyTLSAPIInternalField,
 		cloudKittyTLSAPIPublicField,
+		cloudKittyAuthAppCredSecretField,
 		cloudKittyTopologyField,
 		cloudKittyCustomConfigsSecretField,
 	}
@@ -1104,6 +1107,7 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	memcached *memcachedv1.Memcached,
 	db *mariadbv1.Database,
 ) error {
+	Log := r.GetLogger(ctx)
 	//
 	// create Secret required for cloudkitty input
 	// - %-scripts holds scripts to e.g. bootstrap the service
@@ -1198,6 +1202,25 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	templateParameters["ServiceUser"] = instance.Spec.ServiceUser
 	templateParameters["ServicePassword"] = string(ospSecret.Data[instance.Spec.PasswordSelectors.CloudKittyService])
 	templateParameters["KeystoneInternalURL"] = keystoneInternalURL
+
+	// Try to get Application Credential from the secret specified in the CR
+	if instance.Spec.Auth.ApplicationCredentialSecret != "" {
+		acSecret := &corev1.Secret{}
+		key := types.NamespacedName{Namespace: instance.Namespace, Name: instance.Spec.Auth.ApplicationCredentialSecret}
+		if err := r.Get(ctx, key, acSecret); err != nil {
+			if !k8s_errors.IsNotFound(err) {
+				Log.Error(err, "Failed to get ApplicationCredential secret", "secret", key)
+			}
+		} else {
+			acID, okID := acSecret.Data[keystonev1.ACIDSecretKey]
+			acSecretData, okSecret := acSecret.Data[keystonev1.ACSecretSecretKey]
+			if okID && len(acID) > 0 && okSecret && len(acSecretData) > 0 {
+				templateParameters["ACID"] = string(acID)
+				templateParameters["ACSecret"] = string(acSecretData)
+				Log.Info("Using ApplicationCredentials auth", "secret", key)
+			}
+		}
+	}
 	templateParameters["KeystonePublicURL"] = keystonePublicURL
 	templateParameters["TransportURL"] = string(transportURLSecret.Data["transport_url"])
 	templateParameters["PrometheusHost"] = instance.Status.PrometheusHost
