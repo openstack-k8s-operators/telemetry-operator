@@ -14,6 +14,13 @@
         "perm": "0600"
       },
       {
+        "source": "/var/lib/openstack/custom-config/*",
+        "dest": "/etc/ceilometer/",
+        "owner": "ceilometer",
+        "perm": "0600",
+        "optional": true
+      },
+      {
         "source": "/var/lib/openstack/config/custom.conf",
         "dest": "/etc/ceilometer/ceilometer.conf.d/01-ceilometer-custom.conf",
         "owner": "ceilometer",

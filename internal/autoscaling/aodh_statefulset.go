@@ -83,11 +83,11 @@ func AodhStatefulSet(
 	}
 
 	// create Volume and VolumeMounts
-	volumes := getVolumes()
-	apiVolumeMounts := getVolumeMounts("aodh-api")
-	evaluatorVolumeMounts := getVolumeMounts("aodh-evaluator")
-	notifierVolumeMounts := getVolumeMounts("aodh-notifier")
-	listenerVolumeMounts := getVolumeMounts("aodh-listener")
+	volumes := getVolumes(instance)
+	apiVolumeMounts := getVolumeMounts(instance, "aodh-api")
+	evaluatorVolumeMounts := getVolumeMounts(instance, "aodh-evaluator")
+	notifierVolumeMounts := getVolumeMounts(instance, "aodh-notifier")
+	listenerVolumeMounts := getVolumeMounts(instance, "aodh-listener")
 
 	// add openstack CA cert if defined
 	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
