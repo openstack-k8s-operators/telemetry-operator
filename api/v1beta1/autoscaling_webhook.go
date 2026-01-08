@@ -19,7 +19,11 @@ package v1beta1
 import (
 	"fmt"
 
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -73,6 +77,11 @@ func (spec *AutoscalingSpec) Default() {
 // Default - note only *Core* versions like this will have validations that are called from the
 // Controlplane webhook
 func (spec *AodhCore) Default() {
+	if spec.RabbitMqClusterName == "" {
+		spec.RabbitMqClusterName = "rabbitmq"
+	}
+	rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
+
 	if spec.MemcachedInstance == "" {
 		spec.MemcachedInstance = "memcached"
 	}
@@ -111,7 +120,19 @@ var _ webhook.Validator = &Autoscaling{}
 func (r *Autoscaling) ValidateCreate() (admission.Warnings, error) {
 	autoscalinglog.Info("validate create", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object creation.
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
+
+	if err := r.Spec.Aodh.ValidateCreate(basePath.Child("aodh"), r.Namespace); err != nil {
+		allErrs = append(allErrs, err...)
+	}
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Autoscaling"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
 }
 
@@ -119,7 +140,24 @@ func (r *Autoscaling) ValidateCreate() (admission.Warnings, error) {
 func (r *Autoscaling) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	autoscalinglog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
+	oldAutoscaling, ok := old.(*Autoscaling)
+	if !ok || oldAutoscaling == nil {
+		return nil, apierrors.NewInternalError(nil)
+	}
+
+	var allErrs field.ErrorList
+	basePath := field.NewPath("spec")
+
+	if err := r.Spec.Aodh.ValidateUpdate(oldAutoscaling.Spec.Aodh.AodhCore, basePath.Child("aodh"), r.Namespace); err != nil {
+		allErrs = append(allErrs, err...)
+	}
+
+	if len(allErrs) != 0 {
+		return nil, apierrors.NewInvalid(
+			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Autoscaling"},
+			r.Name, allErrs)
+	}
+
 	return nil, nil
 }
 
@@ -127,6 +165,32 @@ func (r *Autoscaling) ValidateUpdate(old runtime.Object) (admission.Warnings, er
 func (r *Autoscaling) ValidateDelete() (admission.Warnings, error) {
 	autoscalinglog.Info("validate delete", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
+}
+
+// ValidateCreate - Exported function wrapping non-exported validate functions,
+// this function can be called externally to validate an aodh spec.
+func (spec *AodhCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+
+	return allErrs
+}
+
+// ValidateUpdate - Exported function wrapping non-exported validate functions,
+// this function can be called externally to validate an aodh spec.
+func (spec *AodhCore) ValidateUpdate(old AodhCore, basePath *field.Path, namespace string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Reject changes to deprecated RabbitMqClusterName field
+	if spec.RabbitMqClusterName != old.RabbitMqClusterName {
+		allErrs = append(allErrs, field.Forbidden(
+			basePath.Child("rabbitMqClusterName"),
+			"rabbitMqClusterName is deprecated and cannot be changed. Please use messagingBus.cluster instead"))
+	}
+
+	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+
+	return allErrs
 }

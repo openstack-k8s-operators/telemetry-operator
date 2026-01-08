@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"slices"
 
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -64,6 +65,20 @@ func (spec *CloudKittySpec) Default() {
 		spec.CloudKittyProc.ContainerImage = cloudKittyDefaults.ProcContainerImageURL
 	}
 
+	spec.CloudKittySpecBase.Default()
+}
+
+// Default - set defaults for this CloudKittySpecCore. NOTE: this version is used by the OpenStackControlplane webhook
+func (spec *CloudKittySpecCore) Default() {
+	spec.CloudKittySpecBase.Default()
+}
+
+// Default - set defaults for this CloudKittySpecBase
+func (spec *CloudKittySpecBase) Default() {
+	if spec.RabbitMqClusterName == "" {
+		spec.RabbitMqClusterName = "rabbitmq"
+	}
+	rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
 }
 
 var _ webhook.Validator = &CloudKitty{}
@@ -195,6 +210,13 @@ func (r *CloudKittySpecCore) ValidateUpdate(old CloudKittySpecCore, basePath *fi
 // ValidateCreate validates the CloudKittySpecBase during the webhook invocation.
 func (r *CloudKittySpecBase) ValidateUpdate(old CloudKittySpecBase, basePath *field.Path, namespace string) field.ErrorList {
 	var allErrs field.ErrorList
+
+	// Reject changes to deprecated RabbitMqClusterName field
+	if r.RabbitMqClusterName != old.RabbitMqClusterName {
+		allErrs = append(allErrs, field.Forbidden(
+			basePath.Child("rabbitMqClusterName"),
+			"rabbitMqClusterName is deprecated and cannot be changed. Please use messagingBus.cluster instead"))
+	}
 
 	allErrs = append(allErrs, r.S3StorageConfig.Validate(basePath.Child("s3StorageConfig"))...)
 
