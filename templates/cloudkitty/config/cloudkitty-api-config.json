@@ -14,23 +14,11 @@
       "perm": "0600"
     },
     {
-      "source": "/var/lib/openstack/config/metrics.yaml",
-      "dest": "/etc/cloudkitty/metrics.yaml",
-      "owner": "cloudkitty",
-      "perm": "0600"
-    },
-    {
       "source": "/var/lib/openstack/service-config/0*.conf",
       "dest": "/etc/cloudkitty/cloudkitty.conf.d/",
       "owner": "cloudkitty",
       "perm": "0600",
       "optional": true
-    },
-    {
-      "source": "/var/lib/openstack/config/metrics.yaml",
-      "dest": "/etc/cloudkitty/metrics.yaml",
-      "owner": "cloudkitty",
-      "perm": "0600"
     },
     {
       "source": "/var/lib/openstack/config/wsgi-cloudkitty.conf",
