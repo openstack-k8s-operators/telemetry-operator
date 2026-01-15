@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"fmt"
 
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -75,6 +76,10 @@ func (spec *AutoscalingSpec) Default() {
 func (spec *AodhCore) Default() {
 	if spec.MemcachedInstance == "" {
 		spec.MemcachedInstance = "memcached"
+	}
+	// Default Auth fields for Application Credentials
+	if spec.Auth.ApplicationCredentialSecret == "" {
+		spec.Auth.ApplicationCredentialSecret = keystonev1.GetACSecretName("aodh")
 	}
 }
 

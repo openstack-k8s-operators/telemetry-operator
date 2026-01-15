@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"slices"
 
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -63,7 +64,15 @@ func (spec *CloudKittySpec) Default() {
 	if spec.CloudKittyProc.ContainerImage == "" {
 		spec.CloudKittyProc.ContainerImage = cloudKittyDefaults.ProcContainerImageURL
 	}
+}
 
+// Default - note only *Template* versions like this will have validations that are called from the
+// Controlplane webhook
+func (spec *CloudKittyTemplate) Default() {
+	// Default Auth fields for Application Credentials
+	if spec.Auth.ApplicationCredentialSecret == "" {
+		spec.Auth.ApplicationCredentialSecret = keystonev1.GetACSecretName("cloudkitty")
+	}
 }
 
 var _ webhook.Validator = &CloudKitty{}

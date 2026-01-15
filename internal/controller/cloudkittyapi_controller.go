@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/internal/cloudkitty"
 	"github.com/openstack-k8s-operators/telemetry-operator/internal/cloudkittyapi"
@@ -415,6 +416,18 @@ func (r *CloudKittyAPIReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			return nil
 		}
 		return []string{cr.Spec.CustomConfigsSecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index authAppCredSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.CloudKittyAPI{}, cloudKittyAuthAppCredSecretField, func(rawObj client.Object) []string {
+		// Extract the AC secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.CloudKittyAPI)
+		if cr.Spec.Auth.ApplicationCredentialSecret == "" {
+			return nil
+		}
+		return []string{cr.Spec.Auth.ApplicationCredentialSecret}
 	}); err != nil {
 		return err
 	}

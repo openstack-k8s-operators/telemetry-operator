@@ -370,6 +370,18 @@ func (r *CloudKittyProcReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		return err
 	}
 
+	// index authAppCredSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.CloudKittyProc{}, cloudKittyAuthAppCredSecretField, func(rawObj client.Object) []string {
+		// Extract the AC secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.CloudKittyProc)
+		if cr.Spec.Auth.ApplicationCredentialSecret == "" {
+			return nil
+		}
+		return []string{cr.Spec.Auth.ApplicationCredentialSecret}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.CloudKittyProc{}).
 		Owns(&appsv1.StatefulSet{}).
