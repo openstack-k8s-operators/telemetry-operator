@@ -7,7 +7,7 @@ replace github.com/openstack-k8s-operators/telemetry-operator/api => ./api
 require (
 	github.com/cert-manager/cert-manager v1.16.5
 	github.com/go-logr/logr v1.4.3
-	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
+	github.com/grafana/loki/operator/api/loki v0.0.0-20260117015232-5cb7d11b9051
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260105161809-cf030b344d79
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260108154501-11e5091cddf1
