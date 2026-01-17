@@ -1261,6 +1261,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		"TLS":                 false, // Default to false. Change to true later if TLS enabled
 		"SwiftRole":           false, //
 		"Timeout":             instance.Spec.APITimeout,
+		"Region":              keystoneAPI.GetRegion(),
 	}
 
 	// create httpd  vhost template parameters
