@@ -735,6 +735,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 			instance.Status.DatabaseHostname,
 			autoscaling.DatabaseName),
 		"Timeout": instance.Spec.Aodh.APITimeout,
+		"Region":  keystoneAPI.GetRegion(),
 	}
 
 	prometheusParams := map[string]any{
