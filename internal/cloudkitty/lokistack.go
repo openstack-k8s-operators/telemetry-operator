@@ -123,6 +123,19 @@ func LokiStack(
 	if instance.Spec.LokiStackSize != "" {
 		size = instance.Spec.LokiStackSize
 	}
+
+	// Build limits spec only if retention is enabled (lokiRetentionDays > 0)
+	var limitsSpec *lokistackv1.LimitsSpec
+	if instance.Spec.LokiRetentionDays > 0 {
+		limitsSpec = &lokistackv1.LimitsSpec{
+			Global: &lokistackv1.LimitsTemplateSpec{
+				Retention: &lokistackv1.RetentionLimitSpec{
+					Days: instance.Spec.LokiRetentionDays,
+				},
+			},
+		}
+	}
+
 	lokiStack := &lokistackv1.LokiStack{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-lokistack", instance.Name),
@@ -135,6 +148,7 @@ func LokiStack(
 			Size:             lokistackv1.LokiStackSizeType(size),
 			Storage:          getLokiStackObjectStorageSpec(instance.Spec.S3StorageConfig),
 			StorageClassName: instance.Spec.StorageClass,
+			Limits:           limitsSpec,
 			Tenants: &lokistackv1.TenantsSpec{
 				Mode: lokistackv1.Static,
 				Authentication: []lokistackv1.AuthenticationSpec{

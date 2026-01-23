@@ -49,3 +49,4 @@ spec:
   secret: osp-secret
   serviceUser: cloudkitty
   storageClass: local-storage
+  lokiRetentionDays: 0
