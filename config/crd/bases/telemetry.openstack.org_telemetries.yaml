@@ -1096,6 +1096,12 @@ spec:
                     description: Enabled - Whether OpenStack CloudKitty service should
                       be deployed and managed
                     type: boolean
+                  lokiRetentionDays:
+                    default: 95
+                    description: |-
+                      LokiRetentionDays defines the number of days logs are kept in Loki storage.
+                      Set to 0 to disable retention limits.
+                    type: integer
                   lokiStackSize:
                     default: 1x.demo
                     description: Size of the LokiStack. Supported are "1x.demo" (default),
