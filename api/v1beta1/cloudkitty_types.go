@@ -205,6 +205,12 @@ type CloudKittySpecBase struct {
 	// +kubebuilder:validation:Enum="";"1x.demo";"1x.pico";"1x.extra-small";"1x.small";"1x.medium"
 	// +kubebuilder:default="1x.demo"
 	LokiStackSize string `json:"lokiStackSize"`
+
+	// LokiRetentionDays defines the number of days logs are kept in Loki storage.
+	// Set to 0 to disable retention limits.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=95
+	LokiRetentionDays uint `json:"lokiRetentionDays"`
 }
 
 // CloudKittySpecCore the same as CloudKittySpec without ContainerImage references
