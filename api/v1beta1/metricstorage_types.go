@@ -93,7 +93,8 @@ type MetricStorageSpec struct {
 	// NetworkAttachments is a list of NetworkAttachment resource names to expose the services to the given network
 	// +kubebuilder:validation:Optional
 	// +listType=atomic
-	NetworkAttachments []string `json:"networkAttachments,omitempty"`
+	// +kubebuilder:default:={"ctlplane"}
+	NetworkAttachments []string `json:"networkAttachments"`
 
 	// MonitoringStack allows to define a metric storage with
 	// options supported by Red Hat
