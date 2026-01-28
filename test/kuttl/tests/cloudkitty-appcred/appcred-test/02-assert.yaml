@@ -1,0 +1,56 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: CloudKitty
+metadata:
+  name: telemetry-kuttl-cloudkitty-appcred
+status:
+  conditions:
+  - status: "True"
+    type: Ready
+  - status: "True"
+    type: CloudKittyAPIReady
+  - status: "True"
+    type: CloudKittyClientCertReady
+  - status: "True"
+    type: CloudKittyLokiStackReady
+  - status: "True"
+    type: CloudKittyProcReady
+  - status: "True"
+    type: CloudKittyStorageInitReady
+  - status: "True"
+    type: DBReady
+  - status: "True"
+    type: DBSyncReady
+  - status: "True"
+    type: InputReady
+  - status: "True"
+    type: MariaDBAccountReady
+  - status: "True"
+    type: MemcachedReady
+  - status: "True"
+    type: NetworkAttachmentsReady
+  - status: "True"
+    type: RabbitMqTransportURLReady
+  - status: "True"
+    type: RoleBindingReady
+  - status: "True"
+    type: RoleReady
+  - status: "True"
+    type: ServiceAccountReady
+  - status: "True"
+    type: ServiceConfigReady
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: telemetry-kuttl-cloudkitty-appcred-api
+status:
+  availableReplicas: 1
+  readyReplicas: 1
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: telemetry-kuttl-cloudkitty-appcred-proc
+status:
+  availableReplicas: 1
+  readyReplicas: 1
