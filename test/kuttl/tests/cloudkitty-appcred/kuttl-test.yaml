@@ -1,0 +1,14 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestSuite
+reportFormat: JSON
+reportName: kuttl-cloudkitty-appcred-results
+namespace: telemetry-kuttl-cloudkitty-appcred
+# LokiStack can take a long time to get ready
+timeout: 600
+parallel: 1
+skipDelete: true
+testDirs:
+  - test/kuttl/tests/cloudkitty-appcred/
+suppress:
+  - events
+artifactsDir: test/kuttl/tests/cloudkitty-appcred/appcred-test/output
