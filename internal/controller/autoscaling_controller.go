@@ -326,81 +326,39 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	}
 
 	//
-	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
+	// create NotificationsBus TransportURL - Aodh only uses Notifications
 	//
-	transportURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, nil)
+	// init .Status.NotificationsURLSecret
+	instance.Status.NotificationsURLSecret = ptr.To("")
+
+	notificationBusInstanceURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, instance.Spec.Aodh.NotificationsBus)
 	if err != nil {
-		Log.Info("Error getting transportURL. Setting error condition on status and returning")
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.RabbitMqTransportURLReadyCondition,
+			condition.NotificationBusInstanceReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
-			condition.RabbitMqTransportURLReadyErrorMessage,
+			condition.NotificationBusInstanceReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, err
 	}
 
 	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
+		Log.Info(fmt.Sprintf("NotificationBusInstanceURL %s successfully reconciled - operation: %s", notificationBusInstanceURL.Name, string(op)))
 	}
 
-	instance.Status.TransportURLSecret = transportURL.Status.SecretName
+	*instance.Status.NotificationsURLSecret = notificationBusInstanceURL.Status.SecretName
 
-	if instance.Status.TransportURLSecret == "" {
-		Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
+	if *instance.Status.NotificationsURLSecret == "" {
+		Log.Info(fmt.Sprintf("Waiting for NotificationBusInstanceURL %s secret to be created", notificationBusInstanceURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.RabbitMqTransportURLReadyCondition,
+			condition.NotificationBusInstanceReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
-			condition.RabbitMqTransportURLReadyRunningMessage))
+			condition.NotificationBusInstanceReadyRunningMessage))
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 
-	instance.Status.Conditions.MarkTrue(condition.RabbitMqTransportURLReadyCondition, condition.RabbitMqTransportURLReadyMessage)
-	// end transportURL
-
-	//
-	// create NotificationsBus TransportURL if configured
-	//
-	if instance.Spec.Aodh.NotificationsBus != nil {
-		// init .Status.NotificationsURLSecret
-		instance.Status.NotificationsURLSecret = ptr.To("")
-
-		// Always pass the NotificationsBus config to ensure a separate TransportURL is created,
-		// even when using the same cluster as messaging (to allow different vhost/user)
-		notificationBusInstanceURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, instance.Spec.Aodh.NotificationsBus)
-		if err != nil {
-			instance.Status.Conditions.Set(condition.FalseCondition(
-				condition.NotificationBusInstanceReadyCondition,
-				condition.ErrorReason,
-				condition.SeverityWarning,
-				condition.NotificationBusInstanceReadyErrorMessage,
-				err.Error()))
-			return ctrl.Result{}, err
-		}
-
-		if op != controllerutil.OperationResultNone {
-			Log.Info(fmt.Sprintf("NotificationBusInstanceURL %s successfully reconciled - operation: %s", notificationBusInstanceURL.Name, string(op)))
-		}
-
-		*instance.Status.NotificationsURLSecret = notificationBusInstanceURL.Status.SecretName
-
-		if *instance.Status.NotificationsURLSecret == "" {
-			Log.Info(fmt.Sprintf("Waiting for NotificationBusInstanceURL %s secret to be created", notificationBusInstanceURL.Name))
-			instance.Status.Conditions.Set(condition.FalseCondition(
-				condition.NotificationBusInstanceReadyCondition,
-				condition.RequestedReason,
-				condition.SeverityInfo,
-				condition.NotificationBusInstanceReadyRunningMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
-		}
-
-		instance.Status.Conditions.MarkTrue(condition.NotificationBusInstanceReadyCondition, condition.NotificationBusInstanceReadyMessage)
-	} else {
-		// make sure we do not have an entry in the status if
-		// .Spec.Aodh.NotificationsBus is not provided
-		instance.Status.NotificationsURLSecret = nil
-	}
+	instance.Status.Conditions.MarkTrue(condition.NotificationBusInstanceReadyCondition, condition.NotificationBusInstanceReadyMessage)
 	// end notificationsBus
 
 	configMapVars := make(map[string]env.Setter)
@@ -499,9 +457,10 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// run check heat - end
 
 	//
-	// check for required TransportURL secret holding transport URL string
+	// check for required NotificationsBus TransportURL secret holding transport URL string
+	// Aodh only uses NotificationsBus, not MessagingBus
 	//
-	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Status.TransportURLSecret, "transport_url", &configMapVars)
+	ctrlResult, err = r.getSecret(ctx, helper, instance, *instance.Status.NotificationsURLSecret, "transport_url", &configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -762,7 +721,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		return err
 	}
 
-	transportURLSecret, _, err := secret.GetSecret(ctx, h, instance.Status.TransportURLSecret, instance.Namespace)
+	transportURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
 	if err != nil {
 		return err
 	}
@@ -926,16 +885,9 @@ func (r *AutoscalingReconciler) transportURLCreateOrUpdate(
 	serviceLabels map[string]string,
 	rabbitmqConfig *rabbitmqv1.RabbitMqConfig,
 ) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
-	// Default values for regular messagingBus transportURL
-	rmqName := fmt.Sprintf("%s-transport", autoscaling.ServiceName)
-	config := &instance.Spec.Aodh.MessagingBus
-
-	// When rabbitmqConfig is passed (notificationsBus use case)
-	// update the default rmqName and use the provided config
-	if rabbitmqConfig != nil {
-		rmqName = fmt.Sprintf("%s-notifications-transport", autoscaling.ServiceName)
-		config = rabbitmqConfig
-	}
+	// Aodh only uses NotificationsBus TransportURL
+	rmqName := fmt.Sprintf("%s-notifications-transport", autoscaling.ServiceName)
+	config := rabbitmqConfig
 
 	// Prepare the spec values before CreateOrUpdate so webhooks see them during CREATE
 	clusterName := config.Cluster

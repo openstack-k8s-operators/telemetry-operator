@@ -86,7 +86,10 @@ func (spec *CloudKittySpecBase) Default() {
 	if spec.RabbitMqClusterName == "" {
 		spec.RabbitMqClusterName = "rabbitmq"
 	}
-	rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
+	// Only migrate from deprecated field if the new field is not already set
+	if spec.MessagingBus.Cluster == "" {
+		rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
+	}
 }
 
 // getDeprecatedFields returns the centralized list of deprecated fields for CloudKittySpecBase

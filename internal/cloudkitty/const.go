@@ -18,7 +18,6 @@ package cloudkitty
 import (
 	"time"
 
-	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -66,18 +65,6 @@ const (
 
 	// CloudKittyUserID -
 	CloudKittyUserID = 42406
-
-	// CloudKittyNotificationBusReadyCondition Status=True condition indicates if the RabbitMQ NotificationsBus TransportURL is configured
-	CloudKittyNotificationBusReadyCondition condition.Type = "CloudKittyNotificationBusReady"
-
-	// CloudKittyNotificationBusReadyMessage
-	CloudKittyNotificationBusReadyMessage = "NotificationsBus TransportURL successfully created"
-
-	// CloudKittyNotificationBusReadyRunningMessage
-	CloudKittyNotificationBusReadyRunningMessage = "NotificationsBus TransportURL creation in progress"
-
-	// CloudKittyNotificationBusReadyErrorMessage
-	CloudKittyNotificationBusReadyErrorMessage = "NotificationsBus TransportURL error occured %s"
 )
 
 // ResultRequeue is a ctrl.Result that requeues after NormalDuration

@@ -65,16 +65,12 @@ type AodhCore struct {
 	APITimeout int `json:"apiTimeout"`
 
 	// +kubebuilder:validation:Optional
-	// MessagingBus configuration (username, vhost, and cluster)
-	MessagingBus rabbitmqv1.RabbitMqConfig `json:"messagingBus,omitempty"`
-
-	// +kubebuilder:validation:Optional
 	// NotificationsBus configuration (username, vhost, and cluster) for notifications
 	NotificationsBus *rabbitmqv1.RabbitMqConfig `json:"notificationsBus,omitempty"`
 
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Aodh
-	// Deprecated: Use MessagingBus.Cluster instead
+	// Deprecated: Use NotificationsBus.Cluster instead
 	// +kubebuilder:default=rabbitmq
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 

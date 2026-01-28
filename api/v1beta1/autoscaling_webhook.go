@@ -81,7 +81,12 @@ func (spec *AodhCore) Default() {
 	if spec.RabbitMqClusterName == "" {
 		spec.RabbitMqClusterName = "rabbitmq"
 	}
-	rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
+
+	// Aodh only uses Notifications (never RPC), so only default NotificationsBus
+	if spec.NotificationsBus == nil {
+		spec.NotificationsBus = &rabbitmqv1.RabbitMqConfig{}
+	}
+	rabbitmqv1.DefaultRabbitMqConfig(spec.NotificationsBus, spec.RabbitMqClusterName)
 
 	if spec.MemcachedInstance == "" {
 		spec.MemcachedInstance = "memcached"
@@ -95,9 +100,9 @@ func (spec *AodhCore) getDeprecatedFields(old *AodhCore) []common_webhook.Deprec
 	deprecatedFields := []common_webhook.DeprecatedFieldUpdate{
 		{
 			DeprecatedFieldName: "rabbitMqClusterName",
-			NewFieldPath:        []string{"messagingBus", "cluster"},
+			NewFieldPath:        []string{"notificationsBus", "cluster"},
 			NewDeprecatedValue:  &spec.RabbitMqClusterName,
-			NewValue:            &spec.MessagingBus.Cluster,
+			NewValue:            &spec.NotificationsBus.Cluster,
 		},
 	}
 
