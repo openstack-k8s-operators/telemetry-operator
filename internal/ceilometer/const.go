@@ -45,12 +45,12 @@ const (
 	// CeilometerNotificationBusReadyCondition Status=True condition indicates if the RabbitMQ NotificationsBus TransportURL is configured
 	CeilometerNotificationBusReadyCondition condition.Type = "CeilometerNotificationBusReady"
 
-	// CeilometerNotificationBusReadyMessage
+	// CeilometerNotificationBusReadyMessage is the message for CeilometerNotificationBusReady condition
 	CeilometerNotificationBusReadyMessage = "NotificationsBus TransportURL successfully created"
 
-	// CeilometerNotificationBusReadyRunningMessage
+	// CeilometerNotificationBusReadyRunningMessage is the message for CeilometerNotificationBusReady running state
 	CeilometerNotificationBusReadyRunningMessage = "NotificationsBus TransportURL creation in progress"
 
-	// CeilometerNotificationBusReadyErrorMessage
+	// CeilometerNotificationBusReadyErrorMessage is the message for CeilometerNotificationBusReady error state
 	CeilometerNotificationBusReadyErrorMessage = "NotificationsBus TransportURL error occured %s"
 )
