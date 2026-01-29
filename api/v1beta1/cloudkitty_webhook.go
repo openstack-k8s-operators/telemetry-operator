@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"slices"
 
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,6 +28,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	common_webhook "github.com/openstack-k8s-operators/lib-common/modules/common/webhook"
 )
 
 // CloudKittyDefaults -
@@ -64,6 +66,68 @@ func (spec *CloudKittySpec) Default() {
 		spec.CloudKittyProc.ContainerImage = cloudKittyDefaults.ProcContainerImageURL
 	}
 
+	spec.CloudKittySpecBase.Default()
+}
+
+// Default - set defaults for this CloudKittySpecCore. NOTE: this version is used by the OpenStackControlplane webhook
+func (spec *CloudKittySpecCore) Default() {
+	spec.CloudKittySpecBase.Default()
+}
+
+// Default - set defaults for this CloudKittySpecBase
+func (spec *CloudKittySpecBase) Default() {
+	if spec.RabbitMqClusterName == "" {
+		spec.RabbitMqClusterName = "rabbitmq"
+	}
+	// Only migrate from deprecated field if the new field is not already set
+	if spec.MessagingBus.Cluster == "" {
+		rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
+	}
+}
+
+// getDeprecatedFields returns the centralized list of deprecated fields for CloudKittySpecBase
+func (spec *CloudKittySpecBase) getDeprecatedFields(old *CloudKittySpecBase) []common_webhook.DeprecatedFieldUpdate {
+	deprecatedFields := []common_webhook.DeprecatedFieldUpdate{
+		{
+			DeprecatedFieldName: "rabbitMqClusterName",
+			NewFieldPath:        []string{"messagingBus", "cluster"},
+			NewDeprecatedValue:  &spec.RabbitMqClusterName,
+			NewValue:            &spec.MessagingBus.Cluster,
+		},
+	}
+
+	// If old spec is provided (UPDATE operation), add old values
+	if old != nil {
+		deprecatedFields[0].OldDeprecatedValue = &old.RabbitMqClusterName
+	}
+
+	return deprecatedFields
+}
+
+// validateDeprecatedFieldsCreate validates deprecated fields during CREATE operations
+func (spec *CloudKittySpecBase) validateDeprecatedFieldsCreate(basePath *field.Path) ([]string, field.ErrorList) {
+	// Get deprecated fields list (without old values for CREATE)
+	deprecatedFieldsUpdate := spec.getDeprecatedFields(nil)
+
+	// Convert to DeprecatedField list for CREATE validation
+	deprecatedFields := make([]common_webhook.DeprecatedField, len(deprecatedFieldsUpdate))
+	for i, df := range deprecatedFieldsUpdate {
+		deprecatedFields[i] = common_webhook.DeprecatedField{
+			DeprecatedFieldName: df.DeprecatedFieldName,
+			NewFieldPath:        df.NewFieldPath,
+			DeprecatedValue:     df.NewDeprecatedValue,
+			NewValue:            df.NewValue,
+		}
+	}
+
+	return common_webhook.ValidateDeprecatedFieldsCreate(deprecatedFields, basePath), nil
+}
+
+// validateDeprecatedFieldsUpdate validates deprecated fields during UPDATE operations
+func (spec *CloudKittySpecBase) validateDeprecatedFieldsUpdate(old CloudKittySpecBase, basePath *field.Path) ([]string, field.ErrorList) {
+	// Get deprecated fields list with old values
+	deprecatedFields := spec.getDeprecatedFields(&old)
+	return common_webhook.ValidateDeprecatedFieldsUpdate(deprecatedFields, basePath)
 }
 
 var _ webhook.Validator = &CloudKitty{}
@@ -153,6 +217,10 @@ func (r *CloudKittySpecCore) ValidateCreate(basePath *field.Path, namespace stri
 func (r *CloudKittySpecBase) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
 	var allErrs field.ErrorList
 
+	// Validate deprecated fields using shared helper
+	_, errs := r.validateDeprecatedFieldsCreate(basePath)
+	allErrs = append(allErrs, errs...)
+
 	allErrs = append(allErrs, r.S3StorageConfig.Validate(basePath.Child("s3StorageConfig"))...)
 
 	// TODO: Add other CK spec field validations as needed
@@ -192,9 +260,13 @@ func (r *CloudKittySpecCore) ValidateUpdate(old CloudKittySpecCore, basePath *fi
 	return r.CloudKittySpecBase.ValidateUpdate(old.CloudKittySpecBase, basePath, namespace)
 }
 
-// ValidateCreate validates the CloudKittySpecBase during the webhook invocation.
+// ValidateUpdate validates the CloudKittySpecBase during the webhook invocation.
 func (r *CloudKittySpecBase) ValidateUpdate(old CloudKittySpecBase, basePath *field.Path, namespace string) field.ErrorList {
 	var allErrs field.ErrorList
+
+	// Validate deprecated fields using shared helper
+	_, errs := r.validateDeprecatedFieldsUpdate(old, basePath)
+	allErrs = append(allErrs, errs...)
 
 	allErrs = append(allErrs, r.S3StorageConfig.Validate(basePath.Child("s3StorageConfig"))...)
 
