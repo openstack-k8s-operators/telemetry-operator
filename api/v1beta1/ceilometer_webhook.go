@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -92,15 +91,11 @@ func (spec *CeilometerSpec) Default() {
 
 // Default - set defaults for this CeilometerSpecCore. NOTE: this version is used by the OpenStackControlplane webhook
 func (spec *CeilometerSpecCore) Default() {
-	if spec.RabbitMqClusterName == "" {
-		spec.RabbitMqClusterName = "rabbitmq"
+	// Default NotificationsBus.Cluster if NotificationsBus is present but Cluster is empty
+	// Migration from deprecated fields is handled by openstack-operator
+	if spec.NotificationsBus != nil && spec.NotificationsBus.Cluster == "" {
+		spec.NotificationsBus.Cluster = "rabbitmq"
 	}
-
-	// Ceilometer only uses Notifications (never RPC), so only default NotificationsBus
-	if spec.NotificationsBus == nil {
-		spec.NotificationsBus = &rabbitmqv1.RabbitMqConfig{}
-	}
-	rabbitmqv1.DefaultRabbitMqConfig(spec.NotificationsBus, spec.RabbitMqClusterName)
 }
 
 // getDeprecatedFields returns the centralized list of deprecated fields for CeilometerSpecCore
