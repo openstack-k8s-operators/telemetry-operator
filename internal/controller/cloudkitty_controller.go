@@ -30,6 +30,7 @@ import (
 	"github.com/openstack-k8s-operators/telemetry-operator/internal/utils"
 
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -39,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	certmgrv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -240,6 +242,7 @@ const (
 	cloudKittyCaBundleSecretNameField  = ".spec.tls.caBundleSecretName"
 	cloudKittyTLSAPIInternalField      = ".spec.tls.api.internal.secretName"
 	cloudKittyTLSAPIPublicField        = ".spec.tls.api.public.secretName"
+	cloudKittyAuthAppCredSecretField   = ".spec.auth.applicationCredentialSecret" //nolint:gosec // G101: Not actual credentials, just field path
 	cloudKittyTopologyField            = ".spec.topologyRef.Name"
 	cloudKittyCustomConfigsSecretField = ".spec.customConfigsSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 )
@@ -259,10 +262,24 @@ var (
 		cloudKittyTopologyField,
 		cloudKittyCustomConfigsSecretField,
 	}
+	cloudKittyWatchFields = []string{
+		cloudKittyAuthAppCredSecretField,
+	}
 )
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// index authAppCredSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.CloudKitty{}, cloudKittyAuthAppCredSecretField, func(rawObj client.Object) []string {
+		cr := rawObj.(*telemetryv1.CloudKitty)
+		if cr.Spec.Auth.ApplicationCredentialSecret == "" {
+			return nil
+		}
+		return []string{cr.Spec.Auth.ApplicationCredentialSecret}
+	}); err != nil {
+		return err
+	}
+
 	// transportURLSecretFn - Watch for changes made to the secret associated with the RabbitMQ
 	// TransportURL created and used by CloudKitty CRs.  Watch functions return a list of namespace-scoped
 	// CRs that then get fed  to the reconciler.  Hence, in this case, we need to know the name of the
@@ -392,6 +409,12 @@ func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&certmgrv1.Certificate{}).
+		// Watch for input secrets using field indexers
+		Watches(
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		// Watch for TransportURL Secrets which belong to any TransportURLs created by CloudKitty CRs
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(transportURLSecretFn)).
@@ -435,6 +458,40 @@ func (r *CloudKittyReconciler) findObjectForSrc(ctx context.Context, src client.
 				},
 			},
 		)
+	}
+
+	return requests
+}
+
+func (r *CloudKittyReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	l := log.FromContext(ctx).WithName("Controllers").WithName("CloudKitty")
+
+	for _, field := range cloudKittyWatchFields {
+		crList := &telemetryv1.CloudKittyList{}
+		listOps := &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
+			Namespace:     src.GetNamespace(),
+		}
+		err := r.List(ctx, crList, listOps)
+		if err != nil {
+			l.Error(err, fmt.Sprintf("listing %s for field: %s - %s", crList.GroupVersionKind().Kind, field, src.GetNamespace()))
+			return requests
+		}
+
+		for _, item := range crList.Items {
+			l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+
+			requests = append(requests,
+				reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      item.GetName(),
+						Namespace: item.GetNamespace(),
+					},
+				},
+			)
+		}
 	}
 
 	return requests
@@ -1104,6 +1161,7 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	memcached *memcachedv1.Memcached,
 	db *mariadbv1.Database,
 ) error {
+	Log := r.GetLogger(ctx)
 	//
 	// create Secret required for cloudkitty input
 	// - %-scripts holds scripts to e.g. bootstrap the service
@@ -1198,6 +1256,28 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	templateParameters["ServiceUser"] = instance.Spec.ServiceUser
 	templateParameters["ServicePassword"] = string(ospSecret.Data[instance.Spec.PasswordSelectors.CloudKittyService])
 	templateParameters["KeystoneInternalURL"] = keystoneInternalURL
+
+	// Try to get Application Credential from the secret specified in the CR
+	if instance.Spec.Auth.ApplicationCredentialSecret != "" {
+		acSecretObj, _, err := secret.GetSecret(ctx, h, instance.Spec.Auth.ApplicationCredentialSecret, instance.Namespace)
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				Log.Info("ApplicationCredential secret not found, waiting", "secret", instance.Spec.Auth.ApplicationCredentialSecret)
+				return fmt.Errorf("%w: %s", ErrACSecretNotFound, instance.Spec.Auth.ApplicationCredentialSecret)
+			}
+			Log.Error(err, "Failed to get ApplicationCredential secret", "secret", instance.Spec.Auth.ApplicationCredentialSecret)
+			return err
+		}
+		acID, okID := acSecretObj.Data[keystonev1.ACIDSecretKey]
+		acSecretData, okSecret := acSecretObj.Data[keystonev1.ACSecretSecretKey]
+		if !okID || len(acID) == 0 || !okSecret || len(acSecretData) == 0 {
+			Log.Info("ApplicationCredential secret missing required keys", "secret", instance.Spec.Auth.ApplicationCredentialSecret)
+			return fmt.Errorf("%w: %s", ErrACSecretMissingKeys, instance.Spec.Auth.ApplicationCredentialSecret)
+		}
+		templateParameters["ACID"] = string(acID)
+		templateParameters["ACSecret"] = string(acSecretData)
+		Log.Info("Using ApplicationCredentials auth", "secret", instance.Spec.Auth.ApplicationCredentialSecret)
+	}
 	templateParameters["KeystonePublicURL"] = keystonePublicURL
 	templateParameters["Region"] = keystoneAPI.GetRegion()
 	templateParameters["TransportURL"] = string(transportURLSecret.Data["transport_url"])

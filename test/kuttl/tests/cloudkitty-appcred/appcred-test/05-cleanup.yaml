@@ -1,0 +1,23 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - apiVersion: telemetry.openstack.org/v1beta1
+    kind: CloudKitty
+    name: telemetry-kuttl-cloudkitty-appcred
+    namespace: telemetry-kuttl-cloudkitty-appcred
+  - apiVersion: keystone.openstack.org/v1beta1
+    kind: KeystoneApplicationCredential
+    name: ac-cloudkitty
+    namespace: telemetry-kuttl-cloudkitty-appcred
+  - apiVersion: v1
+    kind: Secret
+    name: ac-cloudkitty-secret
+    namespace: telemetry-kuttl-cloudkitty-appcred
+  - apiVersion: v1
+    kind: ConfigMap
+    name: appcred-cloudkitty-pre
+    namespace: telemetry-kuttl-cloudkitty-appcred
+  - apiVersion: v1
+    kind: ConfigMap
+    name: appcred-cloudkitty-rotate-pre
+    namespace: telemetry-kuttl-cloudkitty-appcred
