@@ -139,10 +139,6 @@ type CloudKittySpecBase struct {
 	MessagingBus rabbitmqv1.RabbitMqConfig `json:"messagingBus,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// NotificationsBus configuration (username, vhost, and cluster) for notifications
-	NotificationsBus *rabbitmqv1.RabbitMqConfig `json:"notificationsBus,omitempty"`
-
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=rabbitmq
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in CloudKitty

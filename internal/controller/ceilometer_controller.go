@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -539,9 +538,6 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	//
 	// create NotificationsBus TransportURL - Ceilometer only uses Notifications
 	//
-	// init .Status.NotificationsURLSecret
-	instance.Status.NotificationsURLSecret = ptr.To("")
-
 	notificationBusInstanceURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, instance.Spec.NotificationsBus)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -557,9 +553,9 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		Log.Info(fmt.Sprintf("NotificationBusInstanceURL %s successfully reconciled - operation: %s", notificationBusInstanceURL.Name, string(op)))
 	}
 
-	*instance.Status.NotificationsURLSecret = notificationBusInstanceURL.Status.SecretName
+	instance.Status.NotificationsURLSecret = &notificationBusInstanceURL.Status.SecretName
 
-	if *instance.Status.NotificationsURLSecret == "" {
+	if instance.Status.NotificationsURLSecret == nil || *instance.Status.NotificationsURLSecret == "" {
 		Log.Info(fmt.Sprintf("Waiting for NotificationBusInstanceURL %s secret to be created", notificationBusInstanceURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			ceilometer.CeilometerNotificationBusReadyCondition,
@@ -1254,6 +1250,11 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		return err
 	}
 
+	// Ensure NotificationsURLSecret is not nil before dereferencing
+	if instance.Status.NotificationsURLSecret == nil {
+		return fmt.Errorf("NotificationsURLSecret is not set")
+	}
+
 	transportURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
 	if err != nil {
 		return err
@@ -1317,7 +1318,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 
 	// Add NotificationsURL if configured
 	// Always get the separate notification secret since we always create separate TransportURLs
-	if instance.Status.NotificationsURLSecret != nil {
+	if instance.Status.NotificationsURLSecret != nil && *instance.Status.NotificationsURLSecret != "" {
 		notificationInstanceURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
 		if err != nil {
 			return err
@@ -1372,6 +1373,11 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 	keystoneInternalURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
 	if err != nil {
 		return err
+	}
+
+	// Ensure NotificationsURLSecret is not nil before dereferencing
+	if instance.Status.NotificationsURLSecret == nil {
+		return fmt.Errorf("NotificationsURLSecret is not set")
 	}
 
 	transportURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)

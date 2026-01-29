@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -186,7 +185,8 @@ func (r *AutoscalingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 		condition.UnknownCondition(condition.DBReadyCondition, condition.InitReason, condition.DBReadyInitMessage),
 		condition.UnknownCondition(condition.DBSyncReadyCondition, condition.InitReason, condition.DBSyncReadyInitMessage),
-		condition.UnknownCondition(condition.RabbitMqTransportURLReadyCondition, condition.InitReason, condition.RabbitMqTransportURLReadyInitMessage),
+		// Note: Aodh only uses NotificationsBus (no MessagingBus/RPC), so RabbitMqTransportURLReady is not needed
+		// NotificationBusInstanceReadyCondition handles the NotificationsBus TransportURL
 		condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
 		// right now we have no dedicated KeystoneServiceReadyInitMessage
 		condition.UnknownCondition(condition.KeystoneServiceReadyCondition, condition.InitReason, ""),
@@ -328,9 +328,6 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	//
 	// create NotificationsBus TransportURL - Aodh only uses Notifications
 	//
-	// init .Status.NotificationsURLSecret
-	instance.Status.NotificationsURLSecret = ptr.To("")
-
 	notificationBusInstanceURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, instance.Spec.Aodh.NotificationsBus)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -346,9 +343,9 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		Log.Info(fmt.Sprintf("NotificationBusInstanceURL %s successfully reconciled - operation: %s", notificationBusInstanceURL.Name, string(op)))
 	}
 
-	*instance.Status.NotificationsURLSecret = notificationBusInstanceURL.Status.SecretName
+	instance.Status.NotificationsURLSecret = &notificationBusInstanceURL.Status.SecretName
 
-	if *instance.Status.NotificationsURLSecret == "" {
+	if instance.Status.NotificationsURLSecret == nil || *instance.Status.NotificationsURLSecret == "" {
 		Log.Info(fmt.Sprintf("Waiting for NotificationBusInstanceURL %s secret to be created", notificationBusInstanceURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.NotificationBusInstanceReadyCondition,
@@ -460,6 +457,16 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// check for required NotificationsBus TransportURL secret holding transport URL string
 	// Aodh only uses NotificationsBus, not MessagingBus
 	//
+	if instance.Status.NotificationsURLSecret == nil || *instance.Status.NotificationsURLSecret == "" {
+		Log.Info("NotificationsURLSecret not yet available")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.NotificationBusInstanceReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.NotificationBusInstanceReadyRunningMessage))
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
+	}
+
 	ctrlResult, err = r.getSecret(ctx, helper, instance, *instance.Status.NotificationsURLSecret, "transport_url", &configMapVars)
 	if err != nil {
 		return ctrlResult, err
@@ -721,6 +728,11 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		return err
 	}
 
+	// Ensure NotificationsURLSecret is not nil before dereferencing
+	if instance.Status.NotificationsURLSecret == nil {
+		return fmt.Errorf("NotificationsURLSecret is not set")
+	}
+
 	transportURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
 	if err != nil {
 		return err
@@ -805,7 +817,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 
 	// Add NotificationsURL if configured
 	// Always get the separate notification secret since we always create separate TransportURLs
-	if instance.Status.NotificationsURLSecret != nil {
+	if instance.Status.NotificationsURLSecret != nil && *instance.Status.NotificationsURLSecret != "" {
 		notificationInstanceURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
 		if err != nil {
 			return err

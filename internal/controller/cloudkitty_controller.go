@@ -856,7 +856,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
 	//
 
-	transportURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, nil)
+	transportURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.RabbitMqTransportURLReadyCondition,
@@ -884,7 +884,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	}
 
 	instance.Status.Conditions.MarkTrue(condition.RabbitMqTransportURLReadyCondition, condition.RabbitMqTransportURLReadyMessage)
-	// end transportURL - CloudKitty only uses TCP Messaging Bus, not notifications
+	// end transportURL - CloudKitty only uses RPC Messaging Bus, not notifications
 
 	//
 	// Check for required memcached used for caching
@@ -1373,18 +1373,10 @@ func (r *CloudKittyReconciler) transportURLCreateOrUpdate(
 	ctx context.Context,
 	instance *telemetryv1.CloudKitty,
 	serviceLabels map[string]string,
-	rabbitmqConfig *rabbitmqv1.RabbitMqConfig,
 ) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
-	// Default values for regular messagingBus transportURL
+	// CloudKitty only uses messagingBus for RPC communication, not notifications
 	rmqName := fmt.Sprintf("%s-transport", instance.Name)
 	config := &instance.Spec.MessagingBus
-
-	// When rabbitmqConfig is passed (notificationsBus use case)
-	// update the default rmqName and use the provided config
-	if rabbitmqConfig != nil {
-		rmqName = fmt.Sprintf("%s-notifications-transport", instance.Name)
-		config = rabbitmqConfig
-	}
 
 	// Prepare the spec values before CreateOrUpdate so webhooks see them during CREATE
 	clusterName := config.Cluster
