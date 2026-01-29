@@ -1149,11 +1149,6 @@ func (in *CloudKittySpecBase) DeepCopyInto(out *CloudKittySpecBase) {
 	*out = *in
 	out.CloudKittyTemplate = in.CloudKittyTemplate
 	out.MessagingBus = in.MessagingBus
-	if in.NotificationsBus != nil {
-		in, out := &in.NotificationsBus, &out.NotificationsBus
-		*out = new(rabbitmqv1beta1.RabbitMqConfig)
-		**out = **in
-	}
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
 		*out = new(map[string]string)

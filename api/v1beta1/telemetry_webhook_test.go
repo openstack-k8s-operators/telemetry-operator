@@ -96,8 +96,4 @@ func TestCloudKittySpecBaseDefault(t *testing.T) {
 	// Verify MessagingBus is defaulted (CloudKitty uses RPC messaging)
 	g.Expect(spec.MessagingBus.Cluster).To(Equal("test-rabbitmq"),
 		"CloudKitty messagingBus.cluster should be defaulted from rabbitMqClusterName")
-
-	// Verify NotificationsBus is NOT defaulted (CloudKitty doesn't use notifications)
-	g.Expect(spec.NotificationsBus).To(BeNil(),
-		"CloudKitty notificationsBus should not be initialized (not used)")
 }
