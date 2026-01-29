@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"slices"
 
-	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -83,12 +82,10 @@ func (spec *CloudKittySpecCore) Default() {
 
 // Default - set defaults for this CloudKittySpecBase
 func (spec *CloudKittySpecBase) Default() {
-	if spec.RabbitMqClusterName == "" {
-		spec.RabbitMqClusterName = "rabbitmq"
-	}
-	// Only migrate from deprecated field if the new field is not already set
+	// Default MessagingBus.Cluster if not set
+	// Migration from deprecated fields is handled by openstack-operator
 	if spec.MessagingBus.Cluster == "" {
-		rabbitmqv1.DefaultRabbitMqConfig(&spec.MessagingBus, spec.RabbitMqClusterName)
+		spec.MessagingBus.Cluster = "rabbitmq"
 	}
 }
 

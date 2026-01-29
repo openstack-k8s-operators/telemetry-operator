@@ -19,7 +19,7 @@ package v1beta1
 import (
 	"fmt"
 
-	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	common_webhook "github.com/openstack-k8s-operators/lib-common/modules/common/webhook"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,7 +27,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	common_webhook "github.com/openstack-k8s-operators/lib-common/modules/common/webhook"
 )
 
 // AutoscalingDefaults -
@@ -78,15 +77,11 @@ func (spec *AutoscalingSpec) Default() {
 // Default - note only *Core* versions like this will have validations that are called from the
 // Controlplane webhook
 func (spec *AodhCore) Default() {
-	if spec.RabbitMqClusterName == "" {
-		spec.RabbitMqClusterName = "rabbitmq"
+	// Default NotificationsBus.Cluster if NotificationsBus is present but Cluster is empty
+	// Migration from deprecated fields is handled by openstack-operator
+	if spec.NotificationsBus != nil && spec.NotificationsBus.Cluster == "" {
+		spec.NotificationsBus.Cluster = "rabbitmq"
 	}
-
-	// Aodh only uses Notifications (never RPC), so only default NotificationsBus
-	if spec.NotificationsBus == nil {
-		spec.NotificationsBus = &rabbitmqv1.RabbitMqConfig{}
-	}
-	rabbitmqv1.DefaultRabbitMqConfig(spec.NotificationsBus, spec.RabbitMqClusterName)
 
 	if spec.MemcachedInstance == "" {
 		spec.MemcachedInstance = "memcached"

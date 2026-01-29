@@ -86,10 +86,10 @@ type CeilometerSpecCore struct {
 	// NotificationsBus configuration (username, vhost, and cluster) for notifications
 	NotificationsBus *rabbitmqv1.RabbitMqConfig `json:"notificationsBus,omitempty"`
 
+	// +kubebuilder:validation:Optional
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Telemetry
 	// Deprecated: Use NotificationsBus.Cluster instead
-	// +kubebuilder:default=rabbitmq
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
 	// PasswordSelectors - Selectors to identify the service from the Secret

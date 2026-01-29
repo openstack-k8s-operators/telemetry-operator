@@ -139,11 +139,10 @@ type CloudKittySpecBase struct {
 	MessagingBus rabbitmqv1.RabbitMqConfig `json:"messagingBus,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=rabbitmq
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in CloudKitty
 	// Deprecated: Use MessagingBus.Cluster instead
-	RabbitMqClusterName string `json:"rabbitMqClusterName"`
+	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=memcached

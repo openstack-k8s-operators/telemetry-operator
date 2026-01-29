@@ -603,7 +603,6 @@ spec:
                   proxyImage:
                     type: string
                   rabbitMqClusterName:
-                    default: rabbitmq
                     description: |-
                       RabbitMQ instance name
                       Needed to request a transportURL that is created and used in Telemetry
@@ -1271,7 +1270,6 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   rabbitMqClusterName:
-                    default: rabbitmq
                     description: |-
                       RabbitMQ instance name
                       Needed to request a transportURL that is created and used in CloudKitty

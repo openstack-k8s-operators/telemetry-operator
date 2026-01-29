@@ -11,45 +11,42 @@ func TestTelemetrySpecCoreDefault(t *testing.T) {
 	g := NewWithT(t)
 
 	spec := &TelemetrySpecCore{}
-	spec.Ceilometer.RabbitMqClusterName = "test-rabbitmq"
-	spec.CloudKitty.RabbitMqClusterName = "test-cloudkitty-rabbitmq"
+	// Set NotificationsBus and MessagingBus without Cluster to test defaulting
+	spec.Ceilometer.NotificationsBus = &rabbitmqv1.RabbitMqConfig{}
+	spec.CloudKitty.MessagingBus = rabbitmqv1.RabbitMqConfig{}
 
-	// Call Default() which should migrate rabbitMqClusterName to the appropriate bus config
+	// Call Default()
 	spec.Default()
 
-	// Verify Ceilometer got notificationsBus defaulted (Ceilometer only uses Notifications, not RPC)
-	g.Expect(spec.Ceilometer.NotificationsBus).ToNot(BeNil(),
-		"Ceilometer notificationsBus should be initialized")
-	g.Expect(spec.Ceilometer.NotificationsBus.Cluster).To(Equal("test-rabbitmq"),
-		"Ceilometer notificationsBus.cluster should be defaulted from rabbitMqClusterName")
+	// Verify Ceilometer NotificationsBus.Cluster was defaulted
+	g.Expect(spec.Ceilometer.NotificationsBus.Cluster).To(Equal("rabbitmq"),
+		"Ceilometer notificationsBus.cluster should be defaulted to rabbitmq")
 
-	// Verify CloudKitty got messagingBus defaulted (CloudKitty uses RPC, not Notifications)
-	g.Expect(spec.CloudKitty.MessagingBus.Cluster).To(Equal("test-cloudkitty-rabbitmq"),
-		"CloudKitty messagingBus.cluster should be defaulted from rabbitMqClusterName")
+	// Verify CloudKitty MessagingBus.Cluster was defaulted
+	g.Expect(spec.CloudKitty.MessagingBus.Cluster).To(Equal("rabbitmq"),
+		"CloudKitty messagingBus.cluster should be defaulted to rabbitmq")
 }
 
 func TestCeilometerSpecCoreDefault(t *testing.T) {
 	g := NewWithT(t)
 
 	spec := &CeilometerSpecCore{}
-	spec.RabbitMqClusterName = "test-rabbitmq"
+	// Set NotificationsBus without Cluster to test defaulting
+	spec.NotificationsBus = &rabbitmqv1.RabbitMqConfig{}
 
 	// Call Default()
 	spec.Default()
 
-	// Verify NotificationsBus is defaulted (Ceilometer only uses Notifications)
-	g.Expect(spec.NotificationsBus).ToNot(BeNil(),
-		"Ceilometer notificationsBus should be initialized")
-	g.Expect(spec.NotificationsBus.Cluster).To(Equal("test-rabbitmq"),
-		"Ceilometer notificationsBus.cluster should be defaulted from rabbitMqClusterName")
+	// Verify NotificationsBus.Cluster is defaulted
+	g.Expect(spec.NotificationsBus.Cluster).To(Equal("rabbitmq"),
+		"Ceilometer notificationsBus.cluster should be defaulted to rabbitmq")
 }
 
 func TestCeilometerSpecCoreDefaultWithExistingNotificationsBus(t *testing.T) {
 	g := NewWithT(t)
 
 	spec := &CeilometerSpecCore{}
-	spec.RabbitMqClusterName = "test-rabbitmq"
-	// User explicitly sets notificationsBus
+	// User explicitly sets notificationsBus with all fields
 	spec.NotificationsBus = &rabbitmqv1.RabbitMqConfig{
 		Cluster: "custom-notifications-rabbitmq",
 		User:    "custom-user",
@@ -72,28 +69,27 @@ func TestAodhCoreDefault(t *testing.T) {
 	g := NewWithT(t)
 
 	spec := &AodhCore{}
-	spec.RabbitMqClusterName = "test-rabbitmq"
+	// Set NotificationsBus without Cluster to test defaulting
+	spec.NotificationsBus = &rabbitmqv1.RabbitMqConfig{}
 
 	// Call Default()
 	spec.Default()
 
-	// Verify NotificationsBus is defaulted (Aodh only uses Notifications)
-	g.Expect(spec.NotificationsBus).ToNot(BeNil(),
-		"Aodh notificationsBus should be initialized")
-	g.Expect(spec.NotificationsBus.Cluster).To(Equal("test-rabbitmq"),
-		"Aodh notificationsBus.cluster should be defaulted from rabbitMqClusterName")
+	// Verify NotificationsBus.Cluster is defaulted
+	g.Expect(spec.NotificationsBus.Cluster).To(Equal("rabbitmq"),
+		"Aodh notificationsBus.cluster should be defaulted to rabbitmq")
 }
 
 func TestCloudKittySpecBaseDefault(t *testing.T) {
 	g := NewWithT(t)
 
 	spec := &CloudKittySpecBase{}
-	spec.RabbitMqClusterName = "test-rabbitmq"
+	// MessagingBus.Cluster is empty, should be defaulted
 
 	// Call Default()
 	spec.Default()
 
-	// Verify MessagingBus is defaulted (CloudKitty uses RPC messaging)
-	g.Expect(spec.MessagingBus.Cluster).To(Equal("test-rabbitmq"),
-		"CloudKitty messagingBus.cluster should be defaulted from rabbitMqClusterName")
+	// Verify MessagingBus.Cluster is defaulted
+	g.Expect(spec.MessagingBus.Cluster).To(Equal("rabbitmq"),
+		"CloudKitty messagingBus.cluster should be defaulted to rabbitmq")
 }

@@ -1700,7 +1700,14 @@ func (r *CeilometerReconciler) transportURLCreateOrUpdate(
 ) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
 	// Ceilometer only uses NotificationsBus TransportURL
 	rmqName := fmt.Sprintf("%s-notifications-transport", ceilometer.ServiceName)
+
+	// Initialize config if nil (webhook only defaults Cluster if NotificationsBus exists)
 	config := rabbitmqConfig
+	if config == nil {
+		config = &rabbitmqv1.RabbitMqConfig{
+			Cluster: "rabbitmq",
+		}
+	}
 
 	// Prepare the spec values before CreateOrUpdate so webhooks see them during CREATE
 	clusterName := config.Cluster
