@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -80,6 +81,13 @@ func (spec *CeilometerSpec) Default() {
 	}
 	if spec.MysqldExporterImage == "" {
 		spec.MysqldExporterImage = ceilometerDefaults.MysqldExporterContainerImageURL
+	}
+}
+
+func (spec *CeilometerSpecCore) Default() {
+	// Default Auth fields for Application Credentials
+	if spec.Auth.ApplicationCredentialSecret == "" {
+		spec.Auth.ApplicationCredentialSecret = keystonev1.GetACSecretName("ceilometer")
 	}
 }
 

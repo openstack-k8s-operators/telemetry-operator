@@ -142,6 +142,11 @@ type AodhCore struct {
 	// from this secret will get copied into /etc/aodh/ and they'll
 	// overwrite any default files already present there.
 	CustomConfigsSecretName string `json:"customConfigsSecretName,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// Auth - authentication settings for keystone integration
+	Auth AuthSpec `json:"auth,omitempty"`
 }
 
 // AutoscalingSpec defines the desired state of Autoscaling
