@@ -9,4 +9,6 @@ spec:
     databaseAccount: aodh
     databaseInstance: openstack
     memcachedInstance: memcached
+    notificationsBus:
+      cluster: rabbitmq
   heatInstance: heat

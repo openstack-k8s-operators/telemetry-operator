@@ -539,10 +539,10 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	notificationBusInstanceURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, instance.Spec.NotificationsBus)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			ceilometer.CeilometerNotificationBusReadyCondition,
+			condition.NotificationBusInstanceReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
-			ceilometer.CeilometerNotificationBusReadyErrorMessage,
+			condition.NotificationBusInstanceReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, err
 	}
@@ -556,14 +556,14 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	if instance.Status.NotificationsURLSecret == nil || *instance.Status.NotificationsURLSecret == "" {
 		Log.Info(fmt.Sprintf("Waiting for NotificationBusInstanceURL %s secret to be created", notificationBusInstanceURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			ceilometer.CeilometerNotificationBusReadyCondition,
+			condition.NotificationBusInstanceReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
-			ceilometer.CeilometerNotificationBusReadyRunningMessage))
+			condition.NotificationBusInstanceReadyRunningMessage))
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 
-	instance.Status.Conditions.MarkTrue(ceilometer.CeilometerNotificationBusReadyCondition, ceilometer.CeilometerNotificationBusReadyMessage)
+	instance.Status.Conditions.MarkTrue(condition.NotificationBusInstanceReadyCondition, condition.NotificationBusInstanceReadyMessage)
 	// end notificationsBus
 
 	//

@@ -13,6 +13,8 @@ spec:
     databaseAccount: aodh
     databaseInstance: openstack
     memcachedInstance: memcached
+    notificationsBus:
+      cluster: rabbitmq
     tls:
       api:
         internal:
@@ -28,6 +30,8 @@ metadata:
   name: telemetry-kuttl-ceilometer
 spec:
   secret: osp-secret
+  notificationsBus:
+    cluster: rabbitmq
   tls:
     caBundleSecretName: combined-ca-bundle
     secretName: cert-ceilometer-internal-svc

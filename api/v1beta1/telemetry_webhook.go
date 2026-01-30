@@ -158,7 +158,9 @@ func (r TelemetrySpec) ValidateCreate(basePath *field.Path, namespace string) ([
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
+		warns, errs := r.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
 	}
 	return allWarns, allErrs
 }
@@ -169,7 +171,9 @@ func (r TelemetrySpecCore) ValidateCreate(basePath *field.Path, namespace string
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.CloudKitty.CloudKittySpecCore.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
+		warns, errs := r.CloudKitty.CloudKittySpecCore.ValidateCreate(basePath.Child("cloudkitty"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
 	}
 	return allWarns, allErrs
 }
@@ -205,7 +209,9 @@ func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, n
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.CloudKitty.CloudKittySpec.ValidateUpdate(old.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)...)
+		warns, errs := r.CloudKitty.CloudKittySpec.ValidateUpdate(old.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
 	}
 	return allWarns, allErrs
 }
@@ -216,7 +222,9 @@ func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpecCore, basePath *field
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.CloudKitty.CloudKittySpecCore.ValidateUpdate(old.CloudKitty.CloudKittySpecCore, basePath.Child("cloudkitty"), namespace)...)
+		warns, errs := r.CloudKitty.CloudKittySpecCore.ValidateUpdate(old.CloudKitty.CloudKittySpecCore, basePath.Child("cloudkitty"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
 	}
 	return allWarns, allErrs
 }

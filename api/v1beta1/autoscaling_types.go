@@ -71,7 +71,6 @@ type AodhCore struct {
 	// RabbitMQ instance name
 	// Needed to request a transportURL that is created and used in Aodh
 	// Deprecated: Use NotificationsBus.Cluster instead
-	// +kubebuilder:default=rabbitmq
 	RabbitMqClusterName string `json:"rabbitMqClusterName,omitempty"`
 
 	// +kubebuilder:validation:Required

@@ -15,3 +15,5 @@ spec:
     databaseAccount: aodh
     databaseInstance: openstack
     memcachedInstance: memcached
+    notificationsBus:
+      cluster: rabbitmq  # Required for receiving notifications from OpenStack services
