@@ -195,41 +195,43 @@ func (r *ObjectStorageSpec) Validate(basePath *field.Path) field.ErrorList {
 func (r *CloudKitty) ValidateCreate() (admission.Warnings, error) {
 	cloudKittyLog.Info("validate create", "name", r.Name)
 
-	allErrs := r.Spec.ValidateCreate(field.NewPath("spec"), r.Namespace)
+	allWarns, allErrs := r.Spec.ValidateCreate(field.NewPath("spec"), r.Namespace)
 
 	if len(allErrs) != 0 {
-		return nil, apierrors.NewInvalid(
+		return allWarns, apierrors.NewInvalid(
 			schema.GroupKind{Group: "cloudkitties.telemetry.openstack.org", Kind: "CloudKitty"},
 			r.Name, allErrs)
 	}
 
-	return nil, nil
+	return allWarns, nil
 }
 
 // ValidateCreate validates the CloudKittySpec during the webhook invocation.
-func (r *CloudKittySpec) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+func (r *CloudKittySpec) ValidateCreate(basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	return r.CloudKittySpecBase.ValidateCreate(basePath, namespace)
 }
 
 // ValidateCreate validates the CloudKittySpecCore during the webhook invocation. It is
 // expected to be called by the validation webhook in the higher level telemetry webhook
-func (r *CloudKittySpecCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+func (r *CloudKittySpecCore) ValidateCreate(basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	return r.CloudKittySpecBase.ValidateCreate(basePath, namespace)
 }
 
 // ValidateCreate validates the CloudKittySpecBase during the webhook invocation.
-func (r *CloudKittySpecBase) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+func (r *CloudKittySpecBase) ValidateCreate(basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
 
 	// Validate deprecated fields using shared helper
-	_, errs := r.validateDeprecatedFieldsCreate(basePath)
+	warns, errs := r.validateDeprecatedFieldsCreate(basePath)
+	allWarns = append(allWarns, warns...)
 	allErrs = append(allErrs, errs...)
 
 	allErrs = append(allErrs, r.S3StorageConfig.Validate(basePath.Child("s3StorageConfig"))...)
 
 	// TODO: Add other CK spec field validations as needed
 
-	return allErrs
+	return allWarns, allErrs
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -241,42 +243,44 @@ func (r *CloudKitty) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 		return nil, apierrors.NewInternalError(fmt.Errorf("unable to convert existing object"))
 	}
 
-	allErrs := r.Spec.ValidateUpdate(oldCloudKitty.Spec, field.NewPath("spec"), r.Namespace)
+	allWarns, allErrs := r.Spec.ValidateUpdate(oldCloudKitty.Spec, field.NewPath("spec"), r.Namespace)
 
 	if len(allErrs) != 0 {
-		return nil, apierrors.NewInvalid(
+		return allWarns, apierrors.NewInvalid(
 			schema.GroupKind{Group: "cloudkitties.telemetry.openstack.org", Kind: "CloudKitty"},
 			r.Name, allErrs)
 	}
 
-	return nil, nil
+	return allWarns, nil
 
 }
 
-// ValidateCreate validates the CloudKittySpec during the webhook invocation.
-func (r *CloudKittySpec) ValidateUpdate(old CloudKittySpec, basePath *field.Path, namespace string) field.ErrorList {
+// ValidateUpdate validates the CloudKittySpec during the webhook invocation.
+func (r *CloudKittySpec) ValidateUpdate(old CloudKittySpec, basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	return r.CloudKittySpecBase.ValidateUpdate(old.CloudKittySpecBase, basePath, namespace)
 }
 
 // ValidateUpdate validates the CloudKittySpecCore during the webhook invocation. It is
 // expected to be called by the validation webhook in the higher level telemetry webhook
-func (r *CloudKittySpecCore) ValidateUpdate(old CloudKittySpecCore, basePath *field.Path, namespace string) field.ErrorList {
+func (r *CloudKittySpecCore) ValidateUpdate(old CloudKittySpecCore, basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	return r.CloudKittySpecBase.ValidateUpdate(old.CloudKittySpecBase, basePath, namespace)
 }
 
 // ValidateUpdate validates the CloudKittySpecBase during the webhook invocation.
-func (r *CloudKittySpecBase) ValidateUpdate(old CloudKittySpecBase, basePath *field.Path, namespace string) field.ErrorList {
+func (r *CloudKittySpecBase) ValidateUpdate(old CloudKittySpecBase, basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
 
 	// Validate deprecated fields using shared helper
-	_, errs := r.validateDeprecatedFieldsUpdate(old, basePath)
+	warns, errs := r.validateDeprecatedFieldsUpdate(old, basePath)
+	allWarns = append(allWarns, warns...)
 	allErrs = append(allErrs, errs...)
 
 	allErrs = append(allErrs, r.S3StorageConfig.Validate(basePath.Child("s3StorageConfig"))...)
 
 	// TODO: Add other CK spec field validations as needed
 
-	return allErrs
+	return allWarns, allErrs
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

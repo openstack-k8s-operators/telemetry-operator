@@ -91,11 +91,9 @@ func (spec *CeilometerSpec) Default() {
 
 // Default - set defaults for this CeilometerSpecCore. NOTE: this version is used by the OpenStackControlplane webhook
 func (spec *CeilometerSpecCore) Default() {
-	// Default NotificationsBus.Cluster if NotificationsBus is present but Cluster is empty
+	// NotificationsBus.Cluster is not defaulted - it must be explicitly set if NotificationsBus is configured
 	// Migration from deprecated fields is handled by openstack-operator
-	if spec.NotificationsBus != nil && spec.NotificationsBus.Cluster == "" {
-		spec.NotificationsBus.Cluster = "rabbitmq"
-	}
+	// This ensures users make a conscious choice about which cluster to use for notifications
 }
 
 // getDeprecatedFields returns the centralized list of deprecated fields for CeilometerSpecCore
@@ -143,11 +141,6 @@ func (spec *CeilometerSpecCore) validateDeprecatedFieldsUpdate(old CeilometerSpe
 	return common_webhook.ValidateDeprecatedFieldsUpdate(deprecatedFields, basePath)
 }
 
-func (spec *CeilometerSpecCore) Default() {
-	// NOTE: ApplicationCredentialSecret is NOT defaulted here.
-	// AppCred is opt-in: only used when explicitly configured by the user.
-}
-
 var _ webhook.Validator = &Ceilometer{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
@@ -155,19 +148,22 @@ func (r *Ceilometer) ValidateCreate() (admission.Warnings, error) {
 	ceilometerlog.Info("validate create", "name", r.Name)
 
 	var allErrs field.ErrorList
+	var allWarns []string
 	basePath := field.NewPath("spec")
 
-	if err := r.Spec.CeilometerSpecCore.ValidateCreate(basePath, r.Namespace); err != nil {
+	warns, err := r.Spec.CeilometerSpecCore.ValidateCreate(basePath, r.Namespace)
+	allWarns = append(allWarns, warns...)
+	if err != nil {
 		allErrs = append(allErrs, err...)
 	}
 
 	if len(allErrs) != 0 {
-		return nil, apierrors.NewInvalid(
+		return allWarns, apierrors.NewInvalid(
 			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Ceilometer"},
 			r.Name, allErrs)
 	}
 
-	return nil, nil
+	return allWarns, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -180,19 +176,22 @@ func (r *Ceilometer) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 	}
 
 	var allErrs field.ErrorList
+	var allWarns []string
 	basePath := field.NewPath("spec")
 
-	if err := r.Spec.CeilometerSpecCore.ValidateUpdate(oldCeilometer.Spec.CeilometerSpecCore, basePath, r.Namespace); err != nil {
+	warns, err := r.Spec.CeilometerSpecCore.ValidateUpdate(oldCeilometer.Spec.CeilometerSpecCore, basePath, r.Namespace)
+	allWarns = append(allWarns, warns...)
+	if err != nil {
 		allErrs = append(allErrs, err...)
 	}
 
 	if len(allErrs) != 0 {
-		return nil, apierrors.NewInvalid(
+		return allWarns, apierrors.NewInvalid(
 			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Ceilometer"},
 			r.Name, allErrs)
 	}
 
-	return nil, nil
+	return allWarns, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -204,28 +203,32 @@ func (r *Ceilometer) ValidateDelete() (admission.Warnings, error) {
 
 // ValidateCreate - Exported function wrapping non-exported validate functions,
 // this function can be called externally to validate a ceilometer spec.
-func (spec *CeilometerSpecCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+func (spec *CeilometerSpecCore) ValidateCreate(basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
 
 	// Validate deprecated fields using shared helper
-	_, errs := spec.validateDeprecatedFieldsCreate(basePath)
+	warns, errs := spec.validateDeprecatedFieldsCreate(basePath)
+	allWarns = append(allWarns, warns...)
 	allErrs = append(allErrs, errs...)
 
 	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
 
-	return allErrs
+	return allWarns, allErrs
 }
 
 // ValidateUpdate - Exported function wrapping non-exported validate functions,
 // this function can be called externally to validate a ceilometer spec.
-func (spec *CeilometerSpecCore) ValidateUpdate(old CeilometerSpecCore, basePath *field.Path, namespace string) field.ErrorList {
+func (spec *CeilometerSpecCore) ValidateUpdate(old CeilometerSpecCore, basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
 
 	// Validate deprecated fields using shared helper
-	_, errs := spec.validateDeprecatedFieldsUpdate(old, basePath)
+	warns, errs := spec.validateDeprecatedFieldsUpdate(old, basePath)
+	allWarns = append(allWarns, warns...)
 	allErrs = append(allErrs, errs...)
 
 	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
 
-	return allErrs
+	return allWarns, allErrs
 }

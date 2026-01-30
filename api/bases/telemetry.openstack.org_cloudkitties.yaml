@@ -822,10 +822,6 @@ spec:
                   type: string
                 description: Map of hashes to track e.g. job status
                 type: object
-              notificationsURLSecret:
-                description: NotificationsURLSecret - Secret containing RabbitMQ notification
-                  transportURL
-                type: string
               observedGeneration:
                 description: |-
                   ObservedGeneration - the most recent generation observed for this service.

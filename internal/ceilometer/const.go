@@ -16,10 +16,6 @@ limitations under the License.
 // Package ceilometer provides functionality for managing OpenStack Ceilometer telemetry components
 package ceilometer
 
-import (
-	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-)
-
 const (
 	// ServiceName -
 	ServiceName = "ceilometer"
@@ -41,16 +37,4 @@ const (
 
 	// CeilometerUserID -
 	CeilometerUserID = 42405
-
-	// CeilometerNotificationBusReadyCondition Status=True condition indicates if the RabbitMQ NotificationsBus TransportURL is configured
-	CeilometerNotificationBusReadyCondition condition.Type = "CeilometerNotificationBusReady"
-
-	// CeilometerNotificationBusReadyMessage is the message for CeilometerNotificationBusReady condition
-	CeilometerNotificationBusReadyMessage = "NotificationsBus TransportURL successfully created"
-
-	// CeilometerNotificationBusReadyRunningMessage is the message for CeilometerNotificationBusReady running state
-	CeilometerNotificationBusReadyRunningMessage = "NotificationsBus TransportURL creation in progress"
-
-	// CeilometerNotificationBusReadyErrorMessage is the message for CeilometerNotificationBusReady error state
-	CeilometerNotificationBusReadyErrorMessage = "NotificationsBus TransportURL error occured %s"
 )

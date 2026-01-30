@@ -21,10 +21,14 @@ spec:
       databaseInstance: openstack
       memcachedInstance: memcached
       secret: osp-secret
+      notificationsBus:
+        cluster: rabbitmq  # Required for receiving notifications from OpenStack services
     heatInstance: heat
   ceilometer:
     enabled: true
     secret: osp-secret
+    notificationsBus:
+      cluster: rabbitmq  # Required for receiving notifications from OpenStack services
   logging:
     enabled: false
     port: 10514

@@ -77,11 +77,9 @@ func (spec *AutoscalingSpec) Default() {
 // Default - note only *Core* versions like this will have validations that are called from the
 // Controlplane webhook
 func (spec *AodhCore) Default() {
-	// Default NotificationsBus.Cluster if NotificationsBus is present but Cluster is empty
+	// NotificationsBus.Cluster is not defaulted - it must be explicitly set if NotificationsBus is configured
 	// Migration from deprecated fields is handled by openstack-operator
-	if spec.NotificationsBus != nil && spec.NotificationsBus.Cluster == "" {
-		spec.NotificationsBus.Cluster = "rabbitmq"
-	}
+	// This ensures users make a conscious choice about which cluster to use for notifications
 
 	if spec.MemcachedInstance == "" {
 		spec.MemcachedInstance = "memcached"
@@ -169,19 +167,22 @@ func (r *Autoscaling) ValidateCreate() (admission.Warnings, error) {
 	autoscalinglog.Info("validate create", "name", r.Name)
 
 	var allErrs field.ErrorList
+	var allWarns []string
 	basePath := field.NewPath("spec")
 
-	if err := r.Spec.Aodh.ValidateCreate(basePath.Child("aodh"), r.Namespace); err != nil {
+	warns, err := r.Spec.Aodh.ValidateCreate(basePath.Child("aodh"), r.Namespace)
+	allWarns = append(allWarns, warns...)
+	if err != nil {
 		allErrs = append(allErrs, err...)
 	}
 
 	if len(allErrs) != 0 {
-		return nil, apierrors.NewInvalid(
+		return allWarns, apierrors.NewInvalid(
 			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Autoscaling"},
 			r.Name, allErrs)
 	}
 
-	return nil, nil
+	return allWarns, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -194,19 +195,22 @@ func (r *Autoscaling) ValidateUpdate(old runtime.Object) (admission.Warnings, er
 	}
 
 	var allErrs field.ErrorList
+	var allWarns []string
 	basePath := field.NewPath("spec")
 
-	if err := r.Spec.Aodh.ValidateUpdate(oldAutoscaling.Spec.Aodh.AodhCore, basePath.Child("aodh"), r.Namespace); err != nil {
+	warns, err := r.Spec.Aodh.ValidateUpdate(oldAutoscaling.Spec.Aodh.AodhCore, basePath.Child("aodh"), r.Namespace)
+	allWarns = append(allWarns, warns...)
+	if err != nil {
 		allErrs = append(allErrs, err...)
 	}
 
 	if len(allErrs) != 0 {
-		return nil, apierrors.NewInvalid(
+		return allWarns, apierrors.NewInvalid(
 			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Autoscaling"},
 			r.Name, allErrs)
 	}
 
-	return nil, nil
+	return allWarns, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -218,28 +222,32 @@ func (r *Autoscaling) ValidateDelete() (admission.Warnings, error) {
 
 // ValidateCreate - Exported function wrapping non-exported validate functions,
 // this function can be called externally to validate an aodh spec.
-func (spec *AodhCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+func (spec *AodhCore) ValidateCreate(basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
 
 	// Validate deprecated fields using shared helper
-	_, errs := spec.validateDeprecatedFieldsCreate(basePath)
+	warns, errs := spec.validateDeprecatedFieldsCreate(basePath)
+	allWarns = append(allWarns, warns...)
 	allErrs = append(allErrs, errs...)
 
 	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
 
-	return allErrs
+	return allWarns, allErrs
 }
 
 // ValidateUpdate - Exported function wrapping non-exported validate functions,
 // this function can be called externally to validate an aodh spec.
-func (spec *AodhCore) ValidateUpdate(old AodhCore, basePath *field.Path, namespace string) field.ErrorList {
+func (spec *AodhCore) ValidateUpdate(old AodhCore, basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
 
 	// Validate deprecated fields using shared helper
-	_, errs := spec.validateDeprecatedFieldsUpdate(old, basePath)
+	warns, errs := spec.validateDeprecatedFieldsUpdate(old, basePath)
+	allWarns = append(allWarns, warns...)
 	allErrs = append(allErrs, errs...)
 
 	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
 
-	return allErrs
+	return allWarns, allErrs
 }

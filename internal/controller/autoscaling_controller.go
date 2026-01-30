@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"strconv"
@@ -66,6 +67,9 @@ import (
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	autoscaling "github.com/openstack-k8s-operators/telemetry-operator/internal/autoscaling"
 )
+
+// ErrNotificationsURLSecretNotSet is returned when NotificationsURLSecret is not set in the instance status
+var ErrNotificationsURLSecretNotSet = errors.New("NotificationsURLSecret is not set")
 
 // AutoscalingReconciler reconciles a Autoscaling object
 type AutoscalingReconciler struct {
@@ -730,7 +734,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 
 	// Ensure NotificationsURLSecret is not nil before dereferencing
 	if instance.Status.NotificationsURLSecret == nil {
-		return fmt.Errorf("NotificationsURLSecret is not set")
+		return ErrNotificationsURLSecretNotSet
 	}
 
 	transportURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)

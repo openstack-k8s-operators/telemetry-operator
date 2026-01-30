@@ -324,9 +324,6 @@ type CloudKittyStatus struct {
 	// TransportURLSecret - Secret containing RabbitMQ transportURL
 	TransportURLSecret string `json:"transportURLSecret,omitempty"`
 
-	// NotificationsURLSecret - Secret containing RabbitMQ notification transportURL
-	NotificationsURLSecret *string `json:"notificationsURLSecret,omitempty"`
-
 	// API endpoints
 	APIEndpoints map[string]map[string]string `json:"apiEndpoints,omitempty"`
 

@@ -33,3 +33,5 @@ spec:
       heatEngine:
         replicas: 1
       secret: osp-secret
+      notificationsBus:
+        cluster: rabbitmq

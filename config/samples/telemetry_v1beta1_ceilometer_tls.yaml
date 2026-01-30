@@ -5,6 +5,8 @@ metadata:
   namespace: openstack
 spec:
   secret: osp-secret
+  notificationsBus:
+    cluster: rabbitmq  # Required for receiving notifications from OpenStack services
   tls:
     caBundleSecretName: combined-ca-bundle
     secretName: cert-ceilometer-internal-svc

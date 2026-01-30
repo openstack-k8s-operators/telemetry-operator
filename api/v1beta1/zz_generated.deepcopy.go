@@ -1235,11 +1235,6 @@ func (in *CloudKittyStatus) DeepCopyInto(out *CloudKittyStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.NotificationsURLSecret != nil {
-		in, out := &in.NotificationsURLSecret, &out.NotificationsURLSecret
-		*out = new(string)
-		**out = **in
-	}
 	if in.APIEndpoints != nil {
 		in, out := &in.APIEndpoints, &out.APIEndpoints
 		*out = make(map[string]map[string]string, len(*in))
