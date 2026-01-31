@@ -21,10 +21,14 @@ spec:
       databaseAccount: aodh
       databaseInstance: openstack
       memcachedInstance: memcached
+      notificationsBus:
+        cluster: rabbitmq
     heatInstance: heat
   ceilometer:
     enabled: true
     secret: osp-secret
+    notificationsBus:
+      cluster: rabbitmq
   cloudkitty:
     enabled: true
     s3StorageConfig:
