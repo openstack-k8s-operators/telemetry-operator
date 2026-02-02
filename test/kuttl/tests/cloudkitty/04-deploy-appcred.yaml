@@ -1,0 +1,34 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |-
+      set -euo pipefail
+      NS="${NAMESPACE}"
+
+      # Save current pod UIDs to detect restart
+      old_api_uid=$(oc get pod -n "${NS}" telemetry-kuttl-cloudkitty-api-0 -o jsonpath='{.metadata.uid}')
+      old_proc_uid=$(oc get pod -n "${NS}" telemetry-kuttl-cloudkitty-proc-0 -o jsonpath='{.metadata.uid}')
+      oc create configmap appcred-cloudkitty-pre \
+        --from-literal=api_uid="${old_api_uid}" \
+        --from-literal=proc_uid="${old_proc_uid}" \
+        --dry-run=client -o yaml | oc apply -n "${NS}" -f -
+
+      # Create KeystoneApplicationCredential
+      cat <<'EOF' | oc apply -n "${NS}" -f -
+      apiVersion: keystone.openstack.org/v1beta1
+      kind: KeystoneApplicationCredential
+      metadata:
+        name: ac-cloudkitty
+      spec:
+        secret: osp-secret
+        passwordSelector: CloudKittyPassword
+        userName: cloudkitty
+        roles:
+          - admin
+          - service
+        unrestricted: false
+      EOF
+
+      # Patch CloudKitty to use application credential
+      oc patch cloudkitty telemetry-kuttl-cloudkitty -n "${NS}" --type=merge \
+        -p '{"spec":{"auth":{"applicationCredentialSecret":"ac-cloudkitty-secret"}}}'

@@ -1,0 +1,65 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 900
+commands:
+  - script: |-
+      set -euo pipefail
+      NS="${NAMESPACE}"
+
+      prev_acid=$(oc get -n "${NS}" configmap/appcred-cloudkitty-rotate-pre -o jsonpath='{.data.ac_id}')
+      if [ -z "${prev_acid}" ]; then
+        echo "ERROR: previous ACID missing from configmap/appcred-cloudkitty-rotate-pre"
+        exit 1
+      fi
+
+      echo "Waiting for ac-cloudkitty.status.acID to change..."
+      for _ in $(seq 1 60); do
+        ac_id=$(oc get -n "${NS}" appcred/ac-cloudkitty -o jsonpath='{.status.acID}')
+        if [ -n "${ac_id}" ] && [ "${ac_id}" != "${prev_acid}" ]; then
+          break
+        fi
+        sleep 5
+      done
+      ac_id=$(oc get -n "${NS}" appcred/ac-cloudkitty -o jsonpath='{.status.acID}')
+      if [ -z "${ac_id}" ] || [ "${ac_id}" = "${prev_acid}" ]; then
+        echo "ERROR: ACID did not change after forcing rotation"
+        echo "  prev=${prev_acid}"
+        echo "  curr=${ac_id}"
+        exit 1
+      fi
+      echo "✓ ACID rotated: ${prev_acid} -> ${ac_id}"
+
+      # Verify secret was updated
+      secret_ac_id=$(oc get -n "${NS}" secret/ac-cloudkitty-secret -o jsonpath='{.data.AC_ID}' | base64 -d)
+      if [ "${secret_ac_id}" != "${ac_id}" ]; then
+        echo "ERROR: Secret AC_ID (${secret_ac_id}) != rotated appcred.status.acID (${ac_id})"
+        exit 1
+      fi
+      echo "✓ Secret AC_ID updated"
+
+      echo "Waiting for cloudkitty rollouts after rotation..."
+      oc rollout status -n "${NS}" statefulset/telemetry-kuttl-cloudkitty-api --timeout=300s
+      oc rollout status -n "${NS}" statefulset/telemetry-kuttl-cloudkitty-proc --timeout=300s
+
+      # Verify pods restarted
+      old_api_uid=$(oc get -n "${NS}" configmap/appcred-cloudkitty-rotate-pre -o jsonpath='{.data.api_uid}')
+      old_proc_uid=$(oc get -n "${NS}" configmap/appcred-cloudkitty-rotate-pre -o jsonpath='{.data.proc_uid}')
+
+      new_api_uid=$(oc get pod -n "${NS}" telemetry-kuttl-cloudkitty-api-0 -o jsonpath='{.metadata.uid}')
+      new_proc_uid=$(oc get pod -n "${NS}" telemetry-kuttl-cloudkitty-proc-0 -o jsonpath='{.metadata.uid}')
+
+      if [ "${old_api_uid}" = "${new_api_uid}" ] || [ "${old_proc_uid}" = "${new_proc_uid}" ]; then
+        echo "ERROR: expected cloudkitty pods to restart after rotation"
+        echo "  api: ${old_api_uid} -> ${new_api_uid}"
+        echo "  proc: ${old_proc_uid} -> ${new_proc_uid}"
+        exit 1
+      fi
+      echo "✓ cloudkitty pods restarted after rotation"
+
+      # Verify config contains the new application_credential_id
+      echo "Checking cloudkitty config contains rotated application_credential_id..."
+      oc exec -n "${NS}" pod/telemetry-kuttl-cloudkitty-api-0 -c cloudkitty-api -- \
+        bash -c "grep -q \"^application_credential_id = ${ac_id}$\" /etc/cloudkitty/cloudkitty.conf.d/00-cloudkitty.conf"
+      oc exec -n "${NS}" pod/telemetry-kuttl-cloudkitty-proc-0 -c cloudkitty-proc -- \
+        bash -c "grep -q \"^application_credential_id = ${ac_id}$\" /etc/cloudkitty/cloudkitty.conf.d/00-cloudkitty.conf"
+      echo "✓ cloudkitty config contains rotated application_credential_id"

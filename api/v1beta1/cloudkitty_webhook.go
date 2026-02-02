@@ -63,7 +63,13 @@ func (spec *CloudKittySpec) Default() {
 	if spec.CloudKittyProc.ContainerImage == "" {
 		spec.CloudKittyProc.ContainerImage = cloudKittyDefaults.ProcContainerImageURL
 	}
+}
 
+// Default - note only *Template* versions like this will have validations that are called from the
+// Controlplane webhook
+func (spec *CloudKittyTemplate) Default() {
+	// NOTE: ApplicationCredentialSecret is NOT defaulted here.
+	// AppCred is opt-in: only used when explicitly configured by the user.
 }
 
 var _ webhook.Validator = &CloudKitty{}

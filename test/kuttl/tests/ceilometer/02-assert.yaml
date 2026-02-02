@@ -1,0 +1,52 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 900
+commands:
+  - script: |-
+      set -euo pipefail
+      NS="${NAMESPACE}"
+
+      echo "Waiting for KeystoneApplicationCredential ac-ceilometer to be Ready..."
+      oc wait -n "${NS}" appcred/ac-ceilometer --for=condition=Ready --timeout=300s
+
+      ac_id=$(oc get -n "${NS}" appcred/ac-ceilometer -o jsonpath='{.status.acID}')
+      if [ -z "${ac_id}" ]; then
+        echo "ERROR: appcred/ac-ceilometer.status.acID is empty"
+        exit 1
+      fi
+      echo "ac-ceilometer.status.acID=${ac_id}"
+
+      # Verify secret exists with correct AC_ID
+      oc get -n "${NS}" secret/ac-ceilometer-secret >/dev/null
+      secret_ac_id=$(oc get -n "${NS}" secret/ac-ceilometer-secret -o jsonpath='{.data.AC_ID}' | base64 -d)
+      if [ "${secret_ac_id}" != "${ac_id}" ]; then
+        echo "ERROR: Secret AC_ID (${secret_ac_id}) != appcred.status.acID (${ac_id})"
+        exit 1
+      fi
+      echo "✓ Secret AC_ID matches appcred.status.acID"
+
+      echo "Waiting for ceilometer rollout..."
+      oc rollout status -n "${NS}" statefulset/ceilometer --timeout=300s
+
+      # Verify pod restarted
+      old_pod_uid=$(oc get -n "${NS}" configmap/appcred-ceilometer-pre -o jsonpath='{.data.pod_uid}')
+      new_pod_uid=$(oc get pod -n "${NS}" ceilometer-0 -o jsonpath='{.metadata.uid}')
+
+      if [ "${old_pod_uid}" = "${new_pod_uid}" ]; then
+        echo "ERROR: expected ceilometer pod to restart after appcred secret became available"
+        echo "  pod: ${old_pod_uid} -> ${new_pod_uid}"
+        exit 1
+      fi
+      echo "✓ ceilometer pod restarted after appcred secret became available"
+
+      # Verify config contains application_credential_id
+      echo "Checking ceilometer config contains application_credential_id..."
+      oc exec -n "${NS}" pod/ceilometer-0 -c ceilometer-central-agent -- \
+        bash -c "grep -q \"^application_credential_id=${ac_id}$\" /etc/ceilometer/ceilometer.conf"
+      echo "✓ ceilometer config contains expected application_credential_id"
+
+      # Verify auth_type is v3applicationcredential
+      echo "Checking ceilometer config contains auth_type = v3applicationcredential..."
+      oc exec -n "${NS}" pod/ceilometer-0 -c ceilometer-central-agent -- \
+        bash -c "grep -q \"^auth_type=v3applicationcredential$\" /etc/ceilometer/ceilometer.conf"
+      echo "✓ ceilometer config contains auth_type = v3applicationcredential"

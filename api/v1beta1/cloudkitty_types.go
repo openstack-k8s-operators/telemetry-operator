@@ -254,6 +254,11 @@ type CloudKittyTemplate struct {
 	// +kubebuilder:default={cloudKittyService: CloudKittyPassword}
 	// PasswordsSelectors - Selectors to identify the ServiceUser password from the Secret
 	PasswordSelectors PasswordsSelector `json:"passwordSelector"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// Auth - authentication settings for keystone integration
+	Auth AuthSpec `json:"auth,omitempty"`
 }
 
 // CloudKittyServiceTemplate defines the input parameters that can be defined for a given

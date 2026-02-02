@@ -1,0 +1,21 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |-
+      set -euo pipefail
+      NS="${NAMESPACE}"
+
+      # Save current state before rotation
+      old_api_uid=$(oc get pod -n "${NS}" telemetry-kuttl-cloudkitty-api-0 -o jsonpath='{.metadata.uid}')
+      old_proc_uid=$(oc get pod -n "${NS}" telemetry-kuttl-cloudkitty-proc-0 -o jsonpath='{.metadata.uid}')
+      old_acid=$(oc get -n "${NS}" appcred/ac-cloudkitty -o jsonpath='{.status.acID}')
+
+      oc create configmap appcred-cloudkitty-rotate-pre \
+        --from-literal=api_uid="${old_api_uid}" \
+        --from-literal=proc_uid="${old_proc_uid}" \
+        --from-literal=ac_id="${old_acid}" \
+        --dry-run=client -o yaml | oc apply -n "${NS}" -f -
+
+      # Force rotation by setting expired date
+      oc patch -n "${NS}" keystoneapplicationcredential ac-cloudkitty --type=merge --subresource=status \
+        -p '{"status":{"expiresAt":"2001-05-19T00:00:00Z"}}'
