@@ -7,10 +7,6 @@ aliases:
   - mgirgisf
   - paramite
   - vyzigold
-  ci-approvers:
-  - lewisdenny
-  - frenzyfriday
-  - viroel
   openstack-approvers:
   - abays
   - dprince
