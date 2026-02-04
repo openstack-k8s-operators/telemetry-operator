@@ -55,6 +55,7 @@ metadata:
   name: telemetry-kuttl-cloudkitty
 spec:
   enabled: true
+  lokiRetentionDays: 0
   s3StorageConfig:
     schemas:
     - effectiveDate: "2024-11-18"
