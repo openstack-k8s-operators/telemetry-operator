@@ -50,6 +50,14 @@ type PasswordsSelector struct {
 	CloudKittyService string `json:"cloudKittyService"`
 }
 
+// AuthSpec - authentication settings for keystone integration
+type AuthSpec struct {
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// ApplicationCredentialSecret - secret name for application credential
+	ApplicationCredentialSecret string `json:"applicationCredentialSecret,omitempty"`
+}
+
 // TelemetrySpec defines the desired state of Telemetry
 type TelemetrySpec struct {
 	TelemetrySpecBase `json:",inline"`

@@ -76,6 +76,8 @@ func (spec *AodhCore) Default() {
 	if spec.MemcachedInstance == "" {
 		spec.MemcachedInstance = "memcached"
 	}
+	// NOTE: ApplicationCredentialSecret is NOT defaulted here.
+	// AppCred is opt-in: only used when explicitly configured by the user.
 }
 
 // SetDefaultRouteAnnotations sets HAProxy timeout values of the route

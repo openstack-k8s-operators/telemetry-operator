@@ -83,6 +83,11 @@ func (spec *CeilometerSpec) Default() {
 	}
 }
 
+func (spec *CeilometerSpecCore) Default() {
+	// NOTE: ApplicationCredentialSecret is NOT defaulted here.
+	// AppCred is opt-in: only used when explicitly configured by the user.
+}
+
 var _ webhook.Validator = &Ceilometer{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type

@@ -11,7 +11,7 @@ require (
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260105161809-cf030b344d79
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260108154501-11e5091cddf1
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260109123729-8c46aa6cb459
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260120112029-cd452f0497ba
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20251230215914-6ba873b49a35
 	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20251230215914-6ba873b49a35
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20251230215914-6ba873b49a35

@@ -224,6 +224,7 @@ const (
 	autoscalingPasswordSecretField      = ".spec.aodh.secret"                 //nolint:gosec // G101: Not actual credentials, just field path
 	autoscalingCaBundleSecretNameField  = ".spec.aodh.tls.caBundleSecretName" //nolint:gosec // G101: Not actual credentials, just field path
 	autoscalingTLSAPIInternalField      = ".spec.aodh.tls.api.internal.secretName"
+	autoscalingAuthAppCredSecretField   = ".spec.aodh.auth.applicationCredentialSecret" //nolint:gosec // G101: Not actual credentials, just field path
 	autoscalingTLSAPIPublicField        = ".spec.aodh.tls.api.public.secretName"
 	topologyField                       = ".spec.aodh.topologyRef.Name"
 	autoscalingCustomConfigsSecretField = ".spec.aodh.customConfigsSecretName" //nolint:gosec // G101: Not actual credentials, just field path
@@ -235,6 +236,7 @@ var (
 		autoscalingCaBundleSecretNameField,
 		autoscalingTLSAPIInternalField,
 		autoscalingTLSAPIPublicField,
+		autoscalingAuthAppCredSecretField,
 		topologyField,
 		autoscalingCustomConfigsSecretField,
 	}
@@ -686,6 +688,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	mc *memcachedv1.Memcached,
 	db *mariadbv1.Database,
 ) error {
+	Log := r.GetLogger(ctx)
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(autoscaling.ServiceName), map[string]string{})
 
 	var tlsCfg *tls.Service
@@ -736,6 +739,28 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 			autoscaling.DatabaseName),
 		"Timeout": instance.Spec.Aodh.APITimeout,
 		"Region":  keystoneAPI.GetRegion(),
+	}
+
+	// Try to get Application Credential from the secret specified in the CR
+	if instance.Spec.Aodh.Auth.ApplicationCredentialSecret != "" {
+		acSecretObj, _, err := secret.GetSecret(ctx, h, instance.Spec.Aodh.Auth.ApplicationCredentialSecret, instance.Namespace)
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				Log.Info("ApplicationCredential secret not found, waiting", "secret", instance.Spec.Aodh.Auth.ApplicationCredentialSecret)
+				return fmt.Errorf("%w: %s", ErrACSecretNotFound, instance.Spec.Aodh.Auth.ApplicationCredentialSecret)
+			}
+			Log.Error(err, "Failed to get ApplicationCredential secret", "secret", instance.Spec.Aodh.Auth.ApplicationCredentialSecret)
+			return err
+		}
+		acID, okID := acSecretObj.Data[keystonev1.ACIDSecretKey]
+		acSecretData, okSecret := acSecretObj.Data[keystonev1.ACSecretSecretKey]
+		if !okID || len(acID) == 0 || !okSecret || len(acSecretData) == 0 {
+			Log.Info("ApplicationCredential secret missing required keys", "secret", instance.Spec.Aodh.Auth.ApplicationCredentialSecret)
+			return fmt.Errorf("%w: %s", ErrACSecretMissingKeys, instance.Spec.Aodh.Auth.ApplicationCredentialSecret)
+		}
+		templateParameters["ACID"] = string(acID)
+		templateParameters["ACSecret"] = string(acSecretData)
+		Log.Info("Using ApplicationCredentials auth", "secret", instance.Spec.Aodh.Auth.ApplicationCredentialSecret)
 	}
 
 	prometheusParams := map[string]any{
@@ -1031,6 +1056,18 @@ func (r *AutoscalingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 			return nil
 		}
 		return []string{cr.Spec.Aodh.CustomConfigsSecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index autoscalingAuthAppCredSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.Autoscaling{}, autoscalingAuthAppCredSecretField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*telemetryv1.Autoscaling)
+		if cr.Spec.Aodh.Auth.ApplicationCredentialSecret == "" {
+			return nil
+		}
+		return []string{cr.Spec.Aodh.Auth.ApplicationCredentialSecret}
 	}); err != nil {
 		return err
 	}

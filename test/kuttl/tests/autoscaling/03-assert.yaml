@@ -1,0 +1,52 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 900
+commands:
+  - script: |-
+      set -euo pipefail
+      NS="${NAMESPACE}"
+
+      echo "Waiting for KeystoneApplicationCredential ac-aodh to be Ready..."
+      oc wait -n "${NS}" appcred/ac-aodh --for=condition=Ready --timeout=300s
+
+      ac_id=$(oc get -n "${NS}" appcred/ac-aodh -o jsonpath='{.status.acID}')
+      if [ -z "${ac_id}" ]; then
+        echo "ERROR: appcred/ac-aodh.status.acID is empty"
+        exit 1
+      fi
+      echo "ac-aodh.status.acID=${ac_id}"
+
+      # Verify secret exists with correct AC_ID
+      oc get -n "${NS}" secret/ac-aodh-secret >/dev/null
+      secret_ac_id=$(oc get -n "${NS}" secret/ac-aodh-secret -o jsonpath='{.data.AC_ID}' | base64 -d)
+      if [ "${secret_ac_id}" != "${ac_id}" ]; then
+        echo "ERROR: Secret AC_ID (${secret_ac_id}) != appcred.status.acID (${ac_id})"
+        exit 1
+      fi
+      echo "✓ Secret AC_ID matches appcred.status.acID"
+
+      echo "Waiting for aodh rollout..."
+      oc rollout status -n "${NS}" statefulset/aodh --timeout=300s
+
+      # Verify pod restarted
+      old_pod_uid=$(oc get -n "${NS}" configmap/appcred-aodh-pre -o jsonpath='{.data.pod_uid}')
+      new_pod_uid=$(oc get pod -n "${NS}" aodh-0 -o jsonpath='{.metadata.uid}')
+
+      if [ "${old_pod_uid}" = "${new_pod_uid}" ]; then
+        echo "ERROR: expected aodh pod to restart after appcred secret became available"
+        echo "  pod: ${old_pod_uid} -> ${new_pod_uid}"
+        exit 1
+      fi
+      echo "✓ aodh pod restarted after appcred secret became available"
+
+      # Verify config contains application_credential_id
+      echo "Checking aodh config contains application_credential_id..."
+      oc exec -n "${NS}" pod/aodh-0 -c aodh-api -- \
+        bash -c "grep -q \"^application_credential_id = ${ac_id}$\" /etc/aodh/aodh.conf"
+      echo "✓ aodh config contains expected application_credential_id"
+
+      # Verify auth_type is v3applicationcredential
+      echo "Checking aodh config contains auth_type = v3applicationcredential..."
+      oc exec -n "${NS}" pod/aodh-0 -c aodh-api -- \
+        bash -c "grep -q \"^auth_type = v3applicationcredential$\" /etc/aodh/aodh.conf"
+      echo "✓ aodh config contains auth_type = v3applicationcredential"

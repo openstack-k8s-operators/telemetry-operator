@@ -1,0 +1,19 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |-
+      set -euo pipefail
+      NS="${NAMESPACE}"
+
+      # Save current state before rotation
+      old_pod_uid=$(oc get pod -n "${NS}" ceilometer-0 -o jsonpath='{.metadata.uid}')
+      old_acid=$(oc get -n "${NS}" appcred/ac-ceilometer -o jsonpath='{.status.acID}')
+
+      oc create configmap appcred-ceilometer-rotate-pre \
+        --from-literal=pod_uid="${old_pod_uid}" \
+        --from-literal=ac_id="${old_acid}" \
+        --dry-run=client -o yaml | oc apply -n "${NS}" -f -
+
+      # Force rotation by setting expired date
+      oc patch -n "${NS}" keystoneapplicationcredential ac-ceilometer --type=merge --subresource=status \
+        -p '{"status":{"expiresAt":"2001-05-19T00:00:00Z"}}'

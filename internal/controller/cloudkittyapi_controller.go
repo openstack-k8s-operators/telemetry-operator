@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/internal/cloudkitty"
 	"github.com/openstack-k8s-operators/telemetry-operator/internal/cloudkittyapi"
