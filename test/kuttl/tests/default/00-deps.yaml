@@ -7,3 +7,4 @@ commands:
   - script: |
       oc apply -f deps/loki-operator.yaml
       until oc api-resources | grep -q grafana; do sleep 1; done
+  - script: oc apply -n telemetry-kuttl-tests -f https://raw.githubusercontent.com/openstack-k8s-operators/infra-operator/main/config/samples/network_v1beta1_netconfig.yaml
