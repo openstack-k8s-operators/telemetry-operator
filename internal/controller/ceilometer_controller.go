@@ -530,39 +530,43 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf(msgReconcileStart, ceilometer.ServiceName))
 
+	serviceLabels := map[string]string{
+		common.AppSelector:   ceilometer.ServiceName,
+		common.OwnerSelector: instance.Name,
+	}
+
 	//
-	// create RabbitMQ transportURL CR and get the actual URL from the associated secret that is created
+	// create NotificationsBus TransportURL - Ceilometer only uses Notifications
 	//
-	transportURL, op, err := r.transportURLCreateOrUpdate(instance)
+	notificationBusInstanceURL, op, err := r.transportURLCreateOrUpdate(ctx, instance, serviceLabels, instance.Spec.NotificationsBus)
 	if err != nil {
-		Log.Info("Error getting transportURL. Setting error condition on status and returning")
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.RabbitMqTransportURLReadyCondition,
+			condition.NotificationBusInstanceReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
-			condition.RabbitMqTransportURLReadyErrorMessage,
+			condition.NotificationBusInstanceReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, err
 	}
 
 	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("TransportURL %s successfully reconciled - operation: %s", transportURL.Name, string(op)))
+		Log.Info(fmt.Sprintf("NotificationBusInstanceURL %s successfully reconciled - operation: %s", notificationBusInstanceURL.Name, string(op)))
 	}
 
-	instance.Status.TransportURLSecret = transportURL.Status.SecretName
+	instance.Status.NotificationsURLSecret = &notificationBusInstanceURL.Status.SecretName
 
-	if instance.Status.TransportURLSecret == "" {
-		Log.Info(fmt.Sprintf("Waiting for TransportURL %s secret to be created", transportURL.Name))
+	if instance.Status.NotificationsURLSecret == nil || *instance.Status.NotificationsURLSecret == "" {
+		Log.Info(fmt.Sprintf("Waiting for NotificationBusInstanceURL %s secret to be created", notificationBusInstanceURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.RabbitMqTransportURLReadyCondition,
+			condition.NotificationBusInstanceReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
-			condition.RabbitMqTransportURLReadyRunningMessage))
+			condition.NotificationBusInstanceReadyRunningMessage))
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 
-	instance.Status.Conditions.MarkTrue(condition.RabbitMqTransportURLReadyCondition, condition.RabbitMqTransportURLReadyMessage)
-	// end transportURL
+	instance.Status.Conditions.MarkTrue(condition.NotificationBusInstanceReadyCondition, condition.NotificationBusInstanceReadyMessage)
+	// end notificationsBus
 
 	//
 	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
@@ -572,15 +576,6 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		return ctrlResult, err
 	}
 	// run check OpenStack secret - end
-
-	//
-	// check for required TransportURL secret holding transport URL string
-	//
-	ctrlResult, err = r.getSecret(ctx, helper, instance, instance.Status.TransportURLSecret, "transport_url", &configMapVars)
-	if err != nil {
-		return ctrlResult, err
-	}
-	// run check TransportURL secret - end
 
 	//
 	// check for custom configs secret secret holding custom configuration files
@@ -740,11 +735,6 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	instance.Status.Hash[common.InputHashName] = inputHash
 
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
-
-	serviceLabels := map[string]string{
-		common.AppSelector:   ceilometer.ServiceName,
-		common.OwnerSelector: instance.Name,
-	}
 
 	topology, err := ensureTopology(
 		ctx,
@@ -1260,7 +1250,12 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		return err
 	}
 
-	transportURLSecret, _, err := secret.GetSecret(ctx, h, instance.Status.TransportURLSecret, instance.Namespace)
+	// Ensure NotificationsURLSecret is not nil before dereferencing
+	if instance.Status.NotificationsURLSecret == nil {
+		return ErrNotificationsURLSecretNotSet
+	}
+
+	transportURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
 	if err != nil {
 		return err
 	}
@@ -1321,6 +1316,16 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		templateParameters["SwiftRole"] = true
 	}
 
+	// Add NotificationsURL if configured
+	// Always get the separate notification secret since we always create separate TransportURLs
+	if instance.Status.NotificationsURLSecret != nil && *instance.Status.NotificationsURLSecret != "" {
+		notificationInstanceURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
+		if err != nil {
+			return err
+		}
+		templateParameters["NotificationsURL"] = string(notificationInstanceURLSecret.Data["transport_url"])
+	}
+
 	cms := []util.Template{
 		// ScriptsSecrets
 		{
@@ -1370,7 +1375,12 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		return err
 	}
 
-	transportURLSecret, _, err := secret.GetSecret(ctx, h, instance.Status.TransportURLSecret, instance.Namespace)
+	// Ensure NotificationsURLSecret is not nil before dereferencing
+	if instance.Status.NotificationsURLSecret == nil {
+		return ErrNotificationsURLSecretNotSet
+	}
+
+	transportURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
 	if err != nil {
 		return err
 	}
@@ -1682,18 +1692,52 @@ func (r *CeilometerReconciler) createHashOfInputHashes(
 	return hash, changed, nil
 }
 
-func (r *CeilometerReconciler) transportURLCreateOrUpdate(instance *telemetryv1.Ceilometer) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
+func (r *CeilometerReconciler) transportURLCreateOrUpdate(
+	ctx context.Context,
+	instance *telemetryv1.Ceilometer,
+	serviceLabels map[string]string,
+	rabbitmqConfig *rabbitmqv1.RabbitMqConfig,
+) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
+	// Ceilometer only uses NotificationsBus TransportURL
+	rmqName := fmt.Sprintf("%s-notifications-transport", ceilometer.ServiceName)
+
+	// Initialize config if nil (webhook only defaults Cluster if NotificationsBus exists)
+	config := rabbitmqConfig
+	if config == nil {
+		config = &rabbitmqv1.RabbitMqConfig{
+			Cluster: "rabbitmq",
+		}
+	}
+
+	// Prepare the spec values before CreateOrUpdate so webhooks see them during CREATE
+	clusterName := config.Cluster
+	username := config.User
+	vhost := config.Vhost
+
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-transport", ceilometer.ServiceName),
+			Name:      rmqName,
 			Namespace: instance.Namespace,
+			Labels:    serviceLabels,
+		},
+		Spec: rabbitmqv1.TransportURLSpec{
+			RabbitmqClusterName: clusterName,
+			Username:            username,
+			Vhost:               vhost,
 		},
 	}
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, transportURL, func() error {
-		transportURL.Spec.RabbitmqClusterName = instance.Spec.RabbitMqClusterName
-		err := controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
-		return err
+
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, transportURL, func() error {
+		transportURL.Spec.RabbitmqClusterName = clusterName
+		// Always set Username and Vhost to allow clearing/resetting them
+		// The infra-operator TransportURL controller handles empty values:
+		// - Empty Username: uses default cluster admin credentials
+		// - Empty Vhost: defaults to "/" vhost
+		transportURL.Spec.Username = username
+		transportURL.Spec.Vhost = vhost
+		return controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
 	})
+
 	return transportURL, op, err
 }
 

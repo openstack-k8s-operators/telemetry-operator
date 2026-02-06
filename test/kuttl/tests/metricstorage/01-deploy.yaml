@@ -22,3 +22,5 @@ metadata:
 spec:
   secret: osp-secret
   mysqldExporterEnabled: true
+  notificationsBus:
+    cluster: rabbitmq

@@ -884,8 +884,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	}
 
 	instance.Status.Conditions.MarkTrue(condition.RabbitMqTransportURLReadyCondition, condition.RabbitMqTransportURLReadyMessage)
-
-	// end transportURL
+	// end transportURL - CloudKitty only uses RPC Messaging Bus, not notifications
 
 	//
 	// Check for required memcached used for caching
@@ -1375,19 +1374,37 @@ func (r *CloudKittyReconciler) transportURLCreateOrUpdate(
 	instance *telemetryv1.CloudKitty,
 	serviceLabels map[string]string,
 ) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
+	// CloudKitty only uses messagingBus for RPC communication, not notifications
+	rmqName := fmt.Sprintf("%s-transport", instance.Name)
+	config := &instance.Spec.MessagingBus
+
+	// Prepare the spec values before CreateOrUpdate so webhooks see them during CREATE
+	clusterName := config.Cluster
+	username := config.User
+	vhost := config.Vhost
+
 	transportURL := &rabbitmqv1.TransportURL{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-transport", instance.Name),
+			Name:      rmqName,
 			Namespace: instance.Namespace,
 			Labels:    serviceLabels,
+		},
+		Spec: rabbitmqv1.TransportURLSpec{
+			RabbitmqClusterName: clusterName,
+			Username:            username,
+			Vhost:               vhost,
 		},
 	}
 
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, transportURL, func() error {
-		transportURL.Spec.RabbitmqClusterName = instance.Spec.RabbitMqClusterName
-
-		err := controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
-		return err
+		transportURL.Spec.RabbitmqClusterName = clusterName
+		// Always set Username and Vhost to allow clearing/resetting them
+		// The infra-operator TransportURL controller handles empty values:
+		// - Empty Username: uses default cluster admin credentials
+		// - Empty Vhost: defaults to "/" vhost
+		transportURL.Spec.Username = username
+		transportURL.Spec.Vhost = vhost
+		return controllerutil.SetControllerReference(instance, transportURL, r.Scheme)
 	})
 
 	return transportURL, op, err

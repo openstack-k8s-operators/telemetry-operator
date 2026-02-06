@@ -6,3 +6,5 @@ spec:
   secret: osp-secret
   mysqldExporterEnabled: true
   ksmEnabled: true
+  notificationsBus:
+    cluster: rabbitmq

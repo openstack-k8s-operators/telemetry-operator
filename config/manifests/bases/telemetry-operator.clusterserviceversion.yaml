@@ -25,6 +25,12 @@ spec:
       kind: Autoscaling
       name: autoscalings.telemetry.openstack.org
       specDescriptors:
+      - description: Auth - authentication settings for keystone integration
+        displayName: Auth
+        path: aodh.auth
+      - description: ApplicationCredentialSecret - secret name for application credential
+        displayName: Application Credential Secret
+        path: aodh.auth.applicationCredentialSecret
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: aodh.tls
@@ -34,6 +40,12 @@ spec:
       kind: Ceilometer
       name: ceilometers.telemetry.openstack.org
       specDescriptors:
+      - description: Auth - authentication settings for keystone integration
+        displayName: Auth
+        path: auth
+      - description: ApplicationCredentialSecret - secret name for application credential
+        displayName: Application Credential Secret
+        path: auth.applicationCredentialSecret
       - description: KSMTLS - Parameters related to the TLS for kube-state-metrics
         displayName: KSMTLS
         path: ksmTls
@@ -49,6 +61,12 @@ spec:
       kind: CloudKitty
       name: cloudkitties.telemetry.openstack.org
       specDescriptors:
+      - description: Auth - authentication settings for keystone integration
+        displayName: Auth
+        path: auth
+      - description: ApplicationCredentialSecret - secret name for application credential
+        displayName: Application Credential Secret
+        path: auth.applicationCredentialSecret
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: cloudKittyAPI.tls
@@ -61,6 +79,12 @@ spec:
       kind: CloudKittyProc
       name: cloudkittyprocs.telemetry.openstack.org
       specDescriptors:
+      - description: Auth - authentication settings for keystone integration
+        displayName: Auth
+        path: auth
+      - description: ApplicationCredentialSecret - secret name for application credential
+        displayName: Application Credential Secret
+        path: auth.applicationCredentialSecret
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: tls
@@ -84,6 +108,12 @@ spec:
       kind: Telemetry
       name: telemetries.telemetry.openstack.org
       specDescriptors:
+      - description: Auth - authentication settings for keystone integration
+        displayName: Auth
+        path: autoscaling.aodh.auth
+      - description: ApplicationCredentialSecret - secret name for application credential
+        displayName: Application Credential Secret
+        path: autoscaling.aodh.auth.applicationCredentialSecret
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: autoscaling.aodh.tls
@@ -93,6 +123,12 @@ spec:
         path: autoscaling.enabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Auth - authentication settings for keystone integration
+        displayName: Auth
+        path: ceilometer.auth
+      - description: ApplicationCredentialSecret - secret name for application credential
+        displayName: Application Credential Secret
+        path: ceilometer.auth.applicationCredentialSecret
       - description: Enabled - Whether OpenStack Ceilometer service should be deployed
           and managed
         displayName: Enabled
@@ -108,6 +144,12 @@ spec:
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: ceilometer.tls
+      - description: Auth - authentication settings for keystone integration
+        displayName: Auth
+        path: cloudkitty.auth
+      - description: ApplicationCredentialSecret - secret name for application credential
+        displayName: Application Credential Secret
+        path: cloudkitty.auth.applicationCredentialSecret
       - description: TLS - Parameters related to the TLS
         displayName: TLS
         path: cloudkitty.cloudKittyAPI.tls

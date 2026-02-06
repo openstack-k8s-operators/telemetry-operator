@@ -114,12 +114,20 @@ func (spec *TelemetrySpec) Default() {
 	if spec.CloudKitty.CloudKittyProc.ContainerImage == "" {
 		spec.CloudKitty.CloudKittyProc.ContainerImage = telemetryDefaults.CloudKittyProcContainerImageURL
 	}
+
+	// Call nested Default() methods to set rabbitmq cluster defaults
+	spec.Autoscaling.AutoscalingSpec.Default()
+	spec.Autoscaling.Aodh.Default()
+	spec.Ceilometer.CeilometerSpec.Default()
+	spec.CloudKitty.CloudKittySpec.Default()
 }
 
 // Default - set defaults for this Telemetry spec core
 // NOTE: only this version gets called by the Controlplane Webhook
 func (spec *TelemetrySpecCore) Default() {
 	spec.Autoscaling.Aodh.Default()
+	spec.Ceilometer.Default()
+	spec.CloudKitty.Default()
 }
 
 var _ webhook.Validator = &Telemetry{}
@@ -127,41 +135,53 @@ var _ webhook.Validator = &Telemetry{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Telemetry) ValidateCreate() (admission.Warnings, error) {
 	telemetrylog.Info("validate create", "name", r.Name)
+	var allWarns []string
 	var allErrs field.ErrorList
 	basePath := field.NewPath("spec")
 
-	allErrs = r.Spec.ValidateCreate(basePath, r.Namespace)
+	warns, errs := r.Spec.ValidateCreate(basePath, r.Namespace)
+	allWarns = append(allWarns, warns...)
+	allErrs = append(allErrs, errs...)
+
 	if len(allErrs) != 0 {
-		return nil, apierrors.NewInvalid(
+		return allWarns, apierrors.NewInvalid(
 			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Telemetry"},
 			r.Name, allErrs)
 	}
 
-	return nil, nil
+	return allWarns, nil
 }
 
-func (r TelemetrySpec) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+func (r TelemetrySpec) ValidateCreate(basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
+		warns, errs := r.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
 	}
-	return allErrs
+	return allWarns, allErrs
 }
 
-func (r TelemetrySpecCore) ValidateCreate(basePath *field.Path, namespace string) field.ErrorList {
+func (r TelemetrySpecCore) ValidateCreate(basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
+
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.CloudKitty.CloudKittySpecCore.ValidateCreate(basePath.Child("cloudkitty"), namespace)...)
+		warns, errs := r.CloudKitty.CloudKittySpecCore.ValidateCreate(basePath.Child("cloudkitty"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
 	}
-	return allErrs
+	return allWarns, allErrs
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Telemetry) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	telemetrylog.Info("validate update", "name", r.Name)
+	var allWarns []string
 	var allErrs field.ErrorList
 	basePath := field.NewPath("spec")
 
@@ -170,33 +190,43 @@ func (r *Telemetry) ValidateUpdate(old runtime.Object) (admission.Warnings, erro
 		return nil, apierrors.NewInternalError(fmt.Errorf("unable to convert existing object"))
 	}
 
-	allErrs = r.Spec.ValidateUpdate(oldTelemetry.Spec, basePath, r.Namespace)
+	warns, errs := r.Spec.ValidateUpdate(oldTelemetry.Spec, basePath, r.Namespace)
+	allWarns = append(allWarns, warns...)
+	allErrs = append(allErrs, errs...)
+
 	if len(allErrs) != 0 {
-		return nil, apierrors.NewInvalid(
+		return allWarns, apierrors.NewInvalid(
 			schema.GroupKind{Group: "telemetry.openstack.org", Kind: "Telemetry"},
 			r.Name, allErrs)
 	}
-	return nil, nil
+	return allWarns, nil
 }
 
-func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, namespace string) field.ErrorList {
+func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.CloudKitty.CloudKittySpec.ValidateUpdate(old.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)...)
+		warns, errs := r.CloudKitty.CloudKittySpec.ValidateUpdate(old.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
 	}
-	return allErrs
+	return allWarns, allErrs
 }
 
-func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpecCore, basePath *field.Path, namespace string) field.ErrorList {
+func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpecCore, basePath *field.Path, namespace string) ([]string, field.ErrorList) {
 	var allErrs field.ErrorList
+	var allWarns []string
+
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
-		allErrs = append(allErrs, r.CloudKitty.CloudKittySpecCore.ValidateUpdate(old.CloudKitty.CloudKittySpecCore, basePath.Child("cloudkitty"), namespace)...)
+		warns, errs := r.CloudKitty.CloudKittySpecCore.ValidateUpdate(old.CloudKitty.CloudKittySpecCore, basePath.Child("cloudkitty"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
 	}
-	return allErrs
+	return allWarns, allErrs
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
