@@ -98,12 +98,17 @@ func (spec *CeilometerSpecCore) Default() {
 
 // getDeprecatedFields returns the centralized list of deprecated fields for CeilometerSpecCore
 func (spec *CeilometerSpecCore) getDeprecatedFields(old *CeilometerSpecCore) []common_webhook.DeprecatedFieldUpdate {
+	var newValue *string
+	if spec.NotificationsBus != nil {
+		newValue = &spec.NotificationsBus.Cluster
+	}
+
 	deprecatedFields := []common_webhook.DeprecatedFieldUpdate{
 		{
 			DeprecatedFieldName: "rabbitMqClusterName",
 			NewFieldPath:        []string{"notificationsBus", "cluster"},
 			NewDeprecatedValue:  &spec.RabbitMqClusterName,
-			NewValue:            &spec.NotificationsBus.Cluster,
+			NewValue:            newValue,
 		},
 	}
 
