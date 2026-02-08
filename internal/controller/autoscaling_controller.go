@@ -71,6 +71,9 @@ import (
 // ErrNotificationsURLSecretNotSet is returned when NotificationsURLSecret is not set in the instance status
 var ErrNotificationsURLSecretNotSet = errors.New("NotificationsURLSecret is not set")
 
+// ErrRabbitMQConfigNil is returned when rabbitmqConfig parameter is nil
+var ErrRabbitMQConfigNil = errors.New("rabbitmqConfig is nil - NotificationsBus must be configured")
+
 // AutoscalingReconciler reconciles a Autoscaling object
 type AutoscalingReconciler struct {
 	client.Client
@@ -903,6 +906,11 @@ func (r *AutoscalingReconciler) transportURLCreateOrUpdate(
 ) (*rabbitmqv1.TransportURL, controllerutil.OperationResult, error) {
 	// Aodh only uses NotificationsBus TransportURL
 	rmqName := fmt.Sprintf("%s-notifications-transport", autoscaling.ServiceName)
+
+	if rabbitmqConfig == nil {
+		return nil, controllerutil.OperationResultNone, ErrRabbitMQConfigNil
+	}
+
 	config := rabbitmqConfig
 
 	// Prepare the spec values before CreateOrUpdate so webhooks see them during CREATE

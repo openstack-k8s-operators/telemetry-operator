@@ -93,3 +93,65 @@ func TestCloudKittySpecBaseDefault(t *testing.T) {
 	g.Expect(spec.MessagingBus.Cluster).To(Equal("rabbitmq"),
 		"CloudKitty messagingBus.cluster should be defaulted to rabbitmq")
 }
+
+// TestAodhCoreDefaultWithNilNotificationsBus tests that Default() doesn't panic with nil NotificationsBus
+func TestAodhCoreDefaultWithNilNotificationsBus(t *testing.T) {
+	g := NewWithT(t)
+
+	spec := &AodhCore{}
+	// NotificationsBus is nil (not set)
+
+	// Call Default() - should not panic
+	spec.Default()
+
+	// NotificationsBus should remain nil
+	g.Expect(spec.NotificationsBus).To(BeNil(),
+		"Aodh notificationsBus should remain nil when not configured")
+}
+
+// TestCeilometerSpecCoreDefaultWithNilNotificationsBus tests that Default() doesn't panic with nil NotificationsBus
+func TestCeilometerSpecCoreDefaultWithNilNotificationsBus(t *testing.T) {
+	g := NewWithT(t)
+
+	spec := &CeilometerSpecCore{}
+	// NotificationsBus is nil (not set)
+
+	// Call Default() - should not panic
+	spec.Default()
+
+	// NotificationsBus should remain nil
+	g.Expect(spec.NotificationsBus).To(BeNil(),
+		"Ceilometer notificationsBus should remain nil when not configured")
+}
+
+// TestAodhCoreValidateCreateWithNilNotificationsBus tests validation with nil NotificationsBus
+func TestAodhCoreValidateCreateWithNilNotificationsBus(t *testing.T) {
+	g := NewWithT(t)
+
+	spec := &AodhCore{}
+	// NotificationsBus is nil, but we have the deprecated field set
+	spec.RabbitMqClusterName = "old-rabbitmq"
+
+	// Call ValidateCreate - should not panic even with nil NotificationsBus
+	warns, errs := spec.ValidateCreate(nil, "default")
+
+	// Should have a warning about deprecated field
+	g.Expect(warns).ToNot(BeEmpty(), "Should have warning about deprecated rabbitMqClusterName field")
+	g.Expect(errs).To(BeEmpty(), "Should not have errors")
+}
+
+// TestCeilometerSpecCoreValidateCreateWithNilNotificationsBus tests validation with nil NotificationsBus
+func TestCeilometerSpecCoreValidateCreateWithNilNotificationsBus(t *testing.T) {
+	g := NewWithT(t)
+
+	spec := &CeilometerSpecCore{}
+	// NotificationsBus is nil, but we have the deprecated field set
+	spec.RabbitMqClusterName = "old-rabbitmq"
+
+	// Call ValidateCreate - should not panic even with nil NotificationsBus
+	warns, errs := spec.ValidateCreate(nil, "default")
+
+	// Should have a warning about deprecated field
+	g.Expect(warns).ToNot(BeEmpty(), "Should have warning about deprecated rabbitMqClusterName field")
+	g.Expect(errs).To(BeEmpty(), "Should not have errors")
+}

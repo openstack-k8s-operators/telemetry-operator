@@ -90,12 +90,17 @@ func (spec *AodhCore) Default() {
 
 // getDeprecatedFields returns the centralized list of deprecated fields for AodhCore
 func (spec *AodhCore) getDeprecatedFields(old *AodhCore) []common_webhook.DeprecatedFieldUpdate {
+	var newValue *string
+	if spec.NotificationsBus != nil {
+		newValue = &spec.NotificationsBus.Cluster
+	}
+
 	deprecatedFields := []common_webhook.DeprecatedFieldUpdate{
 		{
 			DeprecatedFieldName: "rabbitMqClusterName",
 			NewFieldPath:        []string{"notificationsBus", "cluster"},
 			NewDeprecatedValue:  &spec.RabbitMqClusterName,
-			NewValue:            &spec.NotificationsBus.Cluster,
+			NewValue:            newValue,
 		},
 	}
 
