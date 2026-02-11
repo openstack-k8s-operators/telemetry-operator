@@ -148,10 +148,10 @@ github.com/prometheus/procfs v0.16.1 h1:hZ15bTNuirocR6u0JZ6BAHHmwS1p8B4P6MRqxtzM
 github.com/prometheus/procfs v0.16.1/go.mod h1:teAbpZRB1iIAJYREa1LsoWUXykVXA1KlTmWl8x/U+Is=
 github.com/rabbitmq/cluster-operator v1.14.0 h1:1/nMyd9v/8T5IHA1BVcWbV0nrzN31F+gLP+0Ges6Y5E=
 github.com/rabbitmq/cluster-operator v1.14.0/go.mod h1:7XVU6ngbVJSPDXld+uMVk6nu68GH7fM6yYYY2MdYKek=
-github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.71.0-rhobs1 h1:NBdZFQUVKllUnmh6suuH02+K8VS8ibErnOhxNiH+aio=
-github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.71.0-rhobs1/go.mod h1:oDJbA/Byh5LNU7zBgBZYRM5263mgL16NtysHl/uVtGY=
-github.com/rhobs/observability-operator v0.3.1 h1:vVGCt/a7Ds5VeqikaKZJz18oOPV9p4YUaezlVlwdpIM=
-github.com/rhobs/observability-operator v0.3.1/go.mod h1:nC2YcqsTdm44agl9Fz5QzNSGtSFokIGUhS1g7OlzFrs=
+github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1 h1:uahWdfwYHqAb28Y1WsltZsiFlIgjxI8HHQxgUdBgPYQ=
+github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1/go.mod h1:I9jGubP/TOORi53RNCK7yPH5cP0TAyxzrNirBhHJtoM=
+github.com/rhobs/observability-operator v1.0.0 h1:BqV9ZaIt7/52yJTw9xeSiQ1uo7O1A272AzgQms/uo7M=
+github.com/rhobs/observability-operator v1.0.0/go.mod h1:OheVnMXdnGj+GPoVA3UDgsJfC2pXIKluLFe+5LJzxC0=
 github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR38lUII=
 github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWNMNyH2VO9fmH0o=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
