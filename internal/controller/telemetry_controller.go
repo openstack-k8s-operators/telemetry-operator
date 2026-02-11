@@ -435,6 +435,10 @@ func (r TelemetryReconciler) reconcileMetricStorage(ctx context.Context, instanc
 		return ctrl.Result{}, nil
 	}
 
+	if instance.Spec.MetricStorage.MonitoringStack != nil && instance.Spec.MetricStorage.MonitoringStack.NodeSelector == nil {
+		instance.Spec.MetricStorage.MonitoringStack.NodeSelector = instance.Spec.NodeSelector
+	}
+
 	helper.GetLogger().Info("Reconciling MetricStorage", metricStorageNamespaceLabel, instance.Namespace, metricStorageNameLabel, telemetryv1.DefaultServiceName)
 	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), metricStorageInstance, func() error {
 		instance.Spec.MetricStorage.MetricStorageSpec.DeepCopyInto(&metricStorageInstance.Spec)
