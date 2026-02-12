@@ -17,7 +17,6 @@ metrics:
     factor: 1/1048576
     groupby:
       - resource
-      - user
       - project
     metadata:
       - container_format
