@@ -3,7 +3,7 @@ module github.com/openstack-k8s-operators/telemetry-operator/api
 go 1.24.4
 
 require (
-	github.com/onsi/gomega v1.39.0
+	github.com/onsi/gomega v1.39.1
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260126091827-7758173fbb09
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260126081203-efc2df9207eb
 	github.com/rhobs/observability-operator v0.3.1
