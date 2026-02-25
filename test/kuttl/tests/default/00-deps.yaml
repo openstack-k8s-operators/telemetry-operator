@@ -8,3 +8,50 @@ commands:
       oc apply -f deps/loki-operator.yaml
       until oc api-resources | grep -q grafana; do sleep 1; done
   - script: oc apply -n telemetry-kuttl-tests -f https://raw.githubusercontent.com/openstack-k8s-operators/infra-operator/main/config/samples/network_v1beta1_netconfig.yaml
+  - script: |
+      set +e  # Don't fail on errors, we want all debug info
+      echo "=== PRE-DEPLOY DEBUGGING ==="
+      echo ""
+      echo "=== Cluster Node Resources ==="
+      oc get nodes -o wide
+      oc describe nodes | grep -A 8 "Allocated resources:" || true
+      echo ""
+      echo "=== All Pods in Test Namespace ==="
+      oc get pods -n ${NAMESPACE} -o wide
+      echo ""
+      echo "=== Prometheus/MetricStorage Pods ==="
+      oc get pods -n ${NAMESPACE} -l app.kubernetes.io/name=prometheus -o wide || echo "No prometheus pods found yet"
+      echo ""
+      echo "=== Prometheus Pod Events ==="
+      oc get events -n ${NAMESPACE} --field-selector involvedObject.kind=Pod --sort-by='.lastTimestamp' | grep -i prometheus || echo "No prometheus events"
+      echo ""
+      echo "=== Prometheus Init Container Status ==="
+      for pod in $(oc get pods -n ${NAMESPACE} -l app.kubernetes.io/name=prometheus -o name 2>/dev/null); do
+        echo "Pod: $pod"
+        oc get $pod -n ${NAMESPACE} -o jsonpath='{.status.initContainerStatuses}' | jq '.' || echo "No init container status"
+        oc describe $pod -n ${NAMESPACE} | grep -A 20 "Init Containers:" || true
+      done
+      echo ""
+      echo "=== MetricStorage Status ==="
+      oc get metricstorage metric-storage -n ${NAMESPACE} -o jsonpath='{.status}' | jq '.' || echo "MetricStorage not found yet"
+      echo ""
+      echo "=== All Prometheus Pods Across All Namespaces ==="
+      oc get pods -A -l app.kubernetes.io/name=prometheus -o wide
+      echo ""
+      echo "=== PVC Status in Namespace ==="
+      oc get pvc -n ${NAMESPACE}
+      echo ""
+      echo "=== Storage Classes ==="
+      oc get sc
+      echo ""
+      echo "=== Cluster Resource Usage Summary ==="
+      oc adm top nodes --use-protocol-buffers 2>&1 || echo "Unable to get node metrics"
+      echo ""
+      echo "=== Count of Prometheus Instances ==="
+      echo "Total Prometheus pods in cluster: $(oc get pods -A -l app.kubernetes.io/name=prometheus --no-headers 2>/dev/null | wc -l)"
+      echo "Prometheus pods in ${NAMESPACE}: $(oc get pods -n ${NAMESPACE} -l app.kubernetes.io/name=prometheus --no-headers 2>/dev/null | wc -l)"
+      echo ""
+      echo "=== Recent Events (Last 30) ==="
+      oc get events -n ${NAMESPACE} --sort-by='.lastTimestamp' | tail -30
+      echo ""
+      echo "=== END POST-DEPLOY DEBUGGING ==="
