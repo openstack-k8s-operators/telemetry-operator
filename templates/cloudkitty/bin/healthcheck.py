@@ -15,18 +15,21 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import os
 import sys
-import psutil
 
 
 def check_process() -> tuple[int, str]:
     # Return 0 if cloudkitty-processor process with given cmdline exists, else 1 with reason.
-    for proc in psutil.process_iter(attrs=["name", "cmdline"]):
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
         try:
-            cmdline = proc.info.get("cmdline", [])
-            if cmdline and any("cloudkitty-processor" in arg for arg in cmdline):
+            with open(f"/proc/{entry}/cmdline", "rb") as f:
+                cmdline = f.read().decode("utf-8", errors="replace")
+            if "cloudkitty-processor" in cmdline:
                 return 0, ""
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
+        except (FileNotFoundError, PermissionError):
             continue
     return 1, "CloudKitty processor process not found"
 
