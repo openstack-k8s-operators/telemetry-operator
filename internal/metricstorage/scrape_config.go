@@ -65,7 +65,7 @@ func ScrapeConfigMysqldExporter(
 	scrapeConfig := ScrapeConfig(instance, labels, targets, tlsEnabled)
 
 	scrapeConfig.Spec.MetricsPath = ptr.To("/probe")
-	scrapeConfig.Spec.RelabelConfigs = []*monv1.RelabelConfig{
+	scrapeConfig.Spec.RelabelConfigs = []monv1.RelabelConfig{
 		{
 			Action: "Replace",
 			SourceLabels: []monv1.LabelName{
@@ -80,7 +80,7 @@ func ScrapeConfigMysqldExporter(
 			},
 			TargetLabel: "__param_auth_module",
 			Regex:       "(.*):(.*)",
-			Replacement: "client.$1",
+			Replacement: ptr.To("client.$1"),
 		},
 		{
 			Action: "Replace",
@@ -92,7 +92,7 @@ func ScrapeConfigMysqldExporter(
 		{
 			Action:      "Replace",
 			TargetLabel: "__address__",
-			Replacement: fmt.Sprintf("%s.%s.svc:%d", mysqldexporter.ServiceName, instance.Namespace, mysqldexporter.MysqldExporterPort),
+			Replacement: ptr.To(fmt.Sprintf("%s.%s.svc:%d", mysqldexporter.ServiceName, instance.Namespace, mysqldexporter.MysqldExporterPort)),
 		},
 	}
 	return scrapeConfig
@@ -159,7 +159,7 @@ func ScrapeConfigRabbitMQ(
 			Labels:    labels,
 		},
 		Spec: monv1alpha1.ScrapeConfigSpec{
-			MetricRelabelConfigs: []*monv1.RelabelConfig{
+			MetricRelabelConfigs: []monv1.RelabelConfig{
 				{
 					Action:       "labeldrop",
 					Regex:        "job",
@@ -181,7 +181,7 @@ func ScrapeConfigRabbitMQ(
 					},
 				},
 			},
-			ServerName: fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace),
+			ServerName: ptr.To(fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)),
 		}
 		scheme := "HTTPS"
 		scrapeConfig.Spec.Scheme = &scheme
@@ -231,7 +231,7 @@ func ScrapeConfig(
 			Labels:    labels,
 		},
 		Spec: monv1alpha1.ScrapeConfigSpec{
-			MetricRelabelConfigs: []*monv1.RelabelConfig{
+			MetricRelabelConfigs: []monv1.RelabelConfig{
 				{
 					Action:       "labeldrop",
 					Regex:        "pod",
