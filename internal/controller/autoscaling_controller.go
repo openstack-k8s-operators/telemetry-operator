@@ -370,7 +370,18 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	//
 	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
 	//
-	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.Aodh.Secret, instance.Spec.Aodh.PasswordSelectors.AodhService, &configMapVars)
+	// Associate to PasswordSelectors.Service field a password validator to
+	// ensure pwd invalid detected patterns are rejected.
+	validateFields := map[string]secret.Validator{
+		instance.Spec.Aodh.PasswordSelectors.AodhService: secret.PasswordValidator{},
+	}
+	ctrlResult, err := r.getSecret(
+		ctx,
+		helper,
+		instance,
+		instance.Spec.Aodh.Secret,
+		validateFields,
+		&configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -474,7 +485,19 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 
-	ctrlResult, err = r.getSecret(ctx, helper, instance, *instance.Status.NotificationsURLSecret, "transport_url", &configMapVars)
+	// transportURLFields are not pure password fields. We do not associate a
+	// password validator and we only verify that the entry exists in the
+	// secret
+	transportValidateFields := map[string]secret.Validator{
+		"transport_url": secret.NoOpValidator{},
+	}
+	ctrlResult, err = r.getSecret(
+		ctx,
+		helper,
+		instance,
+		*instance.Status.NotificationsURLSecret,
+		transportValidateFields,
+		&configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -876,13 +899,18 @@ func (r *AutoscalingReconciler) getAutoscalingHeat(
 }
 
 // getSecret - get the specified secret, and add its hash to envVars
-func (r *AutoscalingReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.Autoscaling, secretName string, expectedField string, envVars *map[string]env.Setter) (ctrl.Result, error) {
+func (r *AutoscalingReconciler) getSecret(
+	ctx context.Context,
+	h *helper.Helper,
+	instance *telemetryv1.Autoscaling,
+	secretName string,
+	expectedFields map[string]secret.Validator,
+	envVars *map[string]env.Setter,
+) (ctrl.Result, error) {
 	secretHash, result, err := ensureSecret(
 		ctx,
 		types.NamespacedName{Namespace: instance.Namespace, Name: secretName},
-		[]string{
-			expectedField,
-		},
+		expectedFields,
 		h.GetClient(),
 		&instance.Status.Conditions,
 		time.Duration(10)*time.Second,

@@ -109,13 +109,13 @@ func ensureTopology(
 func ensureSecret(
 	ctx context.Context,
 	secretName types.NamespacedName,
-	expectedFields []string,
+	expectedFields map[string]secret.Validator,
 	reader client.Reader,
 	conditionUpdater conditionUpdater,
 	requeueTimeout time.Duration,
 ) (string, ctrl.Result, error) {
 
-	hash, res, err := secret.VerifySecret(ctx, secretName, expectedFields, reader, requeueTimeout)
+	hash, res, err := secret.VerifySecretFields(ctx, secretName, expectedFields, reader, requeueTimeout)
 	if err != nil {
 		conditionUpdater.Set(condition.FalseCondition(
 			condition.InputReadyCondition,

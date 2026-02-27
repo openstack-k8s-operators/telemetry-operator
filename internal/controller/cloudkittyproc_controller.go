@@ -454,13 +454,15 @@ func (r *CloudKittyProcReconciler) reconcileNormal(ctx context.Context, instance
 	//
 	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
 	//
-
+	// Associate to PasswordSelectors.Service field a password validator to
+	// ensure pwd invalid detected patterns are rejected.
+	validateFields := map[string]secret.Validator{
+		instance.Spec.PasswordSelectors.CloudKittyService: secret.PasswordValidator{},
+	}
 	ctrlResult, err := cloudkitty.VerifyServiceSecret(
 		ctx,
 		types.NamespacedName{Namespace: instance.Namespace, Name: instance.Spec.Secret},
-		[]string{
-			instance.Spec.PasswordSelectors.CloudKittyService,
-		},
+		validateFields,
 		helper.GetClient(),
 		&instance.Status.Conditions,
 		cloudkitty.NormalDuration,

@@ -571,7 +571,18 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	//
 	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
 	//
-	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.Secret, instance.Spec.PasswordSelectors.CeilometerService, &configMapVars)
+	// Associate to PasswordSelectors.Service field a password validator to
+	// ensure pwd invalid detected patterns are rejected.
+	validateFields := map[string]secret.Validator{
+		instance.Spec.PasswordSelectors.CeilometerService: secret.PasswordValidator{},
+	}
+	ctrlResult, err := r.getSecret(
+		ctx,
+		helper,
+		instance,
+		instance.Spec.Secret,
+		validateFields,
+		&configMapVars)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -1208,13 +1219,18 @@ func (r *CeilometerReconciler) reconcileKSM(
 }
 
 // getSecret - get the specified secret, and add its hash to envVars
-func (r *CeilometerReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.Ceilometer, secretName string, expectedField string, envVars *map[string]env.Setter) (ctrl.Result, error) {
+func (r *CeilometerReconciler) getSecret(
+	ctx context.Context,
+	h *helper.Helper,
+	instance *telemetryv1.Ceilometer,
+	secretName string,
+	expectedFields map[string]secret.Validator,
+	envVars *map[string]env.Setter,
+) (ctrl.Result, error) {
 	secretHash, result, err := ensureSecret(
 		ctx,
 		types.NamespacedName{Namespace: instance.Namespace, Name: secretName},
-		[]string{
-			expectedField,
-		},
+		expectedFields,
 		h.GetClient(),
 		&instance.Status.Conditions,
 		time.Duration(10)*time.Second,
