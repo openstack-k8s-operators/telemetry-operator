@@ -576,16 +576,23 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	validateFields := map[string]secret.Validator{
 		instance.Spec.PasswordSelectors.CeilometerService: secret.PasswordValidator{},
 	}
-	ctrlResult, err := r.getSecret(
+
+	_, ctrlResult, err := ensureSecret(
 		ctx,
-		helper,
-		instance,
-		instance.Spec.Secret,
+		types.NamespacedName{
+			Namespace: instance.Namespace,
+			Name:      instance.Spec.Secret,
+		},
 		validateFields,
-		&configMapVars)
+		helper.GetClient(),
+		&instance.Status.Conditions,
+		&configMapVars,
+		time.Duration(10)*time.Second,
+	)
 	if err != nil {
 		return ctrlResult, err
 	}
+
 	// run check OpenStack secret - end
 
 	//
@@ -1214,34 +1221,6 @@ func (r *CeilometerReconciler) reconcileKSM(
 
 		Log.Info(fmt.Sprintf(msgReconcileSuccess, availability.KSMServiceName))
 	}
-
-	return ctrl.Result{}, nil
-}
-
-// getSecret - get the specified secret, and add its hash to envVars
-func (r *CeilometerReconciler) getSecret(
-	ctx context.Context,
-	h *helper.Helper,
-	instance *telemetryv1.Ceilometer,
-	secretName string,
-	expectedFields map[string]secret.Validator,
-	envVars *map[string]env.Setter,
-) (ctrl.Result, error) {
-	secretHash, result, err := ensureSecret(
-		ctx,
-		types.NamespacedName{Namespace: instance.Namespace, Name: secretName},
-		expectedFields,
-		h.GetClient(),
-		&instance.Status.Conditions,
-		time.Duration(10)*time.Second,
-	)
-	if err != nil {
-		return result, err
-	}
-
-	// Add a prefix to the var name to avoid accidental collision with other non-secret
-	// vars. The secret names themselves will be unique.
-	(*envVars)["secret-"+secretName] = env.SetValue(secretHash)
 
 	return ctrl.Result{}, nil
 }

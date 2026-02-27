@@ -24,6 +24,7 @@ import (
 
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -112,6 +113,7 @@ func ensureSecret(
 	expectedFields map[string]secret.Validator,
 	reader client.Reader,
 	conditionUpdater conditionUpdater,
+	envVars *map[string]env.Setter,
 	requeueTimeout time.Duration,
 ) (string, ctrl.Result, error) {
 
@@ -137,5 +139,8 @@ func ensureSecret(
 		return "", res, nil
 	}
 
+	// Add a prefix to the var name to avoid accidental collision with other non-secret
+	// vars. The secret names themselves will be unique.
+	(*envVars)["secret-"+secretName.Name] = env.SetValue(hash)
 	return hash, ctrl.Result{}, nil
 }

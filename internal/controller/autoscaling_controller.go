@@ -375,13 +375,19 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	validateFields := map[string]secret.Validator{
 		instance.Spec.Aodh.PasswordSelectors.AodhService: secret.PasswordValidator{},
 	}
-	ctrlResult, err := r.getSecret(
+
+	_, ctrlResult, err := ensureSecret(
 		ctx,
-		helper,
-		instance,
-		instance.Spec.Aodh.Secret,
+		types.NamespacedName{
+			Namespace: instance.Namespace,
+			Name:      instance.Spec.Aodh.Secret,
+		},
 		validateFields,
-		&configMapVars)
+		helper.GetClient(),
+		&instance.Status.Conditions,
+		&configMapVars,
+		time.Duration(10)*time.Second,
+	)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -491,16 +497,23 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	transportValidateFields := map[string]secret.Validator{
 		"transport_url": secret.NoOpValidator{},
 	}
-	ctrlResult, err = r.getSecret(
+
+	_, ctrlResult, err = ensureSecret(
 		ctx,
-		helper,
-		instance,
-		*instance.Status.NotificationsURLSecret,
+		types.NamespacedName{
+			Namespace: instance.Namespace,
+			Name:      *instance.Status.NotificationsURLSecret,
+		},
 		transportValidateFields,
-		&configMapVars)
+		helper.GetClient(),
+		&instance.Status.Conditions,
+		&configMapVars,
+		time.Duration(10)*time.Second,
+	)
 	if err != nil {
 		return ctrlResult, err
 	}
+
 	// run check TransportURL secret - end
 
 	//
@@ -896,34 +909,6 @@ func (r *AutoscalingReconciler) getAutoscalingHeat(
 		return nil, err
 	}
 	return heat, err
-}
-
-// getSecret - get the specified secret, and add its hash to envVars
-func (r *AutoscalingReconciler) getSecret(
-	ctx context.Context,
-	h *helper.Helper,
-	instance *telemetryv1.Autoscaling,
-	secretName string,
-	expectedFields map[string]secret.Validator,
-	envVars *map[string]env.Setter,
-) (ctrl.Result, error) {
-	secretHash, result, err := ensureSecret(
-		ctx,
-		types.NamespacedName{Namespace: instance.Namespace, Name: secretName},
-		expectedFields,
-		h.GetClient(),
-		&instance.Status.Conditions,
-		time.Duration(10)*time.Second,
-	)
-	if err != nil {
-		return result, err
-	}
-
-	// Add a prefix to the var name to avoid accidental collision with other non-secret
-	// vars. The secret names themselves will be unique.
-	(*envVars)["secret-"+secretName] = env.SetValue(secretHash)
-
-	return ctrl.Result{}, nil
 }
 
 func (r *AutoscalingReconciler) transportURLCreateOrUpdate(
