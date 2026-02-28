@@ -76,6 +76,10 @@ type MonitoringStack struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={strategy: persistent, retention: "24h", persistent: {pvcStorageRequest: "20G"}}
 	Storage `json:"storage"`
+
+	// +kubebuilder:validation:Optional
+	// NodeSelector to target subset of worker nodes running this service
+	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // MetricStorageSpec defines the desired state of MetricStorage

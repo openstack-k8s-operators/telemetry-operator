@@ -3,6 +3,8 @@ kind: Telemetry
 metadata:
   name: telemetry-kuttl
 spec:
+  nodeSelector:
+    kubernetes.io/os: linux
   metricStorage:
     enabled: true
     monitoringStack:
