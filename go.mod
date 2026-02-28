@@ -20,7 +20,7 @@ require (
 	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20260126095359-1dcdd4734763
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240529090522-c780bd90b147
 	github.com/rabbitmq/cluster-operator v1.14.0
-	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1
+	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.87.0
 	github.com/rhobs/observability-operator v1.0.0
 	k8s.io/api v0.31.14
 	k8s.io/apimachinery v0.31.14
