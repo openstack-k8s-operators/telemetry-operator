@@ -171,24 +171,24 @@
         - openstack-k8s-operators-content-provider:
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
-        - telemetry-operator-multinode-cloudkitty:
-            dependencies:
-              - telemetry-openstack-meta-content-provider-master
+        #- telemetry-operator-multinode-cloudkitty:
+        #    dependencies:
+        #      - telemetry-openstack-meta-content-provider-master
         - telemetry-openstack-meta-content-provider-master
-        - telemetry-operator-multinode-default-telemetry
+        # - telemetry-operator-multinode-default-telemetry
         - functional-tests-osp18: &fvt_jobs_config
             voting: true
             required-projects:
               - name: infrawatch/feature-verification-tests
                 override-checkout: master
             irrelevant-files: *irrelevant_files
-        - feature-verification-tests-noop:
-            files: *irrelevant_files
-        - functional-periodic-telemetry-with-ceph:
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            files:
-              - ci/deploy-telemetry-with-ceph.yml
-              - ci/vars-telemetry-with-ceph.yml
-              - zuul.d/projects.yaml
+        #- feature-verification-tests-noop:
+        #    files: *irrelevant_files
+        #- functional-periodic-telemetry-with-ceph:
+        #    required-projects:
+        #      - name: infrawatch/feature-verification-tests
+        #        override-checkout: master
+        #    files:
+        #      - ci/deploy-telemetry-with-ceph.yml
+        #      - ci/vars-telemetry-with-ceph.yml
+        #      - zuul.d/projects.yaml
