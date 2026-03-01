@@ -370,7 +370,24 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	//
 	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
 	//
-	ctrlResult, err := r.getSecret(ctx, helper, instance, instance.Spec.Aodh.Secret, instance.Spec.Aodh.PasswordSelectors.AodhService, &configMapVars)
+	// Associate to PasswordSelectors.Service field a password validator to
+	// ensure pwd invalid detected patterns are rejected.
+	validateFields := map[string]secret.Validator{
+		instance.Spec.Aodh.PasswordSelectors.AodhService: secret.PasswordValidator{},
+	}
+
+	_, ctrlResult, err := ensureSecret(
+		ctx,
+		types.NamespacedName{
+			Namespace: instance.Namespace,
+			Name:      instance.Spec.Aodh.Secret,
+		},
+		validateFields,
+		helper.GetClient(),
+		&instance.Status.Conditions,
+		&configMapVars,
+		time.Duration(10)*time.Second,
+	)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -474,10 +491,29 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
 
-	ctrlResult, err = r.getSecret(ctx, helper, instance, *instance.Status.NotificationsURLSecret, "transport_url", &configMapVars)
+	// transportURLFields are not pure password fields. We do not associate a
+	// password validator and we only verify that the entry exists in the
+	// secret
+	transportValidateFields := map[string]secret.Validator{
+		"transport_url": secret.NoOpValidator{},
+	}
+
+	_, ctrlResult, err = ensureSecret(
+		ctx,
+		types.NamespacedName{
+			Namespace: instance.Namespace,
+			Name:      *instance.Status.NotificationsURLSecret,
+		},
+		transportValidateFields,
+		helper.GetClient(),
+		&instance.Status.Conditions,
+		&configMapVars,
+		time.Duration(10)*time.Second,
+	)
 	if err != nil {
 		return ctrlResult, err
 	}
+
 	// run check TransportURL secret - end
 
 	//
@@ -873,29 +909,6 @@ func (r *AutoscalingReconciler) getAutoscalingHeat(
 		return nil, err
 	}
 	return heat, err
-}
-
-// getSecret - get the specified secret, and add its hash to envVars
-func (r *AutoscalingReconciler) getSecret(ctx context.Context, h *helper.Helper, instance *telemetryv1.Autoscaling, secretName string, expectedField string, envVars *map[string]env.Setter) (ctrl.Result, error) {
-	secretHash, result, err := ensureSecret(
-		ctx,
-		types.NamespacedName{Namespace: instance.Namespace, Name: secretName},
-		[]string{
-			expectedField,
-		},
-		h.GetClient(),
-		&instance.Status.Conditions,
-		time.Duration(10)*time.Second,
-	)
-	if err != nil {
-		return result, err
-	}
-
-	// Add a prefix to the var name to avoid accidental collision with other non-secret
-	// vars. The secret names themselves will be unique.
-	(*envVars)["secret-"+secretName] = env.SetValue(secretHash)
-
-	return ctrl.Result{}, nil
 }
 
 func (r *AutoscalingReconciler) transportURLCreateOrUpdate(
