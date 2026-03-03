@@ -1,0 +1,62 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |
+      echo "=== Collecting diagnostic information ==="
+      echo ""
+      echo "=== Waiting for prometheus pod to be created (up to 60 seconds) ==="
+      for i in {1..60}; do
+        PROMETHEUS_POD=$(oc get pods -n telemetry-kuttl-tests -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+        if [ -n "$PROMETHEUS_POD" ]; then
+          echo "Prometheus pod found after $i seconds: $PROMETHEUS_POD"
+          break
+        fi
+        sleep 1
+      done
+
+      echo ""
+      echo "=== Pods in namespace ==="
+      oc get pods -n telemetry-kuttl-tests -o wide
+      echo ""
+      echo "=== Pod details for prometheus ==="
+      oc get pods -n telemetry-kuttl-tests -l app.kubernetes.io/name=prometheus -o yaml || true
+      echo ""
+      echo "=== Prometheus pod status ==="
+      PROMETHEUS_POD=$(oc get pods -n telemetry-kuttl-tests -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+      if [ -n "$PROMETHEUS_POD" ]; then
+        echo "Found prometheus pod: $PROMETHEUS_POD"
+        oc describe pod -n telemetry-kuttl-tests $PROMETHEUS_POD
+        echo ""
+        echo "=== Init container logs for $PROMETHEUS_POD ==="
+        oc logs -n telemetry-kuttl-tests $PROMETHEUS_POD -c init-config-reloader --tail=100 || echo "Could not get init-config-reloader logs"
+        echo ""
+        echo "=== All container statuses ==="
+        oc get pod -n telemetry-kuttl-tests $PROMETHEUS_POD -o jsonpath='{range .status.initContainerStatuses[*]}{.name}{"\t"}{.state}{"\n"}{end}'
+        echo ""
+        oc get pod -n telemetry-kuttl-tests $PROMETHEUS_POD -o jsonpath='{range .status.containerStatuses[*]}{.name}{"\t"}{.state}{"\n"}{end}'
+      else
+        echo "No prometheus pod found even after waiting"
+      fi
+      echo ""
+      echo "=== Prometheus StatefulSet details ==="
+      oc get statefulset -n telemetry-kuttl-tests -l app.kubernetes.io/name=prometheus -o yaml || true
+      echo ""
+      echo "=== MetricStorage status ==="
+      oc get metricstorage -n telemetry-kuttl-tests metric-storage -o yaml || true
+      echo ""
+      echo "=== Events in namespace ==="
+      oc get events -n telemetry-kuttl-tests --sort-by='.lastTimestamp' | tail -50
+      echo ""
+      echo "=== PVCs in namespace ==="
+      oc get pvc -n telemetry-kuttl-tests
+      echo ""
+      echo "=== NetworkAttachmentDefinitions ==="
+      oc get network-attachment-definitions -n telemetry-kuttl-tests
+      echo ""
+      echo "=== Telemetry CR status ==="
+      oc get telemetry -n telemetry-kuttl-tests telemetry-kuttl -o yaml || true
+      echo ""
+      echo "=== All StatefulSets ==="
+      oc get statefulsets -n telemetry-kuttl-tests -o wide
+      echo ""
+      echo "=== Diagnostic collection complete ==="
