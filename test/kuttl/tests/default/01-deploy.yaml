@@ -13,7 +13,7 @@ spec:
         retention: 24h
         persistent:
           pvcStorageRequest: 20G
-          pvcStorageClass: local-storage
+    networkAttachments: []
   autoscaling:
     enabled: true
     aodh:
