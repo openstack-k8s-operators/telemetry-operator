@@ -8,5 +8,3 @@ commands:
   - script: |
       oc apply -f deps/loki-operator.yaml
       until oc api-resources | grep -q grafana; do sleep 1; done
-  - script: |
-      oc apply -n telemetry-kuttl-tests -f deps/nad.yaml
