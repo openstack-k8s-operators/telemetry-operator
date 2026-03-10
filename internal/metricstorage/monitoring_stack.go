@@ -62,6 +62,10 @@ func MonitoringStack(
 			},
 		},
 	}
+
+	if instance.Spec.MonitoringStack.NodeSelector != nil {
+		monitoringStack.Spec.NodeSelector = *instance.Spec.MonitoringStack.NodeSelector
+	}
 	return monitoringStack, nil
 }
 
