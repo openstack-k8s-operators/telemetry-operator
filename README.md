@@ -299,17 +299,43 @@ The following procedure is to be performed after the
     openstack-edpm-ipam   False    Deployment in progress
     ```
 
-## Running kuttl tests locally
+## Running kuttl tests in a development environment
 
-For the default suite, simply run `make kuttl-test`.
+### Quick start
 
-For standalone suites, you must follow these steps:
+To run all the test suites, simply run:
 
-1. Set up the testing namespace using install_yamls: `cd install_yamls && make kuttl_common_prep heat heat_deploy NAMESPACE=telemetry-kuttl-tests`
-2. (Optionally) Edit the list of suites to run: `cd telemetry-operator && vi kuttl-test.yaml` (Comment out any suites you don't need from the testDirs list)
-3. Run kuttl specifying that config file and namespace: `kubectl-kuttl test --config ./kuttl-test.yaml --namespace telemetry-kuttl-tests`
+```bash
+cd install_yamls
+make telemetry_kuttl
+```
 
-> NOTE: (May 2024) These tests appear very reliable when running a single suite, but occasional flakiness (~ 25% failure) has been observed when they all run serially. This problem appears to be order/timing related and may or may not affect the automated CI.
+> **NOTE**: It is not necessary to have a full RHOSO deployment available, only 1. make_crc and 2 make crc_storage is required
+
+### Running individual test suites
+
+To run a single test suite (e.g., autoscaling):
+
+```bash
+cd install_yamls
+make kuttl_common_prep ovn heat heat_deploy certmanager telemetry telemetry_deploy_prep # This sets up the tests dependencies. Only run it if make telemetry_kuttl wasn't run before
+cd telemetry-operator/
+oc kuttl test --test tls # Replace tls with the name of the test suite that wants to be run
+```
+
+> **NOTE**: Make sure to have Kuttl dependencies are available. 
+
+### Debug mode
+
+To keep the namespace after test completion for debugging:
+
+```bash
+oc kuttl test --test tls --skip-delete
+```
+
+### Known Issues
+
+> **NOTE**: These tests appear very reliable when running a single suite. However, occasional flakiness (~ 25% failure) has been observed when all tests run serially. This problem appears to be order/timing related and may or may not affect the automated CI.
 
 ## Destroy the environment to start again
 
