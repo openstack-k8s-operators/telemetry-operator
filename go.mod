@@ -11,12 +11,12 @@ require (
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/gomega v1.39.1
 	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260228155251-70fca941ddc3
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260302135422-a9d288e4b102
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260304073651-1644ebdfa9b2
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260311104915-331074977ce0
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260307080711-ebd6e8ef3085
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20260205083029-d03e9df035ef
 	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20260205083029-d03e9df035ef
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260205083029-d03e9df035ef
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20260302105143-ec7a42e3119d
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20260307080955-7629caa7bb0c
 	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20260228161041-069103766607
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240529090522-c780bd90b147
 	github.com/rabbitmq/cluster-operator v1.14.0
