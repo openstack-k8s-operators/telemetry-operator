@@ -49,6 +49,7 @@ spec:
       retention: 24h
       persistent:
         pvcStorageRequest: 20G
+  networkAttachments: []
 ---
 # minio
 apiVersion: v1

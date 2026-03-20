@@ -49,6 +49,7 @@ spec:
       retention: 24h
       persistent:
         pvcStorageRequest: 20G
+  networkAttachments: []
   prometheusTls:
     caBundleSecretName: combined-ca-bundle
     secretName: cert-metric-storage-prometheus-svc
