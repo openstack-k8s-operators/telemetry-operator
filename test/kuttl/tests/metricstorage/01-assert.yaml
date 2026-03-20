@@ -178,6 +178,8 @@ status:
   conditions:
   - status: "True"
     type: Reconciled
+  - status: "False"
+    type: Degraded
   - status: "True"
     type: Available
 ---
