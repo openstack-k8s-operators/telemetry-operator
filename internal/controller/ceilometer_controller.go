@@ -1397,6 +1397,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		"ceilometer_compute_image": instance.Spec.ComputeImage,
 		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
 		"TLS":                      false,
+		"Region":                   keystoneAPI.GetRegion(),
 	}
 
 	// Try to get Application Credential from the secret specified in the CR
@@ -1425,6 +1426,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		templateParameters["TLS"] = true
 		templateParameters["TlsCert"] = "/etc/ceilometer/tls/tls.crt"
 		templateParameters["TlsKey"] = "/etc/ceilometer/tls/tls.key"
+		templateParameters["CAFile"] = tls.DownstreamTLSCABundlePath
 	}
 
 	cms := []util.Template{
