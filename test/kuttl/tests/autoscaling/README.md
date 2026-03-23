@@ -40,13 +40,13 @@ Once the kuttl requirements are satisfied, the actual tests can be executed from
 
 ```bash
 cd telemetry-operator/
-kubectl-kuttl test --test autoscaling --namespace telemetry-kuttl-tls
+oc kuttl test --test autoscaling --namespace telemetry-kuttl-autoscaling
 ```
 
 Same tests can be executed from a different location via:
 
 ```bash
-kubectl-kuttl test --config <KUTTL_CONFIG> <KUTTL_TESTS_DIR> --test autoscaling --namespace telemetry-kuttl-tls
+oc kuttl test --config <KUTTL_CONFIG> <KUTTL_TESTS_DIR> --test autoscaling --namespace telemetry-kuttl-autoscaling
 ```
 
 > **NOTE**: <KUTTL_CONFIG> is the path where kuttl-test.yaml for the repo is located and <KUTTL_TESTS_DIR> is where the tests are located.
