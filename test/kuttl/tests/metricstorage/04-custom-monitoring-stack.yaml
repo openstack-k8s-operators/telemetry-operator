@@ -14,3 +14,4 @@ spec:
       matchLabels:
         app: custom-monitoring-stack
     retention: 1d
+  networkAttachments: []
