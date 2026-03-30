@@ -13,6 +13,7 @@ spec:
       retention: 24h
       persistent:
         pvcStorageRequest: 20G
+  networkAttachments: []
 ---
 # Required, so that the mysqld_exporter scrapeconfig is created
 apiVersion: telemetry.openstack.org/v1beta1
