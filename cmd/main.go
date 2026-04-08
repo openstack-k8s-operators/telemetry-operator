@@ -58,7 +58,6 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/operator"
 	mariadbv1beta1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 	ovnv1 "github.com/openstack-k8s-operators/ovn-operator/api/v1beta1"
-	rabbitmqclusterv1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
@@ -87,7 +86,6 @@ func init() {
 	utilruntime.Must(heatv1.AddToScheme(scheme))
 	utilruntime.Must(ovnv1.AddToScheme(scheme))
 	utilruntime.Must(infranetworkv1.AddToScheme(scheme))
-	utilruntime.Must(rabbitmqclusterv1.AddToScheme(scheme))
 	utilruntime.Must(networkv1.AddToScheme(scheme))
 	utilruntime.Must(topologyv1.AddToScheme(scheme))
 	utilruntime.Must(lokistackv1.AddToScheme(scheme))

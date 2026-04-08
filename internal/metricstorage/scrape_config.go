@@ -22,11 +22,11 @@ import (
 	"net"
 	"sort"
 
+	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	mysqldexporter "github.com/openstack-k8s-operators/telemetry-operator/internal/mysqldexporter"
-	rabbitmqv1 "github.com/rabbitmq/cluster-operator/api/v1beta1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -105,7 +105,7 @@ func ScrapeConfigRabbitMQ(
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,
 	helper *helper.Helper,
-	rabbit rabbitmqv1.RabbitmqCluster,
+	rabbit rabbitmqv1.RabbitMq,
 	tlsEnabled bool,
 ) (*monv1alpha1.ScrapeConfig, error) {
 	scrapeInterval := retrieveScrapeInterval(instance)
