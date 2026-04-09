@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/onsi/gomega v1.39.1
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260401053442-e06fc1a33511
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260408075848-a2ebc6b245c3
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260331122750-ecff41ebb61d
 	github.com/rhobs/observability-operator v1.0.0
 	k8s.io/api v0.31.14
@@ -43,7 +43,6 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/rabbitmq/cluster-operator/v2 v2.16.0 // indirect
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1 // indirect
 	github.com/spf13/pflag v1.0.7 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
@@ -71,7 +70,6 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-// pin these to avoid later versions pulled by rabbitmq
 replace k8s.io/apimachinery => k8s.io/apimachinery v0.31.13 //allow-merging
 
 replace k8s.io/api => k8s.io/api v0.31.13 //allow-merging
@@ -87,8 +85,5 @@ replace k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.13 //allow-merging
 replace k8s.io/code-generator => k8s.io/code-generator v0.31.13 //allow-merging
 
 replace k8s.io/component-base => k8s.io/component-base v0.31.13 //allow-merging
-
-// custom RabbitmqClusterSpecCore for OpenStackControlplane (v2.16.0_patches)
-replace github.com/rabbitmq/cluster-operator/v2 => github.com/openstack-k8s-operators/rabbitmq-cluster-operator/v2 v2.6.1-0.20250929174222-a0d328fa4dec //allow-merging
 
 replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250627150254-e9823e99808e //allow-merging

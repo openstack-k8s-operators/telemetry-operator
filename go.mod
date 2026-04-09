@@ -10,16 +10,15 @@ require (
 	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/gomega v1.39.1
-	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260328071427-ab8ab6bb163b
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260401053442-e06fc1a33511
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260321081256-de45f3b1de4f
+	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260408110147-107d54e5558c
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260408075848-a2ebc6b245c3
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260407135110-a78ddc515b34
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20260331122750-ecff41ebb61d
 	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20260331122750-ecff41ebb61d
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260331122750-ecff41ebb61d
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20260403163210-0e5eb2ea6a9c
 	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20260402040941-c0c67dde993d
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240529090522-c780bd90b147
-	github.com/rabbitmq/cluster-operator v1.14.0
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1
 	github.com/rhobs/observability-operator v1.0.0
 	k8s.io/api v0.31.14
@@ -66,14 +65,13 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20260320125710-3a5f82ff0f18 // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260326092926-8a2950f0575b // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20260331122750-ecff41ebb61d // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260331122750-ecff41ebb61d // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/rabbitmq/cluster-operator/v2 v2.16.0 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.7 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
@@ -125,7 +123,6 @@ require (
 // must consistent within modules and service operators
 replace github.com/openshift/api => github.com/openshift/api v0.0.0-20250711200046-c86d80652a9e //allow-merging
 
-// pin these to avoid later versions pulled by rabbitmq
 replace k8s.io/apimachinery => k8s.io/apimachinery v0.31.13 //allow-merging
 
 replace k8s.io/api => k8s.io/api v0.31.13 //allow-merging
@@ -141,8 +138,5 @@ replace k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.13 //allow-merging
 replace k8s.io/code-generator => k8s.io/code-generator v0.31.13 //allow-merging
 
 replace k8s.io/component-base => k8s.io/component-base v0.31.13 //allow-merging
-
-// custom RabbitmqClusterSpecCore for OpenStackControlplane (v2.16.0_patches)
-replace github.com/rabbitmq/cluster-operator/v2 => github.com/openstack-k8s-operators/rabbitmq-cluster-operator/v2 v2.6.1-0.20250929174222-a0d328fa4dec //allow-merging
 
 replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250627150254-e9823e99808e //allow-merging
