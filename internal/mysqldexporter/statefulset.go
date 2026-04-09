@@ -100,7 +100,7 @@ func StatefulSet(
 	}
 
 	mysqldExporterContainer := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Args:            args,
 		Image:           instance.Spec.MysqldExporterImage,
 		Name:            ServiceName,
