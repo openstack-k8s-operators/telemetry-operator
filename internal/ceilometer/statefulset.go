@@ -137,7 +137,7 @@ func StatefulSet(
 	}
 
 	centralAgentContainer := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command: []string{
 			"/bin/bash",
 		},
@@ -149,7 +149,7 @@ func StatefulSet(
 		LivenessProbe: centralLivenessProbe,
 	}
 	notificationAgentContainer := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command: []string{
 			"/bin/bash",
 		},
@@ -161,7 +161,7 @@ func StatefulSet(
 		LivenessProbe: notificationLivenessProbe,
 	}
 	sgCoreContainer := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Image:           instance.Spec.SgCoreImage,
 		Name:            "sg-core",
 		VolumeMounts:    getSgCoreVolumeMounts(),
@@ -175,7 +175,7 @@ func StatefulSet(
 		},
 	}
 	proxyContainer := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Image:           instance.Spec.ProxyImage,
 		Name:            "proxy-httpd",
 		Ports: []corev1.ContainerPort{{
