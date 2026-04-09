@@ -136,7 +136,7 @@ func AodhStatefulSet(
 	var replicas int32 = 1
 
 	apiContainer := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command: []string{
 			"/bin/bash",
 		},
@@ -148,7 +148,7 @@ func AodhStatefulSet(
 	}
 
 	evaluatorContainer := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command: []string{
 			"/bin/bash",
 		},
@@ -160,7 +160,7 @@ func AodhStatefulSet(
 	}
 
 	notifierContainer := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command: []string{
 			"/bin/bash",
 		},
@@ -172,7 +172,7 @@ func AodhStatefulSet(
 	}
 
 	listenerContainer := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command: []string{
 			"/bin/bash",
 		},
