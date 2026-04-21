@@ -14,6 +14,15 @@
             github.com/openstack-k8s-operators/telemetry-operator:
               src_dir: "{{ telemetry_operator_dir | default('telemetry-operator/') }}"
 
+    - name: Wait for the route kind to be present in the cluster
+      ansible.builtin.command:
+        cmd:
+          oc api-resources --api-group=route.openshift.io --no-headers
+      delay: 10
+      retries: 30
+      register: route_api_check
+      until: route_api_check.stdout_lines | length != 0
+
     - name: Deploy loki operator
       ansible.builtin.shell:
         cmd: |
