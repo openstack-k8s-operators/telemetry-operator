@@ -20,6 +20,10 @@
               metadata:
                 name: unused
               spec:
+                barbican:
+                  enabled: false
+                swift:
+                  enabled: false
                 heat:
                   enabled: true
                 telemetry:
