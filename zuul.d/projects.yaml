@@ -12,6 +12,8 @@
       cifmw_operator_build_operators:
         - name: telemetry-operator
           src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator"
+        - name: mariadb-operator
+          src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/mariadb-operator"
         - name: openstack-operator
           src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/openstack-operator"
           image_base: telemetry
