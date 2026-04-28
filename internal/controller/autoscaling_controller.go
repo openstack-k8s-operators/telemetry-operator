@@ -272,6 +272,15 @@ func (r *AutoscalingReconciler) reconcileDelete(
 	); err != nil {
 		return ctrlResult, err
 	}
+	for _, secretName := range []string{
+		instance.Status.ApplicationCredentialSecret,
+		instance.Spec.Aodh.Auth.ApplicationCredentialSecret,
+	} {
+		if err := keystonev1.RemoveACSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+			secretName, autoscaling.ACConsumerFinalizer); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", autoscaling.ServiceName))
@@ -325,6 +334,22 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	} else if (rbacResult != ctrl.Result{}) {
 		return rbacResult, nil
 	}
+
+	if instance.Spec.Aodh.Auth.ApplicationCredentialSecret != "" || instance.Status.ApplicationCredentialSecret != "" {
+		if err := keystonev1.ManageACSecretFinalizer(ctx, helper, instance.Namespace,
+			instance.Spec.Aodh.Auth.ApplicationCredentialSecret,
+			instance.Status.ApplicationCredentialSecret,
+			autoscaling.ACConsumerFinalizer); err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ServiceConfigReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.ServiceConfigReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+	}
+	instance.Status.ApplicationCredentialSecret = instance.Spec.Aodh.Auth.ApplicationCredentialSecret
 
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 

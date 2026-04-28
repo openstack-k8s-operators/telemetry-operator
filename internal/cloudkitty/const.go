@@ -65,6 +65,9 @@ const (
 
 	// CloudKittyUserID -
 	CloudKittyUserID = 42406
+
+	// ACConsumerFinalizer is added to AC secrets that CloudKitty is actively consuming
+	ACConsumerFinalizer = "openstack.org/cloudkitty-ac-consumer"
 )
 
 // ResultRequeue is a ctrl.Result that requeues after NormalDuration
