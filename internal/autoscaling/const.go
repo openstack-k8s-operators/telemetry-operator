@@ -45,6 +45,9 @@ const (
 	// PrometheusEndpointSecret is the name of the secret containing Prometheus endpoint configuration
 	PrometheusEndpointSecret = "metric-storage-prometheus-endpoint"
 
+	// ACConsumerFinalizer is added to AC secrets that autoscaling (Aodh) is actively consuming
+	ACConsumerFinalizer = "openstack.org/autoscaling-ac-consumer"
+
 	// AodhUserID -
 	AodhUserID = 42402
 )

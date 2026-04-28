@@ -30,7 +30,18 @@ commands:
       echo "✓ ACID rotated: ${prev_acid} -> ${ac_id}"
 
       # Verify secret was updated
-      secret_ac_id=$(oc get -n "${NS}" secret/ac-ceilometer-secret -o jsonpath='{.data.AC_ID}' | base64 -d)
+      ac_secret_name=$(oc get -n "${NS}" appcred/ac-ceilometer -o jsonpath='{.status.secretName}')
+      if [ -z "${ac_secret_name}" ]; then
+        echo "ERROR: appcred/ac-ceilometer.status.secretName is empty after rotation"
+        exit 1
+      fi
+      echo "AC secret name after rotation: ${ac_secret_name}"
+
+      # Patch the service CR with the new secret name
+      oc patch ceilometer telemetry-kuttl -n "${NS}" --type=merge \
+        -p "{\"spec\":{\"auth\":{\"applicationCredentialSecret\":\"${ac_secret_name}\"}}}"
+
+      secret_ac_id=$(oc get -n "${NS}" secret/"${ac_secret_name}" -o jsonpath='{.data.AC_ID}' | base64 -d)
       if [ "${secret_ac_id}" != "${ac_id}" ]; then
         echo "ERROR: Secret AC_ID (${secret_ac_id}) != rotated appcred.status.acID (${ac_id})"
         exit 1

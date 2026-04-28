@@ -29,6 +29,16 @@ commands:
         unrestricted: false
       EOF
 
+      echo "Waiting for KeystoneApplicationCredential ac-cloudkitty to be Ready..."
+      oc wait -n "${NS}" appcred/ac-cloudkitty --for=condition=Ready --timeout=300s
+
+      ac_secret_name=$(oc get -n "${NS}" appcred/ac-cloudkitty -o jsonpath='{.status.secretName}')
+      if [ -z "${ac_secret_name}" ]; then
+        echo "ERROR: appcred/ac-cloudkitty.status.secretName is empty"
+        exit 1
+      fi
+      echo "AC secret name: ${ac_secret_name}"
+
       # Patch CloudKitty to use application credential
       oc patch cloudkitty telemetry-kuttl-cloudkitty -n "${NS}" --type=merge \
-        -p '{"spec":{"auth":{"applicationCredentialSecret":"ac-cloudkitty-secret"}}}'
+        -p "{\"spec\":{\"auth\":{\"applicationCredentialSecret\":\"${ac_secret_name}\"}}}"

@@ -218,6 +218,9 @@ type CeilometerStatus struct {
 
 	// LastAppliedTopology - the last applied Topology
 	LastAppliedTopology *topologyv1.TopoRef `json:"lastAppliedTopology,omitempty"`
+
+	// ApplicationCredentialSecret - the AC secret ceilometer is currently consuming
+	ApplicationCredentialSecret string `json:"applicationCredentialSecret,omitempty"`
 }
 
 // NOTE(mmagr): remove KSMStatus with API version increment
