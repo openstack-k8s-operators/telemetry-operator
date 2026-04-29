@@ -1,0 +1,5 @@
+enable_audit_logging_namespace: "{{ cifmw_openstack_namespace | default('openstack') }}"
+# Set to true to apply the kustomization against a live OSCP CR.
+# When false (default), the kustomization is only copied to the
+# ci-framework kustomizations directory for pre-deploy use.
+enable_audit_logging_local_apply: false

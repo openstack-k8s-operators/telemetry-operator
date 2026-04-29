@@ -1,0 +1,5 @@
+---
+cifmw_run_tests: false
+pre_deploy_enable_audit_logging:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/enable-audit-logging.yml"
+  type: playbook

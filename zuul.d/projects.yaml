@@ -105,6 +105,18 @@
     irrelevant-files: *irrelevant_files
 
 - job:
+    name: telemetry-operator-multinode-audit-logging
+    parent: podified-multinode-edpm-deployment-crc
+    dependencies: ["openstack-k8s-operators-content-provider"]
+    description: |
+      Deploy OpenStack with CADF audit logging enabled for supported services
+    vars:
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-audit-logging.yml"
+    irrelevant-files: *irrelevant_files
+
+- job:
     name: telemetry-operator-multinode-power-monitoring
     parent: podified-multinode-edpm-deployment-crc
     dependencies: ["openstack-k8s-operators-content-provider"]
@@ -176,6 +188,7 @@
               - telemetry-openstack-meta-content-provider-master
         - telemetry-openstack-meta-content-provider-master
         - telemetry-operator-multinode-default-telemetry
+        - telemetry-operator-multinode-audit-logging
         - functional-tests-osp18: &fvt_jobs_config
             voting: true
             required-projects:
