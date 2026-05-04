@@ -23,7 +23,7 @@ spec:
     - /bin/bash
     - -c
     - |
-      mkdir -p /data/loki && \
+      mkdir -p /data/loki /data/loki-audit && \
       minio server /data
     env:
     - name: MINIO_ACCESS_KEY

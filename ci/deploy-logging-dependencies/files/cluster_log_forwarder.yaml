@@ -1,39 +1,76 @@
-apiVersion: observability.openshift.io/v1
-kind: ClusterLogForwarder
+apiVersion: observability.openshift.io/v1                                                                                                                          
+kind: ClusterLogForwarder                                                                                                                                          
 metadata:
-  name: collector
+  name: collector-with-cadf-to-loki-audit                                                                                                                          
   namespace: openshift-logging
 spec:
   serviceAccount:
-    name: collector
+    name: collector                                                                                                                                                
   inputs:
-    - name: syslog-receiver
-      type: receiver
-      receiver:
-        type: syslog
-        port: 10514
-  outputs:
-    - name: default-lokistack
-      type: lokiStack
-      lokiStack:
-        authentication:
-          token:
-            from: serviceAccount
-        labelKeys:
-          infrastructure:
-            labelKeys:
-              - host
-              - appname
-        target:
-          name: logging-loki
-          namespace: openshift-logging
-      tls:
-        ca:
-          key: service-ca.crt
-          configMapName: openshift-service-ca.crt
+  - name: dataplane                                                                                                                                                
+    receiver:                                                                                                                                                      
+      port: 10514                                                                                                                                                  
+      type: syslog                                                                                                                                                 
+    type: receiver                                                                                                                                                 
+  managementState: Managed
+  outputs:                                                                                                                                                         
+  - name: default-lokistack                                                                                                                                        
+    type: lokiStack
+    lokiStack:                                                                                                                                                     
+      authentication:
+        token:                                                                                                                                                     
+          from: serviceAccount                                                                                                                                     
+      labelKeys:                                                                                                                                                   
+        infrastructure:                                                                                                                                            
+          labelKeys:                                                                                                                                               
+            - host                                                                                                                                                 
+            - appname
+      target:                                                                                                                                                      
+        name: logging-loki
+        namespace: openshift-logging                                                                                                                               
+    tls:
+      ca:                                                                                                                                                          
+        key: service-ca.crt
+        configMapName: openshift-service-ca.crt
+  - name: audit-lokistack                                                                                                                                          
+    type: lokiStack
+    lokiStack:                                                                                                                                                     
+      authentication:
+        token:                                                                                                                                                     
+          from: serviceAccount
+      target:
+        name: logging-loki-audit                                                                                                                                   
+        namespace: openshift-logging
+    tls:                                                                                                                                                           
+      ca:       
+        key: service-ca.crt
+        configMapName: openshift-service-ca.crt                                                                                                                    
+  filters:                                                                                                                                                         
+  - name: to-loki-filter                                                                                                                                           
+    type: drop                                                                                                                                                     
+    drop:                                                                                                                                                          
+    - test:                                                                                                                                                        
+      - field: .message                                                                                                                                            
+        matches: "oslo.messaging.notification"                                                                                                                     
+  - name: to-loki-audit-filter
+    type: drop                                                                                                                                                     
+    drop:       
+    - test:                                                                                                                                                        
+      - field: .message
+        notMatches: "oslo.messaging.notification"
   pipelines:
-    - name: my-syslog
-      inputRefs:
-        - syslog-receiver
-      outputRefs:
-        - default-lokistack
+  - name: to-loki
+    inputRefs:
+      - application                                                                                                                                                
+      - dataplane
+    outputRefs:                                                                                                                                                    
+      - default-lokistack
+    filterRefs:
+      - to-loki-filter                                                                                                                                             
+  - name: to-loki-audit
+    inputRefs:                                                                                                                                                     
+      - application
+    outputRefs:
+      - audit-lokistack
+    filterRefs:
+      - to-loki-audit-filter

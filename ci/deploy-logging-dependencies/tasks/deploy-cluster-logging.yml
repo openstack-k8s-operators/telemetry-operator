@@ -15,7 +15,7 @@
 - name: Wait for cluster log forwarder to be created
   ansible.builtin.command:
     cmd:
-      oc get clusterlogforwarder --namespace=openshift-logging collector
+      oc get clusterlogforwarder --namespace=openshift-logging collector-with-cadf-to-loki-audit
   delay: 10
   retries: 20
   register: output
@@ -24,7 +24,7 @@
 - name: Wait for all conditions to be "True" in ClusterLogForwarder status
   ansible.builtin.shell:
     cmd: >
-      oc get clusterlogforwarder collector -n openshift-logging -o json |
+      oc get clusterlogforwarder collector-with-cadf-to-loki-audit -n openshift-logging -o json |
       jq '.status.conditions | length > 0 and all(.status == "True")'
   register: clf_conditions
   until: clf_conditions.stdout == "true"
