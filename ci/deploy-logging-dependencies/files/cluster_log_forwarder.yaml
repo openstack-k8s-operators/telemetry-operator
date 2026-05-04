@@ -19,6 +19,11 @@ spec:
         authentication:
           token:
             from: serviceAccount
+        labelKeys:
+          infrastructure:
+            labelKeys:
+              - host
+              - appname
         target:
           name: logging-loki
           namespace: openshift-logging
