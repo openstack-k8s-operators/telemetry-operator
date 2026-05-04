@@ -354,6 +354,9 @@ type CloudKittyStatus struct {
 
 	// PrometheusTLS - Determines if TLS should be used for accessing prometheus
 	PrometheusTLS bool `json:"prometheusTLS,omitempty"`
+
+	// ApplicationCredentialSecret - the AC secret cloudkitty is currently consuming
+	ApplicationCredentialSecret string `json:"applicationCredentialSecret,omitempty"`
 }
 
 //+kubebuilder:object:root=true
