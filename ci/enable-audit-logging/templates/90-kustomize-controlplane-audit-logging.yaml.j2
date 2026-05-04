@@ -1,0 +1,78 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: {{ enable_audit_logging_namespace }}
+patches:
+- patch: |-
+    apiVersion: core.openstack.org/v1beta1
+    kind: OpenStackControlPlane
+    metadata:
+      name: unused
+    spec:
+      cinder:
+        template:
+          cinderAPI:
+            customServiceConfig: |
+              [DEFAULT]
+              api_paste_config = "/etc/cinder/custom/api-paste.ini"
+              [audit_middleware_notifications]
+              driver = log
+          extraMounts:
+          - name: audit-config-files
+            region: r1
+            extraVol:
+            - mounts:
+              - mountPath: /etc/cinder/custom
+                name: audit
+                readOnly: true
+              volumes:
+              - name: audit
+                secret:
+                  secretName: {{ enable_audit_logging_cinder_secret }}
+      glance:
+        template:
+          glanceAPIs:
+            default:
+              customServiceConfig: |
+                [paste_deploy]
+                config_file = /etc/glance/custom/glance-api-paste.ini
+                [audit_middleware_notifications]
+                driver = log
+          extraMounts:
+          - name: audit-config-files
+            region: r1
+            extraVol:
+            - mounts:
+              - mountPath: /etc/glance/custom
+                name: audit
+                readOnly: true
+              volumes:
+              - name: audit
+                secret:
+                  secretName: {{ enable_audit_logging_glance_secret }}
+      keystone:
+        template:
+          customServiceConfig: |
+            [DEFAULT]
+            notification_opt_out=""
+            [oslo_messaging_notifications]
+            driver = messagingv2
+            driver = log
+      neutron:
+        template:
+          customServiceConfig: |
+            [DEFAULT]
+            api_paste_config = /etc/neutron/custom/api-paste.ini
+            [audit_middleware_notifications]
+            driver = log
+          extraMounts:
+          - extraVol:
+            - mounts:
+              - mountPath: /etc/neutron/custom
+                name: audit
+                readOnly: true
+              volumes:
+              - name: audit
+                secret:
+                  secretName: {{ enable_audit_logging_neutron_secret }}
+  target:
+    kind: OpenStackControlPlane

@@ -59,6 +59,14 @@ This operator deploys a multiple telemetry agents, both in the control plane and
     ansible-playbook ci/deploy-logging-dependencies.yml --tags clo
     ```
 
+    4.e. Enable CADF audit logging for OpenStack services (barbican, cinder, glance, keystone, neutron, nova):
+
+    NOTE: This should be run after OpenStack is deployed (step 3).
+
+    ```bash
+    ansible-playbook ci/enable-audit-logging.yml -e enable_audit_logging_local_apply=true
+    ```
+
     4.d. Update openstack services
 
     NOTE: This can be done later except for updating ceilometer, which should be done before deploying the dataplane.
