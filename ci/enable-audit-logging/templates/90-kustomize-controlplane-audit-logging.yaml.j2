@@ -14,8 +14,6 @@ patches:
             customServiceConfig: |
               [DEFAULT]
               api_paste_config = "/etc/cinder/custom/api-paste.ini"
-              [audit_middleware_notifications]
-              driver = log
           extraMounts:
           - name: audit-config-files
             region: r1
@@ -35,8 +33,6 @@ patches:
               customServiceConfig: |
                 [paste_deploy]
                 config_file = /etc/glance/custom/glance-api-paste.ini
-                [audit_middleware_notifications]
-                driver = log
           extraMounts:
           - name: audit-config-files
             region: r1
@@ -62,8 +58,6 @@ patches:
           customServiceConfig: |
             [DEFAULT]
             api_paste_config = /etc/neutron/custom/api-paste.ini
-            [audit_middleware_notifications]
-            driver = log
           extraMounts:
           - extraVol:
             - mounts:
