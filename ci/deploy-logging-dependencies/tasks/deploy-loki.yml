@@ -26,3 +26,31 @@
   until: loki_ready.stdout == "True"
   retries: 40
   delay: 15
+
+- name: Create audit loki S3 secret
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/audit_loki_secret.yaml -n openshift-logging
+
+- name: Create audit loki stack
+  ansible.builtin.shell:
+    cmd: |
+      oc apply -f {{ role_path }}/files/audit_lokistack.yaml -n openshift-logging
+
+- name: Wait for audit lokistack to be created
+  ansible.builtin.command:
+    cmd:
+      oc get lokistacks --namespace=openshift-logging logging-loki-audit
+  delay: 10
+  retries: 20
+  register: output
+  until: output.stdout_lines | length != 0
+
+- name: Wait for the audit lokistack to be ready
+  ansible.builtin.command:
+    cmd:
+      oc get lokistack logging-loki-audit -n openshift-logging -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+  register: audit_loki_ready
+  until: audit_loki_ready.stdout == "True"
+  retries: 40
+  delay: 15
