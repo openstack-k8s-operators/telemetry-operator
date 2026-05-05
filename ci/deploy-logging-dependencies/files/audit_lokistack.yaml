@@ -1,0 +1,16 @@
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: logging-loki-audit
+spec:
+  size: 1x.demo
+  storage:
+    schemas:
+    - version: v13
+      effectiveDate: "2025-06-01"
+    secret:
+      name: logging-loki-audit-s3
+      type: s3
+  storageClassName: crc-csi-hostpath-provisioner
+  tenants:
+    mode: openshift-logging
