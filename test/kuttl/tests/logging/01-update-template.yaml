@@ -1,0 +1,8 @@
+apiVersion: telemetry.openstack.org/v1beta1
+kind: Logging
+metadata:
+  name: telemetry-kuttl-logging
+spec:
+    port: 10514
+    cloNamespace: telemetry-kuttl-tests
+    rsyslogTemplate: RSYSLOG_SyslogProtocol23Format

@@ -58,6 +58,12 @@ type LoggingSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=10000
 	RsyslogQueueSize int32 `json:"rsyslogQueueSize"`
+
+	// The template format for rsyslog forwarding actions
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=RSYSLOG_TraditionalFileFormat
+	// +kubebuilder:validation:Enum=RSYSLOG_TraditionalFileFormat;RSYSLOG_SyslogProtocol23Format
+	RsyslogTemplate string `json:"rsyslogTemplate"`
 }
 
 // LoggingStatus defines the observed state of Logging
