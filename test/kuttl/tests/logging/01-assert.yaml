@@ -1,0 +1,6 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+- script: >
+    secret_data=$(oc -n $NAMESPACE get secret logging-compute-config-data -o jsonpath='{.data.10-telemetry\.conf}' | base64 -d) &&
+    echo "$secret_data" | grep -q 'template="RSYSLOG_SyslogProtocol23Format"'

@@ -300,6 +300,7 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 		"RsyslogRetries":   instance.Spec.RsyslogRetries,
 		"RsyslogQueueType": instance.Spec.RsyslogQueueType,
 		"RsyslogQueueSize": instance.Spec.RsyslogQueueSize,
+		"RsyslogTemplate":  instance.Spec.RsyslogTemplate,
 	}
 
 	customData := map[string]string{}
