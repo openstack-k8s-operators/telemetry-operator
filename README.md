@@ -71,6 +71,12 @@ This operator deploys a multiple telemetry agents, both in the control plane and
     oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-openstackclient-patch.yaml # required for "openstack metric" commands to work correctly
     ```
 
+    4.e. Enable CADF audit logging for OpenStack services (barbican, cinder, glance, keystone, neutron, nova):
+
+    ```bash
+    ansible-playbook ci/enable-audit-logging.yml -e enable_audit_logging_local_apply=true
+    ```
+
     Return to the install_yamls directory before continuing.
 
 5. Deploy dataplane operator

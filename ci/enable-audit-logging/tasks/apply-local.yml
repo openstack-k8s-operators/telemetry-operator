@@ -1,0 +1,29 @@
+- name: Create temp directory for local kustomization
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: audit-logging-
+  register: audit_kustomize_dir
+
+- name: Fetch current OSCP CR
+  ansible.builtin.shell: >
+    oc get openstackcontrolplane -o yaml
+    > {{ audit_kustomize_dir.path }}/oscp.yaml
+
+- name: Render kustomization to temp directory
+  ansible.builtin.template:
+    src: 90-kustomize-controlplane-audit-logging.yaml.j2
+    dest: "{{ audit_kustomize_dir.path }}/kustomization.yaml"
+
+- name: Add OSCP resource to local kustomization
+  ansible.builtin.lineinfile:
+    path: "{{ audit_kustomize_dir.path }}/kustomization.yaml"
+    line: "resources:\n- oscp.yaml"
+
+- name: Apply audit logging kustomization locally
+  ansible.builtin.command: >
+    oc apply --server-side --force-conflicts -k {{ audit_kustomize_dir.path }}
+
+- name: Clean up temp directory
+  ansible.builtin.file:
+    path: "{{ audit_kustomize_dir.path }}"
+    state: absent
