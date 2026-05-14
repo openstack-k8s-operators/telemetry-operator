@@ -1,5 +1,5 @@
 - name: Create service audit config secrets
-  ansible.builtin.import_tasks: create-secrets.yml
+  ansible.builtin.include_tasks: create-secrets.yml
 
 # Barbican: disabled - the barbican-operator does not currently support
 # providing a custom api-paste.ini through defaultConfigOverwrite.
@@ -17,5 +17,5 @@
   when: not enable_audit_logging_local_apply
 
 - name: Apply kustomization against live OSCP
-  ansible.builtin.import_tasks: apply-local.yml
+  ansible.builtin.include_tasks: apply-local.yml
   when: enable_audit_logging_local_apply
