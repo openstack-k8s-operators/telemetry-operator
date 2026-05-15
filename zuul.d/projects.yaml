@@ -5,7 +5,6 @@
       A meta content provider zuul job to build telemetry
       specific containers.
     vars:
-      cifmw_install_yamls_sdk_version: v1.41.1
       # Note(Chandan Kumar): image_base is the operator name without -operator.
       # It is needed by openstack-operator to include telemetry operator images
       # in the openstack-operator catalog image.
@@ -16,15 +15,12 @@
           src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/openstack-operator"
           image_base: telemetry
       cifmw_build_containers_image_tag: telemetry_latest
-      zuul_project_container_path: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator/ci/files/containers.yaml"
-      cifmw_build_containers_config_file: "{{ ansible_user_dir }}/containers.yaml"
-      # build tcib containers only when there is opendev depends-on
-      cifmw_build_containers_force: false
 
 - job:
     name: telemetry-operator-multinode-autoscaling
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with Autoscaling features enabled.
     vars:
@@ -73,7 +69,8 @@
 - job:
     name: telemetry-operator-multinode-default-telemetry
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy a default OpenStack with telemetry enabled, but without COO installed. Check that the telemetry-operator logs don't have any errors.
     extra-vars: &mcp_extra_vars
@@ -83,7 +80,7 @@
       content_provider_dlrn_md5_hash: ''
 
     vars:
-      cifmw_update_containers: false
+      cifmw_update_containers: true
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-default-telemetry.yml"
@@ -95,7 +92,8 @@
 - job:
     name: telemetry-operator-multinode-logging
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with Logging features enabled
     vars:
@@ -107,7 +105,8 @@
 - job:
     name: telemetry-operator-multinode-audit-logging
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with CADF audit logging enabled for supported services
     vars:
@@ -119,7 +118,8 @@
 - job:
     name: telemetry-operator-multinode-power-monitoring
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with power monitoring services enabled
     vars:
@@ -130,7 +130,8 @@
 
 - job:
     name: telemetry-operator-multinode-cloudkitty
-    dependencies: ["telemetry-openstack-meta-content-provider-master"]
+    dependencies:
+      - telemetry-openstack-meta-content-provider-master
     parent: telemetry-operator-multinode-autoscaling
     description: |
       Deploy CloudKitty and run tempest tests
