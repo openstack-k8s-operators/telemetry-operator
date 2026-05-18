@@ -23,4 +23,6 @@ const (
 	ServiceType = "telemetry"
 	// DpdkServiceName -
 	DpdkServiceName = "configure-ovs-dpdk"
+	// SriovServiceName -
+	SriovServiceName = "neutron-sriov"
 )

@@ -1239,10 +1239,20 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 				hasDpdk = true
 			}
 		}
+		// Only enable SR-IOV sections of dataplane dashboard if neutron-sriov service is enabled on at least one nodeset
+		sriovConnectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetry.SriovServiceName)
+		hasSriov := false
+		if err != nil {
+			Log.Info(fmt.Sprintf("Cannot get compute node connection info for sriov service: %s", err))
+		} else {
+			if len(sriovConnectionInfo) > 0 {
+				hasSriov = true
+			}
+		}
 		dashboardCMs := map[string]*corev1.ConfigMap{
 			"grafana-dashboard-openstack-cloud":             dashboards.OpenstackCloud(datasourceName),
 			"grafana-dashboard-openstack-node":              dashboards.OpenstackNode(datasourceName),
-			"grafana-dashboard-openstack-openstack-network": dashboards.OpenstackOpenstackNetwork(datasourceName, hasDpdk),
+			"grafana-dashboard-openstack-openstack-network": dashboards.OpenstackOpenstackNetwork(datasourceName, hasDpdk, hasSriov),
 			"grafana-dashboard-openstack-vm":                dashboards.OpenstackVM(datasourceName),
 			"grafana-dashboard-openstack-rabbitmq":          dashboards.OpenstackRabbitmq(datasourceName),
 			"grafana-dashboard-openstack-network-traffic":   dashboards.OpenstackNetworkTraffic(datasourceName),
