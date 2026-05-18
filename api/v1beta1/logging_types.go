@@ -62,7 +62,7 @@ type LoggingSpec struct {
 	// The template format for rsyslog forwarding actions
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=RSYSLOG_TraditionalFileFormat
-	// +kubebuilder:validation:Enum=RSYSLOG_TraditionalFileFormat;RSYSLOG_SyslogProtocol23Format
+	// +kubebuilder:validation:Enum="";RSYSLOG_TraditionalFileFormat;RSYSLOG_SyslogProtocol23Format
 	RsyslogTemplate string `json:"rsyslogTemplate"`
 }
 

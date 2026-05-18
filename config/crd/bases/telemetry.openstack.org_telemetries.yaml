@@ -1418,6 +1418,7 @@ spec:
                     default: RSYSLOG_TraditionalFileFormat
                     description: The template format for rsyslog forwarding actions
                     enum:
+                    - ""
                     - RSYSLOG_TraditionalFileFormat
                     - RSYSLOG_SyslogProtocol23Format
                     type: string

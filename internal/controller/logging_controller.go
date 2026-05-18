@@ -294,6 +294,10 @@ func (r *LoggingReconciler) generateComputeServiceConfig(
 		instance.Spec.RsyslogQueueType = "linkedList"
 	}
 
+	if instance.Spec.RsyslogTemplate == "" {
+		instance.Spec.RsyslogTemplate = "RSYSLOG_TraditionalFileFormat"
+	}
+
 	templateParameters := map[string]any{
 		"RsyslogAddress":   service.Annotations["metallb.universe.tf/loadBalancerIPs"],
 		"RsyslogPort":      instance.Spec.Port,
