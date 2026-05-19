@@ -880,13 +880,14 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		},
 		// Secret
 		{
-			Name:          fmt.Sprintf("%s-config-data", autoscaling.ServiceName),
-			Namespace:     instance.Namespace,
-			Type:          util.TemplateTypeConfig,
-			InstanceType:  instance.Kind,
-			CustomData:    customData,
-			ConfigOptions: templateParameters,
-			Labels:        cmLabels,
+			Name:            fmt.Sprintf("%s-config-data", autoscaling.ServiceName),
+			Namespace:       instance.Namespace,
+			Type:            util.TemplateTypeConfig,
+			InstanceType:    instance.Kind,
+			CustomData:      customData,
+			ConfigOptions:   templateParameters,
+			Labels:          cmLabels,
+			CommonTemplates: []string{"ssl.conf"},
 		},
 	}
 	return secret.EnsureSecrets(ctx, h, instance, cms, envVars)

@@ -1337,13 +1337,14 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		},
 		// Secrets
 		{
-			Name:          fmt.Sprintf("%s-config-data", ceilometer.ServiceName),
-			Namespace:     instance.Namespace,
-			Type:          util.TemplateTypeConfig,
-			InstanceType:  "ceilometercentral",
-			CustomData:    customData,
-			ConfigOptions: templateParameters,
-			Labels:        cmLabels,
+			Name:            fmt.Sprintf("%s-config-data", ceilometer.ServiceName),
+			Namespace:       instance.Namespace,
+			Type:            util.TemplateTypeConfig,
+			InstanceType:    "ceilometercentral",
+			CustomData:      customData,
+			ConfigOptions:   templateParameters,
+			Labels:          cmLabels,
+			CommonTemplates: []string{"ssl.conf"},
 		},
 	}
 	return secret.EnsureSecrets(ctx, h, instance, cms, envVars)
