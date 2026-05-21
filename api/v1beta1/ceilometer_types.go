@@ -43,7 +43,7 @@ const (
 	// KubeStateMetricsImage - default fall-back image for KSM
 	KubeStateMetricsImage = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0"
 	// MysqldExporterImage - default fall-back image for mysqld_exporter
-	MysqldExporterContainerImage = "quay.io/prometheus/mysqld-exporter:v0.15.1"
+	MysqldExporterContainerImage = "quay.io/openstack-k8s-operators/mysqld_exporter:latest"
 )
 
 // CeilometerSpec defines the desired state of Ceilometer
