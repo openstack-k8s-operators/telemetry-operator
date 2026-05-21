@@ -27,6 +27,16 @@ commands:
         unrestricted: false
       EOF
 
+      echo "Waiting for KeystoneApplicationCredential ac-ceilometer to be Ready..."
+      oc wait -n "${NS}" appcred/ac-ceilometer --for=condition=Ready --timeout=300s
+
+      ac_secret_name=$(oc get -n "${NS}" appcred/ac-ceilometer -o jsonpath='{.status.secretName}')
+      if [ -z "${ac_secret_name}" ]; then
+        echo "ERROR: appcred/ac-ceilometer.status.secretName is empty"
+        exit 1
+      fi
+      echo "AC secret name: ${ac_secret_name}"
+
       # Patch Ceilometer to use application credential
       oc patch ceilometer telemetry-kuttl -n "${NS}" --type=merge \
-        -p '{"spec":{"auth":{"applicationCredentialSecret":"ac-ceilometer-secret"}}}'
+        -p "{\"spec\":{\"auth\":{\"applicationCredentialSecret\":\"${ac_secret_name}\"}}}"

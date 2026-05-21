@@ -16,9 +16,16 @@ commands:
       fi
       echo "ac-cloudkitty.status.acID=${ac_id}"
 
+      ac_secret_name=$(oc get -n "${NS}" appcred/ac-cloudkitty -o jsonpath='{.status.secretName}')
+      if [ -z "${ac_secret_name}" ]; then
+        echo "ERROR: appcred/ac-cloudkitty.status.secretName is empty"
+        exit 1
+      fi
+      echo "AC secret name: ${ac_secret_name}"
+
       # Verify secret exists with correct AC_ID
-      oc get -n "${NS}" secret/ac-cloudkitty-secret >/dev/null
-      secret_ac_id=$(oc get -n "${NS}" secret/ac-cloudkitty-secret -o jsonpath='{.data.AC_ID}' | base64 -d)
+      oc get -n "${NS}" secret/"${ac_secret_name}" >/dev/null
+      secret_ac_id=$(oc get -n "${NS}" secret/"${ac_secret_name}" -o jsonpath='{.data.AC_ID}' | base64 -d)
       if [ "${secret_ac_id}" != "${ac_id}" ]; then
         echo "ERROR: Secret AC_ID (${secret_ac_id}) != appcred.status.acID (${ac_id})"
         exit 1

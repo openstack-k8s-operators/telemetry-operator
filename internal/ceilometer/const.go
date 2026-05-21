@@ -37,4 +37,7 @@ const (
 
 	// CeilometerUserID -
 	CeilometerUserID = 42405
+
+	// ACConsumerFinalizer is added to AC secrets that Ceilometer is actively consuming
+	ACConsumerFinalizer = "openstack.org/ceilometer-ac-consumer"
 )
