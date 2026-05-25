@@ -762,10 +762,13 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 
 	instance.Status.Hash[common.InputHashName] = inputHash
 
-	if instance.Spec.Auth.ApplicationCredentialSecret != "" || instance.Status.ApplicationCredentialSecret != "" {
+	// Early phase of the AC split pattern: only add finalizer to the new
+	// secret. Old secret finalizer removal is deferred until all
+	// sub-conditions are true (see late phase below).
+	if instance.Spec.Auth.ApplicationCredentialSecret != "" {
 		if err := keystonev1.ManageACSecretFinalizer(ctx, helper, instance.Namespace,
 			instance.Spec.Auth.ApplicationCredentialSecret,
-			instance.Status.ApplicationCredentialSecret,
+			"",
 			ceilometer.ACConsumerFinalizer); err != nil {
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				condition.ServiceConfigReadyCondition,
@@ -776,7 +779,6 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 			return ctrl.Result{}, err
 		}
 	}
-	instance.Status.ApplicationCredentialSecret = instance.Spec.Auth.ApplicationCredentialSecret
 
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
@@ -853,6 +855,22 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 		if instance.Status.ReadyCount > 0 {
 			instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
 		}
+		// Late phase of the AC split pattern: remove the old AC secret's
+		// finalizer and update status only after all sub-conditions are true.
+		isACRotation := instance.Status.ApplicationCredentialSecret != "" &&
+			instance.Status.ApplicationCredentialSecret != instance.Spec.Auth.ApplicationCredentialSecret
+		if isACRotation {
+			if instance.Status.Conditions.AllSubConditionIsTrue() {
+				if err := keystonev1.RemoveACSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+					instance.Status.ApplicationCredentialSecret, ceilometer.ACConsumerFinalizer); err != nil {
+					return ctrl.Result{}, err
+				}
+				instance.Status.ApplicationCredentialSecret = instance.Spec.Auth.ApplicationCredentialSecret
+			}
+		} else {
+			instance.Status.ApplicationCredentialSecret = instance.Spec.Auth.ApplicationCredentialSecret
+		}
+
 		if instance.Status.Conditions.AllSubConditionIsTrue() {
 			instance.Status.Conditions.MarkTrue(
 				condition.ReadyCondition, condition.ReadyMessage)

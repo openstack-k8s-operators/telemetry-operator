@@ -1037,10 +1037,13 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 		return ctrl.Result{}, nil
 	}
 
-	if instance.Spec.Auth.ApplicationCredentialSecret != "" || instance.Status.ApplicationCredentialSecret != "" {
+	// Early phase of the AC split pattern: only add finalizer to the new
+	// secret. Old secret finalizer removal is deferred until all
+	// sub-conditions are true (see late phase below).
+	if instance.Spec.Auth.ApplicationCredentialSecret != "" {
 		if err := keystonev1.ManageACSecretFinalizer(ctx, helper, instance.Namespace,
 			instance.Spec.Auth.ApplicationCredentialSecret,
-			instance.Status.ApplicationCredentialSecret,
+			"",
 			cloudkitty.ACConsumerFinalizer); err != nil {
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				condition.ServiceConfigReadyCondition,
@@ -1051,7 +1054,6 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 			return ctrl.Result{}, err
 		}
 	}
-	instance.Status.ApplicationCredentialSecret = instance.Spec.Auth.ApplicationCredentialSecret
 
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
 
@@ -1169,6 +1171,22 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	err = mariadbv1.DeleteUnusedMariaDBAccountFinalizers(ctx, helper, cloudkitty.DatabaseName, instance.Spec.DatabaseAccount, instance.Namespace)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// Late phase of the AC split pattern: remove the old AC secret's
+	// finalizer and update status only after all sub-conditions are true.
+	isACRotation := instance.Status.ApplicationCredentialSecret != "" &&
+		instance.Status.ApplicationCredentialSecret != instance.Spec.Auth.ApplicationCredentialSecret
+	if isACRotation {
+		if instance.Status.Conditions.AllSubConditionIsTrue() {
+			if err := keystonev1.RemoveACSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+				instance.Status.ApplicationCredentialSecret, cloudkitty.ACConsumerFinalizer); err != nil {
+				return ctrl.Result{}, err
+			}
+			instance.Status.ApplicationCredentialSecret = instance.Spec.Auth.ApplicationCredentialSecret
+		}
+	} else {
+		instance.Status.ApplicationCredentialSecret = instance.Spec.Auth.ApplicationCredentialSecret
 	}
 
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' successfully", instance.Name))
