@@ -51,13 +51,13 @@ spec:
     drop:
     - test:
       - field: .message
-        matches: "oslo.messaging.notification"
+        matches: "http://schemas.dmtf.org/cloud/audit/1.0/event"
   - name: to-loki-audit-filter
     type: drop
     drop:
     - test:
       - field: .message
-        notMatches: "oslo.messaging.notification"
+        notMatches: "http://schemas.dmtf.org/cloud/audit/1.0/event"
   pipelines:
   - name: to-loki
     inputRefs:
