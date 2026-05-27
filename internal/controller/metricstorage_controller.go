@@ -897,6 +897,12 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
+	// ScrapeConfig for InstanceHA metrics
+	err = r.createInstanceHAScrapeConfig(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	instance.Status.Conditions.MarkTrue(telemetryv1.ScrapeConfigReadyCondition, condition.ReadyMessage)
 	return ctrl.Result{}, nil
 }
@@ -1109,6 +1115,25 @@ func (r *MetricStorageReconciler) createOVSDBServerSBScrapeConfig(
 	return r.createServiceScrapeConfigFromLabelSelector(
 		ctx, instance, helper, serviceLabels,
 		labelSelector, "metrics", ovsdbServerSBCfgName, "OVS DB server SB",
+	)
+}
+
+// createInstanceHAScrapeConfig creates a scrape configuration for InstanceHA metrics
+// This function discovers InstanceHA metrics services using label selectors
+func (r *MetricStorageReconciler) createInstanceHAScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) error {
+	labelSelector := map[string]string{
+		"metrics": "enabled",
+		"service": "instanceha",
+	}
+	instancehaCfgName := fmt.Sprintf("%s-instanceha", telemetry.ServiceName)
+	return r.createServiceScrapeConfigFromLabelSelector(
+		ctx, instance, helper, serviceLabels,
+		labelSelector, "metrics", instancehaCfgName, "InstanceHA",
 	)
 }
 
@@ -1492,13 +1517,11 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		return nil
 	}
 
-	ovnMetricsServiceWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
+	metricsServiceWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
-		// Watch OVN metrics services
 		if labels := o.GetLabels(); labels != nil {
-			if labels["metrics"] == "enabled" && (labels["service"] == "ovn-northd" || labels["service"] == "ovn-controller-metrics" || labels["service"] == "ovsdbserver-nb" || labels["service"] == "ovsdbserver-sb") {
-				// get all metricstorage CRs in the same namespace
+			if labels["metrics"] == "enabled" && (labels["service"] == "ovn-northd" || labels["service"] == "ovn-controller-metrics" || labels["service"] == "ovsdbserver-nb" || labels["service"] == "ovsdbserver-sb" || labels["service"] == "instanceha") {
 				metricStorages := &telemetryv1.MetricStorageList{}
 				listOpts := []client.ListOption{
 					client.InNamespace(o.GetNamespace()),
@@ -1513,7 +1536,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 						Namespace: o.GetNamespace(),
 						Name:      cr.Name,
 					}
-					Log.Info(fmt.Sprintf("OVN metrics service %s changed, reconciling MetricStorage CR %s", o.GetName(), cr.Name))
+					Log.Info(fmt.Sprintf("Metrics service %s changed, reconciling MetricStorage CR %s", o.GetName(), cr.Name))
 					result = append(result, reconcile.Request{NamespacedName: name})
 				}
 			}
@@ -1587,7 +1610,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		Watches(&corev1.Service{},
 			handler.EnqueueRequestsFromMapFunc(prometheusServiceWatchFn)).
 		Watches(&corev1.Service{},
-			handler.EnqueueRequestsFromMapFunc(ovnMetricsServiceWatchFn)).
+			handler.EnqueueRequestsFromMapFunc(metricsServiceWatchFn)).
 		Watches(
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),

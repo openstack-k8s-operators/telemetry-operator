@@ -15,6 +15,23 @@ spec:
         pvcStorageRequest: 20G
   networkAttachments: []
 ---
+# Required, so that the instanceha scrapeconfig is created
+apiVersion: v1
+kind: Service
+metadata:
+  name: instanceha-0-metrics
+  labels:
+    metrics: enabled
+    service: instanceha
+spec:
+  ports:
+  - name: metrics
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    service: instanceha
+---
 # Required, so that the mysqld_exporter scrapeconfig is created
 apiVersion: telemetry.openstack.org/v1beta1
 kind: Ceilometer
