@@ -19,10 +19,91 @@
           src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/openstack-operator"
           image_base: telemetry
       cifmw_build_containers_image_tag: telemetry_latest
+      # Build only telemetry-related containers listed in ci/files/containers.yaml
+      # (aodh, ceilometer, cloudkitty, heat). Exclude everything
+      # else so core OpenStack stays on antelope/RHOSO 18-like images.
       cifmw_build_containers_exclude_containers:
         master:
           centos10:
+            # core OpenStack
+            - keystone
+            - glance-api
+            - nova-api
+            - nova-scheduler
+            - nova-conductor
+            - nova-compute
+            - nova-novncproxy
+            - neutron-server
+            - neutron-dhcp-agent
+            - neutron-ovn-agent
+            - neutron-metadata-agent-ovn
+            - neutron-sriov-agent
+            - cinder-api
+            - cinder-scheduler
+            - cinder-volume
+            - cinder-backup
+            - placement-api
+            - horizon
             - horizontest
+            - openstackclient
+            # infrastructure
+            - mariadb
+            - rabbitmq
+            - memcached
+            - redis
+            - valkey
+            - haproxy
+            - rsyslog
+            - cron
+            - netutils
+            - frr
+            - ovn-controller
+            - ovn-nb-db-server
+            - ovn-sb-db-server
+            - ovn-northd
+            - ovn-bgp-agent
+            - iscsid
+            - multipathd
+            # DNS-as-a-service
+            - designate-api
+            - designate-central
+            - designate-worker
+            - designate-mdns
+            - designate-producer
+            - designate-backend-bind9
+            - designate-sink
+            - unbound
+            # file shares
+            - manila-api
+            - manila-scheduler
+            - manila-share
+            # load balancing
+            - octavia-api
+            - octavia-worker
+            - octavia-housekeeping
+            - octavia-health-manager
+            # bare metal
+            - ironic-api
+            - ironic-conductor
+            - ironic-inspector
+            - ironic-neutron-agent
+            - ironic-pxe
+            # key manager service
+            - barbican-api
+            - barbican-keystone-listener
+            - barbican-worker
+            # object storage
+            - swift-account
+            - swift-container
+            - swift-object
+            - swift-proxy-server
+            # optimization
+            - watcher-api
+            - watcher-applier
+            - watcher-decision-engine
+            # CI / test images
+            - ansible-tests
+            - tobiko
 
 - job:
     name: telemetry-operator-multinode-autoscaling
