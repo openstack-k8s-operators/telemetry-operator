@@ -23,15 +23,31 @@ pre_deploy_loki_setup:
 # test cloudkitty
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
-# TODO: Consider switching to podified-master-centos10 for features that patch master
-cifmw_test_operator_tempest_namespace: podified-antelope-centos9
 # cloudkitty tempest plugin is not part of the tempest rpm.
 # https://review.rdoproject.org/cgit/openstack/tempest-distgit/tree/openstack-tempest.spec
 # We need to add the cloudkitty-tempest-plugin package to RDO, same as TTTP
 # https://review.rdoproject.org/cgit/openstack/telemetry-tempest-plugin-distgit/#
 # For now, we can force install using the cifmw_test_operator_tempest_external_plugin below.
 cifmw_test_operator_tempest_container: openstack-tempest-all
-cifmw_test_operator_tempest_image_tag: 'current-podified'
+# Based on https://github.com/openstack-k8s-operators/watcher-operator/blob/main/ci/tests/watcher-tempest.yml
+cifmw_test_operator_tempest_registry: >-
+  {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
+  {{ content_provider_os_registry_url | split('/') | first }}
+  {%- else -%}
+  quay.io
+  {%- endif -%}
+cifmw_test_operator_tempest_namespace: >-
+  {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
+  {{ content_provider_os_registry_url | split('/') | last }}
+  {%- else -%}
+  podified-antelope-centos9
+  {%- endif -%}
+cifmw_test_operator_tempest_image_tag: >-
+  {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
+  {{ cifmw_update_containers_tag | default('telemetry_latest') }}
+  {%- else -%}
+  current-podified
+  {%- endif -%}
 # This value is used to populate the `tempestconfRun` parameter of the Tempest CR: https://openstack-k8s-operators.github.io/test-operator/crds.html#tempest-custom-resource
 # https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/test_operator/defaults/main.yml
 # TODO: Refine this tempest config

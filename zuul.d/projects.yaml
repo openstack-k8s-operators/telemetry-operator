@@ -1,3 +1,4 @@
+---
 - job:
     name: telemetry-openstack-meta-content-provider-master
     parent: openstack-meta-content-provider-master
@@ -5,10 +6,12 @@
       A meta content provider zuul job to build telemetry
       specific containers.
     vars:
-      cifmw_install_yamls_sdk_version: v1.41.1
       # Note(Chandan Kumar): image_base is the operator name without -operator.
       # It is needed by openstack-operator to include telemetry operator images
       # in the openstack-operator catalog image.
+      cifmw_build_containers_force: true
+      cifmw_bop_dlrn_from_source: true
+      cifmw_build_containers_registry_namespace: podified-master-centos10
       cifmw_operator_build_operators:
         - name: telemetry-operator
           src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator"
@@ -16,15 +19,16 @@
           src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/openstack-operator"
           image_base: telemetry
       cifmw_build_containers_image_tag: telemetry_latest
-      zuul_project_container_path: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator/ci/files/containers.yaml"
-      cifmw_build_containers_config_file: "{{ ansible_user_dir }}/containers.yaml"
-      # build tcib containers only when there is opendev depends-on
-      cifmw_build_containers_force: false
+      cifmw_build_containers_exclude_containers:
+        master:
+          centos10:
+            - horizontest
 
 - job:
     name: telemetry-operator-multinode-autoscaling
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with Autoscaling features enabled.
     vars:
@@ -73,7 +77,8 @@
 - job:
     name: telemetry-operator-multinode-default-telemetry
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy a default OpenStack with telemetry enabled, but without COO installed. Check that the telemetry-operator logs don't have any errors.
     extra-vars: &mcp_extra_vars
@@ -95,7 +100,8 @@
 - job:
     name: telemetry-operator-multinode-logging
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with Logging features enabled
     vars:
@@ -107,7 +113,8 @@
 - job:
     name: telemetry-operator-multinode-audit-logging
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with CADF audit logging enabled for supported services
     vars:
@@ -119,7 +126,8 @@
 - job:
     name: telemetry-operator-multinode-power-monitoring
     parent: podified-multinode-edpm-deployment-crc
-    dependencies: ["openstack-k8s-operators-content-provider"]
+    dependencies:
+      - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with power monitoring services enabled
     vars:
@@ -130,21 +138,28 @@
 
 - job:
     name: telemetry-operator-multinode-cloudkitty
-    dependencies: ["telemetry-openstack-meta-content-provider-master"]
+    dependencies:
+      - telemetry-openstack-meta-content-provider-master
     parent: telemetry-operator-multinode-autoscaling
     description: |
-      Deploy CloudKitty and run tempest tests
+      Deploy CloudKitty and run tempest tests - master
+      Basically it is a CI job that uses latest code coming
+      from master branch in related projects.
     required-projects:
       - name: infrawatch/feature-verification-tests
         override-checkout: master
     extra-vars: *mcp_extra_vars
     vars:
       #patch_observabilityclient: true
-      cifmw_update_containers: false
+      cifmw_repo_setup_branch: master
+      fetch_dlrn_hash: false
+      cifmw_update_containers: true
+      cifmw_update_containers_openstack: true
+      cifmw_update_containers_org: podified-master-centos10
+      cifmw_update_containers_tag: telemetry_latest
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-use-master-containers.yml"
     roles:
       - zuul: github.com/openstack-k8s-operators/ci-framework
     irrelevant-files: *irrelevant_files
@@ -180,13 +195,13 @@
     name: openstack-k8s-operators/telemetry-operator
     github-check:
       jobs:
+        # jobs uses latest available code - local registry, tag: telemetry_latest
+        - telemetry-openstack-meta-content-provider-master
+        - telemetry-operator-multinode-cloudkitty
+        # jobs uses latest stable code - tag: current-podified
         - openstack-k8s-operators-content-provider:
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
-        - telemetry-operator-multinode-cloudkitty:
-            dependencies:
-              - telemetry-openstack-meta-content-provider-master
-        - telemetry-openstack-meta-content-provider-master
         - telemetry-operator-multinode-default-telemetry
         - telemetry-operator-multinode-audit-logging
         - functional-tests-osp18: &fvt_jobs_config
