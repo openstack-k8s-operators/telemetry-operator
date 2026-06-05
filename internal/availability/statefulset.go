@@ -125,7 +125,7 @@ func KSMStatefulSet(
 	}
 
 	container := corev1.Container{
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Image:           instance.Spec.KSMImage,
 		Name:            KSMServiceName,
 		Args:            args,
