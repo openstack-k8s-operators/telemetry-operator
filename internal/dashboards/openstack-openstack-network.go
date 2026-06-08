@@ -22,7 +22,7 @@ import (
 )
 
 // OpenstackOpenstackNetwork creates a ConfigMap containing the OpenStack network monitoring dashboard
-func OpenstackOpenstackNetwork(dsName string, hasDpdk bool) *corev1.ConfigMap {
+func OpenstackOpenstackNetwork(dsName string, hasDpdk bool, hasSriov bool) *corev1.ConfigMap {
 	dashBoardOVN :=
 		`{
         "__inputs": [],
@@ -1059,6 +1059,499 @@ func OpenstackOpenstackNetwork(dsName string, hasDpdk bool) *corev1.ConfigMap {
                 "titleSize": "h6",
                 "type": "row"
             }`
+	dashBoardSRIOV := `
+            {
+                "collapse": false,
+                "collapsed": false,
+                "panels":
+                [
+                    {
+                      "datasource": {
+                          "name": "` + dsName + `",
+                          "type": "prometheus"
+                      },
+                      "description": "SR-IOV Virtual Function configuration",
+                      "fontSize": "100%",
+                      "span": 12,
+                      "id": 30,
+                      "pageSize": null,
+                      "showHeader": true,
+                      "sort": {
+                        "col": 0,
+                        "desc": false
+                      },
+                      "styles": [
+                        {
+                          "alias": "Time",
+                          "pattern": "Time",
+                          "type": "hidden"
+                        },
+                        {
+                          "alias": "Device",
+                          "pattern": "device",
+                          "type": "string"
+                        },
+                        {
+                          "alias": "VF",
+                          "pattern": "vf",
+                          "type": "string"
+                        },
+                        {
+                          "alias": "MAC",
+                          "pattern": "mac",
+                          "type": "string"
+                        },
+                        {
+                          "alias": "VLAN",
+                          "pattern": "vlan",
+                          "type": "string"
+                        },
+                        {
+                          "alias": "Link State",
+                          "pattern": "link_state",
+                          "type": "string"
+                        },
+                        {
+                          "alias": "PCI Address",
+                          "pattern": "pci_address",
+                          "type": "string"
+                        },
+                        {
+                          "alias": "NUMA",
+                          "pattern": "numa_node",
+                          "type": "string"
+                        },
+                        {
+                          "alias": "Spoof Check",
+                          "pattern": "spoof_check",
+                          "type": "string"
+                        },
+                        {
+                          "alias": "Trust",
+                          "pattern": "trust",
+                          "type": "string"
+                        },
+                        {
+                          "alias": "",
+                          "pattern": "Value",
+                          "type": "hidden"
+                        },
+                        {
+                          "alias": "",
+                          "pattern": "instance",
+                          "type": "hidden"
+                        },
+                        {
+                          "alias": "",
+                          "pattern": "fqdn",
+                          "type": "hidden"
+                        },
+                        {
+                          "alias": "",
+                          "pattern": "job",
+                          "type": "hidden"
+                        }
+                      ],
+                      "targets": [
+                        {
+                          "expr": "net_vf_info{instance=\"$instance\"}",
+                          "format": "table",
+                          "instant": true,
+                          "interval": "",
+                          "legendFormat": "",
+                          "refId": "A"
+                        }
+                      ],
+                      "title": "VF Configuration",
+                      "transform": "table",
+                      "type": "table"
+                    },
+                    {
+                        "aliasColors": {},
+                        "bars": false,
+                        "dashLength": 10,
+                        "dashes": false,
+                        "datasource": {
+                            "name": "` + dsName + `",
+                            "type": "prometheus"
+                        },
+                        "fieldConfig": {
+                            "defaults": {
+                                "links": []
+                            },
+                            "overrides": []
+                        },
+                        "fill": 10,
+                        "fillGradient": 0,
+                        "gridPos": {},
+                        "hiddenSeries": false,
+                        "id": 31,
+                        "legend": {
+                            "avg": false,
+                            "current": false,
+                            "max": false,
+                            "min": false,
+                            "show": true,
+                            "total": false,
+                            "values": false
+                        },
+                        "lines": true,
+                        "linewidth": 1,
+                        "nullPointMode": "null",
+                        "options": {
+                            "alertThreshold": true
+                        },
+                        "percentage": false,
+                        "pointradius": 2,
+                        "points": false,
+                        "renderer": "flot",
+                        "seriesOverrides": [],
+                        "spaceLength": 10,
+                        "stack": false,
+                        "steppedLine": false,
+                        "targets": [
+                            {
+                                "expr": "rate(net_vf_receive_bytes_total{instance=\"$instance\"}[$__rate_interval])",
+                                "legendFormat": "RX {{device}} VF{{vf}}",
+                                "editorMode": "code",
+                                "range": true,
+                                "refId": "A"
+                            },
+                            {
+                                "expr": "rate(net_vf_transmit_bytes_total{instance=\"$instance\"}[$__rate_interval])",
+                                "legendFormat": "TX {{device}} VF{{vf}}",
+                                "editorMode": "code",
+                                "range": true,
+                                "refId": "B"
+                            }
+                        ],
+                        "thresholds": [],
+                        "timeFrom": null,
+                        "timeRegions": [],
+                        "timeShift": null,
+                        "title": "VF Traffic (Bytes/s)",
+                        "tooltip": {
+                            "shared": true,
+                            "sort": 0,
+                            "value_type": "individual"
+                        },
+                        "type": "graph",
+                        "xaxis": {
+                            "mode": "time",
+                            "name": null,
+                            "show": true,
+                            "values": []
+                        },
+                        "yaxes": [
+                            {
+                                "format": "Bps",
+                                "logBase": 1,
+                                "show": true
+                            },
+                            {
+                                "format": "Bps",
+                                "logBase": 1,
+                                "show": true
+                            }
+                        ],
+                        "yaxis": {
+                            "align": false,
+                            "alignLevel": null
+                        },
+                        "span": 6
+                    },
+                    {
+                        "aliasColors": {},
+                        "bars": false,
+                        "dashLength": 10,
+                        "dashes": false,
+                        "datasource": {
+                            "name": "` + dsName + `",
+                            "type": "prometheus"
+                        },
+                        "fieldConfig": {
+                            "defaults": {
+                                "links": []
+                            },
+                            "overrides": []
+                        },
+                        "fill": 10,
+                        "fillGradient": 0,
+                        "gridPos": {},
+                        "hiddenSeries": false,
+                        "id": 32,
+                        "legend": {
+                            "avg": false,
+                            "current": false,
+                            "max": false,
+                            "min": false,
+                            "show": true,
+                            "total": false,
+                            "values": false
+                        },
+                        "lines": true,
+                        "linewidth": 1,
+                        "nullPointMode": "null",
+                        "options": {
+                            "alertThreshold": true
+                        },
+                        "percentage": false,
+                        "pointradius": 2,
+                        "points": false,
+                        "renderer": "flot",
+                        "seriesOverrides": [],
+                        "spaceLength": 10,
+                        "stack": false,
+                        "steppedLine": false,
+                        "targets": [
+                            {
+                                "expr": "rate(net_vf_receive_packets_total{instance=\"$instance\"}[$__rate_interval])",
+                                "legendFormat": "RX {{device}} VF{{vf}}",
+                                "editorMode": "code",
+                                "range": true,
+                                "refId": "A"
+                            },
+                            {
+                                "expr": "rate(net_vf_transmit_packets_total{instance=\"$instance\"}[$__rate_interval])",
+                                "legendFormat": "TX {{device}} VF{{vf}}",
+                                "editorMode": "code",
+                                "range": true,
+                                "refId": "B"
+                            }
+                        ],
+                        "thresholds": [],
+                        "timeFrom": null,
+                        "timeRegions": [],
+                        "timeShift": null,
+                        "title": "VF Packets (pps)",
+                        "tooltip": {
+                            "shared": true,
+                            "sort": 0,
+                            "value_type": "individual"
+                        },
+                        "type": "graph",
+                        "xaxis": {
+                            "mode": "time",
+                            "name": null,
+                            "show": true,
+                            "values": []
+                        },
+                        "yaxes": [
+                            {
+                                "format": "pps",
+                                "logBase": 1,
+                                "show": true
+                            },
+                            {
+                                "format": "pps",
+                                "logBase": 1,
+                                "show": true
+                            }
+                        ],
+                        "yaxis": {
+                            "align": false,
+                            "alignLevel": null
+                        },
+                        "span": 6
+                    },
+                    {
+                        "aliasColors": {},
+                        "bars": false,
+                        "dashLength": 10,
+                        "dashes": false,
+                        "datasource": {
+                            "name": "` + dsName + `",
+                            "type": "prometheus"
+                        },
+                        "fieldConfig": {
+                            "defaults": {
+                                "links": []
+                            },
+                            "overrides": []
+                        },
+                        "fill": 10,
+                        "fillGradient": 0,
+                        "gridPos": {},
+                        "hiddenSeries": false,
+                        "id": 33,
+                        "legend": {
+                            "avg": false,
+                            "current": false,
+                            "max": false,
+                            "min": false,
+                            "show": true,
+                            "total": false,
+                            "values": false
+                        },
+                        "lines": true,
+                        "linewidth": 1,
+                        "nullPointMode": "null",
+                        "options": {
+                            "alertThreshold": true
+                        },
+                        "percentage": false,
+                        "pointradius": 2,
+                        "points": false,
+                        "renderer": "flot",
+                        "seriesOverrides": [],
+                        "spaceLength": 10,
+                        "stack": false,
+                        "steppedLine": false,
+                        "targets": [
+                            {
+                                "expr": "rate(net_vf_receive_dropped_total{instance=\"$instance\"}[$__rate_interval])",
+                                "legendFormat": "RX Drop {{device}} VF{{vf}}",
+                                "editorMode": "code",
+                                "range": true,
+                                "refId": "A"
+                            },
+                            {
+                                "expr": "rate(net_vf_transmit_dropped_total{instance=\"$instance\"}[$__rate_interval])",
+                                "legendFormat": "TX Drop {{device}} VF{{vf}}",
+                                "editorMode": "code",
+                                "range": true,
+                                "refId": "B"
+                            }
+                        ],
+                        "thresholds": [],
+                        "timeFrom": null,
+                        "timeRegions": [],
+                        "timeShift": null,
+                        "title": "VF Dropped (pps)",
+                        "tooltip": {
+                            "shared": true,
+                            "sort": 0,
+                            "value_type": "individual"
+                        },
+                        "type": "graph",
+                        "xaxis": {
+                            "mode": "time",
+                            "name": null,
+                            "show": true,
+                            "values": []
+                        },
+                        "yaxes": [
+                            {
+                                "format": "pps",
+                                "logBase": 1,
+                                "show": true
+                            },
+                            {
+                                "format": "pps",
+                                "logBase": 1,
+                                "show": true
+                            }
+                        ],
+                        "yaxis": {
+                            "align": false,
+                            "alignLevel": null
+                        },
+                        "span": 6
+                    },
+                    {
+                        "aliasColors": {},
+                        "bars": false,
+                        "dashLength": 10,
+                        "dashes": false,
+                        "datasource": {
+                            "name": "` + dsName + `",
+                            "type": "prometheus"
+                        },
+                        "fieldConfig": {
+                            "defaults": {
+                                "links": []
+                            },
+                            "overrides": []
+                        },
+                        "fill": 10,
+                        "fillGradient": 0,
+                        "gridPos": {},
+                        "hiddenSeries": false,
+                        "id": 34,
+                        "legend": {
+                            "avg": false,
+                            "current": false,
+                            "max": false,
+                            "min": false,
+                            "show": true,
+                            "total": false,
+                            "values": false
+                        },
+                        "lines": true,
+                        "linewidth": 1,
+                        "nullPointMode": "null",
+                        "options": {
+                            "alertThreshold": true
+                        },
+                        "percentage": false,
+                        "pointradius": 2,
+                        "points": false,
+                        "renderer": "flot",
+                        "seriesOverrides": [],
+                        "spaceLength": 10,
+                        "stack": false,
+                        "steppedLine": false,
+                        "targets": [
+                            {
+                                "expr": "rate(net_vf_broadcast_total{instance=\"$instance\"}[$__rate_interval])",
+                                "legendFormat": "Broadcast {{device}} VF{{vf}}",
+                                "editorMode": "code",
+                                "range": true,
+                                "refId": "A"
+                            },
+                            {
+                                "expr": "rate(net_vf_multicast_total{instance=\"$instance\"}[$__rate_interval])",
+                                "legendFormat": "Multicast {{device}} VF{{vf}}",
+                                "editorMode": "code",
+                                "range": true,
+                                "refId": "B"
+                            }
+                        ],
+                        "thresholds": [],
+                        "timeFrom": null,
+                        "timeRegions": [],
+                        "timeShift": null,
+                        "title": "VF Broadcast / Multicast (pps)",
+                        "tooltip": {
+                            "shared": true,
+                            "sort": 0,
+                            "value_type": "individual"
+                        },
+                        "type": "graph",
+                        "xaxis": {
+                            "mode": "time",
+                            "name": null,
+                            "show": true,
+                            "values": []
+                        },
+                        "yaxes": [
+                            {
+                                "format": "pps",
+                                "logBase": 1,
+                                "show": true
+                            },
+                            {
+                                "format": "pps",
+                                "logBase": 1,
+                                "show": true
+                            }
+                        ],
+                        "yaxis": {
+                            "align": false,
+                            "alignLevel": null
+                        },
+                        "span": 6
+                    }
+                ],
+                "repeat": null,
+                "repeatIteration": null,
+                "repeatRowId": null,
+                "showTitle": true,
+                "title": "SR-IOV",
+                "titleSize": "h6",
+                "type": "row"
+            }`
+
 	dashBaordFooter := `],
         "schemaVersion": 14,
         "style": "dark",
@@ -1132,6 +1625,9 @@ func OpenstackOpenstackNetwork(dsName string, hasDpdk bool) *corev1.ConfigMap {
 	dashBoard := dashBoardOVN
 	if hasDpdk {
 		dashBoard += "," + dashBoardDpdk
+	}
+	if hasSriov {
+		dashBoard += "," + dashBoardSRIOV
 	}
 	dashBoard += dashBaordFooter
 
