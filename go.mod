@@ -10,14 +10,14 @@ require (
 	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/gomega v1.41.0
-	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260413092447-bc6ef34fe170
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260508091801-73f228e6af31
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260520090027-4d7b7a01c0bf
-	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20260417092244-81c71b39e981
-	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20260417092244-81c71b39e981
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260518125357-72bdd580c587
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20260413152655-564a51226a2a
-	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20260417150438-dd80e10bc183
+	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260605111643-30a543fc9942
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260604063818-4bfc0b32deb7
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260601073225-ef24e232bc67
+	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20260526114926-7ebfadd589db
+	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20260526114926-7ebfadd589db
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260526114926-7ebfadd589db
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20260605165917-6ab24eb66b65
+	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20260525151412-a8c7f1a1c023
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.3.1-0.20240529090522-c780bd90b147
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1
 	github.com/rhobs/observability-operator v1.0.0
@@ -66,14 +66,14 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20260506154724-30a976ba8ef0 // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260506154724-30a976ba8ef0 // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260526114926-7ebfadd589db // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
-	github.com/spf13/pflag v1.0.7 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
@@ -93,9 +93,9 @@ require (
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/term v0.39.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/term v0.40.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250106144421-5f5ef82da422 // indirect
