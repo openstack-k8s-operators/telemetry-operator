@@ -1,0 +1,4 @@
+---
+post_ctlplane_deploy_99_patch_mcp_telemetry_containers:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/use-mcp-telemetry-containers.yml"
+  type: playbook

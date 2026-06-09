@@ -1,0 +1,41 @@
+---
+- name: Patch OpenStackVersion with MCP telemetry containers only
+  hosts: "{{ cifmw_target_hook_host | default('localhost') }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+    PATH: "{{ cifmw_path }}"
+  vars:
+    patch_dir: "{{ cifmw_basedir }}/artifacts/manifests"
+    telemetry_registry: >-
+      {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
+      {{ content_provider_os_registry_url }}
+      {%- else -%}
+      quay.rdoproject.org/podified-master-centos10
+      {%- endif -%}
+    telemetry_tag: >-
+      {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != 'null' -%}
+      telemetry_latest
+      {%- else -%}
+      current-tested
+      {%- endif -%}
+  tasks:
+    - name: Ensure patch output directory exists
+      ansible.builtin.file:
+        path: "{{ patch_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Generate telemetry container patch file
+      ansible.builtin.template:
+        src: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/patch-mcp-telemetry-containers.yaml.j2"
+        dest: "{{ patch_dir }}/patch-mcp-telemetry-containers.yaml"
+        mode: "0644"
+
+    - name: Patch OpenStackVersion with MCP telemetry images
+      ansible.builtin.command:
+        cmd: >-
+          oc patch openstackversions controlplane
+          --namespace={{ cifmw_openstack_namespace | default('openstack') }}
+          --type merge
+          --patch-file {{ patch_dir }}/patch-mcp-telemetry-containers.yaml

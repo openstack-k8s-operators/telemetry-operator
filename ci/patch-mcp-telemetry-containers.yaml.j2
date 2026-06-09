@@ -1,0 +1,18 @@
+---
+# Patch only telemetry-related images from the MCP local registry.
+# Core OpenStack services keep install_yamls default images (current-podified).
+spec:
+  customContainerImages:
+    aodhAPIImage: {{ telemetry_registry }}/openstack-aodh-api:{{ telemetry_tag }}
+    aodhEvaluatorImage: {{ telemetry_registry }}/openstack-aodh-evaluator:{{ telemetry_tag }}
+    aodhListenerImage: {{ telemetry_registry }}/openstack-aodh-listener:{{ telemetry_tag }}
+    aodhNotifierImage: {{ telemetry_registry }}/openstack-aodh-notifier:{{ telemetry_tag }}
+    ceilometerCentralImage: {{ telemetry_registry }}/openstack-ceilometer-central:{{ telemetry_tag }}
+    ceilometerComputeImage: {{ telemetry_registry }}/openstack-ceilometer-compute:{{ telemetry_tag }}
+    ceilometerIpmiImage: {{ telemetry_registry }}/openstack-ceilometer-ipmi:{{ telemetry_tag }}
+    ceilometerNotificationImage: {{ telemetry_registry }}/openstack-ceilometer-notification:{{ telemetry_tag }}
+    cloudkittyAPIImage: {{ telemetry_registry }}/openstack-cloudkitty-api:{{ telemetry_tag }}
+    cloudkittyProcImage: {{ telemetry_registry }}/openstack-cloudkitty-processor:{{ telemetry_tag }}
+    heatAPIImage: {{ telemetry_registry }}/openstack-heat-api:{{ telemetry_tag }}
+    heatCfnapiImage: {{ telemetry_registry }}/openstack-heat-api-cfn:{{ telemetry_tag }}
+    heatEngineImage: {{ telemetry_registry }}/openstack-heat-engine:{{ telemetry_tag }}
