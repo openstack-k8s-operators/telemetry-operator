@@ -8,6 +8,12 @@ patches:
     metadata:
       name: unused
     spec:
+      barbican:
+        template:
+          barbicanAPI:
+            defaultConfigOverwrite:
+              barbican-api-paste.ini: |
+{{ lookup('file', role_path + '/files/barbican-api-paste.ini') | indent(16, true) }}
       cinder:
         template:
           cinderAPI:
@@ -79,5 +85,11 @@ patches:
               - name: audit
                 secret:
                   secretName: {{ enable_audit_logging_neutron_secret }}
+      nova:
+        template:
+          apiServiceTemplate:
+            defaultConfigOverwrite:
+              api-paste.ini: |
+{{ lookup('file', role_path + '/files/nova-api-paste.ini') | indent(16, true) }}
   target:
     kind: OpenStackControlPlane
