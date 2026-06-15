@@ -12,7 +12,7 @@ This operator deploys a multiple telemetry agents, both in the control plane and
 
     ```bash
     cd install_yamls/devsetup
-    CPUS=12 MEMORY=25600 DISK=100 make crc
+    CPUS=12 MEMORY=25600 DISK=100 CRC_MONITORING_ENABLED=true make crc
     ```
 
 2. Create edpm nodes
