@@ -1,0 +1,15 @@
+container_images:
+  - imagename: quay.io/podified-master-centos10/openstack-aodh-api:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-aodh-evaluator:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-aodh-listener:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-aodh-notifier:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-ceilometer-central:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-ceilometer-compute:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-ceilometer-notification:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-ceilometer-ipmi:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-cloudkitty-api:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-cloudkitty-processor:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-heat-api:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-heat-api-cfn:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-heat-engine:current-podified
+  - imagename: quay.io/podified-master-centos10/openstack-tempest-all:current-podified
