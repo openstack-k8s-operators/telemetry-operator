@@ -1,15 +1,6 @@
 - name: Create service audit config secrets
   ansible.builtin.include_tasks: create-secrets.yml
 
-# Barbican: disabled - the barbican-operator does not currently support
-# providing a custom api-paste.ini through defaultConfigOverwrite.
-# Config files are included in files/ for future use.
-# Tracked in: https://issues.redhat.com/browse/OSPRH-25781
-
-# Nova: disabled - there is a known issue with the nova-operator that
-# requires naming the audit map file as policy.yaml. Config files are
-# included in files/ for future use.
-
 - name: Copy controlplane kustomization for audit logging
   ansible.builtin.template:
     src: 90-kustomize-controlplane-audit-logging.yaml.j2

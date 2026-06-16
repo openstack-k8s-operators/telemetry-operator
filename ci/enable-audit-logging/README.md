@@ -4,18 +4,12 @@ enable-audit-logging
 A role for enabling CADF audit logging on OpenStack services deployed by openstack-k8s-operators. The role creates the necessary audit configuration secrets and applies kustomizations to the OpenStackControlPlane CR.
 
 Currently supported services:
+- Barbican
 - Cinder
 - Glance
 - Keystone
 - Neutron
-
-Services not yet supported (config files included for future use):
-- Barbican (blocked by [OSPRH-25781](https://issues.redhat.com/browse/OSPRH-25781))
-- Nova (blocked by a nova-operator issue with audit map file naming)
-
-Audit map files
-----------------
-The `*_api_audit_map.conf` files in `files/` are copies of the upstream pycadf defaults from https://github.com/openstack/pycadf/tree/master/etc/pycadf. If the upstream files change, the local copies should be updated to match.
+- Nova
 
 Requirements
 ------------
