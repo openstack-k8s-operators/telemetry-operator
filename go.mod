@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
-	github.com/onsi/gomega v1.41.0
+	github.com/onsi/gomega v1.42.0
 	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260608105959-4f6adefef484
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260613085342-ac53eb7ee688
 	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260611162428-f51ec7d13a8b
