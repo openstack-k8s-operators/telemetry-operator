@@ -24,7 +24,7 @@
       -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
   register: loki_ready
   until: loki_ready.stdout == "True"
-  retries: 40
+  retries: 80
   delay: 15
 
 - name: Create audit loki S3 secret
@@ -52,5 +52,5 @@
       oc get lokistack logging-loki-audit -n openshift-logging -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
   register: audit_loki_ready
   until: audit_loki_ready.stdout == "True"
-  retries: 40
+  retries: 80
   delay: 15
