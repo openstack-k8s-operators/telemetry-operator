@@ -255,7 +255,7 @@
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
         - telemetry-operator-multinode-default-telemetry
-        - telemetry-operator-multinode-audit-logging
+        - functional-audit-logging-tests-osp18
         - functional-tests-osp18: &fvt_jobs_config
             voting: true
             required-projects:
