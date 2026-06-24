@@ -109,12 +109,12 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_incoming_bytes:rate1m{project_name =~ \"$project\", vm_name =~ \"$VM\"}",
+                                        "expr": "vm:ceilometer_network_incoming_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
                                         "legendFormat": "{{vm_name}} in ({{device}})",
                                         "refId": "B"
                                     },
                                     {
-                                        "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{project_name =~ \"$project\", vm_name =~ \"$VM\"}",
+                                        "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{project =~ \"$project\", vm_name =~ \"$VM\"}",
                                         "legendFormat": "{{vm_name}} out ({{device}})",
                                         "refId": "A"
                                     }
@@ -224,7 +224,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_incoming_bytes:rate1m{resource_name=~\"$VM:.*\", project_name=~\"$project\" } / 1000000",
+                                        "expr": "vm:ceilometer_network_incoming_bytes:rate1m{resource_name=~\"$VM:.*\", project=~\"$project\" } / 1000000",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} in ({{device}})",
@@ -319,7 +319,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_incoming_packets_drop:rate1m{project_name =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" }",
+                                        "expr": "vm:ceilometer_network_incoming_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" }",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} in ({{device}})",
@@ -425,7 +425,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "(vm:ceilometer_network_incoming_packets_drop:rate1m{project_name =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" } / vm:ceilometer_network_incoming_packets:rate1m{project_name =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\"}) * 100\n",
+                                        "expr": "(vm:ceilometer_network_incoming_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\" } / vm:ceilometer_network_incoming_packets:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\"}) * 100\n",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} in ({{device}})",
@@ -531,7 +531,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_incoming_packets_error:rate1m{project_name =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\"}",
+                                        "expr": "vm:ceilometer_network_incoming_packets_error:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$In_adapter\"}",
                                         "editorMode": "code",
                                         "hide": false,
                                         "interval": "",
@@ -642,7 +642,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{resource_name=~\"$VM:.+\", project_name=~\"$project\" } / 1000000",
+                                        "expr": "vm:ceilometer_network_outgoing_bytes:rate1m{resource_name=~\"$VM:.+\", project=~\"$project\" } / 1000000",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} out ({{device}})",
@@ -738,7 +738,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_outgoing_packets_drop:rate1m{project_name =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\" }",
+                                        "expr": "vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\" }",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} out ({{device}})",
@@ -834,7 +834,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "(vm:ceilometer_network_outgoing_packets_drop:rate1m{project_name =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\" } / vm:ceilometer_network_outgoing_packets:rate1m{project_name =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\" }) * 100\n",
+                                        "expr": "(vm:ceilometer_network_outgoing_packets_drop:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\" } / vm:ceilometer_network_outgoing_packets:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\" }) * 100\n",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} out ({{device}})",
@@ -940,7 +940,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "steppedLine": false,
                                 "targets": [
                                     {
-                                        "expr": "vm:ceilometer_network_outgoing_packets_error:rate1m{project_name =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\"}",
+                                        "expr": "vm:ceilometer_network_outgoing_packets_error:rate1m{project =~ \"$project\",vm_name =~ \"$VM\", device =~\"$Out_adapter\"}",
                                         "editorMode": "code",
                                         "range": true,
                                         "legendFormat": "{{vm_name}} out ({{device}})",
@@ -1026,16 +1026,16 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                             "allValue": ".*",
                             "current": {
                                 "tags": [],
-                                "text": "admin",
+                                "text": "539c3dc2361f4fd191aaa21c14360e35",
                                 "value": [
-                                    "admin"
+                                    "539c3dc2361f4fd191aaa21c14360e35"
                                 ]
                             },
                             "datasource": {
                                 "name": "` + dsName + `",
                                 "type": "prometheus"
                             },
-                            "definition": "label_values(ceilometer_cpu{vm_instance=~\"$compute_node\"}, project_name)",
+                            "definition": "label_values(ceilometer_cpu{vm_instance=~\"$compute_node\"}, project)",
                             "hide": 0,
                             "includeAll": true,
                             "index": -1,
@@ -1043,7 +1043,7 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                             "multi": true,
                             "name": "project",
                             "options": [],
-                            "query": "label_values(ceilometer_cpu{vm_instance=~\"$compute_node\"}, project_name)",
+                            "query": "label_values(ceilometer_cpu{vm_instance=~\"$compute_node\"}, project)",
                             "refresh": 0,
                             "regex": "",
                             "skipUrlSync": false,
@@ -1064,14 +1064,14 @@ func OpenstackNetworkTraffic(dsName string) *corev1.ConfigMap {
                                 "name": "` + dsName + `",
                                 "type": "prometheus"
                             },
-                            "definition": "label_values(ceilometer_cpu{project_name =~ \"$project\"}, vm_instance)",
+                            "definition": "label_values(ceilometer_cpu{project =~ \"$project\"}, vm_instance)",
                             "hide": 0,
                             "includeAll": true,
                             "label": null,
                             "multi": true,
                             "name": "VM",
                             "options": [],
-                            "query": "label_values(vm:ceilometer_cpu:ratio1m{project_name =~ \"$project\"}, vm_name)",
+                            "query": "label_values(vm:ceilometer_cpu:ratio1m{project =~ \"$project\"}, vm_name)",
                             "refresh": 0,
                             "regex": "",
                             "skipUrlSync": false,
