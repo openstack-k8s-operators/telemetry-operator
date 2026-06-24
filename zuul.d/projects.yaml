@@ -88,6 +88,10 @@
       content_provider_dlrn_md5_hash: ''
 
     vars:
+      cifmw_install_yamls_whitelisted_vars:
+        - 'WATCHER_REPO'
+        - 'WATCHER_BRANCH'
+        - 'OUTPUT_DIR'
       cifmw_update_containers: false
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
@@ -118,6 +122,10 @@
     description: |
       Deploy OpenStack with CADF audit logging enabled for supported services
     vars:
+      cifmw_install_yamls_whitelisted_vars:
+        - 'WATCHER_REPO'
+        - 'WATCHER_BRANCH'
+        - 'OUTPUT_DIR'
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-audit-logging.yml"
@@ -150,6 +158,10 @@
         override-checkout: master
     extra-vars: *mcp_extra_vars
     vars:
+      cifmw_install_yamls_whitelisted_vars:
+        - 'WATCHER_REPO'
+        - 'WATCHER_BRANCH'
+        - 'OUTPUT_DIR'
       #patch_observabilityclient: true
       cifmw_repo_setup_branch: master
       fetch_dlrn_hash: false
@@ -205,6 +217,11 @@
         - telemetry-operator-multinode-default-telemetry
         - telemetry-operator-multinode-audit-logging
         - functional-tests-osp18: &fvt_jobs_config
+            vars:
+              cifmw_install_yamls_whitelisted_vars:
+                - 'WATCHER_REPO'
+                - 'WATCHER_BRANCH'
+                - 'OUTPUT_DIR'
             voting: true
             required-projects:
               - name: infrawatch/feature-verification-tests
