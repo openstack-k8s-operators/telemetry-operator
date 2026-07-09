@@ -897,6 +897,11 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
+	err = r.createOpenStackLightspeedScrapeConfig(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// ScrapeConfig for InstanceHA metrics
 	err = r.createInstanceHAScrapeConfig(ctx, instance, helper, serviceLabels)
 	if err != nil {
@@ -982,6 +987,7 @@ func (r *MetricStorageReconciler) createServiceScrapeConfigFromLabelSelector(
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
 	serviceLabels map[string]string,
+	targetNamespace string,
 	labelSelector map[string]string,
 	portName string,
 	scrapeConfigName string,
@@ -992,7 +998,7 @@ func (r *MetricStorageReconciler) createServiceScrapeConfigFromLabelSelector(
 	// Discover metrics services using label selectors
 	serviceList := &corev1.ServiceList{}
 	listOpts := []client.ListOption{
-		client.InNamespace(instance.Namespace),
+		client.InNamespace(targetNamespace),
 		client.MatchingLabels(labelSelector),
 	}
 	err := helper.GetClient().List(ctx, serviceList, listOpts...)
@@ -1056,7 +1062,7 @@ func (r *MetricStorageReconciler) createOVNNorthdScrapeConfig(
 	}
 	ovnNorthdCfgName := fmt.Sprintf("%s-ovn-northd", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
+		ctx, instance, helper, serviceLabels, instance.Namespace,
 		labelSelector, "metrics", ovnNorthdCfgName, "OVN Northd",
 	)
 }
@@ -1075,7 +1081,7 @@ func (r *MetricStorageReconciler) createOVNControllerScrapeConfig(
 	}
 	ovnControllerCfgName := fmt.Sprintf("%s-ovn-controller", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
+		ctx, instance, helper, serviceLabels, instance.Namespace,
 		labelSelector, "metrics", ovnControllerCfgName, "OVN Controller",
 	)
 }
@@ -1094,8 +1100,27 @@ func (r *MetricStorageReconciler) createOVSDBServerNBScrapeConfig(
 	}
 	ovsdbServerNBCfgName := fmt.Sprintf("%s-ovsdbserver-nb", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
+		ctx, instance, helper, serviceLabels, instance.Namespace,
 		labelSelector, "metrics", ovsdbServerNBCfgName, "OVS DB server NB",
+	)
+}
+
+// createOpenStackLightspeedScrapeConfig creates a scrape configuration for OpenStack Lightspeed metrics
+// This function discovers OpenStack Lightspeed metrics services using label selectors
+func (r *MetricStorageReconciler) createOpenStackLightspeedScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) error {
+	labelSelector := map[string]string{
+		"metrics": "enabled",
+		"service": "lightspeed-app-server",
+	}
+	openStackLightspeedCfgName := fmt.Sprintf("%s-openstack-lightspeed", telemetry.ServiceName)
+	return r.createServiceScrapeConfigFromLabelSelector(
+		ctx, instance, helper, serviceLabels, "openstack-lightspeed",
+		labelSelector, "https", openStackLightspeedCfgName, "OpenStack Lightspeed",
 	)
 }
 
@@ -1113,7 +1138,7 @@ func (r *MetricStorageReconciler) createOVSDBServerSBScrapeConfig(
 	}
 	ovsdbServerSBCfgName := fmt.Sprintf("%s-ovsdbserver-sb", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
+		ctx, instance, helper, serviceLabels, instance.Namespace,
 		labelSelector, "metrics", ovsdbServerSBCfgName, "OVS DB server SB",
 	)
 }
@@ -1132,7 +1157,7 @@ func (r *MetricStorageReconciler) createInstanceHAScrapeConfig(
 	}
 	instancehaCfgName := fmt.Sprintf("%s-instanceha", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
+		ctx, instance, helper, serviceLabels, instance.Namespace,
 		labelSelector, "metrics", instancehaCfgName, "InstanceHA",
 	)
 }
