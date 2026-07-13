@@ -300,6 +300,14 @@ func ScrapeConfigOpenStackLightspeed(
 			},
 		},
 	}
+	scrapeConfig.Spec.Authorization = &monv1.SafeAuthorization{
+		Credentials: &corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: OpenStackLightspeedTokenSecretName,
+			},
+			Key: openStackLightspeedTokenKey,
+		},
+	}
 
 	return scrapeConfig
 }

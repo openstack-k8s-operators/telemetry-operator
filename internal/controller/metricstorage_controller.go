@@ -111,6 +111,8 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=ovn.openstack.org,resources=ovnnorthds,verbs=get;list;watch
 //+kubebuilder:rbac:groups=observability.openshift.io,resources=uiplugins,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
@@ -1108,7 +1110,8 @@ func (r *MetricStorageReconciler) createOVSDBServerNBScrapeConfig(
 // createOpenStackLightspeedScrapeConfig creates a scrape configuration for OpenStack Lightspeed metrics.
 // It creates a ConfigMap with the service.beta.openshift.io/inject-cabundle annotation so that the
 // OpenShift service CA operator populates it with the CA cert used by the Lightspeed serving cert,
-// and then creates a ScrapeConfig that references that ConfigMap for TLS verification.
+// a ServiceAccount and a bound token Secret for bearer-token authentication, and then creates a
+// ScrapeConfig that references both for TLS verification and authorization.
 func (r *MetricStorageReconciler) createOpenStackLightspeedScrapeConfig(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
@@ -1135,6 +1138,43 @@ func (r *MetricStorageReconciler) createOpenStackLightspeedScrapeConfig(
 	}
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("OpenStack Lightspeed CA bundle ConfigMap %s successfully changed - operation: %s", caConfigMap.Name, string(op)))
+	}
+
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metricstorage.OpenStackLightspeedSAName,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, sa, func() error {
+		return controllerutil.SetControllerReference(instance, sa, r.Scheme)
+	})
+	if err != nil {
+		return err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("OpenStack Lightspeed metrics ServiceAccount %s successfully changed - operation: %s", sa.Name, string(op)))
+	}
+
+	tokenSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metricstorage.OpenStackLightspeedTokenSecretName,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, tokenSecret, func() error {
+		tokenSecret.Type = corev1.SecretTypeServiceAccountToken
+		if tokenSecret.Annotations == nil {
+			tokenSecret.Annotations = map[string]string{}
+		}
+		tokenSecret.Annotations["kubernetes.io/service-account.name"] = metricstorage.OpenStackLightspeedSAName
+		return controllerutil.SetControllerReference(instance, tokenSecret, r.Scheme)
+	})
+	if err != nil {
+		return err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("OpenStack Lightspeed metrics token Secret %s successfully changed - operation: %s", tokenSecret.Name, string(op)))
 	}
 
 	labelSelector := map[string]string{

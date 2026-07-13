@@ -39,4 +39,8 @@ const (
 	OpenStackLightspeedCABundleConfigMapName = "openstack-lightspeed-ca-bundle"
 
 	openStackLightspeedCABundleKey = "service-ca.crt"
+
+	OpenStackLightspeedSAName          = "openstack-lightspeed-metrics"
+	OpenStackLightspeedTokenSecretName = "openstack-lightspeed-metrics-token"
+	openStackLightspeedTokenKey        = "token"
 )
