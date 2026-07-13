@@ -243,6 +243,26 @@ func (r *MetricStorageReconciler) reconcileUpdate(
 		return ctrl.Result{}, err
 	}
 
+	// Remove Kepler ScrapeConfig and dashboard left over from previous versions
+	keplerScrapeConfig := &monv1alpha1.ScrapeConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-kepler", telemetry.ServiceName),
+			Namespace: instance.Namespace,
+		},
+	}
+	if res, err := utils.EnsureDeleted(ctx, helper, keplerScrapeConfig); err != nil {
+		return res, err
+	}
+	keplerDashboardCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "grafana-dashboard-openstack-kepler",
+			Namespace: metricstorage.DashboardArtifactsNamespace,
+		},
+	}
+	if res, err := utils.EnsureDeleted(ctx, helper, keplerDashboardCM); err != nil {
+		return res, err
+	}
+
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' update successfully", instance.Name))
 
 	return ctrl.Result{}, nil
@@ -844,32 +864,27 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 	}
 
 	// compute nodes' exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "node-exporter", telemetryv1.DefaultNodeExporterPort, serviceLabels, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "node-exporter", telemetryv1.DefaultNodeExporterPort, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// openstack network' exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "openstack-network-exporter", telemetryv1.DefaultOpenStackNetworkExporterPort, serviceLabels, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "openstack-network-exporter", telemetryv1.DefaultOpenStackNetworkExporterPort, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// openstack Ceilometer Compute's prom exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-compute-prom-exporter", telemetryv1.DefaultCeilometerComputePromExporterPort, serviceLabels, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-compute-prom-exporter", telemetryv1.DefaultCeilometerComputePromExporterPort, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// openstack Ceilometer IPMI's prom exporters
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-ipmi-prom-exporter", telemetryv1.DefaultCeilometerIpmiPromExporterPort, serviceLabels, false)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "ceilometer-ipmi-prom-exporter", telemetryv1.DefaultCeilometerIpmiPromExporterPort, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, serviceLabels, false)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	// Currently Kepler doesn't support TLS
-	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetryv1.TelemetryPowerMonitoring, "kepler", telemetryv1.DefaultKeplerPort, serviceLabels, true)
+	err = r.createComputeScrapeConfig(ctx, instance, helper, telemetry.ServiceName, "podman-exporter", telemetryv1.DefaultPodmanExporterPort, serviceLabels)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -932,7 +947,6 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	exporterName string,
 	exporterPort int,
 	serviceLabels map[string]string,
-	suppressTLS bool,
 ) error {
 	Log := r.GetLogger(ctx)
 
@@ -942,17 +956,11 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 	}
 	targetsTLS, targetsNonTLS := getExporterTargets(connectionInfo, exporterPort)
 
-	// ScrapeConfig for non-tls nodes
-	// NOTE(mmagr): remove TLS suppression functionality once Kepler supports TLS
-	targets := targetsNonTLS
-	if suppressTLS {
-		targets = targetsTLS
-	}
 	fullServiceName := fmt.Sprintf("%s-%s", telemetry.ServiceName, exporterName)
 	desiredScrapeConfig := metricstorage.ScrapeConfig(
 		instance,
 		serviceLabels,
-		targets,
+		targetsNonTLS,
 		false,
 	)
 	err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceName, desiredScrapeConfig)
@@ -960,20 +968,18 @@ func (r *MetricStorageReconciler) createComputeScrapeConfig(
 		return err
 	}
 
-	// ScrapeConfig for tls nodes
-	if !suppressTLS {
-		fullServiceName := fmt.Sprintf("%s-%s-tls", telemetry.ServiceName, exporterName)
-		desiredScrapeConfig := metricstorage.ScrapeConfig(
-			instance,
-			serviceLabels,
-			targetsTLS,
-			true,
-		)
-		err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceName, desiredScrapeConfig)
-		if err != nil {
-			return err
-		}
+	fullServiceNameTLS := fmt.Sprintf("%s-%s-tls", telemetry.ServiceName, exporterName)
+	desiredScrapeConfigTLS := metricstorage.ScrapeConfig(
+		instance,
+		serviceLabels,
+		targetsTLS,
+		true,
+	)
+	err = r.createServiceScrapeConfig(ctx, instance, Log, exporterName, fullServiceNameTLS, desiredScrapeConfigTLS)
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -1258,12 +1264,11 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			"grafana-dashboard-openstack-network-traffic":   dashboards.OpenstackNetworkTraffic(datasourceName),
 		}
 
-		// atleast one nodeset must have "telemetry-power-monitoring" service enabled for kepler and ipmi dashboard to be created
+		// atleast one nodeset must have "telemetry-power-monitoring" service enabled for ipmi dashboard to be created
 		connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
 		if err != nil {
 			Log.Info(fmt.Sprintf("Cannot get compute node connection info. Power monitoring dashboard not created. Error: %s", err))
 		} else if len(connectionInfo) > 0 {
-			dashboardCMs["grafana-dashboard-openstack-kepler"] = dashboards.OpenstackKepler(datasourceName)
 			dashboardCMs["grafana-dashboard-openstack-ceilometer-ipmi"] = dashboards.OpenstackCeilometerIpmi(datasourceName)
 		}
 

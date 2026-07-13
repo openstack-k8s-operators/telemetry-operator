@@ -61,7 +61,6 @@ func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricSto
 		"grafana-dashboard-openstack-openstack-network",
 		"grafana-dashboard-openstack-vm",
 		"grafana-dashboard-openstack-rabbitmq",
-		"grafana-dashboard-openstack-kepler",
 		"grafana-dashboard-openstack-network-traffic",
 		"grafana-dashboard-openstack-ceilometer-ipmi",
 	}
