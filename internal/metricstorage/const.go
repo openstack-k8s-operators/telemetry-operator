@@ -32,4 +32,11 @@ const (
 	PrometheusCaCertSecret = "ca_secret"
 	// PrometheusCaCertKey is the key for Prometheus CA certificate key
 	PrometheusCaCertKey = "ca_key"
+
+	// OpenStackLightspeedCABundleConfigMapName is the name of the ConfigMap
+	// that holds the CA bundle for OpenStack Lightspeed, injected by the
+	// OpenShift service CA operator.
+	OpenStackLightspeedCABundleConfigMapName = "openstack-lightspeed-ca-bundle"
+
+	openStackLightspeedCABundleKey = "service-ca.crt"
 )

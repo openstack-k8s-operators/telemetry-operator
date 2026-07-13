@@ -276,3 +276,30 @@ func ScrapeConfig(
 
 	return scrapeConfig
 }
+
+// ScrapeConfigOpenStackLightspeed creates a ScrapeConfig CR for OpenStack
+// Lightspeed metrics. It always uses HTTPS with the service CA injected into a
+// ConfigMap, because the Lightspeed endpoint uses an OpenShift serving cert
+// that is not part of the combined-ca-bundle.
+func ScrapeConfigOpenStackLightspeed(
+	instance *telemetryv1.MetricStorage,
+	labels map[string]string,
+	targets []string,
+) *monv1alpha1.ScrapeConfig {
+	scrapeConfig := ScrapeConfig(instance, labels, targets, false)
+
+	scheme := "HTTPS"
+	scrapeConfig.Spec.Scheme = &scheme
+	scrapeConfig.Spec.TLSConfig = &monv1.SafeTLSConfig{
+		CA: monv1.SecretOrConfigMap{
+			ConfigMap: &corev1.ConfigMapKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: OpenStackLightspeedCABundleConfigMapName,
+				},
+				Key: openStackLightspeedCABundleKey,
+			},
+		},
+	}
+
+	return scrapeConfig
+}

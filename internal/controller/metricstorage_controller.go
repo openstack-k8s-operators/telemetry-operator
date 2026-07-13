@@ -992,6 +992,7 @@ func (r *MetricStorageReconciler) createServiceScrapeConfigFromLabelSelector(
 	portName string,
 	scrapeConfigName string,
 	description string,
+	scrapeConfigBuilder func(*telemetryv1.MetricStorage, map[string]string, []string) *monv1alpha1.ScrapeConfig,
 ) error {
 	Log := r.GetLogger(ctx)
 
@@ -1032,20 +1033,19 @@ func (r *MetricStorageReconciler) createServiceScrapeConfigFromLabelSelector(
 		return nil
 	}
 
-	// Create scrape config for metrics
-	desiredScrapeConfig := metricstorage.ScrapeConfig(
-		instance,
-		serviceLabels,
-		targets,
-		instance.Spec.PrometheusTLS.Enabled(),
-	)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, description,
-		scrapeConfigName, desiredScrapeConfig)
-	if err != nil {
-		return err
+	var desiredScrapeConfig *monv1alpha1.ScrapeConfig
+	if scrapeConfigBuilder != nil {
+		desiredScrapeConfig = scrapeConfigBuilder(instance, serviceLabels, targets)
+	} else {
+		desiredScrapeConfig = metricstorage.ScrapeConfig(
+			instance,
+			serviceLabels,
+			targets,
+			instance.Spec.PrometheusTLS.Enabled(),
+		)
 	}
-
-	return nil
+	return r.createServiceScrapeConfig(ctx, instance, Log, description,
+		scrapeConfigName, desiredScrapeConfig)
 }
 
 // createOVNNorthdScrapeConfig creates a scrape configuration for OVN Northd metrics
@@ -1063,7 +1063,7 @@ func (r *MetricStorageReconciler) createOVNNorthdScrapeConfig(
 	ovnNorthdCfgName := fmt.Sprintf("%s-ovn-northd", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
 		ctx, instance, helper, serviceLabels, instance.Namespace,
-		labelSelector, "metrics", ovnNorthdCfgName, "OVN Northd",
+		labelSelector, "metrics", ovnNorthdCfgName, "OVN Northd", nil,
 	)
 }
 
@@ -1082,7 +1082,7 @@ func (r *MetricStorageReconciler) createOVNControllerScrapeConfig(
 	ovnControllerCfgName := fmt.Sprintf("%s-ovn-controller", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
 		ctx, instance, helper, serviceLabels, instance.Namespace,
-		labelSelector, "metrics", ovnControllerCfgName, "OVN Controller",
+		labelSelector, "metrics", ovnControllerCfgName, "OVN Controller", nil,
 	)
 }
 
@@ -1101,18 +1101,42 @@ func (r *MetricStorageReconciler) createOVSDBServerNBScrapeConfig(
 	ovsdbServerNBCfgName := fmt.Sprintf("%s-ovsdbserver-nb", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
 		ctx, instance, helper, serviceLabels, instance.Namespace,
-		labelSelector, "metrics", ovsdbServerNBCfgName, "OVS DB server NB",
+		labelSelector, "metrics", ovsdbServerNBCfgName, "OVS DB server NB", nil,
 	)
 }
 
-// createOpenStackLightspeedScrapeConfig creates a scrape configuration for OpenStack Lightspeed metrics
-// This function discovers OpenStack Lightspeed metrics services using label selectors
+// createOpenStackLightspeedScrapeConfig creates a scrape configuration for OpenStack Lightspeed metrics.
+// It creates a ConfigMap with the service.beta.openshift.io/inject-cabundle annotation so that the
+// OpenShift service CA operator populates it with the CA cert used by the Lightspeed serving cert,
+// and then creates a ScrapeConfig that references that ConfigMap for TLS verification.
 func (r *MetricStorageReconciler) createOpenStackLightspeedScrapeConfig(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) error {
+	Log := r.GetLogger(ctx)
+
+	caConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metricstorage.OpenStackLightspeedCABundleConfigMapName,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err := controllerutil.CreateOrPatch(ctx, r.Client, caConfigMap, func() error {
+		if caConfigMap.Annotations == nil {
+			caConfigMap.Annotations = map[string]string{}
+		}
+		caConfigMap.Annotations["service.beta.openshift.io/inject-cabundle"] = "true"
+		return controllerutil.SetControllerReference(instance, caConfigMap, r.Scheme)
+	})
+	if err != nil {
+		return err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("OpenStack Lightspeed CA bundle ConfigMap %s successfully changed - operation: %s", caConfigMap.Name, string(op)))
+	}
+
 	labelSelector := map[string]string{
 		"metrics": "enabled",
 		"service": "lightspeed-app-server",
@@ -1121,6 +1145,7 @@ func (r *MetricStorageReconciler) createOpenStackLightspeedScrapeConfig(
 	return r.createServiceScrapeConfigFromLabelSelector(
 		ctx, instance, helper, serviceLabels, "openstack-lightspeed",
 		labelSelector, "https", openStackLightspeedCfgName, "OpenStack Lightspeed",
+		metricstorage.ScrapeConfigOpenStackLightspeed,
 	)
 }
 
@@ -1139,7 +1164,7 @@ func (r *MetricStorageReconciler) createOVSDBServerSBScrapeConfig(
 	ovsdbServerSBCfgName := fmt.Sprintf("%s-ovsdbserver-sb", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
 		ctx, instance, helper, serviceLabels, instance.Namespace,
-		labelSelector, "metrics", ovsdbServerSBCfgName, "OVS DB server SB",
+		labelSelector, "metrics", ovsdbServerSBCfgName, "OVS DB server SB", nil,
 	)
 }
 
@@ -1158,7 +1183,7 @@ func (r *MetricStorageReconciler) createInstanceHAScrapeConfig(
 	instancehaCfgName := fmt.Sprintf("%s-instanceha", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
 		ctx, instance, helper, serviceLabels, instance.Namespace,
-		labelSelector, "metrics", instancehaCfgName, "InstanceHA",
+		labelSelector, "metrics", instancehaCfgName, "InstanceHA", nil,
 	)
 }
 
