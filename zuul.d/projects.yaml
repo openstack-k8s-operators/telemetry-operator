@@ -89,16 +89,6 @@
       - .golangci.yaml
 
 - job:
-    name: telemetry-operator-multinode-autoscaling-tempest
-    parent: telemetry-operator-multinode-autoscaling
-    vars:
-      cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
-    irrelevant-files: *irrelevant_files
-
-- job:
     name: telemetry-operator-multinode-default-telemetry
     parent: podified-multinode-edpm-deployment-crc
     dependencies:
@@ -145,19 +135,6 @@
       cifmw_extras:
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-audit-logging.yml"
-    irrelevant-files: *irrelevant_files
-
-- job:
-    name: telemetry-operator-multinode-power-monitoring
-    parent: podified-multinode-edpm-deployment-crc
-    dependencies:
-      - openstack-k8s-operators-content-provider
-    description: |
-      Deploy OpenStack with power monitoring services enabled
-    vars:
-      cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-power-monitoring.yml"
     irrelevant-files: *irrelevant_files
 
 - job:
