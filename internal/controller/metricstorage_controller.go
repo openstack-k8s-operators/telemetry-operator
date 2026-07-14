@@ -29,6 +29,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -113,6 +114,7 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
@@ -1175,6 +1177,34 @@ func (r *MetricStorageReconciler) createOpenStackLightspeedScrapeConfig(
 	}
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("OpenStack Lightspeed metrics token Secret %s successfully changed - operation: %s", tokenSecret.Name, string(op)))
+	}
+
+	crbName := fmt.Sprintf("%s-%s", metricstorage.OpenStackLightspeedAccessCRName, instance.Namespace)
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: crbName,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, crb, func() error {
+		crb.RoleRef = rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     metricstorage.OpenStackLightspeedAccessCRName,
+		}
+		crb.Subjects = []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      metricstorage.OpenStackLightspeedSAName,
+				Namespace: instance.Namespace,
+			},
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("OpenStack Lightspeed metrics ClusterRoleBinding %s successfully changed - operation: %s", crb.Name, string(op)))
 	}
 
 	labelSelector := map[string]string{

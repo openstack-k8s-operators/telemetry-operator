@@ -43,4 +43,5 @@ const (
 	OpenStackLightspeedSAName          = "openstack-lightspeed-metrics"
 	OpenStackLightspeedTokenSecretName = "openstack-lightspeed-metrics-token"
 	openStackLightspeedTokenKey        = "token"
+	OpenStackLightspeedAccessCRName    = "lightspeed-access"
 )
