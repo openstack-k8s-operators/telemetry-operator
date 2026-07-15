@@ -131,7 +131,10 @@ type MetricStorageSpec struct {
 // MetricStorageStatus defines the observed state of MetricStorage
 type MetricStorageStatus struct {
 	Conditions           condition.Conditions `json:"conditions,omitempty" optional:"true"`
-	PrometheusTLSPatched bool                 `json:"prometheusTLSPatched,omitempty" optional:"true"`
+	// Deprecated: used only for upgrade migration from the old direct Prometheus CR
+	// TLS patching to the new MonitoringStack WebTLSConfig API. Can be removed once
+	// all deployments have upgraded past this version.
+	PrometheusTLSPatched bool `json:"prometheusTLSPatched,omitempty" optional:"true"`
 	// ObservedGeneration - the most recent generation observed for this
 	// service. If the observed generation is less than the spec generation,
 	// then the controller has not processed the latest changes injected by
