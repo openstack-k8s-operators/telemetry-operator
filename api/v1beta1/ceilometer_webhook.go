@@ -49,7 +49,7 @@ func SetupCeilometerDefaults(defaults CeilometerDefaults) {
 	ceilometerlog.Info("Ceilometer defaults initialized", "defaults", defaults)
 }
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default sets default values for the Ceilometer spec
 func (r *Ceilometer) Default() {
 	ceilometerlog.Info("default", "name", r.Name)
 
@@ -143,7 +143,7 @@ func (spec *CeilometerSpecCore) validateDeprecatedFieldsUpdate(old CeilometerSpe
 	return common_webhook.ValidateDeprecatedFieldsUpdate(deprecatedFields, basePath)
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate validates the Ceilometer resource on creation
 func (r *Ceilometer) ValidateCreate() (admission.Warnings, error) {
 	ceilometerlog.Info("validate create", "name", r.Name)
 

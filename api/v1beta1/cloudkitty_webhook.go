@@ -46,7 +46,7 @@ func SetupCloudKittyDefaults(defaults CloudKittyDefaults) {
 	cloudKittyLog.Info("CloudKitty defaults initialized", "defaults", defaults)
 }
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default sets default values for the CloudKitty spec
 func (r *CloudKitty) Default() {
 	cloudKittyLog.Info("default", "name", r.Name)
 
