@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -41,6 +42,9 @@ func PrometheusService(
 			Annotations: map[string]string{
 				service.AnnotationEndpointKey:      string(service.EndpointInternal),
 				service.AnnotationIngressCreateKey: "false",
+				// COO's Prometheus self-scrape config uses the bare service name as
+				// TLS server_name. The certificate must include it as a SAN.
+				tls.AdditionalSubjectNamesKey: fmt.Sprintf("%s-prometheus", instance.Name),
 			},
 		},
 	}

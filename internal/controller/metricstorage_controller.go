@@ -339,6 +339,28 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 
+	// Upgrade migration: if TLS was previously patched directly on the Prometheus CR
+	// (old implementation), delete the CR so COO can recreate it with proper TLS
+	// config from the MonitoringStack spec.
+	if instance.Status.PrometheusTLSPatched { //nolint:staticcheck
+		prometheus := monv1.Prometheus{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: instance.Namespace,
+				Name:      instance.Name,
+			},
+		}
+		err = r.Delete(context.Background(), &prometheus)
+		if err != nil && !k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
+				condition.Reason("Can't delete old Prometheus CR to migrate TLS to MonitoringStack API"),
+				condition.SeverityError,
+				telemetryv1.PrometheusUnableToRemoveTLSMessage, err)
+			Log.Error(err, "Can't delete old Prometheus CR to migrate TLS configuration to MonitoringStack API")
+			return ctrl.Result{}, err
+		}
+		instance.Status.PrometheusTLSPatched = false //nolint:staticcheck
+	}
+
 	monitoringStack := &obov1.MonitoringStack{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
@@ -357,6 +379,27 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			Log.Info(fmt.Sprintf("Using CustomMonitoringStack for MonitoringStack %s definition", monitoringStack.Name))
 			instance.Spec.CustomMonitoringStack.DeepCopyInto(&monitoringStack.Spec)
 		}
+		if instance.Spec.PrometheusTLS.Enabled() {
+			if monitoringStack.Spec.PrometheusConfig == nil {
+				monitoringStack.Spec.PrometheusConfig = &obov1.PrometheusConfig{}
+			}
+			monitoringStack.Spec.PrometheusConfig.WebTLSConfig = &obov1.WebTLSConfig{
+				PrivateKey: obov1.SecretKeySelector{
+					Name: *instance.Spec.PrometheusTLS.SecretName,
+					Key:  tls.PrivateKey,
+				},
+				Certificate: obov1.SecretKeySelector{
+					Name: *instance.Spec.PrometheusTLS.SecretName,
+					Key:  tls.CertKey,
+				},
+				CertificateAuthority: obov1.SecretKeySelector{
+					Name: instance.Spec.PrometheusTLS.CaBundleSecretName,
+					Key:  tls.CABundleKey,
+				},
+			}
+		} else if monitoringStack.Spec.PrometheusConfig != nil {
+			monitoringStack.Spec.PrometheusConfig.WebTLSConfig = nil
+		}
 		monitoringStack.Labels = serviceLabels
 		err := controllerutil.SetControllerReference(instance, monitoringStack, r.Scheme)
 		return err
@@ -366,57 +409,6 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	if op != controllerutil.OperationResultNone {
 		Log.Info(fmt.Sprintf("MonitoringStack %s successfully changed - operation: %s", monitoringStack.Name, string(op)))
-	}
-
-	if instance.Spec.PrometheusTLS.Enabled() {
-		// Patch Prometheus to add TLS
-		prometheusWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
-			name := client.ObjectKey{
-				Namespace: o.GetNamespace(),
-				Name:      o.GetName(),
-			}
-			return []reconcile.Request{{NamespacedName: name}}
-		}
-		err = utils.EnsureWatches(
-			ctx, (*utils.ConditionalWatchingReconciler)(r),
-			"prometheuses.monitoring.rhobs",
-			&monv1.Prometheus{},
-			handler.EnqueueRequestsFromMapFunc(prometheusWatchFn),
-			helper,
-		)
-		if err != nil {
-			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
-				condition.Reason("Can't watch prometheus resource. The Cluster Observability Operator probably isn't installed"),
-				condition.SeverityError,
-				telemetryv1.PrometheusUnableToWatchMessage, err)
-			Log.Info("Can't watch Prometheus resource. The Cluster Observability Operator probably isn't installed")
-			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
-		}
-		prometheusTLSPatch := metricstorage.PrometheusTLS(instance)
-		err = r.Patch(context.Background(), &prometheusTLSPatch, client.Merge, client.FieldOwner("telemetry-operator"))
-		if err != nil {
-			Log.Error(err, "Can't patch Prometheus resource")
-			return ctrl.Result{}, err
-		}
-		instance.Status.PrometheusTLSPatched = true
-	} else if instance.Status.PrometheusTLSPatched {
-		// Delete the prometheus CR, so it can be automatically restored without the TLS patch
-		prometheus := monv1.Prometheus{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: instance.Namespace,
-				Name:      instance.Name,
-			},
-		}
-		err = r.Delete(context.Background(), &prometheus)
-		if err != nil && !k8s_errors.IsNotFound(err) {
-			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
-				condition.Reason("Can't delete old Prometheus CR to remove TLS configuration"),
-				condition.SeverityError,
-				telemetryv1.PrometheusUnableToRemoveTLSMessage, err)
-			Log.Error(err, "Can't delete old Prometheus CR to remove TLS configuration")
-			return ctrl.Result{}, err
-		}
-		instance.Status.PrometheusTLSPatched = false
 	}
 
 	// Create the PrometheusEndpoint secret that contains the details for Prometheus API endpoint
