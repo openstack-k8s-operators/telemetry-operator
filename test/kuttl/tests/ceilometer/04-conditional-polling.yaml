@@ -1,0 +1,33 @@
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneEndpoint
+metadata:
+  name: manilav2
+  labels:
+    service: manilav2
+spec:
+  serviceName: manilav2
+  endpoints:
+    internal: http://manila-internal.openstack.svc:8786/v2
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneEndpoint
+metadata:
+  name: designate
+  labels:
+    service: designate
+spec:
+  serviceName: designate
+  endpoints:
+    internal: http://designate-internal.openstack.svc:9001
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneEndpoint
+metadata:
+  name: octavia
+  labels:
+    service: octavia
+spec:
+  serviceName: octavia
+  endpoints:
+    internal: http://octavia-internal.openstack.svc:9876
