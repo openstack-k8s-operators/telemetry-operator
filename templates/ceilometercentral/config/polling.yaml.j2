@@ -9,3 +9,12 @@ sources:
 {{- if .SwiftRole }}
         - storage.*
 {{- end }}
+{{- if .ManilaEnabled }}
+        - manila.*
+{{- end }}
+{{- if .DesignateEnabled }}
+        - dns.*
+{{- end }}
+{{- if .OctaviaEnabled }}
+        - loadbalancer.*
+{{- end }}
