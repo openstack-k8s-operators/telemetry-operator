@@ -40,6 +40,7 @@ const (
 
 	openStackLightspeedCABundleKey = "service-ca.crt"
 
+	// OpenStack Lightspeed metrics authentication resources
 	OpenStackLightspeedSAName          = "openstack-lightspeed-metrics"
 	OpenStackLightspeedTokenSecretName = "openstack-lightspeed-metrics-token"
 	openStackLightspeedTokenKey        = "token"

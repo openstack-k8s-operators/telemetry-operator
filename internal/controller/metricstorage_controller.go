@@ -114,7 +114,7 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
@@ -222,6 +222,20 @@ func (r *MetricStorageReconciler) reconcileDelete(
 
 	if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
 		return res, err
+	}
+
+	crbName := fmt.Sprintf("%s-%s", metricstorage.OpenStackLightspeedAccessCRName, instance.Namespace)
+	crb := &rbacv1.ClusterRoleBinding{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: crbName}, crb)
+	if err != nil {
+		if !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+	} else {
+		if err := r.Client.Delete(ctx, crb); err != nil && !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+		Log.Info(fmt.Sprintf("Deleted OpenStack Lightspeed ClusterRoleBinding %s", crbName))
 	}
 
 	// Service is deleted so remove the finalizer.
@@ -1122,6 +1136,25 @@ func (r *MetricStorageReconciler) createOpenStackLightspeedScrapeConfig(
 ) error {
 	Log := r.GetLogger(ctx)
 
+	labelSelector := map[string]string{
+		"metrics": "enabled",
+		"service": "lightspeed-app-server",
+	}
+	serviceList := &corev1.ServiceList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.Spec.OpenStackLightspeedNamespace),
+		client.MatchingLabels(labelSelector),
+	}
+	err := helper.GetClient().List(ctx, serviceList, listOpts...)
+	if err != nil {
+		Log.Info(fmt.Sprintf("Cannot get OpenStack Lightspeed metrics services. Scrape configs not created. Error: %s", err))
+		return nil
+	}
+	if len(serviceList.Items) == 0 {
+		Log.Info("No OpenStack Lightspeed metrics services found")
+		return nil
+	}
+
 	caConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      metricstorage.OpenStackLightspeedCABundleConfigMapName,
@@ -1207,13 +1240,9 @@ func (r *MetricStorageReconciler) createOpenStackLightspeedScrapeConfig(
 		Log.Info(fmt.Sprintf("OpenStack Lightspeed metrics ClusterRoleBinding %s successfully changed - operation: %s", crb.Name, string(op)))
 	}
 
-	labelSelector := map[string]string{
-		"metrics": "enabled",
-		"service": "lightspeed-app-server",
-	}
 	openStackLightspeedCfgName := fmt.Sprintf("%s-openstack-lightspeed", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels, "openstack-lightspeed",
+		ctx, instance, helper, serviceLabels, instance.Spec.OpenStackLightspeedNamespace,
 		labelSelector, "https", openStackLightspeedCfgName, "OpenStack Lightspeed",
 		metricstorage.ScrapeConfigOpenStackLightspeed,
 	)
