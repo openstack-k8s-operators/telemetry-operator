@@ -118,6 +118,12 @@ type MetricStorageSpec struct {
 	// TLS - Parameters related to the TLS
 	PrometheusTLS tls.SimpleService `json:"prometheusTls,omitempty"`
 
+	// OpenStackLightspeedNamespace defines the namespace where OpenStack Lightspeed
+	// is deployed. Used for discovering Lightspeed metrics services.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="openstack-lightspeed"
+	OpenStackLightspeedNamespace string `json:"openStackLightspeedNamespace"`
+
 	// TODO: Implement TLS for alertmanager Web UI
 	//       This currently isn't possible because of COO limitations.
 	//       See rh-jira: OSPRH-5177 and COO-44

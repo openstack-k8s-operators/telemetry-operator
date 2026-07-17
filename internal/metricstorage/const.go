@@ -40,8 +40,11 @@ const (
 
 	openStackLightspeedCABundleKey = "service-ca.crt"
 
-	OpenStackLightspeedSAName          = "openstack-lightspeed-metrics"
+	// OpenStackLightspeedSAName is the ServiceAccount used for OpenStack Lightspeed metrics scraping.
+	OpenStackLightspeedSAName = "openstack-lightspeed-metrics"
+	// OpenStackLightspeedTokenSecretName is the Secret holding the SA token for OpenStack Lightspeed metrics.
 	OpenStackLightspeedTokenSecretName = "openstack-lightspeed-metrics-token"
 	openStackLightspeedTokenKey        = "token"
-	OpenStackLightspeedAccessCRName    = "lightspeed-access"
+	// OpenStackLightspeedAccessCRName is the ClusterRole for OpenStack Lightspeed metrics access.
+	OpenStackLightspeedAccessCRName = "lightspeed-access"
 )
