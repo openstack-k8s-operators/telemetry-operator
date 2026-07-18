@@ -47,7 +47,7 @@ func SetupAutoscalingDefaults(defaults AutoscalingDefaults) {
 	autoscalinglog.Info("Autoscaling defaults initialized", "defaults", defaults)
 }
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default sets default values for the Autoscaling spec
 func (r *Autoscaling) Default() {
 	autoscalinglog.Info("default", "name", r.Name)
 
@@ -162,7 +162,7 @@ func (spec *AutoscalingSpecCore) SetDefaultRouteAnnotations(annotations map[stri
 	annotations[haProxyAnno] = timeout
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate validates the Autoscaling resource on creation
 func (r *Autoscaling) ValidateCreate() (admission.Warnings, error) {
 	autoscalinglog.Info("validate create", "name", r.Name)
 

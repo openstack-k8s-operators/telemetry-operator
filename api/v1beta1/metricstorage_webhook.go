@@ -25,7 +25,7 @@ import (
 // log is for logging in this package.
 var metricstoragelog = logf.Log.WithName("metricstorage-resource")
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default sets default values for the MetricStorage spec
 func (r *MetricStorage) Default() {
 	r.Spec.Default()
 }
@@ -85,7 +85,7 @@ func (ps *PersistentStorage) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate validates the MetricStorage resource on creation
 func (r *MetricStorage) ValidateCreate() (admission.Warnings, error) {
 	metricstoragelog.Info("validate create", "name", r.Name)
 
