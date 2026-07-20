@@ -31,6 +31,9 @@
       telemetry-related OpenStack containers listed in ci/files/containers.yaml
       (aodh, ceilometer, cloudkitty, heat, tempest-all). Core OpenStack images
       are not rebuilt.
+    required-projects:
+      - name: opendev.org/openstack/ceilometer
+        override-checkout: master
     vars:
       # Note(Chandan Kumar): image_base is the operator name without -operator.
       # It is needed by openstack-operator to include telemetry operator images
@@ -40,6 +43,11 @@
       cifmw_build_containers_registry_namespace: podified-master-centos10
       zuul_project_container_path: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator/ci/files/containers.yaml"
       cifmw_build_containers_config_file: "{{ ansible_user_dir }}/containers.yaml"
+      cifmw_bop_change_list:
+        - project: "openstack/ceilometer"
+          branch: "master"
+          host: "https://review.opendev.org"
+          src_dir: "{{ zuul.projects['opendev.org/openstack/ceilometer'].src_dir }}"
       cifmw_operator_build_operators:
         - name: telemetry-operator
           src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/telemetry-operator"
