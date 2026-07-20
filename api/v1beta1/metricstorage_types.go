@@ -115,17 +115,14 @@ type MetricStorageSpec struct {
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	// TLS - Parameters related to the TLS
+	// TLS - Parameters related to the Prometheus TLS
 	PrometheusTLS tls.SimpleService `json:"prometheusTls,omitempty"`
-
-	// TODO: Implement TLS for alertmanager Web UI
-	//       This currently isn't possible because of COO limitations.
-	//       See rh-jira: OSPRH-5177 and COO-44
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	// TLS - Parameters related to the TLS
-	// AlertmanagerTLS tls.SimpleService `json:"alertmanagerTls,omitempty"`
+	// TLS - Parameters related to the Alertmanager TLS.
+	// The value of caBundleSecretName is currently ignored.
+	AlertmanagerTLS tls.SimpleService `json:"alertmanagerTls,omitempty"`
 }
 
 // MetricStorageStatus defines the observed state of MetricStorage

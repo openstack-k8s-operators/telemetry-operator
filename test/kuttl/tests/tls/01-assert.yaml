@@ -21,6 +21,11 @@ metadata:
 apiVersion: v1
 kind: Secret
 metadata:
+  name: cert-metric-storage-alertmanager-svc
+---
+apiVersion: v1
+kind: Secret
+metadata:
   name: cert-cloudkitty-internal-svc
 ---
 apiVersion: v1
