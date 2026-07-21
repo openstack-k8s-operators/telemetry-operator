@@ -256,25 +256,25 @@ spec:
     - name: config-reloader
     - name: thanos-sidecar
 ---
-apiVersion: monitoring.rhobs/v1
-kind: Prometheus
+apiVersion: monitoring.rhobs/v1alpha1
+kind: MonitoringStack
 metadata:
   name: telemetry-kuttl-metricstorage
   ownerReferences:
-  - kind: MonitoringStack
+  - kind: MetricStorage
     name: telemetry-kuttl-metricstorage
 spec:
-  web:
-    tlsConfig:
-      cert:
-        secret:
-          key: tls.crt
-          name: cert-metric-storage-prometheus-svc
-      keySecret:
-        key: tls.key
+  prometheusConfig:
+    webTLSConfig:
+      privateKey:
         name: cert-metric-storage-prometheus-svc
-  secrets:
-  - combined-ca-bundle
+        key: tls.key
+      certificate:
+        name: cert-metric-storage-prometheus-svc
+        key: tls.crt
+      certificateAuthority:
+        name: combined-ca-bundle
+        key: tls-ca-bundle.pem
 ---
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
