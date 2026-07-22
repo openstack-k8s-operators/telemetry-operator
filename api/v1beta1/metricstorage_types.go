@@ -115,7 +115,7 @@ type MetricStorageSpec struct {
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	// TLS - Parameters related to the TLS
+	// TLS - Parameters related to the Prometheus TLS
 	PrometheusTLS tls.SimpleService `json:"prometheusTls,omitempty"`
 
 	// OpenStackLightspeedNamespace defines the namespace where OpenStack Lightspeed
@@ -124,19 +124,16 @@ type MetricStorageSpec struct {
 	// +kubebuilder:default="openstack-lightspeed"
 	OpenStackLightspeedNamespace string `json:"openStackLightspeedNamespace"`
 
-	// TODO: Implement TLS for alertmanager Web UI
-	//       This currently isn't possible because of COO limitations.
-	//       See rh-jira: OSPRH-5177 and COO-44
-
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	// TLS - Parameters related to the TLS
-	// AlertmanagerTLS tls.SimpleService `json:"alertmanagerTls,omitempty"`
+	// TLS - Parameters related to the Alertmanager TLS.
+	// The value of caBundleSecretName is currently ignored.
+	AlertmanagerTLS tls.SimpleService `json:"alertmanagerTls,omitempty"`
 }
 
 // MetricStorageStatus defines the observed state of MetricStorage
 type MetricStorageStatus struct {
-	Conditions           condition.Conditions `json:"conditions,omitempty" optional:"true"`
+	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
 	// Deprecated: used only for upgrade migration from the old direct Prometheus CR
 	// TLS patching to the new MonitoringStack WebTLSConfig API. Can be removed once
 	// all deployments have upgraded past this version.
