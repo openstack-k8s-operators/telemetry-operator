@@ -14,6 +14,12 @@
         "perm": "0600"
       },
       {
+        "source": "/var/lib/openstack/config/event_pipeline.yaml",
+        "dest": "/etc/ceilometer/event_pipeline.yaml",
+        "owner": "ceilometer",
+        "perm": "0600"
+      },
+      {
         "source": "/var/lib/openstack/custom-config/*",
         "dest": "/etc/ceilometer/",
         "owner": "ceilometer",
