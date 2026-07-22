@@ -70,14 +70,18 @@ import (
 
 // fields to index to reconcile when change
 const (
-	prometheusCaBundleSecretNameField = ".spec.prometheusTls.caBundleSecretName"
-	prometheusTLSField                = ".spec.prometheusTls.secretName"
+	prometheusCaBundleSecretNameField   = ".spec.prometheusTls.caBundleSecretName"
+	prometheusTLSField                  = ".spec.prometheusTls.secretName"
+	alertmanagerCaBundleSecretNameField = ".spec.alertmanagerTls.caBundleSecretName" //nolint:gosec
+	alertmanagerTLSField                = ".spec.alertmanagerTls.secretName"
 )
 
 var (
-	prometheusAllWatchFields = []string{
+	metricStorageTLSWatchFields = []string{
 		prometheusCaBundleSecretNameField,
 		prometheusTLSField,
+		alertmanagerCaBundleSecretNameField,
+		alertmanagerTLSField,
 	}
 )
 
@@ -400,6 +404,29 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		} else if monitoringStack.Spec.PrometheusConfig != nil {
 			monitoringStack.Spec.PrometheusConfig.WebTLSConfig = nil
 		}
+		if instance.Spec.AlertmanagerTLS.Enabled() {
+			monitoringStack.Spec.AlertmanagerConfig.WebTLSConfig = &obov1.WebTLSConfig{
+				PrivateKey: obov1.SecretKeySelector{
+					Name: *instance.Spec.AlertmanagerTLS.SecretName,
+					Key:  tls.PrivateKey,
+				},
+				Certificate: obov1.SecretKeySelector{
+					Name: *instance.Spec.AlertmanagerTLS.SecretName,
+					Key:  tls.CertKey,
+				},
+				// CertificateAuthority uses the cert secret itself (ca.crt key)
+				// instead of the shared CA bundle because COO has an issue when
+				// Prometheus and Alertmanager reference the same CA bundle secret
+				// name. The exact CA value shouldn't matter, since Alertmanager
+				// doesn't initiate outbound TLS connections at the moment.
+				CertificateAuthority: obov1.SecretKeySelector{
+					Name: *instance.Spec.AlertmanagerTLS.SecretName,
+					Key:  "ca.crt",
+				},
+			}
+		} else {
+			monitoringStack.Spec.AlertmanagerConfig.WebTLSConfig = nil
+		}
 		monitoringStack.Labels = serviceLabels
 		err := controllerutil.SetControllerReference(instance, monitoringStack, r.Scheme)
 		return err
@@ -513,6 +540,57 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			if k8s_errors.IsNotFound(err) {
 				// Since the TLS cert secret should have been automatically created by the encompassing OpenStackControlPlane,
 				// we treat this as an info.
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.TLSInputReadyCondition,
+					condition.RequestedReason,
+					condition.SeverityInfo,
+					condition.TLSInputReadyWaitingMessage, err.Error()))
+				return ctrl.Result{}, nil
+			}
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.TLSInputReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.TLSInputErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Validate the Alertmanager CA cert secret if provided
+	if instance.Spec.AlertmanagerTLS.CaBundleSecretName != "" {
+		_, err := tls.ValidateCACertSecret(
+			ctx,
+			helper.GetClient(),
+			types.NamespacedName{
+				Name:      instance.Spec.AlertmanagerTLS.CaBundleSecretName,
+				Namespace: instance.Namespace,
+			},
+		)
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.TLSInputReadyCondition,
+					condition.ErrorReason,
+					condition.SeverityWarning,
+					condition.TLSInputReadyWaitingMessage, instance.Spec.AlertmanagerTLS.CaBundleSecretName))
+				return ctrl.Result{}, nil
+			}
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.TLSInputReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.TLSInputErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Validate Alertmanager cert secret
+	if instance.Spec.AlertmanagerTLS.Enabled() {
+		_, err := instance.Spec.AlertmanagerTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
 				instance.Status.Conditions.Set(condition.FalseCondition(
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
@@ -1601,6 +1679,29 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}); err != nil {
 		return err
 	}
+
+	// index alertmanagerCaBundleSecretNameField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, alertmanagerCaBundleSecretNameField, func(rawObj client.Object) []string {
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.AlertmanagerTLS.CaBundleSecretName == "" {
+			return nil
+		}
+		return []string{cr.Spec.AlertmanagerTLS.CaBundleSecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index alertmanagerTLSField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, alertmanagerTLSField, func(rawObj client.Object) []string {
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.AlertmanagerTLS.SecretName == nil {
+			return nil
+		}
+		return []string{*cr.Spec.AlertmanagerTLS.SecretName}
+	}); err != nil {
+		return err
+	}
+
 	inventoryPredicator, err := predicate.LabelSelectorPredicate(
 		metav1.LabelSelector{
 			MatchLabels: map[string]string{
@@ -1660,7 +1761,7 @@ func (r *MetricStorageReconciler) findObjectsForSrc(ctx context.Context, src cli
 
 	Log := r.GetLogger(ctx)
 
-	for _, field := range prometheusAllWatchFields {
+	for _, field := range metricStorageTLSWatchFields {
 		crList := &telemetryv1.MetricStorageList{}
 		listOps := &client.ListOptions{
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),

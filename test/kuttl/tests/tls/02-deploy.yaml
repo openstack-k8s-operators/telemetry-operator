@@ -53,6 +53,9 @@ spec:
   prometheusTls:
     caBundleSecretName: combined-ca-bundle
     secretName: cert-metric-storage-prometheus-svc
+  alertmanagerTls:
+    caBundleSecretName: combined-ca-bundle
+    secretName: cert-metric-storage-alertmanager-svc
 ---
 apiVersion: telemetry.openstack.org/v1beta1
 kind: CloudKitty

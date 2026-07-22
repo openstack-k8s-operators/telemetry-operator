@@ -22,6 +22,9 @@ spec:
       - mountPath: /etc/prometheus/secrets/combined-ca-bundle
         name: secret-combined-ca-bundle
         readOnly: true
+      - mountPath: /etc/prometheus/secrets/cert-metric-storage-alertmanager-svc
+        name: secret-cert-metric-storage-alertmanager-svc
+        readOnly: true
       - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-0
         name: prometheus-telemetry-kuttl-metricstorage-rulefiles-0
       - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-1

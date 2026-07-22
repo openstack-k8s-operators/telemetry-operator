@@ -237,6 +237,9 @@ spec:
       - mountPath: /etc/prometheus/secrets/combined-ca-bundle
         name: secret-combined-ca-bundle
         readOnly: true
+      - mountPath: /etc/prometheus/secrets/cert-metric-storage-alertmanager-svc
+        name: secret-cert-metric-storage-alertmanager-svc
+        readOnly: true
       - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-0
         name: prometheus-telemetry-kuttl-metricstorage-rulefiles-0
       - mountPath: /etc/prometheus/rules/prometheus-telemetry-kuttl-metricstorage-rulefiles-1
@@ -264,6 +267,18 @@ metadata:
   - kind: MetricStorage
     name: telemetry-kuttl-metricstorage
 spec:
+  alertmanagerConfig:
+    disabled: false
+    webTLSConfig:
+      privateKey:
+        name: cert-metric-storage-alertmanager-svc
+        key: tls.key
+      certificate:
+        name: cert-metric-storage-alertmanager-svc
+        key: tls.crt
+      certificateAuthority:
+        name: cert-metric-storage-alertmanager-svc
+        key: ca.crt
   prometheusConfig:
     webTLSConfig:
       privateKey:
