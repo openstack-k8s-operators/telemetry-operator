@@ -5,6 +5,8 @@ sources:
       meters:
         - power.state
         - cpu
+        - vcpus
+        - memory
         - memory.usage
         - disk.*
         - network.*
