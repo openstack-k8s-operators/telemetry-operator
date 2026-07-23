@@ -29,6 +29,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -115,6 +116,9 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=ovn.openstack.org,resources=ovnnorthds,verbs=get;list;watch
 //+kubebuilder:rbac:groups=observability.openshift.io,resources=uiplugins,verbs=get;list;watch;create;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
@@ -222,6 +226,20 @@ func (r *MetricStorageReconciler) reconcileDelete(
 
 	if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
 		return res, err
+	}
+
+	crbName := fmt.Sprintf("%s-%s", metricstorage.OpenStackLightspeedAccessCRName, instance.Namespace)
+	crb := &rbacv1.ClusterRoleBinding{}
+	err := r.Get(ctx, types.NamespacedName{Name: crbName}, crb)
+	if err != nil {
+		if !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+	} else {
+		if err := r.Delete(ctx, crb); err != nil && !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+		Log.Info(fmt.Sprintf("Deleted OpenStack Lightspeed ClusterRoleBinding %s", crbName))
 	}
 
 	// Service is deleted so remove the finalizer.
@@ -982,6 +1000,11 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 		return ctrl.Result{}, err
 	}
 
+	err = r.createOpenStackLightspeedScrapeConfig(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// ScrapeConfig for InstanceHA metrics
 	err = r.createInstanceHAScrapeConfig(ctx, instance, helper, serviceLabels)
 	if err != nil {
@@ -1058,17 +1081,19 @@ func (r *MetricStorageReconciler) createServiceScrapeConfigFromLabelSelector(
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
 	serviceLabels map[string]string,
+	targetNamespace string,
 	labelSelector map[string]string,
 	portName string,
 	scrapeConfigName string,
 	description string,
+	scrapeConfigBuilder func(*telemetryv1.MetricStorage, map[string]string, []string) *monv1alpha1.ScrapeConfig,
 ) error {
 	Log := r.GetLogger(ctx)
 
 	// Discover metrics services using label selectors
 	serviceList := &corev1.ServiceList{}
 	listOpts := []client.ListOption{
-		client.InNamespace(instance.Namespace),
+		client.InNamespace(targetNamespace),
 		client.MatchingLabels(labelSelector),
 	}
 	err := helper.GetClient().List(ctx, serviceList, listOpts...)
@@ -1102,20 +1127,19 @@ func (r *MetricStorageReconciler) createServiceScrapeConfigFromLabelSelector(
 		return nil
 	}
 
-	// Create scrape config for metrics
-	desiredScrapeConfig := metricstorage.ScrapeConfig(
-		instance,
-		serviceLabels,
-		targets,
-		instance.Spec.PrometheusTLS.Enabled(),
-	)
-	err = r.createServiceScrapeConfig(ctx, instance, Log, description,
-		scrapeConfigName, desiredScrapeConfig)
-	if err != nil {
-		return err
+	var desiredScrapeConfig *monv1alpha1.ScrapeConfig
+	if scrapeConfigBuilder != nil {
+		desiredScrapeConfig = scrapeConfigBuilder(instance, serviceLabels, targets)
+	} else {
+		desiredScrapeConfig = metricstorage.ScrapeConfig(
+			instance,
+			serviceLabels,
+			targets,
+			instance.Spec.PrometheusTLS.Enabled(),
+		)
 	}
-
-	return nil
+	return r.createServiceScrapeConfig(ctx, instance, Log, description,
+		scrapeConfigName, desiredScrapeConfig)
 }
 
 // createOVNNorthdScrapeConfig creates a scrape configuration for OVN Northd metrics
@@ -1132,8 +1156,8 @@ func (r *MetricStorageReconciler) createOVNNorthdScrapeConfig(
 	}
 	ovnNorthdCfgName := fmt.Sprintf("%s-ovn-northd", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
-		labelSelector, "metrics", ovnNorthdCfgName, "OVN Northd",
+		ctx, instance, helper, serviceLabels, instance.Namespace,
+		labelSelector, "metrics", ovnNorthdCfgName, "OVN Northd", nil,
 	)
 }
 
@@ -1151,8 +1175,8 @@ func (r *MetricStorageReconciler) createOVNControllerScrapeConfig(
 	}
 	ovnControllerCfgName := fmt.Sprintf("%s-ovn-controller", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
-		labelSelector, "metrics", ovnControllerCfgName, "OVN Controller",
+		ctx, instance, helper, serviceLabels, instance.Namespace,
+		labelSelector, "metrics", ovnControllerCfgName, "OVN Controller", nil,
 	)
 }
 
@@ -1170,8 +1194,133 @@ func (r *MetricStorageReconciler) createOVSDBServerNBScrapeConfig(
 	}
 	ovsdbServerNBCfgName := fmt.Sprintf("%s-ovsdbserver-nb", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
-		labelSelector, "metrics", ovsdbServerNBCfgName, "OVS DB server NB",
+		ctx, instance, helper, serviceLabels, instance.Namespace,
+		labelSelector, "metrics", ovsdbServerNBCfgName, "OVS DB server NB", nil,
+	)
+}
+
+// createOpenStackLightspeedScrapeConfig creates a scrape configuration for OpenStack Lightspeed metrics.
+// It creates a ConfigMap with the service.beta.openshift.io/inject-cabundle annotation so that the
+// OpenShift service CA operator populates it with the CA cert used by the Lightspeed serving cert,
+// a ServiceAccount and a bound token Secret for bearer-token authentication, and then creates a
+// ScrapeConfig that references both for TLS verification and authorization.
+func (r *MetricStorageReconciler) createOpenStackLightspeedScrapeConfig(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) error {
+	Log := r.GetLogger(ctx)
+
+	labelSelector := map[string]string{
+		"metrics": "enabled",
+		"service": "lightspeed-app-server",
+	}
+	serviceList := &corev1.ServiceList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(instance.Spec.OpenStackLightspeedNamespace),
+		client.MatchingLabels(labelSelector),
+	}
+	err := helper.GetClient().List(ctx, serviceList, listOpts...)
+	if err != nil {
+		Log.Info(fmt.Sprintf("Cannot get OpenStack Lightspeed metrics services. Scrape configs not created. Error: %s", err))
+		return nil
+	}
+	if len(serviceList.Items) == 0 {
+		Log.Info("No OpenStack Lightspeed metrics services found")
+		return nil
+	}
+
+	caConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metricstorage.OpenStackLightspeedCABundleConfigMapName,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err := controllerutil.CreateOrPatch(ctx, r.Client, caConfigMap, func() error {
+		if caConfigMap.Annotations == nil {
+			caConfigMap.Annotations = map[string]string{}
+		}
+		caConfigMap.Annotations["service.beta.openshift.io/inject-cabundle"] = "true"
+		return controllerutil.SetControllerReference(instance, caConfigMap, r.Scheme)
+	})
+	if err != nil {
+		return err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("OpenStack Lightspeed CA bundle ConfigMap %s successfully changed - operation: %s", caConfigMap.Name, string(op)))
+	}
+
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metricstorage.OpenStackLightspeedSAName,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, sa, func() error {
+		return controllerutil.SetControllerReference(instance, sa, r.Scheme)
+	})
+	if err != nil {
+		return err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("OpenStack Lightspeed metrics ServiceAccount %s successfully changed - operation: %s", sa.Name, string(op)))
+	}
+
+	tokenSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metricstorage.OpenStackLightspeedTokenSecretName,
+			Namespace: instance.Namespace,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, tokenSecret, func() error {
+		tokenSecret.Type = corev1.SecretTypeServiceAccountToken
+		if tokenSecret.Annotations == nil {
+			tokenSecret.Annotations = map[string]string{}
+		}
+		tokenSecret.Annotations["kubernetes.io/service-account.name"] = metricstorage.OpenStackLightspeedSAName
+		return controllerutil.SetControllerReference(instance, tokenSecret, r.Scheme)
+	})
+	if err != nil {
+		return err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("OpenStack Lightspeed metrics token Secret %s successfully changed - operation: %s", tokenSecret.Name, string(op)))
+	}
+
+	crbName := fmt.Sprintf("%s-%s", metricstorage.OpenStackLightspeedAccessCRName, instance.Namespace)
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: crbName,
+		},
+	}
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, crb, func() error {
+		crb.RoleRef = rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     metricstorage.OpenStackLightspeedAccessCRName,
+		}
+		crb.Subjects = []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      metricstorage.OpenStackLightspeedSAName,
+				Namespace: instance.Namespace,
+			},
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if op != controllerutil.OperationResultNone {
+		Log.Info(fmt.Sprintf("OpenStack Lightspeed metrics ClusterRoleBinding %s successfully changed - operation: %s", crb.Name, string(op)))
+	}
+
+	openStackLightspeedCfgName := fmt.Sprintf("%s-openstack-lightspeed", telemetry.ServiceName)
+	return r.createServiceScrapeConfigFromLabelSelector(
+		ctx, instance, helper, serviceLabels, instance.Spec.OpenStackLightspeedNamespace,
+		labelSelector, "https", openStackLightspeedCfgName, "OpenStack Lightspeed",
+		metricstorage.ScrapeConfigOpenStackLightspeed,
 	)
 }
 
@@ -1189,8 +1338,8 @@ func (r *MetricStorageReconciler) createOVSDBServerSBScrapeConfig(
 	}
 	ovsdbServerSBCfgName := fmt.Sprintf("%s-ovsdbserver-sb", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
-		labelSelector, "metrics", ovsdbServerSBCfgName, "OVS DB server SB",
+		ctx, instance, helper, serviceLabels, instance.Namespace,
+		labelSelector, "metrics", ovsdbServerSBCfgName, "OVS DB server SB", nil,
 	)
 }
 
@@ -1208,8 +1357,8 @@ func (r *MetricStorageReconciler) createInstanceHAScrapeConfig(
 	}
 	instancehaCfgName := fmt.Sprintf("%s-instanceha", telemetry.ServiceName)
 	return r.createServiceScrapeConfigFromLabelSelector(
-		ctx, instance, helper, serviceLabels,
-		labelSelector, "metrics", instancehaCfgName, "InstanceHA",
+		ctx, instance, helper, serviceLabels, instance.Namespace,
+		labelSelector, "metrics", instancehaCfgName, "InstanceHA", nil,
 	)
 }
 

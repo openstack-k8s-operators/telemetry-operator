@@ -118,6 +118,12 @@ type MetricStorageSpec struct {
 	// TLS - Parameters related to the Prometheus TLS
 	PrometheusTLS tls.SimpleService `json:"prometheusTls,omitempty"`
 
+	// OpenStackLightspeedNamespace defines the namespace where OpenStack Lightspeed
+	// is deployed. Used for discovering Lightspeed metrics services.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="openstack-lightspeed"
+	OpenStackLightspeedNamespace string `json:"openStackLightspeedNamespace"`
+
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the Alertmanager TLS.
@@ -127,7 +133,7 @@ type MetricStorageSpec struct {
 
 // MetricStorageStatus defines the observed state of MetricStorage
 type MetricStorageStatus struct {
-	Conditions           condition.Conditions `json:"conditions,omitempty" optional:"true"`
+	Conditions condition.Conditions `json:"conditions,omitempty" optional:"true"`
 	// Deprecated: used only for upgrade migration from the old direct Prometheus CR
 	// TLS patching to the new MonitoringStack WebTLSConfig API. Can be removed once
 	// all deployments have upgraded past this version.

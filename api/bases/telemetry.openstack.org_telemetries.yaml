@@ -3261,6 +3261,12 @@ spec:
                       type: string
                     type: array
                     x-kubernetes-list-type: atomic
+                  openStackLightspeedNamespace:
+                    default: openstack-lightspeed
+                    description: |-
+                      OpenStackLightspeedNamespace defines the namespace where OpenStack Lightspeed
+                      is deployed. Used for discovering Lightspeed metrics services.
+                    type: string
                   prometheusTls:
                     description: TLS - Parameters related to the Prometheus TLS
                     properties:
