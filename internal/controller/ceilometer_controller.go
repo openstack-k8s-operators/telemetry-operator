@@ -88,7 +88,6 @@ func (r *CeilometerReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=telemetry.openstack.org,resources=ceilometers/finalizers,verbs=update;patch
-// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete;
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
@@ -107,6 +106,7 @@ func (r *CeilometerReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch
 // service account permissions that are needed to grant permission to the above
 // +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
+// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups=topology.openstack.org,resources=topologies,verbs=get;list;watch;update
 
 // Reconcile reconciles a Ceilometer
@@ -503,7 +503,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 		{
 			APIGroups: []string{""},
 			Resources: []string{"pods"},
-			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
+			Verbs:     []string{"get", "list", "watch"},
 		},
 	}
 

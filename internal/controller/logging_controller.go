@@ -193,11 +193,6 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 			Resources:     []string{"securitycontextconstraints"},
 			Verbs:         []string{"use"},
 		},
-		{
-			APIGroups: []string{""},
-			Resources: []string{"pods"},
-			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
-		},
 	}
 	rbacResult, err := common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
 	if err != nil {
