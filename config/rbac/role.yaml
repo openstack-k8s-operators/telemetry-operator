@@ -322,15 +322,6 @@ rules:
   verbs:
   - use
 - apiGroups:
-  - security.openshift.io
-  resourceNames:
-  - anyuid
-  - privileged
-  resources:
-  - securitycontextconstraints
-  verbs:
-  - use
-- apiGroups:
   - telemetry.openstack.org
   resources:
   - autoscalings
