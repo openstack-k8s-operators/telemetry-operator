@@ -1,0 +1,10 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 300
+commands:
+- script: >
+    oc get secret ceilometer-config-data -n $NAMESPACE -o jsonpath='{.data.polling\.yaml\.j2}' | base64 -d | grep 'manila\.\*'
+- script: >
+    oc get secret ceilometer-config-data -n $NAMESPACE -o jsonpath='{.data.polling\.yaml\.j2}' | base64 -d | grep 'dns\.\*'
+- script: >
+    oc get secret ceilometer-config-data -n $NAMESPACE -o jsonpath='{.data.polling\.yaml\.j2}' | base64 -d | grep 'loadbalancer\.\*'

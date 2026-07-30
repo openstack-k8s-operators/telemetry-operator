@@ -1309,7 +1309,10 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		"TransportURL":        string(transportURLSecret.Data["transport_url"]),
 		"CeilometerPassword":  string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
 		"TLS":                 false, // Default to false. Change to true later if TLS enabled
-		"SwiftRole":           false, //
+		"SwiftRole":           false,
+		"ManilaEnabled":       false,
+		"DesignateEnabled":    false,
+		"OctaviaEnabled":      false,
 		"Timeout":             instance.Spec.APITimeout,
 		"Region":              keystoneAPI.GetRegion(),
 	}
@@ -1353,6 +1356,17 @@ func (r *CeilometerReconciler) generateServiceConfig(
 	// If the Swift user exists, we add it to the polling
 	if r.roleExists(ctx, h, instance, "SwiftSystemReader", h.GetLogger()) {
 		templateParameters["SwiftRole"] = true
+	}
+
+	// If Manila/Designate/Octavia endpoints exist, add their meters to polling
+	if r.endpointExists(ctx, h, "manilav2", instance.Namespace, h.GetLogger()) {
+		templateParameters["ManilaEnabled"] = true
+	}
+	if r.endpointExists(ctx, h, "designate", instance.Namespace, h.GetLogger()) {
+		templateParameters["DesignateEnabled"] = true
+	}
+	if r.endpointExists(ctx, h, "octavia", instance.Namespace, h.GetLogger()) {
+		templateParameters["OctaviaEnabled"] = true
 	}
 
 	// Add NotificationsURL if configured
@@ -1831,17 +1845,6 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		return nil
 	}
 
-	// Reconcile every time a keystoneendpoint is modified
-	keystoneEndpointsWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
-		result := []reconcile.Request{}
-		name := client.ObjectKey{
-			Namespace: o.GetNamespace(),
-			Name:      ceilometer.ServiceName,
-		}
-		result = append(result, reconcile.Request{NamespacedName: name})
-		return result
-	}
-
 	galeraWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
@@ -2017,7 +2020,7 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		).
 		Watches(
 			&keystonev1.KeystoneEndpoint{},
-			handler.EnqueueRequestsFromMapFunc(keystoneEndpointsWatchFn),
+			handler.EnqueueRequestsFromMapFunc(r.findObjectForSrc),
 		).
 		Watches(
 			&mariadbv1.Galera{},
@@ -2095,6 +2098,23 @@ func (r *CeilometerReconciler) findObjectForSrc(ctx context.Context, src client.
 	}
 
 	return requests
+}
+
+func (r *CeilometerReconciler) endpointExists(
+	ctx context.Context,
+	h *helper.Helper,
+	endpointName string,
+	namespace string,
+	log logr.Logger,
+) bool {
+	_, err := keystonev1.GetKeystoneEndpointWithName(ctx, h, endpointName, namespace)
+	if err != nil {
+		if !k8s_errors.IsNotFound(err) {
+			log.Error(err, fmt.Sprintf("Failed to check for KeystoneEndpoint/%s, assuming not present", endpointName))
+		}
+		return false
+	}
+	return true
 }
 
 func (r CeilometerReconciler) roleExists(
