@@ -72,12 +72,14 @@ import (
 const (
 	prometheusCaBundleSecretNameField = ".spec.prometheusTls.caBundleSecretName"
 	prometheusTLSField                = ".spec.prometheusTls.secretName"
+	prometheusClientCertSecretField   = ".spec.prometheusClientCertSecret.secretName"
 )
 
 var (
 	prometheusAllWatchFields = []string{
 		prometheusCaBundleSecretNameField,
 		prometheusTLSField,
+		prometheusClientCertSecretField,
 	}
 )
 
@@ -527,6 +529,27 @@ func (r *MetricStorageReconciler) reconcileNormal(
 				condition.TLSInputErrorMessage,
 				err.Error()))
 			return ctrl.Result{}, err
+		}
+		// Validate Prometheus client cert secret for mTLS if provided
+		if instance.Spec.PrometheusClientCertSecret.Enabled() {
+			_, err := instance.Spec.PrometheusClientCertSecret.ValidateCertSecret(ctx, helper, instance.Namespace)
+			if err != nil {
+				if k8s_errors.IsNotFound(err) {
+					instance.Status.Conditions.Set(condition.FalseCondition(
+						condition.TLSInputReadyCondition,
+						condition.RequestedReason,
+						condition.SeverityInfo,
+						condition.TLSInputReadyWaitingMessage, err.Error()))
+					return ctrl.Result{}, nil
+				}
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.TLSInputReadyCondition,
+					condition.ErrorReason,
+					condition.SeverityWarning,
+					condition.TLSInputErrorMessage,
+					err.Error()))
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
@@ -1601,6 +1624,17 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}); err != nil {
 		return err
 	}
+	// index prometheusClientCertSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, prometheusClientCertSecretField, func(rawObj client.Object) []string {
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.PrometheusClientCertSecret.SecretName == nil {
+			return nil
+		}
+		return []string{*cr.Spec.PrometheusClientCertSecret.SecretName}
+	}); err != nil {
+		return err
+	}
+
 	inventoryPredicator, err := predicate.LabelSelectorPredicate(
 		metav1.LabelSelector{
 			MatchLabels: map[string]string{
