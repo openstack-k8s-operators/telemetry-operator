@@ -118,6 +118,13 @@ type MetricStorageSpec struct {
 	// TLS - Parameters related to the Prometheus TLS
 	PrometheusTLS tls.SimpleService `json:"prometheusTls,omitempty"`
 
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// PrometheusClientCertSecret - Secret containing client cert and key
+	// (tls.crt, tls.key) for Prometheus to present when scraping targets
+	// that require mTLS.
+	PrometheusClientCertSecret tls.GenericService `json:"prometheusClientCertSecret,omitempty"`
+
 	// OpenStackLightspeedNamespace defines the namespace where OpenStack Lightspeed
 	// is deployed. Used for discovering Lightspeed metrics services.
 	// +kubebuilder:validation:Optional

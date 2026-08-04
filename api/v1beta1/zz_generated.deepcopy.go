@@ -1553,6 +1553,7 @@ func (in *MetricStorageSpec) DeepCopyInto(out *MetricStorageSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	in.PrometheusTLS.DeepCopyInto(&out.PrometheusTLS)
+	in.PrometheusClientCertSecret.DeepCopyInto(&out.PrometheusClientCertSecret)
 	in.AlertmanagerTLS.DeepCopyInto(&out.AlertmanagerTLS)
 }
 
