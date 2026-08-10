@@ -35,6 +35,8 @@ spec:
   prometheusTls:
     caBundleSecretName: combined-ca-bundle
     secretName: cert-metric-storage-prometheus-svc
+  prometheusClientCertSecret:
+    secretName: cert-prometheus-client
   alertmanagerTls:
     caBundleSecretName: combined-ca-bundle
     secretName: cert-metric-storage-alertmanager-svc

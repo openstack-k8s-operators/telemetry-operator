@@ -16,6 +16,8 @@ spec:
     prometheusTls:
       caBundleSecretName: combined-ca-bundle
       secretName: cert-metric-storage-prometheus-svc
+    prometheusClientCertSecret:
+      secretName: cert-prometheus-client
   autoscaling:
     enabled: false
     aodh:
