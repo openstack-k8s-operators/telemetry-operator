@@ -11,112 +11,131 @@ spec:
   containers:
     - name: aodh-api
       command:
-        - /bin/bash
+        - /usr/sbin/httpd
       args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - -DFOREGROUND
       volumeMounts:
-        - mountPath: /var/lib/openstack/bin
-          name: scripts
-          readOnly: true
-        - mountPath: /var/lib/openstack/config
+        - mountPath: /etc/aodh/aodh.conf
           name: config-data
           readOnly: true
-        - mountPath: /var/lib/kolla/config_files/config.json
+          subPath: aodh.conf
+        - mountPath: /etc/aodh/aodh.conf.d/01-aodh-custom.conf
           name: config-data
           readOnly: true
-          subPath: aodh-api-config.json
+          subPath: custom.conf
+        - mountPath: /etc/httpd/conf.d/00wsgi-aodh.conf
+          name: config-data
+          readOnly: true
+          subPath: wsgi-aodh.conf
+        - mountPath: /etc/httpd/conf/httpd.conf
+          name: config-data
+          readOnly: true
+          subPath: httpd.conf
+        - mountPath: /etc/httpd/conf.d/ssl.conf
+          name: config-data
+          readOnly: true
+          subPath: ssl.conf
+        - mountPath: /etc/my.cnf
+          name: config-data
+          readOnly: true
+          subPath: my.cnf
+        - mountPath: /run/httpd
+          name: run-httpd
+        - mountPath: /var/log/httpd
+          name: var-log-httpd
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
           subPath: tls-ca-bundle.pem
-        - mountPath: /var/lib/config-data/tls/certs/internal.crt
+        - mountPath: /etc/pki/tls/certs/internal.crt
           name: internal-tls-certs
           readOnly: true
           subPath: tls.crt
-        - mountPath: /var/lib/config-data/tls/private/internal.key
+        - mountPath: /etc/pki/tls/private/internal.key
           name: internal-tls-certs
           readOnly: true
           subPath: tls.key
-        - mountPath: /var/lib/config-data/tls/certs/public.crt
+        - mountPath: /etc/pki/tls/certs/public.crt
           name: public-tls-certs
           readOnly: true
           subPath: tls.crt
-        - mountPath: /var/lib/config-data/tls/private/public.key
+        - mountPath: /etc/pki/tls/private/public.key
           name: public-tls-certs
           readOnly: true
           subPath: tls.key
-        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-          readOnly: true
     - name: aodh-evaluator
       command:
-        - /bin/bash
+        - /usr/bin/aodh-evaluator
       args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --logfile
+        - /dev/stdout
       volumeMounts:
-        - mountPath: /var/lib/openstack/bin
-          name: scripts
-          readOnly: true
-        - mountPath: /var/lib/openstack/config
+        - mountPath: /etc/aodh/aodh.conf
           name: config-data
           readOnly: true
-        - mountPath: /var/lib/kolla/config_files/config.json
+          subPath: aodh.conf
+        - mountPath: /etc/aodh/aodh.conf.d/01-aodh-custom.conf
           name: config-data
           readOnly: true
-          subPath: aodh-evaluator-config.json
+          subPath: custom.conf
+        - mountPath: /etc/openstack/prometheus.yaml
+          name: config-data
+          readOnly: true
+          subPath: prometheus.yaml
+        - mountPath: /etc/my.cnf
+          name: config-data
+          readOnly: true
+          subPath: my.cnf
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
           subPath: tls-ca-bundle.pem
-        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-          readOnly: true
     - name: aodh-notifier
       command:
-        - /bin/bash
+        - /usr/bin/aodh-notifier
       args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --logfile
+        - /dev/stdout
       volumeMounts:
-        - mountPath: /var/lib/openstack/bin
-          name: scripts
-          readOnly: true
-        - mountPath: /var/lib/openstack/config
+        - mountPath: /etc/aodh/aodh.conf
           name: config-data
           readOnly: true
-        - mountPath: /var/lib/kolla/config_files/config.json
+          subPath: aodh.conf
+        - mountPath: /etc/aodh/aodh.conf.d/01-aodh-custom.conf
           name: config-data
           readOnly: true
-          subPath: aodh-notifier-config.json
+          subPath: custom.conf
+        - mountPath: /etc/my.cnf
+          name: config-data
+          readOnly: true
+          subPath: my.cnf
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
           subPath: tls-ca-bundle.pem
-        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-          readOnly: true
     - name: aodh-listener
       command:
-        - /bin/bash
+        - /usr/bin/aodh-listener
       args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --logfile
+        - /dev/stdout
       volumeMounts:
-        - mountPath: /var/lib/openstack/bin
-          name: scripts
-          readOnly: true
-        - mountPath: /var/lib/openstack/config
+        - mountPath: /etc/aodh/aodh.conf
           name: config-data
           readOnly: true
-        - mountPath: /var/lib/kolla/config_files/config.json
+          subPath: aodh.conf
+        - mountPath: /etc/aodh/aodh.conf.d/01-aodh-custom.conf
           name: config-data
           readOnly: true
-          subPath: aodh-listener-config.json
+          subPath: custom.conf
+        - mountPath: /etc/my.cnf
+          name: config-data
+          readOnly: true
+          subPath: my.cnf
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
           subPath: tls-ca-bundle.pem
-        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-          readOnly: true
 ---
 apiVersion: v1
 kind: Pod
@@ -131,57 +150,77 @@ spec:
   containers:
     - name: ceilometer-central-agent
       args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --polling-namespaces
+        - central
+        - --logfile
+        - /dev/stdout
       command:
-        - /bin/bash
+        - /usr/bin/ceilometer-polling
       volumeMounts:
-        - mountPath: /var/lib/openstack/bin
+        - mountPath: /etc/ceilometer/ceilometer.conf
+          name: config-data
+          readOnly: true
+          subPath: ceilometer.conf
+        - mountPath: /etc/ceilometer/polling.yaml
+          name: config-data
+          readOnly: true
+          subPath: polling.yaml.j2
+        - mountPath: /etc/ceilometer/ceilometer.conf.d/01-ceilometer-custom.conf
+          name: config-data
+          readOnly: true
+          subPath: custom.conf
+        - mountPath: /var/lib/openstack/bin/centralhealth.py
           name: scripts
           readOnly: true
-        - mountPath: /var/lib/openstack/config
-          name: config-data
+          subPath: centralhealth.py
+        - mountPath: /var/lib/openstack/bin/notificationhealth.py
+          name: scripts
           readOnly: true
-        - mountPath: /var/lib/kolla/config_files/config.json
-          name: config-data
-          readOnly: true
-          subPath: ceilometer-central-config.json
+          subPath: notificationhealth.py
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
           subPath: tls-ca-bundle.pem
-        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-          readOnly: true
     - name: ceilometer-notification-agent
       args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --logfile
+        - /dev/stdout
       command:
-        - /bin/bash
+        - /usr/bin/ceilometer-agent-notification
       volumeMounts:
-        - mountPath: /var/lib/openstack/bin
+        - mountPath: /etc/ceilometer/ceilometer.conf
+          name: config-data
+          readOnly: true
+          subPath: ceilometer.conf
+        - mountPath: /etc/ceilometer/pipeline.yaml
+          name: config-data
+          readOnly: true
+          subPath: pipeline.yaml
+        - mountPath: /etc/ceilometer/event_pipeline.yaml
+          name: config-data
+          readOnly: true
+          subPath: event_pipeline.yaml
+        - mountPath: /etc/ceilometer/ceilometer.conf.d/01-ceilometer-custom.conf
+          name: config-data
+          readOnly: true
+          subPath: custom.conf
+        - mountPath: /var/lib/openstack/bin/centralhealth.py
           name: scripts
           readOnly: true
-        - mountPath: /var/lib/openstack/config
-          name: config-data
+          subPath: centralhealth.py
+        - mountPath: /var/lib/openstack/bin/notificationhealth.py
+          name: scripts
           readOnly: true
-        - mountPath: /var/lib/kolla/config_files/config.json
-          name: config-data
-          readOnly: true
-          subPath: ceilometer-notification-config.json
+          subPath: notificationhealth.py
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
           subPath: tls-ca-bundle.pem
-        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-          readOnly: true
     - name: sg-core
       volumeMounts:
         - mountPath: /etc/sg-core.conf.yaml
           name: sg-core-conf-yaml
           subPath: sg-core.conf.yaml
-        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-          readOnly: true
     - name: proxy-httpd
       args:
       - -DFOREGROUND
@@ -199,7 +238,7 @@ spec:
         - mountPath: /run/httpd
           name: run-httpd
         - mountPath: /var/log/httpd
-          name: log-httpd
+          name: var-log-httpd
         - mountPath: /etc/pki/tls/certs/tls.crt
           name: ceilometer-tls-certs
           readOnly: true
@@ -212,8 +251,6 @@ spec:
           name: combined-ca-bundle
           readOnly: true
           subPath: tls-ca-bundle.pem
-        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-          readOnly: true
 ---
 apiVersion: v1
 kind: Pod
@@ -485,35 +522,53 @@ spec:
   - name: telemetry-kuttl-cloudkitty-api-log
   - name: cloudkitty-api
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
+    - mountPath: /etc/cloudkitty/metrics.yaml
       name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
-      name: config-data
-      subPath: cloudkitty-api-config.json
-    - mountPath: /var/lib/openstack/loki-certs
+      subPath: metrics.yaml
+    - mountPath: /etc/cloudkitty/certs
       name: certs
-    - mountPath: /var/lib/openstack/service-config/
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/00-cloudkitty.conf
       name: config-data-custom
+      subPath: cloudkitty.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/02-global-custom.conf
+      name: config-data-custom
+      subPath: 02-global-custom.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/03-service-custom.conf
+      name: config-data-custom
+      subPath: 03-service-custom.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/04-service-custom-secrets.conf
+      name: config-data-custom
+      subPath: 04-service-custom-secrets.conf
+    - mountPath: /etc/httpd/conf.d/00wsgi-cloudkitty.conf
+      name: config-data
+      subPath: wsgi-cloudkitty.conf
+    - mountPath: /etc/httpd/conf/httpd.conf
+      name: config-data
+      subPath: httpd.conf
+    - mountPath: /etc/httpd/conf.d/ssl.conf
+      name: config-data
+      subPath: ssl.conf
+    - mountPath: /run/httpd
+      name: run-httpd
+    - mountPath: /var/log/httpd
+      name: var-log-httpd
     - mountPath: /var/log/cloudkitty
       name: logs
     - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
       name: combined-ca-bundle
       subPath: tls-ca-bundle.pem
-    - mountPath: /var/lib/config-data/tls/certs/internal.crt
+    - mountPath: /etc/pki/tls/certs/internal.crt
       name: internal-tls-certs
       subPath: tls.crt
-    - mountPath: /var/lib/config-data/tls/private/internal.key
+    - mountPath: /etc/pki/tls/private/internal.key
       name: internal-tls-certs
       subPath: tls.key
-    - mountPath: /var/lib/config-data/tls/certs/public.crt
+    - mountPath: /etc/pki/tls/certs/public.crt
       name: public-tls-certs
       subPath: tls.crt
-    - mountPath: /var/lib/config-data/tls/private/public.key
+    - mountPath: /etc/pki/tls/private/public.key
       name: public-tls-certs
       subPath: tls.key
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
   hostname: telemetry-kuttl-cloudkitty-api-0
 status:
   containerStatuses:
@@ -538,21 +593,26 @@ spec:
   containers:
   - name: cloudkitty-proc
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
+    - mountPath: /etc/cloudkitty/metrics.yaml
       name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
-      name: config-data
-      subPath: cloudkitty-proc-config.json
-    - mountPath: /var/lib/openstack/loki-certs
+      subPath: metrics.yaml
+    - mountPath: /etc/cloudkitty/certs
       name: certs
-    - mountPath: /var/lib/openstack/service-config/
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/00-cloudkitty.conf
       name: config-data-custom
+      subPath: cloudkitty.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/02-global-custom.conf
+      name: config-data-custom
+      subPath: 02-global-custom.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/03-service-custom.conf
+      name: config-data-custom
+      subPath: 03-service-custom.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/04-service-custom-secrets.conf
+      name: config-data-custom
+      subPath: 04-service-custom-secrets.conf
     - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
       name: combined-ca-bundle
       subPath: tls-ca-bundle.pem
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
   hostname: telemetry-kuttl-cloudkitty-proc-0
 status:
   containerStatuses:

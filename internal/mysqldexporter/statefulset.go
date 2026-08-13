@@ -108,22 +108,21 @@ func StatefulSet(
 		SecurityContext: &corev1.SecurityContext{
 			AllowPrivilegeEscalation: ptr.To(false),
 			Capabilities: &corev1.Capabilities{
-				Drop: []corev1.Capability{
-					"ALL",
-				},
+				Drop: []corev1.Capability{"ALL"},
 			},
 		},
 		VolumeMounts: volumeMounts,
 	}
 
-	pod := corev1.PodTemplateSpec{
+	podTemplate := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ServiceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: instance.RbacResourceName(),
+			ServiceAccountName:           instance.RbacResourceName(),
+			AutomountServiceAccountToken: ptr.To(false),
 			Containers: []corev1.Container{
 				mysqldExporterContainer,
 			},
@@ -138,12 +137,12 @@ func StatefulSet(
 	}
 
 	if topology != nil {
-		topology.ApplyTo(&pod)
+		topology.ApplyTo(&podTemplate)
 	} else {
 		// If possible two pods of the same service should not
 		// run on the same worker node. If this is not possible
 		// the get still created on the same worker node.
-		pod.Spec.Affinity = affinity.DistributePods(
+		podTemplate.Spec.Affinity = affinity.DistributePods(
 			common.AppSelector,
 			[]string{
 				ServiceName,
@@ -164,7 +163,7 @@ func StatefulSet(
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
-			Template: pod,
+			Template: podTemplate,
 		},
 	}
 

@@ -26,12 +26,6 @@ import (
 )
 
 const (
-	// CloudKittyUserID - Kolla's cloudkitty UID comes from the 'cloudkitty-user' in
-	// https://github.com/openstack/kolla/blob/master/kolla/common/users.py
-	CloudKittyUserID = 42408
-	// CloudKittyGroupID - Kolla's cloudkitty GID
-	CloudKittyGroupID = 42408
-
 	// CloudKittyAPIContainerImage - default fall-back image for CloudKitty API
 	CloudKittyAPIContainerImage = "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current"
 	// CloudKittyProcContainerImage - default fall-back image for CloudKitty Processor

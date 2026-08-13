@@ -11,28 +11,44 @@ spec:
   containers:
   - name: ceilometer-central-agent
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
+    - mountPath: /etc/ceilometer/ceilometer.conf
       name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
-      name: config-data
-      subPath: ceilometer-central-config.json
-    - mountPath: /var/lib/openstack/custom-config
+      subPath: ceilometer.conf
+    - mountPath: /etc/ceilometer/polling.yaml
       name: custom-config
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      subPath: polling.yaml
+    - mountPath: /etc/ceilometer/ceilometer.conf.d/01-ceilometer-custom.conf
+      name: config-data
+      subPath: custom.conf
+    - mountPath: /var/lib/openstack/bin/centralhealth.py
+      name: scripts
+      subPath: centralhealth.py
+    - mountPath: /var/lib/openstack/bin/notificationhealth.py
+      name: scripts
+      subPath: notificationhealth.py
   - name: ceilometer-notification-agent
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
+    - mountPath: /etc/ceilometer/ceilometer.conf
       name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
+      subPath: ceilometer.conf
+    - mountPath: /etc/ceilometer/pipeline.yaml
       name: config-data
-      subPath: ceilometer-notification-config.json
-    - mountPath: /var/lib/openstack/custom-config
+      subPath: pipeline.yaml
+    - mountPath: /etc/ceilometer/event_pipeline.yaml
+      name: config-data
+      subPath: event_pipeline.yaml
+    - mountPath: /etc/ceilometer/ceilometer.conf.d/01-ceilometer-custom.conf
+      name: config-data
+      subPath: custom.conf
+    - mountPath: /etc/ceilometer/polling.yaml
       name: custom-config
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      subPath: polling.yaml
+    - mountPath: /var/lib/openstack/bin/centralhealth.py
+      name: scripts
+      subPath: centralhealth.py
+    - mountPath: /var/lib/openstack/bin/notificationhealth.py
+      name: scripts
+      subPath: notificationhealth.py
   - name: sg-core
   - name: proxy-httpd
   volumes:
@@ -51,12 +67,10 @@ spec:
   - emptyDir: {}
     name: run-httpd
   - emptyDir: {}
-    name: log-httpd
+    name: var-log-httpd
   - name: custom-config
     secret:
       secretName: custom-config
-  - projected:
-      defaultMode: 420
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert

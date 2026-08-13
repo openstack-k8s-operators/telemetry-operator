@@ -16,43 +16,32 @@ limitations under the License.
 package autoscaling
 
 import (
+	"github.com/openstack-k8s-operators/lib-common/modules/common/volume"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	"github.com/openstack-k8s-operators/telemetry-operator/internal/utils"
 	corev1 "k8s.io/api/core/v1"
 )
 
 const (
-	scriptVolume = "aodh-scripts"
 	configVolume = "aodh-config-data"
-	logVolume    = "logs"
 )
 
-var (
-	// scriptMode is the default permissions mode for Scripts volume
-	scriptMode int32 = 0740
-	// configMode is the 640 permissions mode
-	configMode int32 = 0640
-)
+var config0440AccessMode int32 = 0440
 
 // getVolumes - service volumes
 func getVolumes(instance *telemetryv1.Autoscaling) []corev1.Volume {
 	vols := []corev1.Volume{
 		{
-			Name: "scripts",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					DefaultMode: &scriptMode,
-					SecretName:  scriptVolume,
-				},
-			},
-		}, {
 			Name: "config-data",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					DefaultMode: &configMode,
+					DefaultMode: &config0440AccessMode,
 					SecretName:  configVolume,
 				},
 			},
 		},
+		volume.WritableDirVolume(volume.RunHttpdVolumeName),
+		volume.WritableDirVolume(volume.VarLogHttpdVolumeName),
 	}
 
 	if instance.Spec.Aodh.CustomConfigsSecretName != "" {
@@ -60,7 +49,7 @@ func getVolumes(instance *telemetryv1.Autoscaling) []corev1.Volume {
 			Name: "custom-config",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					DefaultMode: &configMode,
+					DefaultMode: &config0440AccessMode,
 					SecretName:  instance.Spec.Aodh.CustomConfigsSecretName,
 				},
 			},
@@ -69,34 +58,121 @@ func getVolumes(instance *telemetryv1.Autoscaling) []corev1.Volume {
 	return vols
 }
 
-// getVolumeMounts - general VolumeMounts
-func getVolumeMounts(instance *telemetryv1.Autoscaling, serviceName string) []corev1.VolumeMount {
-	volMounts := []corev1.VolumeMount{
-		{
-			Name:      "scripts",
-			MountPath: "/var/lib/openstack/bin",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data",
-			MountPath: "/var/lib/openstack/config",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data",
-			MountPath: "/var/lib/kolla/config_files/config.json",
-			SubPath:   serviceName + "-config.json",
-			ReadOnly:  true,
-		},
-	}
-	if instance.Spec.Aodh.CustomConfigsSecretName != "" {
-		volMounts = append(volMounts, corev1.VolumeMount{
+func customConfigMounts(customConfigKeys []string) []corev1.VolumeMount {
+	mounts := make([]corev1.VolumeMount, 0, len(customConfigKeys))
+	for _, key := range customConfigKeys {
+		mounts = append(mounts, corev1.VolumeMount{
 			Name:      "custom-config",
-			MountPath: "/var/lib/openstack/custom-config",
+			MountPath: "/etc/aodh/" + key,
+			SubPath:   key,
 			ReadOnly:  true,
 		})
 	}
-	return volMounts
+	return mounts
+}
+
+// getAPIVolumeMounts - aodh-api (httpd) VolumeMounts
+func getAPIVolumeMounts(customConfigKeys []string) []corev1.VolumeMount {
+	vm := []corev1.VolumeMount{
+		{
+			Name:      "config-data",
+			MountPath: "/etc/aodh/aodh.conf",
+			SubPath:   "aodh.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/aodh/aodh.conf.d/01-aodh-custom.conf",
+			SubPath:   "custom.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/httpd/conf.d/00wsgi-aodh.conf",
+			SubPath:   "wsgi-aodh.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/httpd/conf/httpd.conf",
+			SubPath:   "httpd.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/httpd/conf.d/ssl.conf",
+			SubPath:   "ssl.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/my.cnf",
+			SubPath:   "my.cnf",
+			ReadOnly:  true,
+		},
+		volume.WritableDirVolumeMount(volume.RunHttpdVolumeName, volume.RunHttpdMountPath),
+		volume.WritableDirVolumeMount(volume.VarLogHttpdVolumeName, volume.VarLogHttpdMountPath),
+	}
+	// custom-config files override the default file mounted at the same path
+	return utils.MergeCustomConfigMounts(vm, customConfigMounts(customConfigKeys))
+}
+
+// getEvaluatorVolumeMounts - aodh-evaluator VolumeMounts
+func getEvaluatorVolumeMounts(customConfigKeys []string) []corev1.VolumeMount {
+	vm := []corev1.VolumeMount{
+		{
+			Name:      "config-data",
+			MountPath: "/etc/aodh/aodh.conf",
+			SubPath:   "aodh.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/aodh/aodh.conf.d/01-aodh-custom.conf",
+			SubPath:   "custom.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/openstack/prometheus.yaml",
+			SubPath:   "prometheus.yaml",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/my.cnf",
+			SubPath:   "my.cnf",
+			ReadOnly:  true,
+		},
+	}
+	// custom-config files override the default file mounted at the same path
+	return utils.MergeCustomConfigMounts(vm, customConfigMounts(customConfigKeys))
+}
+
+// getWorkerVolumeMounts - aodh-notifier/listener/dbsync VolumeMounts
+func getWorkerVolumeMounts(customConfigKeys []string) []corev1.VolumeMount {
+	vm := []corev1.VolumeMount{
+		{
+			Name:      "config-data",
+			MountPath: "/etc/aodh/aodh.conf",
+			SubPath:   "aodh.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/aodh/aodh.conf.d/01-aodh-custom.conf",
+			SubPath:   "custom.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/my.cnf",
+			SubPath:   "my.cnf",
+			ReadOnly:  true,
+		},
+	}
+	// custom-config files override the default file mounted at the same path
+	return utils.MergeCustomConfigMounts(vm, customConfigMounts(customConfigKeys))
 }
 
 // getCustomPrometheusCaVolume - Volume for CA certificate of user deployed Prometheus

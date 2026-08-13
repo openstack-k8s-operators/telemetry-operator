@@ -47,9 +47,6 @@ const (
 
 	// ACConsumerFinalizer is added to AC secrets that autoscaling (Aodh) is actively consuming
 	ACConsumerFinalizer = "openstack.org/autoscaling-ac-consumer"
-
-	// AodhUserID -
-	AodhUserID = 42402
 )
 
 // PrometheusReplicas -

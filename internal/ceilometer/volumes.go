@@ -16,19 +16,20 @@ limitations under the License.
 package ceilometer
 
 import (
+	"github.com/openstack-k8s-operators/lib-common/modules/common/volume"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
+	"github.com/openstack-k8s-operators/telemetry-operator/internal/utils"
 	corev1 "k8s.io/api/core/v1"
 )
 
 const (
 	scriptVolume = "ceilometer-scripts"
 	configVolume = "ceilometer-config-data"
-	logVolume    = "logs"
 )
 
 var (
-	configMode int32 = 0640
-	scriptMode int32 = 0740
+	config0440AccessMode int32 = 0440
+	script0550AccessMode int32 = 0550
 )
 
 func getVolumes(instance *telemetryv1.Ceilometer) []corev1.Volume {
@@ -37,7 +38,7 @@ func getVolumes(instance *telemetryv1.Ceilometer) []corev1.Volume {
 			Name: "scripts",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					DefaultMode: &scriptMode,
+					DefaultMode: &script0550AccessMode,
 					SecretName:  scriptVolume,
 				},
 			},
@@ -45,7 +46,7 @@ func getVolumes(instance *telemetryv1.Ceilometer) []corev1.Volume {
 			Name: "config-data",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					DefaultMode: &configMode,
+					DefaultMode: &config0440AccessMode,
 					SecretName:  configVolume,
 				},
 			},
@@ -53,7 +54,7 @@ func getVolumes(instance *telemetryv1.Ceilometer) []corev1.Volume {
 			Name: "sg-core-conf-yaml",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					DefaultMode: &configMode,
+					DefaultMode: &config0440AccessMode,
 					Items: []corev1.KeyToPath{{
 						Key:  "sg-core.conf.yaml",
 						Path: "sg-core.conf.yaml",
@@ -62,18 +63,8 @@ func getVolumes(instance *telemetryv1.Ceilometer) []corev1.Volume {
 				},
 			},
 		},
-		{
-			Name: "run-httpd",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
-			},
-		},
-		{
-			Name: "log-httpd",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
-			},
-		},
+		volume.WritableDirVolume(volume.RunHttpdVolumeName),
+		volume.WritableDirVolume(volume.VarLogHttpdVolumeName),
 	}
 
 	if instance.Spec.CustomConfigsSecretName != "" {
@@ -81,7 +72,7 @@ func getVolumes(instance *telemetryv1.Ceilometer) []corev1.Volume {
 			Name: "custom-config",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					DefaultMode: &configMode,
+					DefaultMode: &config0440AccessMode,
 					SecretName:  instance.Spec.CustomConfigsSecretName,
 				},
 			},
@@ -90,37 +81,77 @@ func getVolumes(instance *telemetryv1.Ceilometer) []corev1.Volume {
 	return vols
 }
 
-// getVolumeMounts - general VolumeMounts
-func getVolumeMounts(instance *telemetryv1.Ceilometer, serviceName string) []corev1.VolumeMount {
-	volMounts := []corev1.VolumeMount{
-		{
-			Name:      "scripts",
-			MountPath: "/var/lib/openstack/bin",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data",
-			MountPath: "/var/lib/openstack/config",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data",
-			MountPath: "/var/lib/kolla/config_files/config.json",
-			SubPath:   serviceName + "-config.json",
-			ReadOnly:  true,
-		},
-	}
-	if instance.Spec.CustomConfigsSecretName != "" {
-		volMounts = append(volMounts, corev1.VolumeMount{
+func customConfigMounts(customConfigKeys []string) []corev1.VolumeMount {
+	mounts := make([]corev1.VolumeMount, 0, len(customConfigKeys))
+	for _, key := range customConfigKeys {
+		mounts = append(mounts, corev1.VolumeMount{
 			Name:      "custom-config",
-			MountPath: "/var/lib/openstack/custom-config",
+			MountPath: "/etc/ceilometer/" + key,
+			SubPath:   key,
 			ReadOnly:  true,
 		})
 	}
-	return volMounts
+	return mounts
 }
 
-// getSgCoreVolumeMounts - VolumeMounts for SGCore container
+// getCentralVolumeMounts - ceilometer-central VolumeMounts
+func getCentralVolumeMounts(customConfigKeys []string) []corev1.VolumeMount {
+	vm := []corev1.VolumeMount{
+		{
+			Name:      "config-data",
+			MountPath: "/etc/ceilometer/ceilometer.conf",
+			SubPath:   "ceilometer.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/ceilometer/polling.yaml",
+			SubPath:   "polling.yaml.j2",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/ceilometer/ceilometer.conf.d/01-ceilometer-custom.conf",
+			SubPath:   "custom.conf",
+			ReadOnly:  true,
+		},
+	}
+	// custom-config files override the default file mounted at the same path
+	return utils.MergeCustomConfigMounts(vm, customConfigMounts(customConfigKeys))
+}
+
+// getNotificationVolumeMounts - ceilometer-notification VolumeMounts
+func getNotificationVolumeMounts(customConfigKeys []string) []corev1.VolumeMount {
+	vm := []corev1.VolumeMount{
+		{
+			Name:      "config-data",
+			MountPath: "/etc/ceilometer/ceilometer.conf",
+			SubPath:   "ceilometer.conf",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/ceilometer/pipeline.yaml",
+			SubPath:   "pipeline.yaml",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/ceilometer/event_pipeline.yaml",
+			SubPath:   "event_pipeline.yaml",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/ceilometer/ceilometer.conf.d/01-ceilometer-custom.conf",
+			SubPath:   "custom.conf",
+			ReadOnly:  true,
+		},
+	}
+	// custom-config files override the default file mounted at the same path
+	return utils.MergeCustomConfigMounts(vm, customConfigMounts(customConfigKeys))
+}
+
 func getSgCoreVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
@@ -131,7 +162,6 @@ func getSgCoreVolumeMounts() []corev1.VolumeMount {
 	}
 }
 
-// getHttpdVolumeMounts - Returns the VolumeMounts used by the httpd sidecar
 func getHttpdVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
@@ -146,15 +176,25 @@ func getHttpdVolumeMounts() []corev1.VolumeMount {
 			SubPath:   "ssl.conf",
 			ReadOnly:  true,
 		},
+		volume.WritableDirVolumeMount(volume.RunHttpdVolumeName, volume.RunHttpdMountPath),
+		volume.WritableDirVolumeMount(volume.VarLogHttpdVolumeName, volume.VarLogHttpdMountPath),
+	}
+}
+
+// getHealthCheckVolumeMounts - health check script SubPath mounts for central and notification agents
+func getHealthCheckVolumeMounts() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
 		{
-			Name:      "run-httpd",
-			MountPath: "/run/httpd",
-			ReadOnly:  false,
+			Name:      "scripts",
+			MountPath: CentralHCScript,
+			SubPath:   "centralhealth.py",
+			ReadOnly:  true,
 		},
 		{
-			Name:      "log-httpd",
-			MountPath: "/var/log/httpd",
-			ReadOnly:  false,
+			Name:      "scripts",
+			MountPath: NotificationHCScript,
+			SubPath:   "notificationhealth.py",
+			ReadOnly:  true,
 		},
 	}
 }

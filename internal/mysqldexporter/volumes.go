@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	configMode int32 = 0640
+	configMode int32 = 0440
 )
 
 func getVolumes() []corev1.Volume {

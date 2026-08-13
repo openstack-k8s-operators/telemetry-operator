@@ -14,26 +14,39 @@ spec:
   - name: telemetry-kuttl-cloudkitty-api-log
   - name: cloudkitty-api
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
-      name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
-      name: config-data
-      subPath: cloudkitty-api-config.json
-    - mountPath: /var/lib/openstack/loki-certs
+    - mountPath: /etc/cloudkitty/metrics.yaml
+      name: custom-config
+      subPath: metrics.yaml
+    - mountPath: /etc/cloudkitty/certs
       name: certs
-    - mountPath: /var/lib/openstack/service-config/
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/00-cloudkitty.conf
       name: config-data-custom
+      subPath: cloudkitty.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/02-global-custom.conf
+      name: config-data-custom
+      subPath: 02-global-custom.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/03-service-custom.conf
+      name: config-data-custom
+      subPath: 03-service-custom.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/04-service-custom-secrets.conf
+      name: config-data-custom
+      subPath: 04-service-custom-secrets.conf
+    - mountPath: /etc/httpd/conf.d/00wsgi-cloudkitty.conf
+      name: config-data
+      subPath: wsgi-cloudkitty.conf
+    - mountPath: /etc/httpd/conf/httpd.conf
+      name: config-data
+      subPath: httpd.conf
+    - mountPath: /etc/httpd/conf.d/ssl.conf
+      name: config-data
+      subPath: ssl.conf
+    - mountPath: /run/httpd
+      name: run-httpd
+    - mountPath: /var/log/httpd
+      name: var-log-httpd
     - mountPath: /var/log/cloudkitty
       name: logs
-    - mountPath: /var/lib/openstack/custom-config
-      name: custom-config
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
   volumes:
-  - name: scripts
-    secret:
-      secretName: telemetry-kuttl-cloudkitty-scripts
   - name: config-data
     secret:
       secretName: telemetry-kuttl-cloudkitty-config-data
@@ -49,11 +62,13 @@ spec:
       secretName: telemetry-kuttl-cloudkitty-api-config-data
   - emptyDir: {}
     name: logs
+  - emptyDir: {}
+    name: run-httpd
+  - emptyDir: {}
+    name: var-log-httpd
   - name: custom-config
     secret:
       secretName: custom-config
-  - projected:
-      defaultMode: 420
 ---
 apiVersion: v1
 kind: Pod
@@ -69,24 +84,24 @@ spec:
   containers:
   - name: cloudkitty-proc
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
-      name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
-      name: config-data
-      subPath: cloudkitty-proc-config.json
-    - mountPath: /var/lib/openstack/loki-certs
-      name: certs
-    - mountPath: /var/lib/openstack/service-config/
-      name: config-data-custom
-    - mountPath: /var/lib/openstack/custom-config
+    - mountPath: /etc/cloudkitty/metrics.yaml
       name: custom-config
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      subPath: metrics.yaml
+    - mountPath: /etc/cloudkitty/certs
+      name: certs
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/00-cloudkitty.conf
+      name: config-data-custom
+      subPath: cloudkitty.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/02-global-custom.conf
+      name: config-data-custom
+      subPath: 02-global-custom.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/03-service-custom.conf
+      name: config-data-custom
+      subPath: 03-service-custom.conf
+    - mountPath: /etc/cloudkitty/cloudkitty.conf.d/04-service-custom-secrets.conf
+      name: config-data-custom
+      subPath: 04-service-custom-secrets.conf
   volumes:
-  - name: scripts
-    secret:
-      secretName: telemetry-kuttl-cloudkitty-scripts
   - name: config-data
     secret:
       secretName: telemetry-kuttl-cloudkitty-config-data
@@ -103,8 +118,6 @@ spec:
   - name: custom-config
     secret:
       secretName: custom-config
-  - projected:
-      defaultMode: 420
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert

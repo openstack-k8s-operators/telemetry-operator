@@ -8,30 +8,30 @@ metadata:
   - kind: StatefulSet
     name: aodh
 spec:
+  automountServiceAccountToken: false
   containers:
   - args:
-    - -c
-    - /usr/local/bin/kolla_start
+    - -DFOREGROUND
     command:
-    - /bin/bash
+    - /usr/sbin/httpd
     name: aodh-api
   - args:
-    - -c
-    - /usr/local/bin/kolla_start
+    - --logfile
+    - /dev/stdout
     command:
-    - /bin/bash
+    - /usr/bin/aodh-evaluator
     name: aodh-evaluator
   - args:
-    - -c
-    - /usr/local/bin/kolla_start
+    - --logfile
+    - /dev/stdout
     command:
-    - /bin/bash
+    - /usr/bin/aodh-notifier
     name: aodh-notifier
   - args:
-    - -c
-    - /usr/local/bin/kolla_start
+    - --logfile
+    - /dev/stdout
     command:
-    - /bin/bash
+    - /usr/bin/aodh-listener
     name: aodh-listener
   hostname: aodh-0
 status:
@@ -65,30 +65,30 @@ spec:
       service: aodh
   template:
     spec:
+      automountServiceAccountToken: false
       containers:
       - args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - -DFOREGROUND
         command:
-        - /bin/bash
+        - /usr/sbin/httpd
         name: aodh-api
       - args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --logfile
+        - /dev/stdout
         command:
-        - /bin/bash
+        - /usr/bin/aodh-evaluator
         name: aodh-evaluator
       - args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --logfile
+        - /dev/stdout
         command:
-        - /bin/bash
+        - /usr/bin/aodh-notifier
         name: aodh-notifier
       - args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --logfile
+        - /dev/stdout
         command:
-        - /bin/bash
+        - /usr/bin/aodh-listener
         name: aodh-listener
 status:
   availableReplicas: 1

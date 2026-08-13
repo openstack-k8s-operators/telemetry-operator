@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"sort"
 	"strconv"
 	"time"
 
@@ -110,7 +111,7 @@ func (r *AutoscalingReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch
 // service account permissions that are needed to grant permission to the above
-// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
+// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=nonroot-v2,resources=securitycontextconstraints,verbs=use
 // +kubebuilder:rbac:groups=topology.openstack.org,resources=topologies,verbs=get;list;watch;update
 
 // Reconcile reconciles an Autoscaling
@@ -317,7 +318,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	rbacRules := []rbacv1.PolicyRule{
 		{
 			APIGroups:     []string{"security.openshift.io"},
-			ResourceNames: []string{"anyuid"},
+			ResourceNames: []string{"nonroot-v2"},
 			Resources:     []string{"securitycontextconstraints"},
 			Verbs:         []string{"use"},
 		},
@@ -680,12 +681,17 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	//
 	// check for custom configs secret holding custom configuration files
 	//
+	var customConfigKeys []string
 	if instance.Spec.Aodh.CustomConfigsSecretName != "" {
-		_, hash, err := secret.GetSecret(ctx, helper, instance.Spec.Aodh.CustomConfigsSecretName, instance.Namespace)
+		customConfigsSecret, hash, err := secret.GetSecret(ctx, helper, instance.Spec.Aodh.CustomConfigsSecretName, instance.Namespace)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 		configMapVars["custom-configs-secret"] = env.SetValue(hash)
+		for key := range customConfigsSecret.Data {
+			customConfigKeys = append(customConfigKeys, key)
+		}
+		sort.Strings(customConfigKeys)
 	}
 	// run check custom configs secret - end
 
@@ -906,16 +912,6 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	}
 
 	cms := []util.Template{
-		// ScriptsSecret
-		{
-			Name:               fmt.Sprintf("%s-scripts", autoscaling.ServiceName),
-			Namespace:          instance.Namespace,
-			Type:               util.TemplateTypeScripts,
-			InstanceType:       instance.Kind,
-			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
-			Labels:             cmLabels,
-		},
-		// Secret
 		{
 			Name:            fmt.Sprintf("%s-config-data", autoscaling.ServiceName),
 			Namespace:       instance.Namespace,

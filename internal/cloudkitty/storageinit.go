@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package cloudkitty provides CloudKitty service configuration and management utilities
 package cloudkitty
 
 import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/pod"
+	"github.com/openstack-k8s-operators/lib-common/modules/users"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,35 +27,32 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-const (
-	// storageInitCommand -
-	// TODO: Once we work on update/upgrades revisit the command in the
-	//       the cloudkitty-storageinit-config.json file.
-	//       If we stop all services during the update/upgrade then we can keep
-	//       the --bump-versions flag.
-	//       If we are doing rolling upgrades we'll need to use the flag
-	//       conditionally (only for adoption) and do the restart cycle of
-	//       services as described in the upstream rolling upgrades process.
-	storageInitCommand = "/usr/local/bin/kolla_start"
-)
-
 // StorageInitJob func
+// TODO: Once we work on update/upgrades revisit the command.
+//
+//	If we stop all services during the update/upgrade then we can keep
+//	the --bump-versions flag.
+//	If we are doing rolling upgrades we'll need to use the flag
+//	conditionally (only for adoption) and do the restart cycle of
+//	services as described in the upstream rolling upgrades process.
 func StorageInitJob(instance *telemetryv1.CloudKitty, labels map[string]string, annotations map[string]string) *batchv1.Job {
-	args := []string{"-c", storageInitCommand}
-
 	// create Volume and VolumeMounts
-	volumes := GetVolumes(instance.Name)
-	volumeMounts := GetVolumeMounts("cloudkitty-storageinit")
+	volumes := GetJobVolumes(instance.Name)
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "config-data",
+			MountPath: "/etc/cloudkitty/cloudkitty.conf",
+			SubPath:   DefaultsConfigFileName,
+			ReadOnly:  true,
+		},
+	}
 	// add CA cert if defined
 	if instance.Spec.CloudKittyAPI.TLS.CaBundleSecretName != "" {
 		volumes = append(volumes, instance.Spec.CloudKittyAPI.TLS.CreateVolume())
 		volumeMounts = append(volumeMounts, instance.Spec.CloudKittyAPI.TLS.CreateVolumeMounts(nil)...)
 	}
 
-	runAsUser := int64(CloudKittyUserID)
 	envVars := map[string]env.Setter{}
-	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
-	envVars["KOLLA_BOOTSTRAP"] = env.SetValue("TRUE")
 	cloudKittyPassword := []corev1.EnvVar{
 		{
 			Name: "CloudKittyPassword",
@@ -81,22 +79,18 @@ func StorageInitJob(instance *telemetryv1.CloudKitty, labels map[string]string, 
 					Annotations: annotations,
 				},
 				Spec: corev1.PodSpec{
-					RestartPolicy:      corev1.RestartPolicyOnFailure,
-					ServiceAccountName: instance.RbacResourceName(),
+					RestartPolicy:                corev1.RestartPolicyOnFailure,
+					ServiceAccountName:           instance.RbacResourceName(),
+					AutomountServiceAccountToken: ptr.To(false),
+					SecurityContext:              pod.RestrictivePodSecurityContext(users.CloudkittyUID, users.CloudkittyGID),
 					Containers: []corev1.Container{
 						{
-							Name: ServiceName + "-storageinit",
-							Command: []string{
-								"/bin/bash",
-							},
-							Args:  args,
-							Image: instance.Spec.CloudKittyAPI.ContainerImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser:    &runAsUser,
-								RunAsNonRoot: ptr.To(true),
-							},
-							Env:          env.MergeEnvs(cloudKittyPassword, envVars),
-							VolumeMounts: volumeMounts,
+							Name:            ServiceName + "-storageinit",
+							Command:         []string{"/usr/bin/cloudkitty-storage-init"},
+							Image:           instance.Spec.CloudKittyAPI.ContainerImage,
+							SecurityContext: pod.RestrictiveSecurityContext(users.CloudkittyUID, users.CloudkittyGID),
+							Env:             env.MergeEnvs(cloudKittyPassword, envVars),
+							VolumeMounts:    volumeMounts,
 						},
 					},
 					Volumes: volumes,
