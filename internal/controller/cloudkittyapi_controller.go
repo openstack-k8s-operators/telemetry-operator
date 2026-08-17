@@ -77,8 +77,9 @@ func (r *CloudKittyAPIReconciler) GetScheme() *runtime.Scheme {
 // CloudKittyAPIReconciler reconciles a CloudKittyAPI object
 type CloudKittyAPIReconciler struct {
 	client.Client
-	Kclient kubernetes.Interface
-	Scheme  *runtime.Scheme
+	Kclient   kubernetes.Interface
+	Scheme    *runtime.Scheme
+	APIReader client.Reader
 }
 
 // GetLogger returns a logger object with a logging prefix of "controller.name" and additional controller context fields
@@ -1017,7 +1018,7 @@ func (r *CloudKittyAPIReconciler) reconcileNormal(ctx context.Context, instance 
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
 	//
-	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configVars)
+	inputHash, _, err := r.createHashOfInputHashes(ctx, instance, configVars)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -1026,16 +1027,6 @@ func (r *CloudKittyAPIReconciler) reconcileNormal(ctx context.Context, instance 
 			condition.ServiceConfigReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, err
-	} else if hashChanged {
-		Log.Info(fmt.Sprintf("%s... requeueing", condition.ServiceConfigReadyInitMessage))
-		instance.Status.Conditions.MarkFalse(
-			condition.ServiceConfigReadyCondition,
-			condition.InitReason,
-			condition.SeverityInfo,
-			condition.ServiceConfigReadyInitMessage)
-		// Hash changed and instance status should be updated (which will be done by main defer func),
-		// so we need to return and reconcile again
-		return ctrl.Result{}, nil
 	}
 
 	// Deploy a statefulset
@@ -1130,9 +1121,19 @@ func (r *CloudKittyAPIReconciler) reconcileNormal(ctx context.Context, instance 
 		return ctrl.Result{}, err
 	}
 
-	if instance.Status.ReadyCount > 0 {
+	expectedHash := instance.GetAnnotations()["openstack.org/input-secret-hash"]
+	ready := false
+	if statefulset.IsReady(ss.GetStatefulSet()) {
+		ready, err = statefulset.IsReadyForInput(ctx, r.APIReader,
+			types.NamespacedName{Name: ssData.Name, Namespace: ssData.Namespace},
+			inputHash)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+	if ready {
 		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
-
+		instance.Status.AppliedInputSecretHash = expectedHash
 	} else if *instance.Spec.Replicas > 0 {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
