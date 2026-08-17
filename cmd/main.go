@@ -284,17 +284,19 @@ func main() {
 		os.Exit(1)
 	}
 	if err := (&controller.CeilometerReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Kclient: kclient,
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Kclient:   kclient,
+		APIReader: mgr.GetAPIReader(),
 	}).SetupWithManager(context.Background(), mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Ceilometer")
 		os.Exit(1)
 	}
 	if err := (&controller.AutoscalingReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Kclient: kclient,
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Kclient:   kclient,
+		APIReader: mgr.GetAPIReader(),
 	}).SetupWithManager(context.Background(), mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Autoscaling")
 		os.Exit(1)
@@ -318,17 +320,19 @@ func main() {
 		os.Exit(1)
 	}
 	if err := (&controller.CloudKittyAPIReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Kclient: kclient,
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Kclient:   kclient,
+		APIReader: mgr.GetAPIReader(),
 	}).SetupWithManager(context.Background(), mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudKittyApi")
 		os.Exit(1)
 	}
 	if err := (&controller.CloudKittyProcReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Kclient: kclient,
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Kclient:   kclient,
+		APIReader: mgr.GetAPIReader(),
 	}).SetupWithManager(context.Background(), mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudKittyProc")
 		os.Exit(1)
@@ -337,6 +341,7 @@ func main() {
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		Kclient:    kclient,
+		APIReader:  mgr.GetAPIReader(),
 		RESTMapper: mgr.GetRESTMapper(),
 		Cache:      mgr.GetCache(),
 	}).SetupWithManager(mgr); err != nil {
