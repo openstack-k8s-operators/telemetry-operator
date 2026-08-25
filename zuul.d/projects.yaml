@@ -99,7 +99,7 @@
       # Override zuul meta content provider provided content_provider_dlrn_md5_hash
       # var. As returned dlrn md5 hash comes from master release but job is using
       # antelope content.
-      content_provider_dlrn_md5_hash: ''
+      content_provider_dlrn_md5_hash: ""
 
     vars:
       cifmw_update_containers: false
@@ -186,6 +186,32 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
     irrelevant-files: *irrelevant_files
 
+- job:
+    name: s2i-deployment-test-telemetry
+    parent: functional-tests-osp18
+    description: |
+      Validate s2i telemetry service images (aodh, ceilometer central/compute)
+      s2i-built images from the content provider are applied to
+      OpenStackVersion before the control plane is deployed, then tempest
+      and feature-verification-tests exercise the consolidated ceilometer
+      agents (central, notification, compute, ipmi).
+    required-projects:
+      - name: openstack-k8s-operators/s2i-openstack-containers
+        override-checkout: main
+      - name: infrawatch/feature-verification-tests
+        override-checkout: master
+    vars:
+      cifmw_crc_additional_insecure_registries:
+        - "{{ s2i_content_provider_registry_ip }}:5001"
+      cifmw_crc_additional_allowed_registries:
+        - "{{ s2i_content_provider_registry_ip }}:5001"
+      cifmw_set_containers_preserve_unlisted: true
+      cifmw_set_containers_images: >-
+        {{ s2i_content_provider_os_custom_container_images |
+           dict2items |
+           json_query('[].{name: key, full_registry: value}') }}
+    irrelevant-files: *irrelevant_files
+
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
@@ -232,6 +258,20 @@
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
         - telemetry-operator-multinode-default-telemetry
+        ### s2i
+        - s2i-openstack-container-content-provider:
+            voting: false
+            vars:
+              s2i_ci_images:
+                - aodh/aodh-api
+                - ceilometer/ceilometer-central
+                - ceilometer/ceilometer-compute
+        - s2i-deployment-test-telemetry:
+            voting: false
+            dependencies:
+              - openstack-k8s-operators-content-provider
+              - s2i-openstack-container-content-provider
+        ### end s2i
         - functional-audit-logging-tests-osp18
         - functional-tests-osp18: &fvt_jobs_config
             voting: true
