@@ -42,6 +42,7 @@ type ConditionalWatchingReconciler struct {
 	client.Client
 	Kclient    kubernetes.Interface
 	Scheme     *runtime.Scheme
+	APIReader  client.Reader
 	Controller controller.Controller
 	Watching   []string
 	RESTMapper meta.RESTMapper

@@ -24,6 +24,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -360,12 +361,28 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		return ctrl.Result{}, err
 	}
 
-	if sfset.GetStatefulSet().Generation == sfset.GetStatefulSet().Status.ObservedGeneration {
-		instance.Status.ReadyCount = sfset.GetStatefulSet().Status.ReadyReplicas
-		if instance.Status.ReadyCount > 0 {
+	ssData := sfset.GetStatefulSet()
+	if ssData.Generation == ssData.Status.ObservedGeneration {
+		instance.Status.ReadyCount = ssData.Status.ReadyReplicas
+		ready := false
+		if statefulset.IsReady(ssData) {
+			ready, err = statefulset.IsReadyForInput(ctx, r.APIReader,
+				types.NamespacedName{Name: ssData.Name, Namespace: ssData.Namespace},
+				inputHash)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		if ready {
 			instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
 		}
 		instance.Status.Networks = instance.Spec.Aodh.NetworkAttachmentDefinitions
+	} else {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DeploymentReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.DeploymentReadyRunningMessage))
 	}
 
 	//

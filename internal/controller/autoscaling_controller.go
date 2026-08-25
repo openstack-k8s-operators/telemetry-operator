@@ -52,6 +52,7 @@ import (
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/object"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
@@ -68,17 +69,15 @@ import (
 	autoscaling "github.com/openstack-k8s-operators/telemetry-operator/internal/autoscaling"
 )
 
-// ErrNotificationsURLSecretNotSet is returned when NotificationsURLSecret is not set in the instance status
-var ErrNotificationsURLSecretNotSet = errors.New("NotificationsURLSecret is not set")
-
 // ErrRabbitMQConfigNil is returned when rabbitmqConfig parameter is nil
 var ErrRabbitMQConfigNil = errors.New("rabbitmqConfig is nil - NotificationsBus must be configured")
 
 // AutoscalingReconciler reconciles a Autoscaling object
 type AutoscalingReconciler struct {
 	client.Client
-	Kclient kubernetes.Interface
-	Scheme  *runtime.Scheme
+	Kclient   kubernetes.Interface
+	Scheme    *runtime.Scheme
+	APIReader client.Reader
 }
 
 // GetLogger returns a logger object with a prefix of "conroller.name" and aditional controller context fields
@@ -275,11 +274,36 @@ func (r *AutoscalingReconciler) reconcileDelete(
 		instance.Status.ApplicationCredentialSecret,
 		instance.Spec.Aodh.Auth.ApplicationCredentialSecret,
 	} {
-		if err := keystonev1.RemoveACSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+		if err := object.RemoveSecretConsumerFinalizer(ctx, helper, instance.Namespace,
 			secretName, autoscaling.ACConsumerFinalizer); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
+	// Collect transport secret names from all sources to handle mid-rotation
+	// deletes. Status holds the old secret; the live TransportURL CR holds
+	// the new one. We must remove the consumer finalizer from both.
+	transportSecrets := map[string]struct{}{}
+	if instance.Status.NotificationsURLSecret != nil && *instance.Status.NotificationsURLSecret != "" {
+		transportSecrets[*instance.Status.NotificationsURLSecret] = struct{}{}
+	}
+	notifTransportURL := &rabbitmqv1.TransportURL{}
+	err = helper.GetClient().Get(ctx, types.NamespacedName{
+		Name:      fmt.Sprintf("%s-notifications-transport", autoscaling.ServiceName),
+		Namespace: instance.Namespace,
+	}, notifTransportURL)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	if err == nil && notifTransportURL.Status.SecretName != "" {
+		transportSecrets[notifTransportURL.Status.SecretName] = struct{}{}
+	}
+	for secretName := range transportSecrets {
+		if err := object.RemoveSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+			secretName, telemetryv1.TelemetryTransportConsumerFinalizer); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", autoscaling.ServiceName))
@@ -333,9 +357,8 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// secret. Old secret finalizer removal is deferred until all
 	// sub-conditions are true (see late phase below).
 	if instance.Spec.Aodh.Auth.ApplicationCredentialSecret != "" {
-		if err := keystonev1.ManageACSecretFinalizer(ctx, helper, instance.Namespace,
+		if err := object.ManageSecretConsumerFinalizer(ctx, helper, instance.Namespace,
 			instance.Spec.Aodh.Auth.ApplicationCredentialSecret,
-			"",
 			autoscaling.ACConsumerFinalizer); err != nil {
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				condition.ServiceConfigReadyCondition,
@@ -371,9 +394,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		Log.Info(fmt.Sprintf("NotificationBusInstanceURL %s successfully reconciled - operation: %s", notificationBusInstanceURL.Name, string(op)))
 	}
 
-	instance.Status.NotificationsURLSecret = &notificationBusInstanceURL.Status.SecretName
-
-	if instance.Status.NotificationsURLSecret == nil || *instance.Status.NotificationsURLSecret == "" {
+	if notificationBusInstanceURL.Status.SecretName == "" {
 		Log.Info(fmt.Sprintf("Waiting for NotificationBusInstanceURL %s secret to be created", notificationBusInstanceURL.Name))
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.NotificationBusInstanceReadyCondition,
@@ -382,6 +403,25 @@ func (r *AutoscalingReconciler) reconcileNormal(
 			condition.NotificationBusInstanceReadyRunningMessage))
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
 	}
+
+	oldNotifSecret := ""
+	if instance.Status.NotificationsURLSecret != nil {
+		oldNotifSecret = *instance.Status.NotificationsURLSecret
+	}
+	currentNotifSecret := notificationBusInstanceURL.Status.SecretName
+
+	if err := object.ManageSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+		currentNotifSecret, telemetryv1.TelemetryTransportConsumerFinalizer); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	notifRotationFinalized := false
+	instance.Status.NotificationsURLSecret = &currentNotifSecret
+	defer func() {
+		if !notifRotationFinalized {
+			instance.Status.NotificationsURLSecret = &oldNotifSecret
+		}
+	}()
 
 	instance.Status.Conditions.MarkTrue(condition.NotificationBusInstanceReadyCondition, condition.NotificationBusInstanceReadyMessage)
 	// end notificationsBus
@@ -502,7 +542,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// check for required NotificationsBus TransportURL secret holding transport URL string
 	// Aodh only uses NotificationsBus, not MessagingBus
 	//
-	if instance.Status.NotificationsURLSecret == nil || *instance.Status.NotificationsURLSecret == "" {
+	if notificationBusInstanceURL.Status.SecretName == "" {
 		Log.Info("NotificationsURLSecret not yet available")
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.NotificationBusInstanceReadyCondition,
@@ -523,7 +563,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		ctx,
 		types.NamespacedName{
 			Namespace: instance.Namespace,
-			Name:      *instance.Status.NotificationsURLSecret,
+			Name:      notificationBusInstanceURL.Status.SecretName,
 		},
 		transportValidateFields,
 		helper.GetClient(),
@@ -604,7 +644,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
 	// - %-config configmap holding minimal autoscaling config required to get the service up, user can add additional files to be added to the service
 	//
-	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars, memcached, db)
+	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars, memcached, db, notificationBusInstanceURL.Status.SecretName)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -689,7 +729,7 @@ func (r *AutoscalingReconciler) reconcileNormal(
 	}
 	// run check custom configs secret - end
 
-	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
+	inputHash, _, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
 
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -699,10 +739,6 @@ func (r *AutoscalingReconciler) reconcileNormal(
 			condition.ServiceConfigReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, err
-	} else if hashChanged {
-		// Hash changed and instance status should be updated (which will be done by main defer func),
-		// so we need to return and reconcile again
-		return ctrl.Result{}, nil
 	}
 
 	instance.Status.Hash[common.InputHashName] = inputHash
@@ -723,20 +759,59 @@ func (r *AutoscalingReconciler) reconcileNormal(
 		return ctrlResult, err
 	}
 
-	// Late phase of the AC split pattern: remove the old AC secret's
-	// finalizer and update status only after all sub-conditions are true.
-	isACRotation := instance.Status.ApplicationCredentialSecret != "" &&
-		instance.Status.ApplicationCredentialSecret != instance.Spec.Aodh.Auth.ApplicationCredentialSecret
-	if isACRotation {
-		if instance.Status.Conditions.AllSubConditionIsTrue() {
-			if err := keystonev1.RemoveACSecretConsumerFinalizer(ctx, helper, instance.Namespace,
-				instance.Status.ApplicationCredentialSecret, autoscaling.ACConsumerFinalizer); err != nil {
-				return ctrl.Result{}, err
-			}
-			instance.Status.ApplicationCredentialSecret = instance.Spec.Aodh.Auth.ApplicationCredentialSecret
-		}
-	} else {
-		instance.Status.ApplicationCredentialSecret = instance.Spec.Aodh.Auth.ApplicationCredentialSecret
+	// Guard the rotation on the sub-conditions computed during this reconcile,
+	// not instance.IsReady(): the Ready condition is reset to Unknown by
+	// Conditions.Init() at the top of every reconcile and only recomputed in
+	// the deferred PatchInstance, so IsReady() would always be false here.
+	guardReady := instance.Status.Conditions.AllSubConditionIsTrue()
+
+	acSecretName, err := object.FinalizeSecretRotation(
+		ctx, helper, instance.Namespace,
+		instance.Status.ApplicationCredentialSecret,
+		instance.Spec.Aodh.Auth.ApplicationCredentialSecret,
+		autoscaling.ACConsumerFinalizer,
+		guardReady,
+	)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	instance.Status.ApplicationCredentialSecret = acSecretName
+
+	secretName, err := object.FinalizeSecretRotation(
+		ctx, helper, instance.Namespace,
+		oldNotifSecret,
+		currentNotifSecret,
+		telemetryv1.TelemetryTransportConsumerFinalizer,
+		guardReady,
+	)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	instance.Status.NotificationsURLSecret = &secretName
+	notifRotationFinalized = true
+
+	// Self-heal consumer finalizers stranded on secrets superseded during
+	// rapid rotation (A -> B -> C before the workload became ready):
+	// FinalizeSecretRotation only ever releases the single tracked "old"
+	// secret, so any intermediate secret's finalizer would otherwise leak.
+	// keep enumerates every secret that legitimately still holds the
+	// finalizer; all others in the namespace are pruned.
+	notifKeep := ""
+	if instance.Status.NotificationsURLSecret != nil {
+		notifKeep = *instance.Status.NotificationsURLSecret
+	}
+	if err := object.PruneSecretConsumerFinalizers(
+		ctx, helper, instance.Namespace, telemetryv1.TelemetryTransportConsumerFinalizer,
+		notifKeep, currentNotifSecret,
+	); err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := object.PruneSecretConsumerFinalizers(
+		ctx, helper, instance.Namespace, autoscaling.ACConsumerFinalizer,
+		instance.Status.ApplicationCredentialSecret,
+		instance.Spec.Aodh.Auth.ApplicationCredentialSecret,
+	); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if instance.Status.Conditions.AllSubConditionIsTrue() {
@@ -778,6 +853,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 	envVars *map[string]env.Setter,
 	mc *memcachedv1.Memcached,
 	db *mariadbv1.Database,
+	notificationSecretName string,
 ) error {
 	Log := r.GetLogger(ctx)
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(autoscaling.ServiceName), map[string]string{})
@@ -808,12 +884,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		return err
 	}
 
-	// Ensure NotificationsURLSecret is not nil before dereferencing
-	if instance.Status.NotificationsURLSecret == nil {
-		return ErrNotificationsURLSecretNotSet
-	}
-
-	transportURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
+	transportURLSecret, _, err := secret.GetSecret(ctx, h, notificationSecretName, instance.Namespace)
 	if err != nil {
 		return err
 	}
@@ -897,8 +968,8 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 
 	// Add NotificationsURL if configured
 	// Always get the separate notification secret since we always create separate TransportURLs
-	if instance.Status.NotificationsURLSecret != nil && *instance.Status.NotificationsURLSecret != "" {
-		notificationInstanceURLSecret, _, err := secret.GetSecret(ctx, h, *instance.Status.NotificationsURLSecret, instance.Namespace)
+	if notificationSecretName != "" {
+		notificationInstanceURLSecret, _, err := secret.GetSecret(ctx, h, notificationSecretName, instance.Namespace)
 		if err != nil {
 			return err
 		}
