@@ -1,3 +1,4 @@
+// Package cloudkitty provides CloudKitty service configuration and management utilities
 package cloudkitty
 
 import (
@@ -5,30 +6,39 @@ import (
 )
 
 var (
-	// scriptMode is the default permissions mode for Scripts volume
-	scriptMode int32 = 0755
-	// configMode is the 640 permissions mode
-	configMode int32 = 0640
-	// certMode is the 400 permissions mode
-	certMode int32 = 0400
+	config0440AccessMode int32 = 0440
+	certMode             int32 = 0400
 )
+
+// GetJobVolumes - volumes for the dbsync/storageinit Jobs. They only need the
+// config-data secret (cloudkitty.conf); unlike the API/proc pods they do not
+// talk to LokiStack, so the loki client cert + gateway CA bundle projected
+// "certs" volume from GetVolumes is intentionally omitted. Including it would
+// gate the Jobs on the loki cert/ca-bundle resources (non-optional projected
+// sources) even though no job container mounts them. The DB (galera) CA is
+// added separately by the caller via the TLS CaBundleSecretName volume.
+func GetJobVolumes(name string) []corev1.Volume {
+	return []corev1.Volume{
+		{
+			Name: "config-data",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &config0440AccessMode,
+					SecretName:  name + "-config-data",
+				},
+			},
+		},
+	}
+}
 
 // GetVolumes - service volumes
 func GetVolumes(name string) []corev1.Volume {
 	return []corev1.Volume{
 		{
-			Name: "scripts",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					DefaultMode: &scriptMode,
-					SecretName:  name + "-scripts",
-				},
-			},
-		}, {
 			Name: "config-data",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					DefaultMode: &configMode,
+					DefaultMode: &config0440AccessMode,
 					SecretName:  name + "-config-data",
 				},
 			},
@@ -58,28 +68,21 @@ func GetVolumes(name string) []corev1.Volume {
 	}
 }
 
-// GetVolumeMounts - general VolumeMounts
-func GetVolumeMounts(serviceName string) []corev1.VolumeMount {
+// GetVolumeMounts - VolumeMounts shared by api and proc (metrics + loki certs).
+// The base cloudkitty.conf is NOT included here — api/proc get it via
+// config-data-custom at conf.d/00-cloudkitty.conf; dbsync/storageinit mount
+// it directly in their own inline volumeMount lists.
+func GetVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
-			Name:      "scripts",
-			MountPath: "/var/lib/openstack/bin",
-			ReadOnly:  true,
-		},
-		{
 			Name:      "config-data",
-			MountPath: "/var/lib/openstack/config",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data",
-			MountPath: "/var/lib/kolla/config_files/config.json",
-			SubPath:   serviceName + "-config.json",
+			MountPath: "/etc/cloudkitty/metrics.yaml",
+			SubPath:   "metrics.yaml",
 			ReadOnly:  true,
 		},
 		{
 			Name:      "certs",
-			MountPath: "/var/lib/openstack/loki-certs",
+			MountPath: "/etc/cloudkitty/certs",
 			ReadOnly:  true,
 		},
 	}

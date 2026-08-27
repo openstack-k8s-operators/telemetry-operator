@@ -20,8 +20,10 @@ import (
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/annotations"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/pod"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	"github.com/openstack-k8s-operators/lib-common/modules/users"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,25 +35,15 @@ import (
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 )
 
-const (
-	// ServiceCommand -
-	ServiceCommand = "/usr/local/bin/kolla_start"
-	// CentralHCScript is the path to the central health check script
-	CentralHCScript = "/var/lib/openstack/bin/centralhealth.py"
-	// NotificationHCScript is the path to the notification health check script
-	NotificationHCScript = "/var/lib/openstack/bin/notificationhealth.py"
-)
-
 // StatefulSet func
 func StatefulSet(
 	instance *telemetryv1.Ceilometer,
 	configHash string,
 	labels map[string]string,
 	topology *topologyv1.Topology,
+	customConfigKeys []string,
 ) (*appsv1.StatefulSet, error) {
-	ceilometerUser := int64(CeilometerUserID)
 
-	// container probes
 	sgRootEndpointCurl := corev1.HTTPGetAction{
 		Path: "/",
 		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(CeilometerPrometheusPort)},
@@ -93,30 +85,25 @@ func StatefulSet(
 		Command: []string{"/usr/bin/python3", NotificationHCScript},
 	}
 
-	args := []string{"-c"}
-	args = append(args, ServiceCommand)
-
-	envVarsCentral := map[string]env.Setter{}
-	envVarsCentral["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
-	envVarsCentral["CONFIG_HASH"] = env.SetValue(configHash)
-
-	envVarsNotification := map[string]env.Setter{}
-	envVarsNotification["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
-	envVarsNotification["CONFIG_HASH"] = env.SetValue(configHash)
+	envVars := map[string]env.Setter{}
+	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 
 	var replicas int32 = 1
 
 	volumes := getVolumes(instance)
-	centralVolumeMounts := getVolumeMounts(instance, "ceilometer-central")
-	notificationVolumeMounts := getVolumeMounts(instance, "ceilometer-notification")
+	centralVolumeMounts := getCentralVolumeMounts(customConfigKeys)
+	notificationVolumeMounts := getNotificationVolumeMounts(customConfigKeys)
 	httpdVolumeMounts := getHttpdVolumeMounts()
 
+	centralVolumeMounts = append(centralVolumeMounts, getHealthCheckVolumeMounts()...)
+	notificationVolumeMounts = append(notificationVolumeMounts, getHealthCheckVolumeMounts()...)
+
+	// add TLS cert if defined
 	if instance.Spec.TLS.Enabled() {
 		svc, err := instance.Spec.TLS.ToService()
 		if err != nil {
 			return nil, err
 		}
-		// httpd container is not using kolla, mount the certs to its dst
 		svc.CertMount = ptr.To(fmt.Sprintf("/etc/pki/tls/certs/%s", tls.CertKey))
 		svc.KeyMount = ptr.To(fmt.Sprintf("/etc/pki/tls/private/%s", tls.PrivateKey))
 
@@ -138,41 +125,32 @@ func StatefulSet(
 
 	centralAgentContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		Command: []string{
-			"/bin/bash",
-		},
-		Args:          args,
-		Image:         instance.Spec.CentralImage,
-		Name:          "ceilometer-central-agent",
-		Env:           env.MergeEnvs([]corev1.EnvVar{}, envVarsCentral),
-		VolumeMounts:  centralVolumeMounts,
-		LivenessProbe: centralLivenessProbe,
+		Command:         []string{"/usr/bin/ceilometer-polling"},
+		Args:            []string{"--polling-namespaces", "central", "--logfile", "/dev/stdout"},
+		Image:           instance.Spec.CentralImage,
+		Name:            "ceilometer-central-agent",
+		SecurityContext: pod.RestrictiveSecurityContext(users.CeilometerUID, users.CeilometerGID),
+		Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+		VolumeMounts:    centralVolumeMounts,
+		LivenessProbe:   centralLivenessProbe,
 	}
 	notificationAgentContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		Command: []string{
-			"/bin/bash",
-		},
-		Args:          args,
-		Image:         instance.Spec.NotificationImage,
-		Name:          "ceilometer-notification-agent",
-		Env:           env.MergeEnvs([]corev1.EnvVar{}, envVarsNotification),
-		VolumeMounts:  notificationVolumeMounts,
-		LivenessProbe: notificationLivenessProbe,
+		Command:         []string{"/usr/bin/ceilometer-agent-notification"},
+		Args:            []string{"--logfile", "/dev/stdout"},
+		Image:           instance.Spec.NotificationImage,
+		Name:            "ceilometer-notification-agent",
+		SecurityContext: pod.RestrictiveSecurityContext(users.CeilometerUID, users.CeilometerGID),
+		Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+		VolumeMounts:    notificationVolumeMounts,
+		LivenessProbe:   notificationLivenessProbe,
 	}
 	sgCoreContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Image:           instance.Spec.SgCoreImage,
 		Name:            "sg-core",
+		SecurityContext: pod.RestrictiveSecurityContext(users.CeilometerUID, users.CeilometerGID),
 		VolumeMounts:    getSgCoreVolumeMounts(),
-		SecurityContext: &corev1.SecurityContext{
-			AllowPrivilegeEscalation: ptr.To(false),
-			Capabilities: &corev1.Capabilities{
-				Drop: []corev1.Capability{
-					"ALL",
-				},
-			},
-		},
 	}
 	proxyContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullIfNotPresent,
@@ -182,49 +160,38 @@ func StatefulSet(
 			ContainerPort: int32(CeilometerPrometheusPort),
 			Name:          "proxy-httpd",
 		}},
-		VolumeMounts:   httpdVolumeMounts,
-		ReadinessProbe: sgReadinessProbe,
-		LivenessProbe:  sgLivenessProbe,
-		Command:        []string{"/usr/sbin/httpd"},
-		Args:           []string{"-DFOREGROUND"},
-		SecurityContext: &corev1.SecurityContext{
-			AllowPrivilegeEscalation: ptr.To(false),
-			Capabilities: &corev1.Capabilities{
-				Drop: []corev1.Capability{
-					"ALL",
-				},
-			},
-		},
+		SecurityContext: pod.RestrictiveSecurityContext(users.CeilometerUID, users.CeilometerGID),
+		VolumeMounts:    httpdVolumeMounts,
+		ReadinessProbe:  sgReadinessProbe,
+		LivenessProbe:   sgLivenessProbe,
+		Command:         []string{"/usr/sbin/httpd"},
+		Args:            []string{"-DFOREGROUND"},
 	}
 
-	pod := corev1.PodTemplateSpec{
+	podSpec := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ServiceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: instance.RbacResourceName(),
+			ServiceAccountName:           instance.RbacResourceName(),
+			AutomountServiceAccountToken: ptr.To(false),
+			SecurityContext:              pod.RestrictivePodSecurityContext(users.CeilometerUID, users.CeilometerGID, users.ApacheGID),
 			Containers: []corev1.Container{
 				centralAgentContainer,
 				notificationAgentContainer,
 				sgCoreContainer,
 				proxyContainer,
 			},
-			SecurityContext: &corev1.PodSecurityContext{
-				RunAsUser:    &ceilometerUser,
-				RunAsGroup:   &ceilometerUser,
-				RunAsNonRoot: ptr.To(true),
-				FSGroup:      &ceilometerUser,
-			},
 		},
 	}
 
 	if instance.Spec.NodeSelector != nil {
-		pod.Spec.NodeSelector = *instance.Spec.NodeSelector
+		podSpec.Spec.NodeSelector = *instance.Spec.NodeSelector
 	}
 	if topology != nil {
-		topology.ApplyTo(&pod)
+		topology.ApplyTo(&podSpec)
 	}
 	statefulset := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -238,7 +205,7 @@ func StatefulSet(
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
-			Template: pod,
+			Template: podSpec,
 		},
 	}
 

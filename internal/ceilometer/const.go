@@ -29,14 +29,10 @@ const (
 	// CeilometerPrometheusPort -
 	CeilometerPrometheusPort int = 3000
 
-	// KollaConfigCentral -
-	KollaConfigCentral = "/var/lib/config-data/merged/config-central.json"
-
-	// KollaConfigNotification -
-	KollaConfigNotification = "/var/lib/config-data/merged/config-notification.json"
-
-	// CeilometerUserID -
-	CeilometerUserID = 42405
+	// CentralHCScript is the path to the central health check script
+	CentralHCScript = "/var/lib/openstack/bin/centralhealth.py"
+	// NotificationHCScript is the path to the notification health check script
+	NotificationHCScript = "/var/lib/openstack/bin/notificationhealth.py"
 
 	// ACConsumerFinalizer is added to AC secrets that Ceilometer is actively consuming
 	ACConsumerFinalizer = "openstack.org/ceilometer-ac-consumer"

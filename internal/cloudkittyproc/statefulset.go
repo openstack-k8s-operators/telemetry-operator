@@ -18,6 +18,8 @@ package cloudkittyproc
 import (
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/pod"
+	"github.com/openstack-k8s-operators/lib-common/modules/users"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/internal/cloudkitty"
 
@@ -27,13 +29,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-const (
-	// ServiceCommand -
-	ServiceCommand = "/usr/local/bin/kolla_start"
-	// CloudKittyHCScript is the path to the health check script
-	CloudKittyHCScript = "/var/lib/openstack/bin/healthcheck.py"
-)
-
 // StatefulSet func
 func StatefulSet(
 	instance *telemetryv1.CloudKittyProc,
@@ -41,35 +36,28 @@ func StatefulSet(
 	labels map[string]string,
 	annotations map[string]string,
 	topology *topologyv1.Topology,
+	customConfigKeys []string,
 ) *appsv1.StatefulSet {
-	runAsUser := int64(cloudkitty.CloudKittyUserID)
 
-	// TODO until we determine how to properly query for these
+	// TODO might need tuning
 	livenessProbe := &corev1.Probe{
-		// TODO might need tuning
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 		InitialDelaySeconds: 3,
 	}
 
-	args := []string{"-c", ServiceCommand}
-	//var probeCommand string
-
-	//probeCommand = "/usr/local/bin/kolla_set_configs && /var/lib/openstack/bin/healthcheck.py --config-dir /etc/cloudkitty/cloudkitty.conf.d/"
-
 	livenessProbe.Exec = &corev1.ExecAction{
 		Command: []string{
-			"/usr/bin/python3",
-			CloudKittyHCScript,
+			"/usr/bin/pgrep", "-f", "cloudkitty-processor",
 		},
 	}
 
 	envVars := map[string]env.Setter{}
-	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 
+	// create Volume and VolumeMounts
 	volumes := GetVolumes(cloudkitty.GetOwningCloudKittyName(instance), instance.Name, instance)
-	volumeMounts := GetVolumeMounts(instance)
+	volumeMounts := GetVolumeMounts(customConfigKeys)
 
 	// Add the CA bundle
 	if instance.Spec.TLS.CaBundleSecretName != "" {
@@ -94,23 +82,20 @@ func StatefulSet(
 					Labels:      labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: instance.Spec.ServiceAccount,
+					ServiceAccountName:           instance.Spec.ServiceAccount,
+					AutomountServiceAccountToken: ptr.To(false),
+					SecurityContext:              pod.RestrictivePodSecurityContext(users.CloudkittyUID, users.CloudkittyGID),
 					Containers: []corev1.Container{
 						{
-							Name: ComponentName,
-							Command: []string{
-								"/bin/bash",
-							},
-							Args:  args,
-							Image: instance.Spec.ContainerImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser:    &runAsUser,
-								RunAsNonRoot: ptr.To(true),
-							},
-							Env:           env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts:  volumeMounts,
-							Resources:     instance.Spec.Resources,
-							LivenessProbe: livenessProbe,
+							Name:            ComponentName,
+							Command:         []string{"/usr/bin/cloudkitty-processor"},
+							Args:            []string{"--logfile", "/dev/stdout"},
+							Image:           instance.Spec.ContainerImage,
+							SecurityContext: pod.RestrictiveSecurityContext(users.CloudkittyUID, users.CloudkittyGID),
+							Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts:    volumeMounts,
+							Resources:       instance.Spec.Resources,
+							LivenessProbe:   livenessProbe,
 						},
 					},
 					Volumes: volumes,
@@ -126,9 +111,6 @@ func StatefulSet(
 	if topology != nil {
 		topology.ApplyTo(&statefulset.Spec.Template)
 	} else {
-		// If possible two pods of the same service should not
-		// run on the same worker node. If this is not possible
-		// the get still created on the same worker node.
 		statefulset.Spec.Template.Spec.Affinity = cloudkitty.GetPodAffinity(ComponentName)
 	}
 

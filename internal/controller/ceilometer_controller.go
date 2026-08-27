@@ -105,7 +105,7 @@ func (r *CeilometerReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch
 // service account permissions that are needed to grant permission to the above
-// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
+// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=nonroot-v2,resources=securitycontextconstraints,verbs=use
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups=topology.openstack.org,resources=topologies,verbs=get;list;watch;update
 
@@ -496,7 +496,7 @@ func (r *CeilometerReconciler) reconcileNormal(ctx context.Context, instance *te
 	rbacRules := []rbacv1.PolicyRule{
 		{
 			APIGroups:     []string{"security.openshift.io"},
-			ResourceNames: []string{"anyuid"},
+			ResourceNames: []string{"nonroot-v2"},
 			Resources:     []string{"securitycontextconstraints"},
 			Verbs:         []string{"use"},
 		},
@@ -606,14 +606,19 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	// run check OpenStack secret - end
 
 	//
-	// check for custom configs secret secret holding custom configuration files
+	// check for custom configs secret holding custom configuration files
 	//
+	var customConfigKeys []string
 	if instance.Spec.CustomConfigsSecretName != "" {
-		_, hash, err := secret.GetSecret(ctx, helper, instance.Spec.CustomConfigsSecretName, instance.Namespace)
+		customConfigsSecret, hash, err := secret.GetSecret(ctx, helper, instance.Spec.CustomConfigsSecretName, instance.Namespace)
 		if err != nil {
 			return ctrlResult, err
 		}
 		configMapVars["custom-configs-secret"] = env.SetValue(hash)
+		for key := range customConfigsSecret.Data {
+			customConfigKeys = append(customConfigKeys, key)
+		}
+		sort.Strings(customConfigKeys)
 	}
 	// run check custom configs secret - end
 
@@ -809,7 +814,7 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	}
 
 	// Define a new StatefulSet object
-	sfsetDef, err := ceilometer.StatefulSet(instance, inputHash, serviceLabels, topology)
+	sfsetDef, err := ceilometer.StatefulSet(instance, inputHash, serviceLabels, topology, customConfigKeys)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -1387,7 +1392,6 @@ func (r *CeilometerReconciler) generateServiceConfig(
 			Type:         util.TemplateTypeScripts,
 			InstanceType: "ceilometercentral",
 			AdditionalTemplate: map[string]string{
-				"common.sh":             "/common/common.sh",
 				"centralhealth.py":      "/ceilometercentral/bin/centralhealth.py",
 				"notificationhealth.py": "/ceilometercentral/bin/notificationhealth.py",
 			},
@@ -1486,12 +1490,11 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 	cms := []util.Template{
 		// CeilometerCompute ScriptsConfigMap
 		{
-			Name:               fmt.Sprintf("%s-scripts", ceilometer.ComputeServiceName),
-			Namespace:          instance.Namespace,
-			Type:               util.TemplateTypeScripts,
-			InstanceType:       "ceilometercompute",
-			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
-			Labels:             cmLabels,
+			Name:         fmt.Sprintf("%s-scripts", ceilometer.ComputeServiceName),
+			Namespace:    instance.Namespace,
+			Type:         util.TemplateTypeScripts,
+			InstanceType: "ceilometercompute",
+			Labels:       cmLabels,
 		},
 		// CeilometerCompute ConfigMap
 		{
@@ -1505,12 +1508,11 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		},
 		// CeilometerIpmi ScriptsConfigMap
 		{
-			Name:               fmt.Sprintf("%s-scripts", ceilometer.IpmiServiceName),
-			Namespace:          instance.Namespace,
-			Type:               util.TemplateTypeScripts,
-			InstanceType:       "ceilometeripmi",
-			AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
-			Labels:             ipmiLabels,
+			Name:         fmt.Sprintf("%s-scripts", ceilometer.IpmiServiceName),
+			Namespace:    instance.Namespace,
+			Type:         util.TemplateTypeScripts,
+			InstanceType: "ceilometeripmi",
+			Labels:       ipmiLabels,
 		},
 		// CeilometerIpmi ConfigMap
 		{

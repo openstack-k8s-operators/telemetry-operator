@@ -63,9 +63,6 @@ const (
 	// CaConfigmapKey is the key in the CA configmap
 	CaConfigmapKey = "ca.crt"
 
-	// CloudKittyUserID -
-	CloudKittyUserID = 42406
-
 	// ACConsumerFinalizer is added to AC secrets that CloudKitty is actively consuming
 	ACConsumerFinalizer = "openstack.org/cloudkitty-ac-consumer"
 )

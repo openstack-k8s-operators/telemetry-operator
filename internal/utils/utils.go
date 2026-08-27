@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -46,6 +47,29 @@ type ConditionalWatchingReconciler struct {
 	Watching   []string
 	RESTMapper meta.RESTMapper
 	Cache      cache.Cache
+}
+
+// MergeCustomConfigMounts returns base with each override applied: an override
+// whose MountPath matches an existing base mount replaces it in place, so a
+// custom-config file overrides the default file mounted at that path (matching
+// the pre-kolla last-write-wins copy behaviour where custom-config/* was copied
+// over the rendered defaults). Overrides that don't match a base path are
+// appended. This keeps every MountPath unique so the pod spec stays valid.
+func MergeCustomConfigMounts(base, overrides []corev1.VolumeMount) []corev1.VolumeMount {
+	idx := make(map[string]int, len(base))
+	for i, m := range base {
+		idx[m.MountPath] = i
+	}
+	out := append([]corev1.VolumeMount(nil), base...)
+	for _, o := range overrides {
+		if i, ok := idx[o.MountPath]; ok {
+			out[i] = o
+		} else {
+			idx[o.MountPath] = len(out)
+			out = append(out, o)
+		}
+	}
+	return out
 }
 
 // EnsureDeleted - Delete the object which in turn will clean the sub resources

@@ -20,6 +20,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -158,8 +159,19 @@ func (r *AutoscalingReconciler) reconcileInitAodh(
 
 	//
 	// run Aodh db sync
+	var customConfigKeys []string
+	if instance.Spec.Aodh.CustomConfigsSecretName != "" {
+		customConfigsSecret, _, err := secret.GetSecret(ctx, helper, instance.Spec.Aodh.CustomConfigsSecretName, instance.Namespace)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		for key := range customConfigsSecret.Data {
+			customConfigKeys = append(customConfigKeys, key)
+		}
+		sort.Strings(customConfigKeys)
+	}
 	dbSyncHash := instance.Status.Hash[telemetryv1.DbSyncHash]
-	jobDef := autoscaling.DbSyncJob(instance, serviceLabels)
+	jobDef := autoscaling.DbSyncJob(instance, serviceLabels, customConfigKeys)
 
 	dbSyncjob := job.NewJob(
 		jobDef,
@@ -322,7 +334,18 @@ func (r *AutoscalingReconciler) reconcileNormalAodh(
 		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements: %w", err)
 	}
 
-	sfsetDef, err := autoscaling.AodhStatefulSet(instance, inputHash, serviceLabels, topology, memcached)
+	var aodhCustomConfigKeys []string
+	if instance.Spec.Aodh.CustomConfigsSecretName != "" {
+		customConfigsSecret, _, err := secret.GetSecret(ctx, helper, instance.Spec.Aodh.CustomConfigsSecretName, instance.Namespace)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		for key := range customConfigsSecret.Data {
+			aodhCustomConfigKeys = append(aodhCustomConfigKeys, key)
+		}
+		sort.Strings(aodhCustomConfigKeys)
+	}
+	sfsetDef, err := autoscaling.AodhStatefulSet(instance, inputHash, serviceLabels, topology, memcached, aodhCustomConfigKeys)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,

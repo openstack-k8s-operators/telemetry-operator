@@ -124,7 +124,7 @@ func (r *CloudKittyReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch
 // service account permissions that are needed to grant permission to the above
-// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid;privileged,resources=securitycontextconstraints,verbs=use
+// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=nonroot-v2,resources=securitycontextconstraints,verbs=use
 
 // Reconcile -
 func (r *CloudKittyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -842,7 +842,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	rbacRules := []rbacv1.PolicyRule{
 		{
 			APIGroups:     []string{"security.openshift.io"},
-			ResourceNames: []string{"anyuid"},
+			ResourceNames: []string{"nonroot-v2"},
 			Resources:     []string{"securitycontextconstraints"},
 			Verbs:         []string{"use"},
 		},
@@ -1191,7 +1191,7 @@ func (r *CloudKittyReconciler) reconcileNormal(ctx context.Context, instance *te
 	return ctrl.Result{}, nil
 }
 
-// generateServiceConfigs - create Secret which hold scripts and service configuration
+// generateServiceConfigs - create Secret which holds the service configuration
 func (r *CloudKittyReconciler) generateServiceConfigs(
 	ctx context.Context,
 	h *helper.Helper,
@@ -1204,7 +1204,6 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	Log := r.GetLogger(ctx)
 	//
 	// create Secret required for cloudkitty input
-	// - %-scripts holds scripts to e.g. bootstrap the service
 	// - %-config holds minimal cloudkitty config required to get the service up
 	//
 
@@ -1364,13 +1363,6 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	templateParameters["VHosts"] = httpdVhostConfig
 
 	configTemplates := []util.Template{
-		{
-			Name:         fmt.Sprintf("%s-scripts", instance.Name),
-			Namespace:    instance.Namespace,
-			Type:         util.TemplateTypeScripts,
-			InstanceType: instance.Kind,
-			Labels:       labels,
-		},
 		{
 			Name:            fmt.Sprintf("%s-config-data", instance.Name),
 			Namespace:       instance.Namespace,

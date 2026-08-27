@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/telemetry-operator/internal/cloudkitty"
@@ -481,7 +482,6 @@ func (r *CloudKittyProcReconciler) reconcileNormal(ctx context.Context, instance
 	parentCloudKittyName := cloudkitty.GetOwningCloudKittyName(instance)
 	secretNames := []string{
 		instance.Spec.TransportURLSecret,                    // TransportURLSecret
-		fmt.Sprintf("%s-scripts", parentCloudKittyName),     // ScriptsSecret
 		fmt.Sprintf("%s-config-data", parentCloudKittyName), // ConfigSecret
 	}
 	// Append CustomServiceConfigSecrets that should be checked
@@ -586,13 +586,17 @@ func (r *CloudKittyProcReconciler) reconcileNormal(ctx context.Context, instance
 
 	//
 	// check for custom configs secret holding custom configuration files
-	//
+	var customConfigKeys []string
 	if instance.Spec.CustomConfigsSecretName != "" {
-		_, hash, err := secret.GetSecret(ctx, helper, instance.Spec.CustomConfigsSecretName, instance.Namespace)
+		customConfigsSecret, hash, err := secret.GetSecret(ctx, helper, instance.Spec.CustomConfigsSecretName, instance.Namespace)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 		configVars["custom-configs-secret"] = env.SetValue(hash)
+		for key := range customConfigsSecret.Data {
+			customConfigKeys = append(customConfigKeys, key)
+		}
+		sort.Strings(customConfigKeys)
 	}
 	// run check custom configs secret - end
 
@@ -694,7 +698,7 @@ func (r *CloudKittyProcReconciler) reconcileNormal(ctx context.Context, instance
 	}
 
 	// Deploy a statefulset
-	ssDef := cloudkittyproc.StatefulSet(instance, inputHash, serviceLabels, serviceAnnotations, topology)
+	ssDef := cloudkittyproc.StatefulSet(instance, inputHash, serviceLabels, serviceAnnotations, topology, customConfigKeys)
 	ss := statefulset.NewStatefulSet(ssDef, cloudkitty.ShortDuration)
 
 	var ssData appsv1.StatefulSet
@@ -850,11 +854,8 @@ func (r *CloudKittyProcReconciler) generateServiceConfigs(
 			Namespace:    instance.Namespace,
 			Type:         util.TemplateTypeConfig,
 			InstanceType: instance.Kind,
-			AdditionalTemplate: map[string]string{
-				"healthcheck.py": "/cloudkitty/bin/healthcheck.py",
-			},
-			CustomData: customData,
-			Labels:     labels,
+			CustomData:   customData,
+			Labels:       labels,
 		},
 	}
 

@@ -12,64 +12,87 @@ spec:
   containers:
   - name: aodh-api
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
+    - mountPath: /etc/aodh/aodh.conf
       name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
+      subPath: aodh.conf
+    - mountPath: /etc/aodh/aodh.conf.d/01-aodh-custom.conf
       name: config-data
-      subPath: aodh-api-config.json
-    - mountPath: /var/lib/openstack/custom-config
+      subPath: custom.conf
+    - mountPath: /etc/httpd/conf.d/00wsgi-aodh.conf
+      name: config-data
+      subPath: wsgi-aodh.conf
+    - mountPath: /etc/httpd/conf/httpd.conf
+      name: config-data
+      subPath: httpd.conf
+    - mountPath: /etc/httpd/conf.d/ssl.conf
+      name: config-data
+      subPath: ssl.conf
+    - mountPath: /etc/my.cnf
+      name: config-data
+      subPath: my.cnf
+    - mountPath: /run/httpd
+      name: run-httpd
+    - mountPath: /var/log/httpd
+      name: var-log-httpd
+    - mountPath: /etc/aodh/policy.yaml
       name: custom-config
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      subPath: policy.yaml
   - name: aodh-evaluator
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
+    - mountPath: /etc/aodh/aodh.conf
       name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
+      subPath: aodh.conf
+    - mountPath: /etc/aodh/aodh.conf.d/01-aodh-custom.conf
       name: config-data
-      subPath: aodh-evaluator-config.json
-    - mountPath: /var/lib/openstack/custom-config
+      subPath: custom.conf
+    - mountPath: /etc/openstack/prometheus.yaml
+      name: config-data
+      subPath: prometheus.yaml
+    - mountPath: /etc/my.cnf
+      name: config-data
+      subPath: my.cnf
+    - mountPath: /etc/aodh/policy.yaml
       name: custom-config
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      subPath: policy.yaml
   - name: aodh-notifier
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
+    - mountPath: /etc/aodh/aodh.conf
       name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
+      subPath: aodh.conf
+    - mountPath: /etc/aodh/aodh.conf.d/01-aodh-custom.conf
       name: config-data
-      subPath: aodh-notifier-config.json
-    - mountPath: /var/lib/openstack/custom-config
+      subPath: custom.conf
+    - mountPath: /etc/my.cnf
+      name: config-data
+      subPath: my.cnf
+    - mountPath: /etc/aodh/policy.yaml
       name: custom-config
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      subPath: policy.yaml
   - name: aodh-listener
     volumeMounts:
-    - mountPath: /var/lib/openstack/bin
-      name: scripts
-    - mountPath: /var/lib/openstack/config
+    - mountPath: /etc/aodh/aodh.conf
       name: config-data
-    - mountPath: /var/lib/kolla/config_files/config.json
+      subPath: aodh.conf
+    - mountPath: /etc/aodh/aodh.conf.d/01-aodh-custom.conf
       name: config-data
-      subPath: aodh-listener-config.json
-    - mountPath: /var/lib/openstack/custom-config
+      subPath: custom.conf
+    - mountPath: /etc/my.cnf
+      name: config-data
+      subPath: my.cnf
+    - mountPath: /etc/aodh/policy.yaml
       name: custom-config
-    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      subPath: policy.yaml
   volumes:
-  - name: scripts
-    secret:
-      secretName: aodh-scripts
   - name: config-data
     secret:
       secretName: aodh-config-data
+  - emptyDir: {}
+    name: run-httpd
+  - emptyDir: {}
+    name: var-log-httpd
   - name: custom-config
     secret:
       secretName: custom-config
-  - projected:
-      defaultMode: 420
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert

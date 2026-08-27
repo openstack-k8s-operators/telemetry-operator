@@ -63,6 +63,7 @@ func (r *LoggingReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=telemetry.openstack.org,resources=loggings/finalizers,verbs=update;patch
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
+// +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

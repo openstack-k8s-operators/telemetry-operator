@@ -8,12 +8,15 @@ metadata:
   - kind: StatefulSet
     name: ceilometer
 spec:
+  automountServiceAccountToken: false
   containers:
   - args:
-    - -c
-    - /usr/local/bin/kolla_start
+    - --polling-namespaces
+    - central
+    - --logfile
+    - /dev/stdout
     command:
-    - /bin/bash
+    - /usr/bin/ceilometer-polling
     livenessProbe:
       exec:
         command:
@@ -21,10 +24,10 @@ spec:
         - /var/lib/openstack/bin/centralhealth.py
     name: ceilometer-central-agent
   - args:
-    - -c
-    - /usr/local/bin/kolla_start
+    - --logfile
+    - /dev/stdout
     command:
-    - /bin/bash
+    - /usr/bin/ceilometer-agent-notification
     livenessProbe:
       exec:
         command:
@@ -77,18 +80,21 @@ spec:
       service: ceilometer
   template:
     spec:
+      automountServiceAccountToken: false
       containers:
       - args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --polling-namespaces
+        - central
+        - --logfile
+        - /dev/stdout
         command:
-        - /bin/bash
+        - /usr/bin/ceilometer-polling
         name: ceilometer-central-agent
       - args:
-        - -c
-        - /usr/local/bin/kolla_start
+        - --logfile
+        - /dev/stdout
         command:
-        - /bin/bash
+        - /usr/bin/ceilometer-agent-notification
         name: ceilometer-notification-agent
       - name: sg-core
       - name: proxy-httpd

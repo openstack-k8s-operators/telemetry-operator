@@ -18,6 +18,8 @@ package autoscaling
 
 import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/pod"
+	"github.com/openstack-k8s-operators/lib-common/modules/users"
 	autoscalingv1beta1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -25,28 +27,18 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-const (
-	dbSyncCommand = "/usr/local/bin/kolla_start"
-)
-
 // DbSyncJob func
-func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]string) *batchv1.Job {
-	args := []string{"-c"}
-	args = append(args, dbSyncCommand)
-
+func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]string, customConfigKeys []string) *batchv1.Job {
 	// create Volume and VolumeMounts
 	volumes := getVolumes(instance)
-	volumeMounts := getVolumeMounts(instance, "aodh-dbsync")
+	volumeMounts := getWorkerVolumeMounts(customConfigKeys)
 	// add CA cert if defined
 	if instance.Spec.Aodh.TLS.CaBundleSecretName != "" {
 		volumes = append(volumes, instance.Spec.Aodh.TLS.CreateVolume())
 		volumeMounts = append(volumeMounts, instance.Spec.Aodh.TLS.CreateVolumeMounts(nil)...)
 	}
 
-	runAsUser := int64(AodhUserID)
 	envVars := map[string]env.Setter{}
-	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
-	envVars["KOLLA_BOOTSTRAP"] = env.SetValue("TRUE")
 	aodhPassword := []corev1.EnvVar{
 		{
 			Name: "AodhPassword",
@@ -70,22 +62,18 @@ func DbSyncJob(instance *autoscalingv1beta1.Autoscaling, labels map[string]strin
 		Spec: batchv1.JobSpec{
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
-					RestartPolicy:      corev1.RestartPolicyOnFailure,
-					ServiceAccountName: instance.RbacResourceName(),
+					RestartPolicy:                corev1.RestartPolicyOnFailure,
+					ServiceAccountName:           instance.RbacResourceName(),
+					AutomountServiceAccountToken: ptr.To(false),
+					SecurityContext:              pod.RestrictivePodSecurityContext(users.AodhUID, users.AodhGID),
 					Containers: []corev1.Container{
 						{
-							Name: ServiceName + "-db-sync",
-							Command: []string{
-								"/bin/bash",
-							},
-							Args:  args,
-							Image: instance.Spec.Aodh.APIImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser:    &runAsUser,
-								RunAsNonRoot: ptr.To(true),
-							},
-							Env:          env.MergeEnvs(aodhPassword, envVars),
-							VolumeMounts: volumeMounts,
+							Name:            ServiceName + "-db-sync",
+							Command:         []string{"/usr/bin/aodh-dbsync"},
+							Image:           instance.Spec.Aodh.APIImage,
+							SecurityContext: pod.RestrictiveSecurityContext(users.AodhUID, users.AodhGID),
+							Env:             env.MergeEnvs(aodhPassword, envVars),
+							VolumeMounts:    volumeMounts,
 						},
 					},
 					Volumes: volumes,

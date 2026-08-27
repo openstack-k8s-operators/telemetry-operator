@@ -117,4 +117,4 @@ stringData:
   access_key_id: minio
   access_key_secret: minio123
   bucketnames: loki
-  endpoint: http://minio.svc.cluster.local:9000
+  endpoint: http://minio:9000
