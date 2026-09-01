@@ -27,16 +27,16 @@ import (
 )
 
 const (
-	// CeilometerCentralContainerImage - default fall-back image for Ceilometer Central
-	CeilometerCentralContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-central:current-podified"
-	// CeilometerNotificationContainerImage - default fall-back image for Ceilometer Notification
-	CeilometerNotificationContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-notification:current-podified"
+	// CeilometerCentralContainerImage - default fall-back image for Ceilometer Central.
+	// The consolidated central image also ships the notification agent, so it is
+	// the fall-back for both the central and notification containers (OSPRH-34556).
+	CeilometerCentralContainerImage = "quay.io/openstack-s2i-containers/openstack-ceilometer-central:master-latest"
 	// CeilometerSgCoreContainerImage - default fall-back image for Ceilometer SgCore
 	CeilometerSgCoreContainerImage = "quay.io/openstack-k8s-operators/sg-core:latest"
-	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute
-	CeilometerComputeContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-compute:current-podified"
-	// CeilometerIpmiContainerImage - default fall-back image for Ceilometer Ipmi
-	CeilometerIpmiContainerImage = "quay.io/podified-antelope-centos9/openstack-ceilometer-ipmi:current-podified"
+	// CeilometerComputeContainerImage - default fall-back image for Ceilometer Compute.
+	// The consolidated compute image also ships the ipmi agent, so it is the
+	// fall-back for both the compute and ipmi containers (OSPRH-34556).
+	CeilometerComputeContainerImage = "quay.io/openstack-s2i-containers/openstack-ceilometer-compute:master-latest"
 	// CeilometerProxyContainerImage - default fall-back image for proxy container
 	// CeilometerProxyContainerImage = "registry.redhat.io/ubi9/httpd-24:latest"
 	CeilometerProxyContainerImage = "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
@@ -295,11 +295,15 @@ func (instance Ceilometer) RbacResourceName() string {
 func SetupDefaultsCeilometer() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	ceilometerDefaults := CeilometerDefaults{
-		CentralContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
-		SgCoreContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
-		NotificationContainerImageURL:   util.GetEnvVar("RELATED_IMAGE_CEILOMETER_NOTIFICATION_IMAGE_URL_DEFAULT", CeilometerNotificationContainerImage),
-		ComputeContainerImageURL:        util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
-		IpmiContainerImageURL:           util.GetEnvVar("RELATED_IMAGE_CEILOMETER_IPMI_IMAGE_URL_DEFAULT", CeilometerIpmiContainerImage),
+		CentralContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
+		SgCoreContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
+		// OSPRH-34556: notification agent ships in the consolidated central image,
+		// so it derives from the central image URL (no separate env var).
+		NotificationContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_CENTRAL_IMAGE_URL_DEFAULT", CeilometerCentralContainerImage),
+		ComputeContainerImageURL:      util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
+		// OSPRH-34556: ipmi agent ships in the consolidated compute image,
+		// so it derives from the compute image URL (no separate env var).
+		IpmiContainerImageURL:           util.GetEnvVar("RELATED_IMAGE_CEILOMETER_COMPUTE_IMAGE_URL_DEFAULT", CeilometerComputeContainerImage),
 		ProxyContainerImageURL:          util.GetEnvVar("RELATED_IMAGE_APACHE_IMAGE_URL_DEFAULT", CeilometerProxyContainerImage),
 		KSMContainerImageURL:            util.GetEnvVar("RELATED_IMAGE_KSM_IMAGE_URL_DEFAULT", KubeStateMetricsImage),
 		MysqldExporterContainerImageURL: util.GetEnvVar("RELATED_IMAGE_MYSQLD_EXPORTER_IMAGE_URL_DEFAULT", MysqldExporterContainerImage),
