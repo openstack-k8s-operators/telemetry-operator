@@ -7,7 +7,7 @@ metadata:
   namespace: openstack
 spec:
   groups:
-    - name: openstack-observability.nodes.status
+    - name: openstack-observability.nodes.health
       rules:
         # Disk usage alerts
         - expr: rate(node_disk_io_time_seconds_total[5m])
@@ -227,6 +227,35 @@ spec:
               The average CPU usage per core is above 70% on instance {{ $labels.instance }}
               for more than 10 minutes. This may indicate CPU saturation and could affect performance.
 
+        # Disk space usage
+        - record: job:filesystem:disk_usage_ratio
+          expr: |
+            1 - node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|devtmpfs|overlay"}
+
+        - alert: DiskSpaceUsageWarning
+          expr: |
+            job:filesystem:disk_usage_ratio > 0.8 and job:filesystem:disk_usage_ratio < 0.9
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk space usage high (warning)"
+            description: |
+              Disk usage is above 80% but below 90% for more than 10 minutes on {{ $labels.instance }}
+              (mountpoint: {{ $labels.mountpoint }}, device: {{ $labels.device }}).
+
+        - alert: DiskSpaceUsageCritical
+          expr: |
+            job:filesystem:disk_usage_ratio >= 0.9
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Disk space usage critical"
+            description: |
+              Disk usage is above 90% for more than 10 minutes on {{ $labels.instance }}
+              (mountpoint: {{ $labels.mountpoint }}, device: {{ $labels.device }}).
+
         # Inode usage alerts
         - record: job:filesystem:inode_usage_ratio
           expr: |
@@ -337,3 +366,75 @@ spec:
           annotations:
             summary: Memory usage is critical
             description: Memory usage is above 90% for more than 10 minutes.
+
+        # Memory hardware alerts
+        - alert: HardwareCorruptedMemoryWarning
+          expr: node_memory_HardwareCorrupted_bytes > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Hardware-corrupted memory detected (warning)"
+            description: |
+              Node {{ $labels.instance }} has {{ $value }} bytes of hardware-corrupted memory. This may indicate failing RAM.
+
+        - alert: OomKillWarning
+          expr: delta(node_vmstat_oom_kill[30m]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "OOM kill detected (warning)"
+            description: |
+              Node {{ $labels.instance }} killed at least one process due to out-of-memory
+              conditions in the last 30 minutes.
+
+        - alert: OomKillCritical
+          expr: delta(node_vmstat_oom_kill[30m]) > 1
+          labels:
+            severity: critical
+          annotations:
+            summary: "Multiple OOM kills detected (critical)"
+            description: |
+              Node {{ $labels.instance }} killed multiple processes due to out-of-memory
+              conditions in the last 30 minutes (count: {{ $value }}).
+
+        - alert: EdacCorrectableErrorsWarning
+          expr: increase(node_edac_correctable_errors_total[30m]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "EDAC correctable memory errors detected (warning)"
+            description: |
+              Node {{ $labels.instance }} reported {{ $value }} correctable memory errors
+              in the last 30 minutes. This may indicate degrading RAM.
+
+        - alert: EdacUncorrectableErrorsCritical
+          expr: increase(node_edac_uncorrectable_errors_total[30m]) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: "EDAC uncorrectable memory errors detected (critical)"
+            description: |
+              Node {{ $labels.instance }} reported {{ $value }} uncorrectable memory errors
+              in the last 30 minutes. This indicates memory hardware failure.
+
+        # Network alerts
+        - alert: NetworkCarrierDownWarning
+          expr: increase(node_network_carrier_down_changes_total[5m]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "Network carrier down detected (warning)"
+            description: |
+              Network interface {{ $labels.device }} on {{ $labels.instance }} lost carrier
+              in the last 5 minutes.
+
+        - alert: NetworkCarrierDownCritical
+          expr: increase(node_network_carrier_down_changes_total[30m]) > 2
+          labels:
+            severity: critical
+          annotations:
+            summary: "Repeated network carrier down events (critical)"
+            description: |
+              Network interface {{ $labels.device }} on {{ $labels.instance }} lost carrier
+              more than twice in the last 30 minutes (count: {{ $value }}).
