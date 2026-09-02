@@ -7,6 +7,25 @@ metadata:
   namespace: openstack
 spec:
   groups:
+    - name: openstack-observability.nodes.availability
+      rules:
+        - alert: EdpmNodeAvailabilityWarning
+          expr: |
+            up{job=~".*telemetry-node-exporter-tls"} != 1
+          labels:
+            severity: warning
+          annotations:
+            summary: Node is not available (warning)
+            description: Node ({{ $labels.fqdn }}) is not available.
+        - alert: EdpmNodeAvailabilityCritical
+          expr: |
+            up{job=~".*telemetry-node-exporter-tls"} != 1
+          for: 60s
+          labels:
+            severity: critical
+          annotations:
+            summary: Node is not available (critical)
+            description: Node ({{ $labels.fqdn }}) is not available for more than 60 seconds.
     - name: openstack-observability.nodes.status
       rules:
         # Disk usage alerts
