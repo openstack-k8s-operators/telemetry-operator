@@ -22,6 +22,12 @@
         master:
           centos10:
             - horizontest
+            # NOTE: The fix for tcib has been merged https://github.com/openstack-k8s-operators/tcib/pull/418
+            # but the tcib is installed from rpm package https://github.com/openstack-k8s-operators/ci-framework/blob/main/roles/build_containers/tasks/install.yml
+            # Here was two choices: skip building horizon or install tcib
+            # from source. In almost all CI job we install tcib from rpm,
+            # so let's skip temporary building horizon container.
+            - horizon
 
 - job:
     name: telemetry-openstack-meta-content-provider-master
