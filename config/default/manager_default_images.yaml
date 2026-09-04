@@ -31,3 +31,5 @@ spec:
           value: quay.io/podified-antelope-centos9/openstack-aodh-notifier:current-podified
         - name: RELATED_IMAGE_AODH_LISTENER_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-aodh-listener:current-podified
+        - name: RELATED_IMAGE_CLOUDKITTY_IMAGE_URL_DEFAULT
+          value: quay.io/openstack-s2i-containers/openstack-cloudkitty-api
