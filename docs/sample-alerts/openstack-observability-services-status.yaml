@@ -69,3 +69,47 @@ spec:
             One of the Telemetry Operator ScrapeConfigs is down for more than 1 minute.
             Instance: {{ $labels.instance }}
             Job: {{ $labels.job }}
+    - name: openstack-observability.edpm.services.status
+      rules:
+      - alert: EdpmPodmanContainerUnhealthyWarning
+        expr: |
+          podman_container_health * on (id) group_right podman_container_info{name !~ ".*_init|nova_compute|neutron-haproxy-ovnmeta-.*"} != 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "EDPM Podman container health check failed (warning)"
+          description: |
+            Container {{ $labels.name }} on {{ $labels.fqdn }} has an unhealthy or unknown health status (value: {{ $value }}).
+            Health values: -1=unknown, 0=healthy, 1=unhealthy, 2=starting.
+      - alert: EdpmPodmanContainerUnhealthyCritical
+        expr: |
+          podman_container_health * on (id) group_right podman_container_info{name !~ ".*_init|nova_compute|neutron-haproxy-ovnmeta-.*"} != 0
+        for: 60s
+        labels:
+          severity: critical
+        annotations:
+          summary: "EDPM Podman container health check failed (critical)"
+          description: |
+            Container {{ $labels.name }} on {{ $labels.fqdn }} has an unhealthy or unknown health status (value: {{ $value }}) for more than 1 minute.
+            Health values: -1=unknown, 0=healthy, 1=unhealthy, 2=starting.
+      - alert: EdpmPodmanContainerNotRunningWarning
+        expr: |
+          podman_container_state * on (id) group_right podman_container_info{name !~ ".*_init"} != 2
+        labels:
+          severity: warning
+        annotations:
+          summary: "EDPM Podman container not running (warning)"
+          description: |
+            Container {{ $labels.name }} on {{ $labels.fqdn }} is not in running state (value: {{ $value }}).
+            State values: -1=unknown, 0=created, 1=initialized, 2=running, 3=stopped, 4=paused, 5=exited, 6=removing, 7=stopping.
+      - alert: EdpmPodmanContainerNotRunningCritical
+        expr: |
+          podman_container_state * on (id) group_right podman_container_info{name !~ ".*_init"} != 2
+        for: 60s
+        labels:
+          severity: critical
+        annotations:
+          summary: "EDPM Podman container not running (critical)"
+          description: |
+            Container {{ $labels.name }} on {{ $labels.fqdn }} is not in running state (value: {{ $value }}) for more than 1 minute.
+            State values: -1=unknown, 0=created, 1=initialized, 2=running, 3=stopped, 4=paused, 5=exited, 6=removing, 7=stopping.
