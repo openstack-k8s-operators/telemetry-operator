@@ -109,7 +109,7 @@
     irrelevant-files: *irrelevant_files
     required-projects:
       - name: infrawatch/feature-verification-tests
-        override-checkout: master
+        override-checkout: rhoso-18
 
 - job:
     name: telemetry-operator-multinode-logging
@@ -149,7 +149,7 @@
       core OpenStack stays on stable install_yamls images.
     required-projects:
       - name: infrawatch/feature-verification-tests
-        override-checkout: master
+        override-checkout: rhoso-18
     extra-vars: *meta_content_extra_vars
     vars:
       #patch_observabilityclient: true
@@ -237,14 +237,14 @@
             voting: true
             required-projects:
               - name: infrawatch/feature-verification-tests
-                override-checkout: master
+                override-checkout: rhoso-18
             irrelevant-files: *irrelevant_files
         - feature-verification-tests-noop:
             files: *irrelevant_files
         - functional-periodic-telemetry-with-ceph:
             required-projects:
               - name: infrawatch/feature-verification-tests
-                override-checkout: master
+                override-checkout: rhoso-18
             files:
               - ci/deploy-telemetry-with-ceph.yml
               - ci/vars-telemetry-with-ceph.yml
