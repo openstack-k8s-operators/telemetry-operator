@@ -293,8 +293,8 @@ func SetupDefaultsTelemetry() {
 		AodhListenerContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_LISTENER_IMAGE_URL_DEFAULT", AodhListenerContainerImage),
 
 		// CloudKitty
-		CloudKittyAPIContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_API_IMAGE_URL_DEFAULT", CloudKittyAPIContainerImage),
-		CloudKittyProcContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_PROC_IMAGE_URL_DEFAULT", CloudKittyProcContainerImage),
+		CloudKittyAPIContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_IMAGE_URL_DEFAULT", CloudKittyContainerImage),
+		CloudKittyProcContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_IMAGE_URL_DEFAULT", CloudKittyContainerImage),
 	}
 
 	SetupTelemetryDefaults(telemetryDefaults)
