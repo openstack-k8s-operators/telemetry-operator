@@ -12,8 +12,24 @@ This operator deploys a multiple telemetry agents, both in the control plane and
 
     ```bash
     cd install_yamls/devsetup
-    CPUS=12 MEMORY=25600 DISK=100 CRC_MONITORING_ENABLED=true make crc
+    CPUS=24 MEMORY=49152 DISK=100 CRC_MONITORING_ENABLED=true make crc
     ```
+
+    > **NOTE**: A full telemetry deployment (Ceilometer, MetricStorage,
+    > Autoscaling and especially CloudKitty) is resource intensive. Running the
+    > CRC VM with fewer resources (e.g. the previously suggested
+    > `CPUS=12 MEMORY=25600`) can starve the OpenShift control plane: etcd
+    > requests slow down, `kube-controller-manager` loses its leader-election
+    > lease and crash-loops, and this cascades into galera failing to bootstrap
+    > and Keystone returning HTTP 500. `CPUS=24 MEMORY=49152` (48 GiB) is the
+    > recommended minimum for the full stack. If you have already created the CRC
+    > VM, you can resize it with:
+    >
+    > ```bash
+    > crc config set cpus 24
+    > crc config set memory 49152
+    > crc stop && crc start
+    > ```
 
 2. Create edpm nodes
 
