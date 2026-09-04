@@ -1504,6 +1504,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			"grafana-dashboard-openstack-vm":                dashboards.OpenstackVM(datasourceName),
 			"grafana-dashboard-openstack-rabbitmq":          dashboards.OpenstackRabbitmq(datasourceName),
 			"grafana-dashboard-openstack-network-traffic":   dashboards.OpenstackNetworkTraffic(datasourceName),
+			"grafana-dashboard-openstack-lightspeed":        dashboards.OpenstackLightspeed(datasourceName),
 		}
 
 		// atleast one nodeset must have "telemetry-power-monitoring" service enabled for ipmi dashboard to be created
