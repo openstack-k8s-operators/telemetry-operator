@@ -54,12 +54,6 @@ spec:
   scrapeInterval: 40s
   metricRelabelings:
   - action: labeldrop
-    regex: pod
-  - action: labeldrop
-    regex: namespace
-  - action: labeldrop
-    regex: job
-  - action: labeldrop
     regex: publisher
 ---
 apiVersion: monitoring.rhobs/v1alpha1
@@ -161,11 +155,5 @@ metadata:
 spec:
   scrapeInterval: 40s
   metricRelabelings:
-  - action: labeldrop
-    regex: pod
-  - action: labeldrop
-    regex: namespace
-  - action: labeldrop
-    regex: job
   - action: labeldrop
     regex: publisher
