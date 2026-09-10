@@ -6,7 +6,7 @@ This document outlines the custom Alertmanager alerting rules for monitoring an 
 
 ## OpenStack Observability Services Status Alerts
 
-This group of alerts monitors the availability of core OpenStack services. These alerts are critical as they indicate a direct impact on the functionality of the OpenStack control plane and its APIs.
+This group of alerts monitors the availability of core OpenStack services. These alerts are critical as they indicate a direct impact on the functionality of OpenStack APIs.
 
 ## OpenStack Observability Nodes Status Alerts
 
