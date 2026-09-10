@@ -18,7 +18,7 @@ reportFormat: JSON
 reportName: kuttl-test-telemetry
 namespace: telemetry-kuttl-tests
 # LokiStack can take a long time to get ready
-timeout: 100
+timeout: 600
 parallel: 1
 testDirs:
   - test/kuttl/tests/
