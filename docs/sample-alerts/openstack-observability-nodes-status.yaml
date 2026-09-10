@@ -9,23 +9,23 @@ spec:
   groups:
     - name: openstack-observability.nodes.availability
       rules:
-        - alert: EdpmNodeAvailabilityWarning
+        - alert: EdpmNodeDown
           expr: |
             up{job=~".*telemetry-node-exporter-tls"} != 1
           labels:
             severity: warning
           annotations:
-            summary: Node is not available (warning)
-            description: Node ({{ $labels.fqdn }}) is not available.
-        - alert: EdpmNodeAvailabilityCritical
+            summary: Node is not available
+            description: Node exporter on {{ $labels.fqdn }} is not responding. The node may be down, unreachable, or the node exporter service may have failed.
+        - alert: EdpmNodeDown
           expr: |
             up{job=~".*telemetry-node-exporter-tls"} != 1
           for: 60s
           labels:
             severity: critical
           annotations:
-            summary: Node is not available (critical)
-            description: Node ({{ $labels.fqdn }}) is not available for more than 60 seconds.
+            summary: Node is not available
+            description: Node exporter on {{ $labels.fqdn }} is not responding. The node may be down, unreachable, or the node exporter service may have failed.
     - name: openstack-observability.nodes.health
       rules:
         # Disk usage alerts
@@ -35,7 +35,7 @@ spec:
           record: job:iotime:rate_5m:stddev_over_time_1h
         - expr: avg_over_time(job:iotime:rate_5m[1h])
           record: job:iotime:rate_5m:avg_over_time_1h
-        - alert: HighIOtimeWarning
+        - alert: EdpmNodeDiskIoTimeHigh
           expr: >-
             (abs(job:iotime:rate_5m - job:iotime:rate_5m:avg_over_time_1h) /
             job:iotime:rate_5m:stddev_over_time_1h) > 3
@@ -43,9 +43,9 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "Disk I/O time is moderately abnormal"
+            summary: Disk I/O time is moderately abnormal
             description: |
-              The time the disk is actively spending on I/O (reads or writes) has deviated more than
+              The time disk {{ $labels.device }} on {{ $labels.fqdn }} is actively spending on I/O (reads or writes) has deviated more than
               3 standard deviations from the 1-hour average. This may indicate increasing I/O load,
               slow operations, or unusual activity patterns. Alert has been active for at least 10 minutes.
 
@@ -55,7 +55,7 @@ spec:
           record: job:weightiotime:rate_5m:stddev_over_time_1h
         - expr: avg_over_time(job:weightiotime:rate_5m[1h])
           record: job:weightiotime:rate_5m:avg_over_time_1h
-        - alert: HighWeightedIOtimeWarning
+        - alert: EdpmNodeDiskIoWeightedHigh
           expr: >-
             (abs(job:weightiotime:rate_5m -
             job:weightiotime:rate_5m:avg_over_time_1h) /
@@ -64,10 +64,11 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "Disk weighted I/O time is moderately abnormal"
+            summary: Disk weighted I/O time is moderately abnormal
             description: |
-              The weighted disk I/O time (which reflects total time and concurrency of disk operations)
-              has deviated more than 3 standard deviations from the 1-hour average for at least 10 minutes.
+              The weighted disk I/O time on disk {{ $labels.device }} ({{ $labels.fqdn }}) has deviated more than
+              3 standard deviations from the 1-hour average for at least 10 minutes.
+              Weighted I/O time reflects total time and concurrency of disk operations.
               This may indicate increasing disk load, contention, or early signs of I/O saturation.
 
         - expr: rate(node_disk_read_time_seconds_total[5m])
@@ -76,7 +77,7 @@ spec:
           record: job:disk:time:read:rate_5m:stddev_over_time_1h
         - expr: avg_over_time(job:disk:time:read:rate_5m[1h])
           record: job:disk:time:read:rate_5m:avg_over_time_1h
-        - alert: HighDiskReadTimeWarning
+        - alert: EdpmNodeDiskReadLatencyHigh
           expr: >-
             (abs(job:disk:time:read:rate_5m -
             job:disk:time:read:rate_5m:avg_over_time_1h) /
@@ -85,12 +86,12 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "Disk read time is moderately abnormal"
+            summary: Disk read time is moderately abnormal
             description: |
-              The time spent on disk read operations is significantly higher or lower than the 1-hour average.
+              Disk {{ $labels.device }} on {{ $labels.fqdn }} is spending significantly more or less time on read operations than the 1-hour average.
               This may indicate increasing disk latency or abnormal I/O behavior.
               Value deviates more than 3 standard deviations for at least 10 minutes.
-        - alert: HighDiskReadTimeCritical
+        - alert: EdpmNodeDiskReadLatencyHigh
           expr: >-
             (abs(job:disk:time:read:rate_5m -
             job:disk:time:read:rate_5m:avg_over_time_1h) /
@@ -99,7 +100,7 @@ spec:
           labels:
             severity: critical
           annotations:
-            summary: "Disk read time is critically abnormal"
+            summary: Disk read time is critically abnormal
             description: |
               The time spent on disk read operations has deviated more than 6 standard deviations
               from the 1-hour average for at least 10 minutes. This indicates a likely performance issue,
@@ -111,7 +112,7 @@ spec:
           record: job:disk:time:write:rate_5m:stddev_over_time_1h
         - expr: avg_over_time(job:disk:time:write:rate_5m[1h])
           record: job:disk:time:write:rate_5m:avg_over_time_1h
-        - alert: HighDiskWriteTimeWarning
+        - alert: EdpmNodeDiskWriteLatencyHigh
           expr: >-
             (abs(job:disk:time:write:rate_5m -
             job:disk:time:write:rate_5m:avg_over_time_1h) /
@@ -120,12 +121,12 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "Disk write time is moderately abnormal"
+            summary: Disk write time is moderately abnormal
             description: |
-              The disk is spending more time than usual on write operations.
+              Disk {{ $labels.device }} on {{ $labels.fqdn }} is spending more time than usual on write operations.
               The write time has deviated more than 3 standard deviations from the 1-hour average,
               for at least 10 minutes. This may indicate increasing disk latency or a rising write load.
-        - alert: HighDiskWriteTimeCritical
+        - alert: EdpmNodeDiskWriteLatencyHigh
           expr: >-
             (abs(job:disk:time:write:rate_5m -
             job:disk:time:write:rate_5m:avg_over_time_1h) /
@@ -134,7 +135,7 @@ spec:
           labels:
             severity: critical
           annotations:
-            summary: "Disk write time is critically abnormal"
+            summary: Disk write time is critically abnormal
             description: |
               The time the disk spends writing has deviated more than 6 standard deviations
               from the 1-hour average for at least 10 minutes. This indicates a likely performance
@@ -146,7 +147,7 @@ spec:
           record: job:disk:ops:read:rate_5m:stddev_over_time_1h
         - expr: avg_over_time(job:disk:ops:read:rate_5m[1h])
           record: job:disk:ops:read:rate_5m:avg_over_time_1h
-        - alert: HighDiskReadOpsWarning
+        - alert: EdpmNodeDiskReadOpsHigh
           expr: >-
             (abs(job:disk:ops:read:rate_5m -
             job:disk:ops:read:rate_5m:avg_over_time_1h) /
@@ -155,12 +156,12 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "Disk read rate is moderately abnormal"
+            summary: Disk read rate is moderately abnormal
             description: |
-              The disk read operations rate has deviated more than 3 standard deviations
+              Disk {{ $labels.device }} on {{ $labels.fqdn }} read operations rate has deviated more than 3 standard deviations
               from the 1-hour average for at least 10 minutes. This may indicate a change
               in workload or a potential disk performance issue.
-        - alert: HighDiskReadOpsCritical
+        - alert: EdpmNodeDiskReadOpsHigh
           expr: >-
             (abs(job:disk:ops:read:rate_5m -
             job:disk:ops:read:rate_5m:avg_over_time_1h) /
@@ -169,9 +170,9 @@ spec:
           labels:
             severity: critical
           annotations:
-            summary: "Disk read rate is critically abnormal"
+            summary: Disk read rate is critically abnormal
             description: |
-              The disk read operations rate has deviated more than 6 standard deviations
+              Disk {{ $labels.device }} on {{ $labels.fqdn }} read operations rate has deviated more than 6 standard deviations
               from the 1-hour average for at least 10 minutes. This is a significant anomaly
               and may indicate disk overload, hardware issues, or a misbehaving application.
 
@@ -181,7 +182,7 @@ spec:
           record: job:disk:ops:write:rate_5m:stddev_over_time_1h
         - expr: avg_over_time(job:disk:ops:write:rate_5m[1h])
           record: job:disk:ops:write:rate_5m:avg_over_time_1h
-        - alert: HighDiskWriteOpsWarning
+        - alert: EdpmNodeDiskWriteOpsHigh
           expr: >-
             (abs(job:disk:ops:write:rate_5m -
             job:disk:ops:write:rate_5m:avg_over_time_1h) /
@@ -190,12 +191,12 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "Disk write ops rate is moderately abnormal"
+            summary: Disk write ops rate is moderately abnormal
             description: |
-              The number of completed disk write operations per second has deviated
+              Disk {{ $labels.device }} on {{ $labels.fqdn }} write operations rate has deviated
               more than 3 standard deviations from the 1-hour average for at least 10 minutes.
               This may indicate unexpected disk activity, workload spikes, or application issues.
-        - alert: HighDiskWriteOpsCritical
+        - alert: EdpmNodeDiskWriteOpsHigh
           expr: >-
             (abs(job:disk:ops:write:rate_5m -
             job:disk:ops:write:rate_5m:avg_over_time_1h) /
@@ -204,19 +205,19 @@ spec:
           labels:
             severity: critical
           annotations:
-            summary: "Disk write ops rate is critically abnormal"
+            summary: Disk write ops rate is critically abnormal
             description: |
-              The number of completed disk write operations per second has deviated
+              Disk {{ $labels.device }} on {{ $labels.fqdn }} write operations rate has deviated
               more than 6 standard deviations from the 1-hour baseline for at least 10 minutes.
               This likely indicates a serious workload anomaly, disk saturation, or malfunctioning application.
 
         # CPU usage alerts
         # Count of CPU cores per instance
         - record: job:cpu:count:cpu_cores_total
-          expr: count by (instance) (count by (instance, cpu) (node_cpu_seconds_total))
+          expr: count by (instance, fqdn) (count by (instance, fqdn, cpu) (node_cpu_seconds_total))
         # CPU usage rate (excluding idle & iowait)
         - record: job:cpu:rate:core_usage_seconds
-          expr: sum by (instance) (
+          expr: sum by (instance, fqdn) (
                   rate(node_cpu_seconds_total{mode!~"idle|iowait"}[5m])
                 )
         # Average CPU usage per core (percentage)
@@ -224,26 +225,28 @@ spec:
           expr: job:cpu:rate:core_usage_seconds
                 / job:cpu:count:cpu_cores_total
                 * 100
-        - alert: HighAverageCPUUsageWarning
-          expr: job:cpu:rate:avg_core_usage_percent > 50 and job:cpu:rate:avg_core_usage_percent < 70
+        - alert: EdpmNodeCpuHigh
+          expr: job:cpu:rate:avg_core_usage_percent > 50
           for: 5m
           labels:
             severity: warning
           annotations:
-            summary: "High average CPU usage on instance {{ $labels.instance }}"
+            summary: High average CPU usage on instance {{ $labels.fqdn }}
             description: |
-              The average CPU usage per core is above 50% and below 70% on instance {{ $labels.instance }}
+              Average CPU usage per core is {{ $value | humanize }}%.
+              Usage has been above 50% on instance {{ $labels.fqdn }}
               for more than 5 minutes. This may indicate CPU saturation and could affect performance.
 
-        - alert: HighCPUUsageCritical
+        - alert: EdpmNodeCpuHigh
           expr: job:cpu:rate:avg_core_usage_percent >= 70
           for: 10m
           labels:
             severity: critical
           annotations:
-            summary: "High average CPU usage on instance {{ $labels.instance }}"
+            summary: High average CPU usage on instance {{ $labels.fqdn }}
             description: |
-              The average CPU usage per core is above 70% on instance {{ $labels.instance }}
+              Average CPU usage per core is {{ $value | humanize }}%.
+              Usage has been above 70% on instance {{ $labels.fqdn }}
               for more than 10 minutes. This may indicate CPU saturation and could affect performance.
 
         # Disk space usage
@@ -251,134 +254,152 @@ spec:
           expr: |
             1 - node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|devtmpfs|overlay"}
 
-        - alert: DiskSpaceUsageWarning
+        - alert: EdpmNodeDiskSpaceHigh
           expr: |
-            job:filesystem:disk_usage_ratio > 0.8 and job:filesystem:disk_usage_ratio < 0.9
+            job:filesystem:disk_usage_ratio > 0.8
           for: 10m
           labels:
             severity: warning
           annotations:
-            summary: "Disk space usage high (warning)"
+            summary: Disk space usage high
             description: |
-              Disk usage is above 80% but below 90% for more than 10 minutes on {{ $labels.instance }}
+              Disk usage is {{ $value | humanizePercentage }} on {{ $labels.fqdn }}
               (mountpoint: {{ $labels.mountpoint }}, device: {{ $labels.device }}).
 
-        - alert: DiskSpaceUsageCritical
+        - alert: EdpmNodeDiskSpaceHigh
           expr: |
             job:filesystem:disk_usage_ratio >= 0.9
           for: 10m
           labels:
             severity: critical
           annotations:
-            summary: "Disk space usage critical"
+            summary: Disk space usage critical
             description: |
-              Disk usage is above 90% for more than 10 minutes on {{ $labels.instance }}
+              Disk usage is {{ $value | humanizePercentage }} on {{ $labels.fqdn }}
               (mountpoint: {{ $labels.mountpoint }}, device: {{ $labels.device }}).
 
         # Inode usage alerts
         - record: job:filesystem:inode_usage_ratio
           expr: |
             (node_filesystem_files{fstype!~"tmpfs|devtmpfs|overlay"} - node_filesystem_files_free{fstype!~"tmpfs|devtmpfs|overlay"}) / node_filesystem_files{fstype!~"tmpfs|devtmpfs|overlay"}
-        - alert: InodeUsageWarning
+        - alert: EdpmNodeInodeUsageHigh
           expr: |
             job:filesystem:inode_usage_ratio > 0.6
           for: 10m
           labels:
             severity: warning
           annotations:
-            summary: "Inode usage high (warning)"
-            description: "Inode usage is above 60% for more than 10 minutes on {{ $labels.instance }} (mountpoint: {{ $labels.mountpoint }}, device: {{ $labels.device }})"
-
-        # Hugepages usage alerts
-        - alert: HugepagesLowWarning
-          expr: (sum(node_memory_HugePages_Free) / sum(node_memory_HugePages_Total)) < 0.2
-          for: 10m
-          labels:
-            severity: warning
-          annotations:
-            summary: Hugepages free ratio is below 20% (warning)
-            description: "The ratio of free hugepages to total hugepages is below 20% for more than 10 minutes."
-
-        - alert: HugepagesLowCritical
-          expr: (sum(node_memory_HugePages_Free) / sum(node_memory_HugePages_Total)) < 0.1
+            summary: Inode usage high
+            description: |
+              Inode usage is {{ $value | humanizePercentage }} on {{ $labels.fqdn }}
+              (mountpoint: {{ $labels.mountpoint }}, device: {{ $labels.device }}).
+              Usage has been above 60% for more than 10 minutes.
+        - alert: EdpmNodeInodeUsageHigh
+          expr: |
+            job:filesystem:inode_usage_ratio > 0.9
           for: 10m
           labels:
             severity: critical
           annotations:
-            summary: Hugepages free ratio is below 10% (critical)
-            description: "The ratio of free hugepages to total hugepages is below 10% for more than 10 minutes."
+            summary: Inode usage critical
+            description: |
+              Inode usage is {{ $value | humanizePercentage }} on {{ $labels.fqdn }}
+              (mountpoint: {{ $labels.mountpoint }}, device: {{ $labels.device }}).
+              Usage has been above 90% for more than 10 minutes.
 
-        # CPU load alerts
-        # Long-term load average alerts
-        - alert: LoadLongTermWarning
-          expr: (node_load15 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) > 0.7 and (node_load15 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) < 0.9
+        # Hugepages usage alerts
+        - alert: EdpmNodeHugepagesLow
+          expr: (node_memory_HugePages_Free / node_memory_HugePages_Total) < 0.2
           for: 10m
           labels:
             severity: warning
           annotations:
-            summary: Load average (15m) is high (warning)
-            description: "15-minute load average is above 70% of CPU cores on {{ $labels.instance }}"
+            summary: Hugepages free ratio is low
+            description: |
+              Free hugepages ratio is {{ $value | humanizePercentage }} on {{ $labels.fqdn }}.
+              The ratio has been below 20% for more than 10 minutes.
 
-        - alert: LoadLongTermCritical
-          expr: (node_load15 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) >= 0.9
+        - alert: EdpmNodeHugepagesLow
+          expr: (node_memory_HugePages_Free / node_memory_HugePages_Total) < 0.1
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Hugepages free ratio is below 10%
+            description: |
+              Free hugepages ratio is {{ $value | humanizePercentage }} on {{ $labels.fqdn }}.
+              The ratio has been below 10% for more than 10 minutes.
+
+        # CPU load alerts
+        # Long-term load average alerts
+        - alert: EdpmNodeLoad15mHigh
+          expr: (node_load15 / count(node_cpu_seconds_total{mode="idle"}) by (instance, fqdn, job)) > 0.7
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Load average (15m) is high
+            description: "15-minute load average is {{ $value | humanizePercentage }} of CPU cores on {{ $labels.fqdn }}"
+
+        - alert: EdpmNodeLoad15mHigh
+          expr: (node_load15 / count(node_cpu_seconds_total{mode="idle"}) by (instance, fqdn, job)) >= 0.9
           for: 10m
           labels:
             severity: critical
           annotations:
             summary: Load average (15m) is critical
-            description: "15-minute load average is above 90% of CPU cores on {{ $labels.instance }}"
+            description: "15-minute load average is {{ $value | humanizePercentage }} of CPU cores on {{ $labels.fqdn }}"
 
         # Mid-term load average alerts
-        - alert: LoadMidTermWarning
-          expr: (node_load5 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) > 0.7 and (node_load5 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) < 0.9
+        - alert: EdpmNodeLoad5mHigh
+          expr: (node_load5 / count(node_cpu_seconds_total{mode="idle"}) by (instance, fqdn, job)) > 0.7
           for: 10m
           labels:
             severity: warning
           annotations:
-            summary: Load average (5m) is high (warning)
-            description: "5-minute load average is above 70% of CPU cores on {{ $labels.instance }}"
+            summary: Load average (5m) is high
+            description: "5-minute load average is {{ $value | humanizePercentage }} of CPU cores on {{ $labels.fqdn }}"
 
-        - alert: LoadMidTermCritical
-          expr: (node_load5 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) >= 0.9
+        - alert: EdpmNodeLoad5mHigh
+          expr: (node_load5 / count(node_cpu_seconds_total{mode="idle"}) by (instance, fqdn, job)) >= 0.9
           for: 10m
           labels:
             severity: critical
           annotations:
             summary: Load average (5m) is critical
-            description: "5-minute load average is above 90% of CPU cores on {{ $labels.instance }}"
+            description: "5-minute load average is {{ $value | humanizePercentage }} of CPU cores on {{ $labels.fqdn }}"
 
         # Short-term load average alerts
-        - alert: LoadShortTermWarning
-          expr: (node_load1 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) > 0.7 and (node_load1 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) < 0.9
+        - alert: EdpmNodeLoad1mHigh
+          expr: (node_load1 / count(node_cpu_seconds_total{mode="idle"}) by (instance, fqdn, job)) > 0.7
           for: 10m
           labels:
             severity: warning
           annotations:
-            summary: Load average (1m) is high (warning)
-            description: "1-minute load average is above 70% of CPU cores on {{ $labels.instance }}"
+            summary: Load average (1m) is high
+            description: "1-minute load average is {{ $value | humanizePercentage }} of CPU cores on {{ $labels.fqdn }}"
 
-        - alert: LoadShortTermCritical
-          expr: (node_load1 / count(node_cpu_seconds_total{mode="idle"}) by (instance)) >= 0.9
+        - alert: EdpmNodeLoad1mHigh
+          expr: (node_load1 / count(node_cpu_seconds_total{mode="idle"}) by (instance, fqdn, job)) >= 0.9
           for: 10m
           labels:
             severity: critical
           annotations:
             summary: Load average (1m) is critical
-            description: "1-minute load average is above 90% of CPU cores on {{ $labels.instance }}"
+            description: "1-minute load average is {{ $value | humanizePercentage }} of CPU cores on {{ $labels.fqdn }}"
 
         # Memory usage alerts
-        - alert: MemoryUsageWarning
-          expr: (sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)) / sum(node_memory_MemTotal_bytes) > 0.8 and
-                (sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)) / sum(node_memory_MemTotal_bytes) < 0.9
+        - alert: EdpmNodeMemoryHigh
+          expr: ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) > 0.8
           for: 10m
           labels:
             severity: warning
           annotations:
-            summary: Memory usage is high (warning)
-            description: Memory usage is above 80% but below 90% for more than 10 minutes.
+            summary: Memory usage is high
+            description: Memory usage is above 80% for more than 10 minutes.
 
-        - alert: MemoryUsageCritical
-          expr: (sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)) / sum(node_memory_MemTotal_bytes) >= 0.9
+        - alert: EdpmNodeMemoryHigh
+          expr: ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) >= 0.9
           for: 10m
           labels:
             severity: critical
@@ -387,73 +408,95 @@ spec:
             description: Memory usage is above 90% for more than 10 minutes.
 
         # Memory hardware alerts
-        - alert: HardwareCorruptedMemoryWarning
+        - alert: EdpmNodeMemoryCorrupted
           expr: node_memory_HardwareCorrupted_bytes > 0
           for: 10m
           labels:
             severity: warning
           annotations:
-            summary: "Hardware-corrupted memory detected (warning)"
+            summary: Hardware-corrupted memory detected
             description: |
-              Node {{ $labels.instance }} has {{ $value }} bytes of hardware-corrupted memory. This may indicate failing RAM.
+              Node {{ $labels.fqdn }} has {{ $value | humanize }}B of hardware-corrupted memory. This may indicate failing RAM.
 
-        - alert: OomKillWarning
+        - alert: EdpmNodeOomKill
           expr: increase(node_vmstat_oom_kill[30m]) > 0
           labels:
             severity: warning
           annotations:
-            summary: "OOM kill detected (warning)"
+            summary: OOM kill detected
             description: |
-              Node {{ $labels.instance }} killed at least one process due to out-of-memory
+              Node {{ $labels.fqdn }} killed at least one process due to out-of-memory
               conditions in the last 30 minutes.
 
-        - alert: OomKillCritical
+        - alert: EdpmNodeOomKill
           expr: increase(node_vmstat_oom_kill[30m]) > 1
           labels:
             severity: critical
           annotations:
-            summary: "Multiple OOM kills detected (critical)"
+            summary: Multiple OOM kills detected
             description: |
-              Node {{ $labels.instance }} killed multiple processes due to out-of-memory
+              Node {{ $labels.fqdn }} killed multiple processes due to out-of-memory
               conditions in the last 30 minutes (count: {{ $value }}).
 
-        - alert: EdacCorrectableErrorsWarning
+        - alert: EdpmNodeMemoryEdacCorrectableErrors
           expr: increase(node_edac_correctable_errors_total[30m]) > 0
           labels:
             severity: warning
           annotations:
-            summary: "EDAC correctable memory errors detected (warning)"
+            summary: EDAC correctable memory errors detected
             description: |
-              Node {{ $labels.instance }} reported {{ $value }} correctable memory errors
+              Node {{ $labels.fqdn }} reported {{ $value }} correctable memory errors
               in the last 30 minutes. This may indicate degrading RAM.
 
-        - alert: EdacUncorrectableErrorsCritical
+        - alert: EdpmNodeMemoryEdacUncorrectableErrors
           expr: increase(node_edac_uncorrectable_errors_total[30m]) > 0
           labels:
             severity: critical
           annotations:
-            summary: "EDAC uncorrectable memory errors detected (critical)"
+            summary: EDAC uncorrectable memory errors detected
             description: |
-              Node {{ $labels.instance }} reported {{ $value }} uncorrectable memory errors
+              Node {{ $labels.fqdn }} reported {{ $value }} uncorrectable memory errors
               in the last 30 minutes. This indicates memory hardware failure.
 
-        # Network alerts
-        - alert: NetworkCarrierDownWarning
+        - alert: EdpmNodeNetworkCarrierDown
+          expr: node_network_carrier == 0
+          labels:
+            severity: warning
+          annotations:
+            summary: Network link is currently down
+            description: |
+              Network interface {{ $labels.device }} on {{ $labels.instance }} has no carrier signal.
+              This could be due to a cable disconnection, network switch issue, or link failure.
+
+        - alert: EdpmNodeNetworkCarrierDown
+          expr: node_network_carrier == 0
+          for: 60s
+          labels:
+            severity: critical
+          annotations:
+            summary: Network link down for more than 1 minute
+            description: |
+              Network interface {{ $labels.device }} on {{ $labels.instance }} has no carrier signal
+              This could be due to a cable disconnection, network switch issue, or link failure.
+
+        - alert: EdpmNodeNetworkCarrierWasDown
           expr: increase(node_network_carrier_down_changes_total[5m]) > 0
           labels:
             severity: warning
           annotations:
-            summary: "Network carrier down detected (warning)"
+            summary: Network carrier down detected
             description: |
-              Network interface {{ $labels.device }} on {{ $labels.instance }} lost carrier
-              in the last 5 minutes.
+              Network interface {{ $labels.device }} on {{ $labels.fqdn }} lost carrier signal
+              in the last 5 minutes. This typically indicates a physical cable disconnection, network switch issue,
+              or link failure.
 
-        - alert: NetworkCarrierDownCritical
+        - alert: EdpmNodeNetworkCarrierWasDown
           expr: increase(node_network_carrier_down_changes_total[30m]) > 2
           labels:
             severity: critical
           annotations:
-            summary: "Repeated network carrier down events (critical)"
+            summary: Repeated network carrier down events
             description: |
-              Network interface {{ $labels.device }} on {{ $labels.instance }} lost carrier
-              more than twice in the last 30 minutes (count: {{ $value }}).
+              Network interface {{ $labels.device }} on {{ $labels.fqdn }} lost carrier signal
+              more than twice in the last 30 minutes.
+              This typically indicates a physical cable disconnection, network switch issue, or link failure (count: {{ $value }}).
