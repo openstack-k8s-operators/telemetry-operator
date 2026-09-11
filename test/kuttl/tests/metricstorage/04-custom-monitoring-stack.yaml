@@ -10,6 +10,11 @@ spec:
     prometheusConfig:
       replicas: 1
       scrapeInterval: 40s
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: local-storage
     resourceSelector:
       matchLabels:
         app: custom-monitoring-stack

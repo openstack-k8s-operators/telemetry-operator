@@ -31,7 +31,8 @@ spec:
       strategy: persistent
       retention: 24h
       persistent:
-        pvcStorageRequest: 20G
+        pvcStorageRequest: 10G
+        pvcStorageClass: local-storage
   prometheusTls:
     caBundleSecretName: combined-ca-bundle
     secretName: cert-metric-storage-prometheus-svc
