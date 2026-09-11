@@ -18,6 +18,11 @@ package v1beta1
 import "time"
 
 const (
+	// TelemetryTransportConsumerFinalizer is the consumer finalizer added to
+	// transport secrets by all telemetry controllers (CloudKitty, Autoscaling,
+	// Ceilometer) to prevent premature deletion during credential rotation.
+	TelemetryTransportConsumerFinalizer = "openstack.org/telemetry-transport-consumer"
+
 	// DefaultServiceName -
 	DefaultServiceName = "metric-storage"
 	// DefaultPvcStorageRequest -

@@ -110,6 +110,10 @@ type CloudKittyAPIStatus struct {
 
 	// LastAppliedTopology - the last applied Topology
 	LastAppliedTopology *topologyv1.TopoRef `json:"lastAppliedTopology,omitempty"`
+
+	// AppliedInputSecretHash - hash of the input secrets that the child has
+	// fully rolled out, used by the parent to track credential rotation convergence
+	AppliedInputSecretHash string `json:"appliedInputSecretHash,omitempty"`
 }
 
 //+kubebuilder:object:root=true
