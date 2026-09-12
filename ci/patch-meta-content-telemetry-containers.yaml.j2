@@ -9,8 +9,9 @@ spec:
     aodhNotifierImage: {{ telemetry_registry }}/openstack-aodh-notifier:{{ telemetry_tag }}
     ceilometerCentralImage: {{ telemetry_registry }}/openstack-ceilometer-central:{{ telemetry_tag }}
     ceilometerComputeImage: {{ telemetry_registry }}/openstack-ceilometer-compute:{{ telemetry_tag }}
-    ceilometerIpmiImage: {{ telemetry_registry }}/openstack-ceilometer-ipmi:{{ telemetry_tag }}
-    ceilometerNotificationImage: {{ telemetry_registry }}/openstack-ceilometer-notification:{{ telemetry_tag }}
+    # OSPRH-34556: ipmi/notification agents ship in the consolidated compute/central images
+    ceilometerIpmiImage: {{ telemetry_registry }}/openstack-ceilometer-compute:{{ telemetry_tag }}
+    ceilometerNotificationImage: {{ telemetry_registry }}/openstack-ceilometer-central:{{ telemetry_tag }}
     cloudkittyAPIImage: {{ telemetry_registry }}/openstack-cloudkitty-api:{{ telemetry_tag }}
     cloudkittyProcImage: {{ telemetry_registry }}/openstack-cloudkitty-processor:{{ telemetry_tag }}
     heatAPIImage: {{ telemetry_registry }}/openstack-heat-api:{{ telemetry_tag }}
