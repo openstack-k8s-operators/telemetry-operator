@@ -36,4 +36,10 @@ const (
 
 	// ACConsumerFinalizer is added to AC secrets that Ceilometer is actively consuming
 	ACConsumerFinalizer = "openstack.org/ceilometer-ac-consumer"
+
+	// TelemetrySecretName is the K8s Secret holding the per-deployment publisher HMAC key
+	TelemetrySecretName = "ceilometer-telemetry-secret" // #nosec G101
+
+	// TelemetrySecretKey is the data key inside the TelemetrySecret
+	TelemetrySecretKey = "TelemetrySecret"
 )

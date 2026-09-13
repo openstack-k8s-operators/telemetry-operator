@@ -18,6 +18,8 @@ package controller
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"slices"
@@ -693,7 +695,18 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	// - %-config configmap holding minimal ceilometer config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
-	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars)
+	telemetrySecret, err := r.ensureTelemetrySecret(ctx, helper, instance)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	err = r.generateServiceConfig(ctx, helper, instance, &configMapVars, telemetrySecret)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -710,7 +723,7 @@ func (r *CeilometerReconciler) reconcileCeilometer(
 	// - %-config configmap holding minimal ceilometer-compute config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
-	err = r.generateComputeServiceConfig(ctx, helper, instance, &configMapVars)
+	err = r.generateComputeServiceConfig(ctx, helper, instance, &configMapVars, telemetrySecret)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -1274,11 +1287,47 @@ func (r *CeilometerReconciler) reconcileKSM(
 	return ctrl.Result{}, nil
 }
 
+func (r *CeilometerReconciler) ensureTelemetrySecret(
+	ctx context.Context,
+	h *helper.Helper,
+	instance *telemetryv1.Ceilometer,
+) (string, error) {
+	b := make([]byte, 25)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("error generating telemetry secret: %w", err)
+	}
+	telemetrySecretValue := hex.EncodeToString(b)
+
+	secretName := fmt.Sprintf("%s-%s", ceilometer.TelemetrySecretName, instance.Name)
+	secretDef := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: instance.Namespace,
+		},
+		StringData: map[string]string{
+			ceilometer.TelemetrySecretKey: telemetrySecretValue,
+		},
+	}
+
+	_, _, err := secret.CreateOrPatchSecretPreserve(ctx, h, instance, secretDef, false)
+	if err != nil {
+		return "", err
+	}
+
+	storedSecret, _, err := secret.GetSecret(ctx, h, secretName, instance.Namespace)
+	if err != nil {
+		return "", err
+	}
+
+	return string(storedSecret.Data[ceilometer.TelemetrySecretKey]), nil
+}
+
 func (r *CeilometerReconciler) generateServiceConfig(
 	ctx context.Context,
 	h *helper.Helper,
 	instance *telemetryv1.Ceilometer,
 	envVars *map[string]env.Setter,
+	telemetrySecret string,
 ) error {
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ServiceName), map[string]string{})
 	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
@@ -1313,6 +1362,7 @@ func (r *CeilometerReconciler) generateServiceConfig(
 		"KeystoneInternalURL": keystoneInternalURL,
 		"TransportURL":        string(transportURLSecret.Data["transport_url"]),
 		"CeilometerPassword":  string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
+		"TelemetrySecret":     telemetrySecret,
 		"TLS":                 false, // Default to false. Change to true later if TLS enabled
 		"SwiftRole":           false,
 		"ManilaEnabled":       false,
@@ -1417,6 +1467,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 	h *helper.Helper,
 	instance *telemetryv1.Ceilometer,
 	envVars *map[string]env.Setter,
+	telemetrySecret string,
 ) error {
 	cmLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.ComputeServiceName), map[string]string{})
 	ipmiLabels := labels.GetLabels(instance, labels.GetGroupLabel(ceilometer.IpmiServiceName), map[string]string{})
@@ -1452,6 +1503,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		"KeystoneInternalURL":      keystoneInternalURL,
 		"TransportURL":             string(transportURLSecret.Data["transport_url"]),
 		"CeilometerPassword":       string(ceilometerPasswordSecret.Data["CeilometerPassword"]),
+		"TelemetrySecret":          telemetrySecret,
 		"ceilometer_compute_image": instance.Spec.ComputeImage,
 		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
 		"TLS":                      false,
