@@ -232,8 +232,10 @@
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
         - telemetry-operator-multinode-default-telemetry
-        - functional-audit-logging-tests-osp18
+        - functional-audit-logging-tests-osp18:
+            override-checkout: rhoso-18
         - functional-tests-osp18: &fvt_jobs_config
+            override-checkout: rhoso-18
             voting: true
             required-projects:
               - name: infrawatch/feature-verification-tests
@@ -242,6 +244,7 @@
         - feature-verification-tests-noop:
             files: *irrelevant_files
         - functional-periodic-telemetry-with-ceph:
+            override-checkout: rhoso-18
             required-projects:
               - name: infrawatch/feature-verification-tests
                 override-checkout: rhoso-18
