@@ -62,14 +62,11 @@ func StatefulSet(
 	args = append(args, fmt.Sprintf("%s=%s", configFlag, configPath))
 	args = append(args, collectorArgs...)
 
-	livenessProbe.HTTPGet = &corev1.HTTPGetAction{
-		Path: "/",
+	healthcheck := corev1.TCPSocketAction{
 		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(MysqldExporterPort)},
 	}
-	readinessProbe.HTTPGet = &corev1.HTTPGetAction{
-		Path: "/",
-		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(MysqldExporterPort)},
-	}
+	livenessProbe.TCPSocket = &healthcheck
+	readinessProbe.TCPSocket = &healthcheck
 
 	var replicas int32 = 1
 
@@ -83,9 +80,6 @@ func StatefulSet(
 		}
 		svc.CertMount = ptr.To(fmt.Sprintf("/etc/pki/tls/certs/%s", tls.CertKey))
 		svc.KeyMount = ptr.To(fmt.Sprintf("/etc/pki/tls/private/%s", tls.PrivateKey))
-
-		livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
 
 		volumes = append(volumes, svc.CreateVolume(ServiceName))
 		volumeMounts = append(volumeMounts, svc.CreateVolumeMounts(ServiceName)...)
@@ -111,7 +105,9 @@ func StatefulSet(
 				Drop: []corev1.Capability{"ALL"},
 			},
 		},
-		VolumeMounts: volumeMounts,
+		LivenessProbe:  livenessProbe,
+		ReadinessProbe: readinessProbe,
+		VolumeMounts:   volumeMounts,
 	}
 
 	podTemplate := corev1.PodTemplateSpec{
