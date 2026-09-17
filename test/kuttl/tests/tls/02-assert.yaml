@@ -292,6 +292,13 @@ spec:
       secret:
         key: tls-ca-bundle.pem
         name: combined-ca-bundle
+    cert:
+      secret:
+        key: tls.crt
+        name: cert-prometheus-client
+    keySecret:
+      key: tls.key
+      name: cert-prometheus-client
 ---
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig
@@ -309,6 +316,13 @@ spec:
       secret:
         key: tls-ca-bundle.pem
         name: combined-ca-bundle
+    cert:
+      secret:
+        key: tls.crt
+        name: cert-prometheus-client
+    keySecret:
+      key: tls.key
+      name: cert-prometheus-client
 ---
 apiVersion: monitoring.rhobs/v1alpha1
 kind: ScrapeConfig

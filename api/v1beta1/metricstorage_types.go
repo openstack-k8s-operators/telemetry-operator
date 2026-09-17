@@ -124,6 +124,13 @@ type MetricStorageSpec struct {
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// PrometheusClientCertSecret - Secret containing client cert and key
+	// (tls.crt, tls.key) for Prometheus to present when scraping targets
+	// that require mTLS.
+	PrometheusClientCertSecret tls.GenericService `json:"prometheusClientCertSecret,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
 	// AlertmanagerTLS tls.SimpleService `json:"alertmanagerTls,omitempty"`
 }

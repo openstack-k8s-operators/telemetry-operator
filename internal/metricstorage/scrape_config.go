@@ -269,6 +269,23 @@ func ScrapeConfig(
 				},
 			},
 		}
+		if instance.Spec.PrometheusClientCertSecret.Enabled() {
+			clientCertSecretName := *instance.Spec.PrometheusClientCertSecret.SecretName
+			tlsConfig.Cert = monv1.SecretOrConfigMap{
+				Secret: &corev1.SecretKeySelector{
+					Key: tls.CertKey,
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: clientCertSecretName,
+					},
+				},
+			}
+			tlsConfig.KeySecret = &corev1.SecretKeySelector{
+				Key: tls.PrivateKey,
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: clientCertSecretName,
+				},
+			}
+		}
 		scheme := "HTTPS"
 		scrapeConfig.Spec.Scheme = &scheme
 		scrapeConfig.Spec.TLSConfig = &tlsConfig
