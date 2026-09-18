@@ -26,10 +26,8 @@ import (
 )
 
 const (
-	// CloudKittyAPIContainerImage - default fall-back image for CloudKitty API
-	CloudKittyAPIContainerImage = "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:current"
-	// CloudKittyProcContainerImage - default fall-back image for CloudKitty Processor
-	CloudKittyProcContainerImage = "quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:current"
+	// CloudKittyContainerImage - default fall-back image for CloudKitty images
+	CloudKittyContainerImage = "quay.io/openstack-s2i-containers/openstack-cloudkitty-api:master-latest"
 	// CloudKittyDbSyncHash hash
 	CKDbSyncHash = "ckdbsync"
 	// CKStorageInitHash hash
@@ -384,8 +382,8 @@ func init() {
 func SetupDefaultsCloudKitty() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	cloudKittyDefaults := CloudKittyDefaults{
-		APIContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_API_IMAGE_URL_DEFAULT", CloudKittyAPIContainerImage),
-		ProcContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_PROCESSOR_IMAGE_URL_DEFAULT", CloudKittyProcContainerImage),
+		APIContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_IMAGE_URL_DEFAULT", CloudKittyContainerImage),
+		ProcContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_IMAGE_URL_DEFAULT", CloudKittyContainerImage),
 	}
 
 	SetupCloudKittyDefaults(cloudKittyDefaults)
