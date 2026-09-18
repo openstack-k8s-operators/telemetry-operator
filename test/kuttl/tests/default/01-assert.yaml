@@ -49,18 +49,38 @@ spec:
         - /var/lib/openstack/bin/notificationhealth.py
     name: ceilometer-notification-agent
   - name: sg-core
+    livenessProbe:
+      exec:
+        command:
+        - curl
+        - -f
+        - -s
+        - -o
+        - /dev/null
+        - -w
+        - '%{http_code}'
+        - http://localhost:3001/
+    readinessProbe:
+      exec:
+        command:
+        - curl
+        - -f
+        - -s
+        - -o
+        - /dev/null
+        - -w
+        - '%{http_code}'
+        - http://localhost:3001/
   - args:
     - -DFOREGROUND
     command:
     - /usr/sbin/httpd
     livenessProbe:
-      httpGet:
-        path: /
+      tcpSocket:
         port: 3000
     name: proxy-httpd
     readinessProbe:
-      httpGet:
-        path: /
+      tcpSocket:
         port: 3000
   hostname: ceilometer-0
 status:
