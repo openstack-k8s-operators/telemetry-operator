@@ -287,10 +287,10 @@ func SetupDefaultsTelemetry() {
 		MysqldExporterContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_MYSQLD_EXPORTER_IMAGE_URL_DEFAULT", MysqldExporterContainerImage),
 
 		// Autoscaling
-		AodhAPIContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
-		AodhEvaluatorContainerImageURL: util.GetEnvVar("RELATED_IMAGE_AODH_EVALUATOR_IMAGE_URL_DEFAULT", AodhEvaluatorContainerImage),
-		AodhNotifierContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_NOTIFIER_IMAGE_URL_DEFAULT", AodhNotifierContainerImage),
-		AodhListenerContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_LISTENER_IMAGE_URL_DEFAULT", AodhListenerContainerImage),
+		AodhAPIContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_AODH_IMAGE_URL_DEFAULT", AodhContainerImage),
+		AodhEvaluatorContainerImageURL: util.GetEnvVar("RELATED_IMAGE_AODH_IMAGE_URL_DEFAULT", AodhContainerImage),
+		AodhNotifierContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_IMAGE_URL_DEFAULT", AodhContainerImage),
+		AodhListenerContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_IMAGE_URL_DEFAULT", AodhContainerImage),
 
 		// CloudKitty
 		CloudKittyAPIContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_CLOUDKITTY_API_IMAGE_URL_DEFAULT", CloudKittyAPIContainerImage),
