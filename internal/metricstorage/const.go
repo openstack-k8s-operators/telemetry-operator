@@ -47,4 +47,19 @@ const (
 	openStackLightspeedTokenKey        = "token"
 	// OpenStackLightspeedAccessCRName is the ClusterRole for OpenStack Lightspeed metrics access.
 	OpenStackLightspeedAccessCRName = "lightspeed-access"
+
+	// AetosServiceName is the Keystone service name for Aetos
+	AetosServiceName = "aetos"
+
+	// AetosServiceType is the Keystone service type for Aetos
+	AetosServiceType = "metric-storage"
+
+	// AetosPort is the port Aetos httpd listens on
+	AetosPort = 8989
+
+	// AetosConfigSecret is the name of the Secret holding the rendered Aetos config
+	AetosConfigSecret = "aetos-config-data" //nolint:gosec
+
+	// ACConsumerFinalizer is added to AC secrets that Aetos is actively consuming
+	ACConsumerFinalizer = "openstack.org/aetos-ac-consumer"
 )

@@ -43,6 +43,7 @@ type TelemetryDefaults struct {
 	IpmiContainerImageURL           string
 	KsmContainerImageURL            string
 	MysqldExporterContainerImageURL string
+	AetosContainerImageURL          string
 	AodhAPIContainerImageURL        string
 	AodhEvaluatorContainerImageURL  string
 	AodhNotifierContainerImageURL   string
@@ -95,6 +96,10 @@ func (spec *TelemetrySpec) Default() {
 	if spec.Ceilometer.CeilometerSpec.MysqldExporterImage == "" {
 		spec.Ceilometer.CeilometerSpec.MysqldExporterImage = telemetryDefaults.MysqldExporterContainerImageURL
 	}
+	// TODO(jwysogla): Aetos image defaulting is handled by MetricStorageSpec.Default()
+	// on the standalone MetricStorage CR. Once MetricStorageSection is upgraded to
+	// embed MetricStorageSpec (with image), move the defaulting here to match the
+	// Autoscaling/Ceilometer/CloudKitty pattern.
 	if spec.Autoscaling.AutoscalingSpec.Aodh.APIImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.APIImage = telemetryDefaults.AodhAPIContainerImageURL
 	}
@@ -119,6 +124,7 @@ func (spec *TelemetrySpec) Default() {
 	spec.Autoscaling.Aodh.Default()
 	spec.Ceilometer.CeilometerSpec.Default()
 	spec.CloudKitty.CloudKittySpec.Default()
+	spec.MetricStorage.Default()
 }
 
 // Default - set defaults for this Telemetry spec core
@@ -127,6 +133,7 @@ func (spec *TelemetrySpecCore) Default() {
 	spec.Autoscaling.Aodh.Default()
 	spec.Ceilometer.Default()
 	spec.CloudKitty.Default()
+	spec.MetricStorage.Default()
 }
 
 // ValidateCreate validates the Telemetry resource on creation
@@ -159,6 +166,9 @@ func (r TelemetrySpec) ValidateCreate(basePath *field.Path, namespace string) ([
 		allWarns = append(allWarns, warns...)
 		allErrs = append(allErrs, errs...)
 	}
+	if r.MetricStorage.Enabled != nil && *r.MetricStorage.Enabled {
+		allErrs = append(allErrs, r.MetricStorage.Aetos.ValidateCreate(basePath.Child("metricStorage").Child("aetos"))...)
+	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)
 		allWarns = append(allWarns, warns...)
@@ -176,6 +186,9 @@ func (r TelemetrySpecCore) ValidateCreate(basePath *field.Path, namespace string
 		warns, errs := r.Autoscaling.AutoscalingSpecCore.Aodh.ValidateCreate(basePath.Child("autoscaling").Child("aodh"), namespace)
 		allWarns = append(allWarns, warns...)
 		allErrs = append(allErrs, errs...)
+	}
+	if r.MetricStorage.Enabled != nil && *r.MetricStorage.Enabled {
+		allErrs = append(allErrs, r.MetricStorage.Aetos.ValidateCreate(basePath.Child("metricStorage").Child("aetos"))...)
 	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpecCore.ValidateCreate(basePath.Child("cloudkitty"), namespace)
@@ -220,6 +233,9 @@ func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, n
 		allWarns = append(allWarns, warns...)
 		allErrs = append(allErrs, errs...)
 	}
+	if r.MetricStorage.Enabled != nil && *r.MetricStorage.Enabled {
+		allErrs = append(allErrs, r.MetricStorage.Aetos.ValidateCreate(basePath.Child("metricStorage").Child("aetos"))...)
+	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpec.ValidateUpdate(old.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)
 		allWarns = append(allWarns, warns...)
@@ -237,6 +253,9 @@ func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpecCore, basePath *field
 		warns, errs := r.Autoscaling.AutoscalingSpecCore.Aodh.ValidateUpdate(old.Autoscaling.AutoscalingSpecCore.Aodh, basePath.Child("autoscaling").Child("aodh"), namespace)
 		allWarns = append(allWarns, warns...)
 		allErrs = append(allErrs, errs...)
+	}
+	if r.MetricStorage.Enabled != nil && *r.MetricStorage.Enabled {
+		allErrs = append(allErrs, r.MetricStorage.Aetos.ValidateCreate(basePath.Child("metricStorage").Child("aetos"))...)
 	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpecCore.ValidateUpdate(old.CloudKitty.CloudKittySpecCore, basePath.Child("cloudkitty"), namespace)
