@@ -23,6 +23,8 @@ spec:
           value: quay.io/openstack-k8s-operators/sg-core:latest
         - name: RELATED_IMAGE_APACHE_IMAGE_URL_DEFAULT
           value: registry.redhat.io/ubi9/httpd-24:latest
+        - name: RELATED_IMAGE_AETOS_IMAGE_URL_DEFAULT
+          value: quay.io/openstack-s2i-containers/openstack-aetos:master-latest
         - name: RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified
         - name: RELATED_IMAGE_AODH_EVALUATOR_IMAGE_URL_DEFAULT

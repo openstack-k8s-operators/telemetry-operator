@@ -41,6 +41,7 @@ type TelemetryDefaults struct {
 	IpmiContainerImageURL           string
 	KsmContainerImageURL            string
 	MysqldExporterContainerImageURL string
+	AetosContainerImageURL          string
 	AodhAPIContainerImageURL        string
 	AodhEvaluatorContainerImageURL  string
 	AodhNotifierContainerImageURL   string
@@ -93,6 +94,9 @@ func (spec *TelemetrySpec) Default() {
 	if spec.Ceilometer.CeilometerSpec.MysqldExporterImage == "" {
 		spec.Ceilometer.CeilometerSpec.MysqldExporterImage = telemetryDefaults.MysqldExporterContainerImageURL
 	}
+	if spec.MetricStorage.MetricStorageSpec.AetosImage == "" {
+		spec.MetricStorage.MetricStorageSpec.AetosImage = telemetryDefaults.AetosContainerImageURL
+	}
 	if spec.Autoscaling.AutoscalingSpec.Aodh.APIImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.APIImage = telemetryDefaults.AodhAPIContainerImageURL
 	}
@@ -117,6 +121,7 @@ func (spec *TelemetrySpec) Default() {
 	spec.Autoscaling.Aodh.Default()
 	spec.Ceilometer.CeilometerSpec.Default()
 	spec.CloudKitty.CloudKittySpec.Default()
+	spec.MetricStorage.MetricStorageSpec.Default()
 }
 
 // Default - set defaults for this Telemetry spec core
@@ -125,6 +130,7 @@ func (spec *TelemetrySpecCore) Default() {
 	spec.Autoscaling.Aodh.Default()
 	spec.Ceilometer.Default()
 	spec.CloudKitty.Default()
+	spec.MetricStorage.Default()
 }
 
 // ValidateCreate validates the Telemetry resource on creation
