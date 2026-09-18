@@ -55,6 +55,14 @@ spec:
   alertmanagerTls:
     caBundleSecretName: combined-ca-bundle
     secretName: cert-metric-storage-alertmanager-svc
+  aetos:
+    tls:
+      caBundleSecretName: combined-ca-bundle
+      api:
+        internal:
+          secretName: cert-aetos-internal-svc
+        public:
+          secretName: cert-aetos-public-svc
 ---
 apiVersion: telemetry.openstack.org/v1beta1
 kind: CloudKitty
