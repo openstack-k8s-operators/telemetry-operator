@@ -22,8 +22,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+// MetricStorageDefaults -
+type MetricStorageDefaults struct {
+	AetosContainerImageURL string
+}
+
+var metricStorageDefaults MetricStorageDefaults
+
 // log is for logging in this package.
 var metricstoragelog = logf.Log.WithName("metricstorage-resource")
+
+// SetupMetricStorageDefaults - initialize MetricStorage spec defaults for use with either internal or external webhooks
+func SetupMetricStorageDefaults(defaults MetricStorageDefaults) {
+	metricStorageDefaults = defaults
+	metricstoragelog.Info("MetricStorage defaults initialized", "defaults", defaults)
+}
 
 // Default sets default values for the MetricStorage spec
 func (r *MetricStorage) Default() {
@@ -32,6 +45,15 @@ func (r *MetricStorage) Default() {
 
 // Default - set defaults for the MetricStorage spec
 func (spec *MetricStorageSpec) Default() {
+	if spec.AetosImage == "" {
+		spec.AetosImage = metricStorageDefaults.AetosContainerImageURL
+	}
+
+	spec.MetricStorageSpecCore.Default()
+}
+
+// Default - set defaults for the MetricStorage spec core. NOTE: this version is used by the OpenStackControlplane webhook
+func (spec *MetricStorageSpecCore) Default() {
 	if spec.MonitoringStack == nil && spec.CustomMonitoringStack == nil {
 		spec.MonitoringStack = &MonitoringStack{}
 		// Set the AlertingEnabled to true here as the empty value means false
@@ -43,7 +65,7 @@ func (spec *MetricStorageSpec) Default() {
 		//       it here like Alerting above
 	}
 
-	if *spec.DataplaneNetwork == "" {
+	if spec.DataplaneNetwork != nil && *spec.DataplaneNetwork == "" {
 		*spec.DataplaneNetwork = "ctlplane"
 	}
 

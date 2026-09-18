@@ -349,6 +349,7 @@ func main() {
 	telemetryv1beta1.SetupDefaultsCeilometer()
 	telemetryv1beta1.SetupDefaultsAutoscaling()
 	telemetryv1beta1.SetupDefaultsCloudKitty()
+	telemetryv1beta1.SetupDefaultsMetricStorage()
 
 	// nolint:goconst
 	checker := healthz.Ping

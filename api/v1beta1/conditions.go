@@ -86,6 +86,15 @@ const (
 	// KSMCreateServiceReadyCondition Status=True condition when k8s service for the KSM created ok
 	KSMCreateServiceReadyCondition condition.Type = "KSMCreateServiceReady"
 
+	// AetosReadyCondition Status=True condition which indicates if the Aetos sidecar is configured and operational
+	AetosReadyCondition condition.Type = "AetosReady"
+
+	// AetosKeystoneServiceReadyCondition Status=True condition which indicates if the Aetos Keystone service is registered
+	AetosKeystoneServiceReadyCondition condition.Type = "AetosKeystoneServiceReady"
+
+	// AetosKeystoneEndpointReadyCondition Status=True condition which indicates if the Aetos Keystone endpoint is registered
+	AetosKeystoneEndpointReadyCondition condition.Type = "AetosKeystoneEndpointReady"
+
 	// MysqldExporter conditions
 	MysqldExporterDBReadyCondition condition.Type = "MysqldExporterDBReady"
 
@@ -188,6 +197,21 @@ const (
 	ScrapeConfigUnableToOwnMessage = "Error occured when trying to own %s"
 
 	//
+	//
+	// AetosReady condition messages
+	//
+	// AetosReadyInitMessage
+	AetosReadyInitMessage = "Aetos sidecar not started"
+
+	// AetosReadyImageMissingMessage
+	AetosReadyImageMissingMessage = "Aetos container image is not set. Ensure the MetricStorage webhook is running and the AetosImage field is defaulted."
+
+	// AetosKeystoneServiceReadyInitMessage
+	AetosKeystoneServiceReadyInitMessage = "Aetos Keystone service not started"
+
+	// AetosKeystoneEndpointReadyInitMessage
+	AetosKeystoneEndpointReadyInitMessage = "Aetos Keystone endpoint not started"
+
 	// PrometheusReady condition messages
 	//
 	// PrometheusReadyInitMessage

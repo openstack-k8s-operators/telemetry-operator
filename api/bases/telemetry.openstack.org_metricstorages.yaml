@@ -52,6 +52,8 @@ spec:
           spec:
             description: MetricStorageSpec defines the desired state of MetricStorage
             properties:
+              aetosImage:
+                type: string
               alertmanagerTls:
                 description: |-
                   TLS - Parameters related to the Alertmanager TLS.
@@ -1866,6 +1868,33 @@ spec:
                   OpenStackLightspeedNamespace defines the namespace where OpenStack Lightspeed
                   is deployed. Used for discovering Lightspeed metrics services.
                 type: string
+              passwordSelector:
+                default:
+                  aetosService: AetosPassword
+                description: PasswordSelectors - Selectors to identify the service
+                  from the Secret
+                properties:
+                  aetosService:
+                    default: AetosPassword
+                    description: AetosService - Selector to get the aetos service
+                      password from the Secret
+                    type: string
+                  aodhService:
+                    default: AodhPassword
+                    description: AodhService - Selector to get the aodh service password
+                      from the Secret
+                    type: string
+                  ceilometerService:
+                    default: CeilometerPassword
+                    description: CeilometerService - Selector to get the ceilometer
+                      service password from the Secret
+                    type: string
+                  cloudKittyService:
+                    default: CloudKittyPassword
+                    description: CloudKittyService - Selector to get the CloudKitty
+                      service password from the Secret
+                    type: string
+                type: object
               prometheusClientCertSecret:
                 description: |-
                   PrometheusClientCertSecret - Secret containing client cert and key
@@ -1887,6 +1916,18 @@ spec:
                     description: SecretName - holding the cert, key for the service
                     type: string
                 type: object
+              secret:
+                default: osp-secret
+                description: Secret containing OpenStack password information for
+                  aetos
+                type: string
+              serviceUser:
+                default: aetos
+                description: ServiceUser - optional username used for this service
+                  to register in keystone
+                type: string
+            required:
+            - secret
             type: object
           status:
             description: MetricStorageStatus defines the observed state of MetricStorage
