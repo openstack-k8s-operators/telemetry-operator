@@ -48,6 +48,11 @@ type PasswordsSelector struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=CloudKittyPassword
 	CloudKittyService string `json:"cloudKittyService"`
+
+	// AetosService - Selector to get the aetos service password from the Secret
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=AetosPassword
+	AetosService string `json:"aetosService"`
 }
 
 // AuthSpec - authentication settings for keystone integration
@@ -94,6 +99,15 @@ type TelemetrySpecCore struct {
 
 // TelemetrySpecBase -
 type TelemetrySpecBase struct {
+	// TODO(jwysogla): MetricStorage is in TelemetrySpecBase (shared by
+	// TelemetrySpec and TelemetrySpecCore) for backward compatibility with
+	// the openstack-operator's Section-level DeepCopyInto. Once the
+	// openstack-operator switches to part-wise copy (Base + AetosCore),
+	// move MetricStorage into TelemetrySpec as MetricStorageSection (with
+	// MetricStorageSpec, including Aetos image) and into TelemetrySpecCore
+	// as MetricStorageSectionCore (with MetricStorageSpecCore, no image),
+	// matching the Autoscaling/Ceilometer/CloudKitty pattern.
+	//
 	// +kubebuilder:validation:Optional
 	// MetricStorage - Parameters related to the metricStorage
 	MetricStorage MetricStorageSection `json:"metricStorage,omitempty"`
@@ -168,7 +182,13 @@ type AutoscalingSectionCore struct {
 	AutoscalingSpecCore `json:",inline"`
 }
 
-// MetricStorageSection defines the desired state of the MetricStorage
+// MetricStorageSection defines the desired state of the MetricStorage.
+// TODO(jwysogla): Currently embeds MetricStorageSpecCore (no Aetos image) so
+// that the type can be shared in TelemetrySpecBase without leaking the image
+// into the OpenStackControlPlane CRD. In the follow-up, this type should embed
+// MetricStorageSpec (with image) and live only in TelemetrySpec; a new
+// MetricStorageSectionCore (embedding MetricStorageSpecCore) should be added
+// for TelemetrySpecCore.
 type MetricStorageSection struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
@@ -179,7 +199,7 @@ type MetricStorageSection struct {
 	// +kubebuilder:validation:Optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec
 	// Template - Overrides to use when creating the MetricStorage
-	MetricStorageSpec `json:",inline"`
+	MetricStorageSpecCore `json:",inline"`
 }
 
 // LoggingSection defines the desired state of the logging service
@@ -289,6 +309,9 @@ func SetupDefaultsTelemetry() {
 		SgCoreContainerImageURL:         util.GetEnvVar("RELATED_IMAGE_CEILOMETER_SGCORE_IMAGE_URL_DEFAULT", CeilometerSgCoreContainerImage),
 		ProxyContainerImageURL:          util.GetEnvVar("RELATED_IMAGE_APACHE_IMAGE_URL_DEFAULT", CeilometerProxyContainerImage),
 		MysqldExporterContainerImageURL: util.GetEnvVar("RELATED_IMAGE_CEILOMETER_MYSQLD_EXPORTER_IMAGE_URL_DEFAULT", MysqldExporterContainerImage),
+
+		// MetricStorage
+		AetosContainerImageURL: util.GetEnvVar("RELATED_IMAGE_AETOS_IMAGE_URL_DEFAULT", AetosContainerImage),
 
 		// Autoscaling
 		AodhAPIContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
