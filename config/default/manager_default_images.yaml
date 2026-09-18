@@ -26,3 +26,5 @@ spec:
           value: registry.redhat.io/ubi9/httpd-24:latest
         - name: RELATED_IMAGE_CLOUDKITTY_IMAGE_URL_DEFAULT
           value: quay.io/openstack-s2i-containers/openstack-cloudkitty-api:master-latest
+        - name: RELATED_IMAGE_AETOS_IMAGE_URL_DEFAULT
+          value: quay.io/openstack-s2i-containers/openstack-aetos:master-latest

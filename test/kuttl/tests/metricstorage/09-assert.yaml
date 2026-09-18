@@ -1,0 +1,77 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 900
+commands:
+  - script: |-
+      set -euo pipefail
+      NS="${NAMESPACE}"
+
+      prev_acid=$(oc get -n "${NS}" configmap/appcred-aetos-rotate-pre -o jsonpath='{.data.ac_id}')
+      if [ -z "${prev_acid}" ]; then
+        echo "ERROR: previous ACID missing from configmap/appcred-aetos-rotate-pre"
+        exit 1
+      fi
+
+      echo "Waiting for ac-aetos.status.acID to change..."
+      for _ in $(seq 1 60); do
+        ac_id=$(oc get -n "${NS}" appcred/ac-aetos -o jsonpath='{.status.acID}')
+        if [ -n "${ac_id}" ] && [ "${ac_id}" != "${prev_acid}" ]; then
+          break
+        fi
+        sleep 5
+      done
+      ac_id=$(oc get -n "${NS}" appcred/ac-aetos -o jsonpath='{.status.acID}')
+      if [ -z "${ac_id}" ] || [ "${ac_id}" = "${prev_acid}" ]; then
+        echo "ERROR: ACID did not change after forcing rotation"
+        echo "  prev=${prev_acid}"
+        echo "  curr=${ac_id}"
+        exit 1
+      fi
+      echo "✓ ACID rotated: ${prev_acid} -> ${ac_id}"
+
+      # Verify secret was updated
+      ac_secret_name=$(oc get -n "${NS}" appcred/ac-aetos -o jsonpath='{.status.secretName}')
+      if [ -z "${ac_secret_name}" ]; then
+        echo "ERROR: appcred/ac-aetos.status.secretName is empty after rotation"
+        exit 1
+      fi
+      echo "AC secret name after rotation: ${ac_secret_name}"
+
+      # Patch the MetricStorage CR with the new secret name
+      oc patch metricstorage telemetry-kuttl -n "${NS}" --type=merge \
+        -p "{\"spec\":{\"auth\":{\"applicationCredentialSecret\":\"${ac_secret_name}\"}}}"
+
+      secret_ac_id=$(oc get -n "${NS}" secret/"${ac_secret_name}" -o jsonpath='{.data.AC_ID}' | base64 -d)
+      if [ "${secret_ac_id}" != "${ac_id}" ]; then
+        echo "ERROR: Secret AC_ID (${secret_ac_id}) != rotated appcred.status.acID (${ac_id})"
+        exit 1
+      fi
+      echo "✓ Secret AC_ID updated"
+
+      # Wait for the Prometheus pod to be recreated with updated Aetos config
+      echo "Waiting for Prometheus pod to restart after rotation..."
+      old_pod_uid=$(oc get -n "${NS}" configmap/appcred-aetos-rotate-pre -o jsonpath='{.data.pod_uid}')
+      for _ in $(seq 1 60); do
+        new_pod_uid=$(oc get pod -n "${NS}" prometheus-telemetry-kuttl-0 -o jsonpath='{.metadata.uid}' 2>/dev/null || true)
+        if [ -n "${new_pod_uid}" ] && [ "${new_pod_uid}" != "${old_pod_uid}" ]; then
+          break
+        fi
+        sleep 5
+      done
+      new_pod_uid=$(oc get pod -n "${NS}" prometheus-telemetry-kuttl-0 -o jsonpath='{.metadata.uid}')
+      if [ "${old_pod_uid}" = "${new_pod_uid}" ]; then
+        echo "ERROR: expected Prometheus pod to restart after rotation"
+        echo "  pod: ${old_pod_uid} -> ${new_pod_uid}"
+        exit 1
+      fi
+      echo "✓ Prometheus pod restarted after rotation"
+
+      # Wait for the Aetos container to be ready
+      oc wait -n "${NS}" pod/prometheus-telemetry-kuttl-0 \
+        --for=jsonpath='{.status.containerStatuses[?(@.name=="aetos")].ready}'=true --timeout=300s
+
+      # Verify config contains the new application_credential_id
+      echo "Checking aetos config contains rotated application_credential_id..."
+      oc exec -n "${NS}" pod/prometheus-telemetry-kuttl-0 -c aetos -- \
+        bash -c "grep -q 'application_credential_id = ${ac_id}' /etc/aetos/aetos.conf"
+      echo "✓ aetos config contains rotated application_credential_id"
