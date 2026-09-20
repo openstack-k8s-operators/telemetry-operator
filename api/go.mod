@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/onsi/gomega v1.43.0
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260831095224-2f23472f5f39
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260912123221-4c04f3294593
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260906094540-d1f379df10ce
 	github.com/rhobs/observability-operator v1.0.0
 	k8s.io/api v0.33.13
