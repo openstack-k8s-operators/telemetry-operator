@@ -210,6 +210,13 @@ type CloudKittySpecBase struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=95
 	LokiRetentionDays uint `json:"lokiRetentionDays"`
+
+	// UseStructuredMetadata enables Loki structured metadata filters for CloudKitty
+	// storage queries (Loki 3.0+). Only enable after all data stored without
+	// structured metadata has expired.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	UseStructuredMetadata bool `json:"useStructuredMetadata"`
 }
 
 // CloudKittySpecCore the same as CloudKittySpec without ContainerImage references
