@@ -1325,6 +1325,7 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	templateParameters["Period"] = instance.Spec.Period
 	templateParameters["LokiHost"] = lokiHost
 	templateParameters["LokiPort"] = 8080
+	templateParameters["UseStructuredMetadata"] = instance.Spec.UseStructuredMetadata
 	templateParameters["DatabaseConnection"] = fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
 		databaseAccount.Spec.UserName,
 		string(dbSecret.Data[mariadbv1.DatabasePasswordSelector]),
