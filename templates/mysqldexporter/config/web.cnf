@@ -3,6 +3,14 @@ tls_server_config:
   cert_file: {{ .TLS.Cert }}
   key_file: {{ .TLS.Key }}
 
+{{ if .TLS.Ca }}
+  # CA certificate for verifying client certificates.
+  client_ca_file: {{ .TLS.Ca }}
+
+  # Server policy for client authentication.
+  client_auth_type: RequireAndVerifyClientCert
+{{ end }}
+
   # Minimum TLS version that is acceptable.
   # [ min_version: <string> | default = "TLS12" ]
 
