@@ -47,6 +47,12 @@ const (
 
 	// ACConsumerFinalizer is added to AC secrets that autoscaling (Aodh) is actively consuming
 	ACConsumerFinalizer = "openstack.org/autoscaling-ac-consumer"
+
+	// TransportConsumerFinalizer is added to transport secrets that autoscaling (Aodh)
+	// is actively consuming, to prevent premature deletion during credential rotation.
+	// It is per-service (not shared with the other telemetry controllers) so that
+	// each controller only prunes its own finalizer when scanning the namespace.
+	TransportConsumerFinalizer = "openstack.org/autoscaling-transport-consumer"
 )
 
 // PrometheusReplicas -

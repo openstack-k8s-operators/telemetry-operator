@@ -36,4 +36,10 @@ const (
 
 	// ACConsumerFinalizer is added to AC secrets that Ceilometer is actively consuming
 	ACConsumerFinalizer = "openstack.org/ceilometer-ac-consumer"
+
+	// TransportConsumerFinalizer is added to transport secrets that Ceilometer is
+	// actively consuming, to prevent premature deletion during credential rotation.
+	// It is per-service (not shared with the other telemetry controllers) so that
+	// each controller only prunes its own finalizer when scanning the namespace.
+	TransportConsumerFinalizer = "openstack.org/ceilometer-transport-consumer"
 )

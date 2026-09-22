@@ -65,6 +65,12 @@ const (
 
 	// ACConsumerFinalizer is added to AC secrets that CloudKitty is actively consuming
 	ACConsumerFinalizer = "openstack.org/cloudkitty-ac-consumer"
+
+	// TransportConsumerFinalizer is added to transport secrets that CloudKitty is
+	// actively consuming, to prevent premature deletion during credential rotation.
+	// It is per-service (not shared with the other telemetry controllers) so that
+	// each controller only prunes its own finalizer when scanning the namespace.
+	TransportConsumerFinalizer = "openstack.org/cloudkitty-transport-consumer"
 )
 
 // ResultRequeue is a ctrl.Result that requeues after NormalDuration
