@@ -37,7 +37,7 @@ tls_server_config:`
   key_file: %s`
 	tlsCaConfTemplate = `
   client_ca_file: %s
-  client_auth_type: VerifyClientCertIfGiven
+  client_auth_type: RequireAndVerifyClientCert
 `
 )
 
@@ -58,9 +58,9 @@ func KSMTLSConfig(
 	if clntCert {
 		content = fmt.Sprintf("%s%s", content, fmt.Sprintf(tlsClntConfTemplate, TLSCertPath, TLSKeyPath))
 	}
-	//if instance.Spec.KSMTLS.CaBundleSecretName != "" {
-	//	content = fmt.Sprintf("%s%s", content, fmt.Sprintf(tlsCaConfTemplate, tls.DownstreamTLSCABundlePath))
-	//}
+	if instance.Spec.KSMTLS.CaBundleSecretName != "" {
+		content = fmt.Sprintf("%s%s", content, fmt.Sprintf(tlsCaConfTemplate, tls.DownstreamTLSCABundlePath))
+	}
 
 	sec := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
