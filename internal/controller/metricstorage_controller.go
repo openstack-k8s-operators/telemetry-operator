@@ -942,22 +942,17 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 	if !k8s_errors.IsNotFound(err) && len(ceilometerInstance.Status.MysqldExporterExportedGaleras) > 0 {
 		exportedGaleras := ceilometerInstance.Status.MysqldExporterExportedGaleras
-		mysqldExporterTargets := []string{}
-		for _, galera := range exportedGaleras {
-			// NOTE: the galera port is hardcoded in the mariadb-operator without
-			// any declared constant we could use here
-			galeraServiceURL := fmt.Sprintf("%s.%s.svc", galera, instance.Namespace)
-			mysqldExporterTargets = append(
-				mysqldExporterTargets,
-				net.JoinHostPort(galeraServiceURL, "3306"),
-			)
-		}
-		desiredScrapeConfig = metricstorage.ScrapeConfigMysqldExporter(
+		desiredScrapeConfig, err = metricstorage.ScrapeConfigMysqldExporter(
+			ctx,
 			instance,
 			serviceLabels,
-			mysqldExporterTargets,
+			helper,
+			exportedGaleras,
 			ceilometerInstance.Spec.MysqldExporterTLS.Enabled(),
 		)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		err = r.createServiceScrapeConfig(ctx, instance, Log, "mysqld_exporter", mysqldExporterCfgName, desiredScrapeConfig)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -1931,7 +1926,8 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				// Don't call the WatchFn on unrelated Endpointslices changes
 				predicate.NewPredicateFuncs(func(o client.Object) bool {
 					labels := o.GetLabels()
-					return labels["app.kubernetes.io/component"] == "rabbitmq"
+					return labels["app.kubernetes.io/component"] == "rabbitmq" ||
+						labels["app"] == "mariadb"
 				}),
 			),
 		).
