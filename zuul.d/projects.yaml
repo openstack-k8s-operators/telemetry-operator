@@ -278,12 +278,62 @@
             pre-run:
               - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
 
+- project-template:
+    name: telemetry-operator-s2i-testing
+    description: The jobs that run with s2i content on changes to telemetry-operator
+    github-check:
+      jobs:
+        - s2i-openstack-container-content-provider:
+            vars:
+              s2i_ci_images:
+                - aodh/aodh-api
+                - ceilometer/ceilometer-central
+                - ceilometer/ceilometer-compute
+                - cloudkitty/cloudkitty-api
+        - s2i-deployment-test-telemetry:
+            dependencies:
+              - openstack-k8s-operators-content-provider
+              - s2i-openstack-container-content-provider
+        - telemetry-operator-multinode-cloudkitty-rhoso-19:
+            voting: true
+            dependencies:
+              - openstack-k8s-operators-content-provider
+              - s2i-openstack-container-content-provider
+
+- project-template:
+    name: telemetry-operator-s2i-component-jobs
+    description: The jobs that run on changes to telemetry containers in s2i repo
+    github-check:
+      jobs:
+        - s2i-deployment-test-telemetry:
+            vars:
+              content_provider_registry_ip: "{{ s2i_content_provider_registry_ip }}"
+            files:
+              - ^containers/base
+              - ^containers/aodh
+              - ^containers/ceilometer
+            dependencies:
+              - openstack-k8s-operators-content-provider
+              - s2i-openstack-container-content-provider
+        - telemetry-operator-multinode-cloudkitty-rhoso-19:
+            vars:
+              content_provider_registry_ip: "{{ s2i_content_provider_registry_ip }}"
+            files:
+              - ^containers/base
+              - ^containers/cloudkitty
+            dependencies:
+              - openstack-k8s-operators-content-provider
+              - s2i-openstack-container-content-provider
+
 - project:
     name: openstack-k8s-operators/telemetry-operator
+    templates:
+      - telemetry-operator-s2i-testing
     github-check:
       jobs:
         # job uses latest code for all OpenStack services - including
         # core services
+        # 18 content
         - telemetry-openstack-meta-content-provider-all-services-master
         - telemetry-operator-multinode-cloudkitty-rhoso-18:
             dependencies:
@@ -292,35 +342,12 @@
                 # telemetry-services, consider using
                 # telemetry-openstack-meta-content-provider-master
               - telemetry-openstack-meta-content-provider-all-services-master
-        - telemetry-operator-multinode-cloudkitty-rhoso-19:
-            voting: true
-            dependencies:
-              - openstack-k8s-operators-content-provider
-              - s2i-openstack-container-content-provider
-        # job uses latest code for all OpenStack services - including
-        # core services
-        - telemetry-openstack-meta-content-provider-all-services-master
         - telemetry-operator-multinode-master
         # jobs uses latest stable code - tag: current-podified
         - openstack-k8s-operators-content-provider:
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
         - telemetry-operator-multinode-default-telemetry
-        ### s2i
-        - s2i-openstack-container-content-provider:
-            voting: false
-            vars:
-              s2i_ci_images:
-                - aodh/aodh-api
-                - ceilometer/ceilometer-central
-                - ceilometer/ceilometer-compute
-                - cloudkitty/cloudkitty-api
-        - s2i-deployment-test-telemetry:
-            voting: false
-            dependencies:
-              - openstack-k8s-operators-content-provider
-              - s2i-openstack-container-content-provider
-        ### end s2i
         # it is required as feature-verification-tests have hard dependencies,
         # where it require to have that job to be executed.
         - telemetry-openstack-meta-content-provider-master
