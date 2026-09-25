@@ -937,6 +937,17 @@ func (r *CeilometerReconciler) reconcileMysqldExporter(
 
 	// Validate metadata service cert secret
 	if instance.Spec.MysqldExporterTLS.Enabled() {
+		if instance.Spec.MysqldExporterTLS.CaBundleSecretName == "" {
+			Log.Info("MysqldExporter TLS is enabled but CaBundleSecretName is not set")
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.MysqldExporterTLSInputReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.TLSInputErrorMessage,
+				"TLS is enabled but CaBundleSecretName is not set, mTLS requires a CA bundle"))
+			return ctrl.Result{}, nil
+		}
+
 		hash, err := instance.Spec.MysqldExporterTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
@@ -1709,13 +1720,18 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 		}
 		databases = append(databases, clientParameters)
 	}
+	caPath := ""
+	if instance.Spec.MysqldExporterTLS.CaBundleSecretName != "" {
+		caPath = tls.DownstreamTLSCABundlePath
+	}
+	tlsParams := map[string]string{
+		"Cert": fmt.Sprintf("/etc/pki/tls/certs/%s", tls.CertKey),
+		"Key":  fmt.Sprintf("/etc/pki/tls/private/%s", tls.PrivateKey),
+		"Ca":   caPath,
+	}
 	templateParameters := map[string]any{
 		"Databases": databases,
-		"TLS": map[string]string{
-			"Cert": fmt.Sprintf("/etc/pki/tls/certs/%s", tls.CertKey),
-			"Key":  fmt.Sprintf("/etc/pki/tls/private/%s", tls.PrivateKey),
-			"Ca":   tls.DownstreamTLSCABundlePath,
-		},
+		"TLS":       tlsParams,
 	}
 
 	secrets := []util.Template{
