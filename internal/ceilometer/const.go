@@ -42,4 +42,10 @@ const (
 	// It is per-service (not shared with the other telemetry controllers) so that
 	// each controller only prunes its own finalizer when scanning the namespace.
 	TransportConsumerFinalizer = "openstack.org/ceilometer-transport-consumer"
+
+	// TelemetrySecretName is the K8s Secret holding the per-deployment publisher HMAC key
+	TelemetrySecretName = "ceilometer-telemetry-secret" // #nosec G101
+
+	// TelemetrySecretKey is the data key inside the TelemetrySecret
+	TelemetrySecretKey = "TelemetrySecret"
 )
