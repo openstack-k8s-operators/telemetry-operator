@@ -1,0 +1,20 @@
+apiVersion: monitoring.rhobs/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: openstack-inhibit-rules
+  namespace: openstack
+  labels:
+    service: metricStorage
+spec:
+  inhibitRules:
+    - sourceMatch:
+        - name: severity
+          value: critical
+      targetMatch:
+        - name: severity
+          value: warning
+      equal:
+        - alertname
+        - instance
+        - namespace
+        - pod

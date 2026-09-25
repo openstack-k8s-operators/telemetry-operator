@@ -7,54 +7,83 @@ metadata:
   namespace: openstack
 spec:
   groups:
-    - name: openstack-observability.services.status
+    - name: openstack-observability.ctlplane.services.status
       rules:
-      - alert: OpenStackServicesDownWarning
+      - alert: OpenStackServicesNotReady
         expr: |
-          (
-            kube_pod_info{created_by_kind=~"ReplicaSet|StatefulSet|OpenStackClient"} * on(uid) group_left(phase) (kube_pod_status_phase{phase!="Running"} == 1)
-          )
-        for: 10s
+          kube_pod_info{created_by_kind=~"ReplicaSet|StatefulSet|OpenStackClient"} * on(uid) group_left() (kube_pod_status_ready{condition!="true"} == 1)
         labels:
           severity: warning
         annotations:
-          summary: "RHOSO component down (warning)"
+          summary: RHOSO component not ready
           description: |
-            Pod {{ $labels.pod }} (controlled by {{ $labels.created_by_name }}) in namespace {{ $labels.namespace }} is not Running.
-            Current state: {{ $labels.phase }}
-            This has been the case for more than 10 seconds.
-      - alert: OpenStackServicesDownCritical
+            Pod {{ $labels.pod }} (controlled by {{ $labels.created_by_name }}) in namespace {{ $labels.namespace }} is not ready.
+      - alert: OpenStackServicesNotReady
         expr: |
-          (
-            kube_pod_info{created_by_kind=~"ReplicaSet|StatefulSet|OpenStackClient"} * on(uid) group_left(phase) (kube_pod_status_phase{phase!="Running"} == 1)
-          )
+          kube_pod_info{created_by_kind=~"ReplicaSet|StatefulSet|OpenStackClient"} * on(uid) group_left() (kube_pod_status_ready{condition!="true"} == 1)
         for: 60s
         labels:
           severity: critical
         annotations:
-          summary: "RHOSO component down (critical)"
+          summary: RHOSO component not ready
           description: |
-            Pod {{ $labels.pod }} (controlled by {{ $labels.created_by_name }}) in namespace {{ $labels.namespace }} is not Running.
-            Current state: {{ $labels.phase }}
-            This has been the case for more than 1 minute.
+            Pod {{ $labels.pod }} (controlled by {{ $labels.created_by_name }}) in namespace {{ $labels.namespace }} has not been ready for more than 1 minute.
+      - alert: OpenStackServicesNotRunning
+        expr: |
+          kube_pod_info{created_by_kind=~"ReplicaSet|StatefulSet|OpenStackClient"} * on(uid) group_left(phase) (kube_pod_status_phase{phase!="Running"} == 1)
+        labels:
+          severity: warning
+        annotations:
+          summary: RHOSO component not running
+          description: |
+            Pod {{ $labels.pod }} (controlled by {{ $labels.created_by_name }}) in namespace {{ $labels.namespace }} is in {{ $labels.phase }} phase.
+      - alert: OpenStackServicesNotRunning
+        expr: |
+          kube_pod_info{created_by_kind=~"ReplicaSet|StatefulSet|OpenStackClient"} * on(uid) group_left(phase) (kube_pod_status_phase{phase!="Running"} == 1)
+        for: 60s
+        labels:
+          severity: critical
+        annotations:
+          summary: RHOSO component not running
+          description: |
+            Pod {{ $labels.pod }} (controlled by {{ $labels.created_by_name }}) in namespace {{ $labels.namespace }} has been in {{ $labels.phase }} phase for more than 1 minute.
+      - alert: OpenStackServiceRestarting
+        expr: |
+          increase(kube_pod_container_status_restarts_total{namespace="openstack"}[10m]) > 2
+        labels:
+          severity: warning
+        annotations:
+          summary: RHOSO container restarting frequently
+          description: |
+            Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace {{ $labels.namespace }}) has restarted {{ $value }} times in the last 10 minutes.
+            This may indicate a crash loop or instability that recovers faster than the scrape interval.
+      - alert: OpenStackServiceRestarting
+        expr: |
+          increase(kube_pod_container_status_restarts_total{namespace="openstack"}[10m]) > 5
+        labels:
+          severity: critical
+        annotations:
+          summary: RHOSO container restarting frequently
+          description: |
+            Container {{ $labels.container }} in pod {{ $labels.pod }} (namespace {{ $labels.namespace }}) has restarted {{ $value }} times in the last 10 minutes.
+            This may indicate a severe crash loop or instability issue.
     - name: openstack-observability.scrapeconfig.status
       rules:
-      - alert: OpenStackObservabilityDownWarning
+      - alert: OpenStackObservabilityDown
         expr: |
           (
             up{job=~"scrapeConfig/openstack/telemetry-(ceilometer|podman-exporter|node-exporter)"} == 0
             or up{service="metric-storage-prometheus"} == 0
           )
-        for: 10s
         labels:
           severity: warning
         annotations:
-          summary: "Telemetry Operator ScrapeConfig down (warning)"
+          summary: Telemetry Operator ScrapeConfig down
           description: |
-            One of the Telemetry Operator ScrapeConfigs is down for more than 10 seconds.
-            Instance: {{ $labels.instance }}
+            One of the Telemetry Operator ScrapeConfigs is down.
+            Instance: {{ $labels.fqdn }}
             Job: {{ $labels.job }}
-      - alert: OpenStackObservabilityDownCritical
+      - alert: OpenStackObservabilityDown
         expr: |
           (
             up{job=~"scrapeConfig/openstack/telemetry-(ceilometer|podman-exporter|node-exporter)"} == 0
@@ -64,52 +93,291 @@ spec:
         labels:
           severity: critical
         annotations:
-          summary: "Telemetry Operator ScrapeConfig component down (critical)"
+          summary: Telemetry Operator ScrapeConfig component down
           description: |
             One of the Telemetry Operator ScrapeConfigs is down for more than 1 minute.
-            Instance: {{ $labels.instance }}
+            Instance: {{ $labels.fqdn }}
             Job: {{ $labels.job }}
     - name: openstack-observability.edpm.services.status
       rules:
-      - alert: EdpmPodmanContainerUnhealthyWarning
+      - alert: EdpmPodmanContainerUnhealthy
         expr: |
           podman_container_health * on (id) group_right podman_container_info{name !~ ".*_init|nova_compute|neutron-haproxy-ovnmeta-.*"} != 0
         labels:
           severity: warning
         annotations:
-          summary: "EDPM Podman container health check failed (warning)"
+          summary: EDPM Podman container health check failed
           description: |
-            Container {{ $labels.name }} on {{ $labels.fqdn }} has an unhealthy or unknown health status (value: {{ $value }}).
+            Container {{ $labels.name }} on {{ $labels.fqdn }} has an unhealthy or unknown health check status (value: {{ $value }}).
             Health values: -1=unknown, 0=healthy, 1=unhealthy, 2=starting.
-      - alert: EdpmPodmanContainerUnhealthyCritical
+      - alert: EdpmPodmanContainerUnhealthy
         expr: |
           podman_container_health * on (id) group_right podman_container_info{name !~ ".*_init|nova_compute|neutron-haproxy-ovnmeta-.*"} != 0
         for: 60s
         labels:
           severity: critical
         annotations:
-          summary: "EDPM Podman container health check failed (critical)"
+          summary: EDPM Podman container health check failed
           description: |
-            Container {{ $labels.name }} on {{ $labels.fqdn }} has an unhealthy or unknown health status (value: {{ $value }}) for more than 1 minute.
+            Container {{ $labels.name }} on {{ $labels.fqdn }} has an unhealthy or unknown health check status (value: {{ $value }}) for more than 1 minute.
             Health values: -1=unknown, 0=healthy, 1=unhealthy, 2=starting.
-      - alert: EdpmPodmanContainerNotRunningWarning
+      # NOTE: Nova Compute Service alerts will fire on Networker nodes which legitimately
+      # don't have nova_compute. For deployments with Networker nodes, add a label filter to scope to compute-only nodes
+      - alert: EdpmNovaComputeNotRunning
         expr: |
-          podman_container_state * on (id) group_right podman_container_info{name !~ ".*_init"} != 2
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="nova_compute"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="nova_compute"} != 2)
         labels:
           severity: warning
+          service: nova_compute
         annotations:
-          summary: "EDPM Podman container not running (warning)"
+          summary: EDPM nova_compute service missing or not running
           description: |
-            Container {{ $labels.name }} on {{ $labels.fqdn }} is not in running state (value: {{ $value }}).
-            State values: -1=unknown, 0=created, 1=initialized, 2=running, 3=stopped, 4=paused, 5=exited, 6=removing, 7=stopping.
-      - alert: EdpmPodmanContainerNotRunningCritical
+            The nova_compute container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }}.
+            This is a critical compute service that must be present and running for VM operations on Compute nodes.
+
+      - alert: EdpmNovaComputeNotRunning
         expr: |
-          podman_container_state * on (id) group_right podman_container_info{name !~ ".*_init"} != 2
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="nova_compute"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="nova_compute"} != 2)
         for: 60s
         labels:
           severity: critical
+          service: nova_compute
         annotations:
-          summary: "EDPM Podman container not running (critical)"
+          summary: EDPM nova_compute service missing or not running
           description: |
-            Container {{ $labels.name }} on {{ $labels.fqdn }} is not in running state (value: {{ $value }}) for more than 1 minute.
-            State values: -1=unknown, 0=created, 1=initialized, 2=running, 3=stopped, 4=paused, 5=exited, 6=removing, 7=stopping.
+            The nova_compute container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }} for more than 1 minute.
+            This is a critical compute service that must be present and running for VM operations on Compute nodes.
+
+      # Ceilometer Agent Compute
+      # This is part of the telemetry service and should be on all EDPM nodes with telemetry enabled
+      - alert: EdpmCeilometerAgentComputeNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="ceilometer_agent_compute"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="ceilometer_agent_compute"} != 2)
+        labels:
+          severity: warning
+          service: ceilometer_agent_compute
+        annotations:
+          summary: EDPM ceilometer_agent_compute service missing or not running
+          description: |
+            The ceilometer_agent_compute container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }}.
+            This service is required for VM telemetry collection on Compute nodes.
+
+      - alert: EdpmCeilometerAgentComputeNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="ceilometer_agent_compute"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="ceilometer_agent_compute"} != 2)
+        for: 60s
+        labels:
+          severity: critical
+          service: ceilometer_agent_compute
+        annotations:
+          summary: EDPM ceilometer_agent_compute service missing or not running
+          description: |
+            The ceilometer_agent_compute container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }} for more than 1 minute.
+            This service is required for VM telemetry collection on Compute nodes.
+
+      - alert: EdpmOvnControllerNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="ovn_controller"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="ovn_controller"} != 2)
+        labels:
+          severity: warning
+          service: ovn_controller
+        annotations:
+          summary: EDPM ovn_controller service missing or not running
+          description: |
+            The ovn_controller container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }}.
+            This is a critical networking service required for OVN-based networking on EDPM nodes.
+
+      - alert: EdpmOvnControllerNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="ovn_controller"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="ovn_controller"} != 2)
+        for: 60s
+        labels:
+          severity: critical
+          service: ovn_controller
+        annotations:
+          summary: EDPM ovn_controller service missing or not running
+          description: |
+            The ovn_controller container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }} for more than 1 minute.
+            This is a critical networking service required for OVN-based networking on EDPM nodes.
+
+      # OVN Metadata Agent
+      # NOTE: This is topology-dependent. According to RHOSO docs: "Depending on your topology,
+      # you might need to run the neutron-metadata service on the nodes."
+      # Consider disabling these alerts if your topology doesn't require metadata on all nodes.
+      - alert: EdpmOvnMetadataAgentNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="ovn_metadata_agent"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="ovn_metadata_agent"} != 2)
+        labels:
+          severity: warning
+          service: ovn_metadata_agent
+        annotations:
+          summary: EDPM ovn_metadata_agent service missing or not running
+          description: |
+            The ovn_metadata_agent container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }}.
+            This is a critical networking service required for OVN-based networking on EDPM nodes.
+      - alert: EdpmOvnMetadataAgentNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="ovn_metadata_agent"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="ovn_metadata_agent"} != 2)
+        for: 60s
+        labels:
+          severity: critical
+          service: ovn_metadata_agent
+        annotations:
+          summary: EDPM ovn_metadata_agent service missing or not running
+          description: |
+            The ovn_metadata_agent container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }} for more than 1 minute.
+            This is a critical networking service required for OVN-based networking on EDPM nodes.
+
+      # Neutron HAProxy OVN Metadata
+      # NOTE: Multiple instances may exist per node (one per network namespace).
+      # This alert fires if a node has zero running instances.
+      - alert: EdpmNeutronHaproxyOvnmetaNotRunning
+        expr: |
+          up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_state * on (id) group_right podman_container_info{name=~"neutron-haproxy-ovnmeta-.*"} == 2)
+        labels:
+          severity: warning
+          service: neutron_haproxy_ovnmeta
+        annotations:
+          summary: EDPM neutron-haproxy-ovnmeta service missing or not running
+          description: |
+            No neutron-haproxy-ovnmeta containers are running on {{ $labels.fqdn }}.
+
+      - alert: EdpmNeutronHaproxyOvnmetaNotRunning
+        expr: |
+          up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_state * on (id) group_right podman_container_info{name=~"neutron-haproxy-ovnmeta-.*"} == 2)
+        for: 60s
+        labels:
+          severity: critical
+          service: neutron_haproxy_ovnmeta
+        annotations:
+          summary: EDPM neutron-haproxy-ovnmeta service missing or not running
+          description: |
+            No neutron-haproxy-ovnmeta containers are running on {{ $labels.fqdn }} for more than 1 minute.
+
+      # OpenStack Network Exporter
+      - alert: EdpmOpenstackNetworkExporterNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="openstack_network_exporter"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="openstack_network_exporter"} != 2)
+        labels:
+          severity: warning
+          service: openstack_network_exporter
+        annotations:
+          summary: EDPM openstack_network_exporter service missing or not running
+          description: |
+            The openstack_network_exporter container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }}.
+            This service provides network metrics for observability.
+
+      - alert: EdpmOpenstackNetworkExporterNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="openstack_network_exporter"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="openstack_network_exporter"} != 2)
+        for: 60s
+        labels:
+          severity: critical
+          service: openstack_network_exporter
+        annotations:
+          summary: EDPM openstack_network_exporter service missing or not running
+          description: |
+            The openstack_network_exporter container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }} for more than 1 minute.
+            This service provides network metrics for observability.
+
+      # Node Exporter
+      - alert: EdpmNodeExporterNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="node_exporter"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="node_exporter"} != 2)
+        labels:
+          severity: warning
+          service: node_exporter
+        annotations:
+          summary: EDPM node_exporter service missing or not running
+          description: |
+            The node_exporter container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }}.
+            This service provides system-level metrics for observability.
+
+      - alert: EdpmNodeExporterNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="node_exporter"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="node_exporter"} != 2)
+        for: 60s
+        labels:
+          severity: critical
+          service: node_exporter
+        annotations:
+          summary: EDPM node_exporter service missing or not running
+          description: |
+            The node_exporter container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }} for more than 1 minute.
+            This service provides system-level metrics for observability.
+
+      # Podman Exporter
+      - alert: EdpmPodmanExporterNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="podman_exporter"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="podman_exporter"} != 2)
+        labels:
+          severity: warning
+          service: podman_exporter
+        annotations:
+          summary: EDPM podman_exporter service missing or not running
+          description: |
+            The podman_exporter container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }}.
+            This service provides container metrics for observability.
+
+      - alert: EdpmPodmanExporterNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="podman_exporter"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="podman_exporter"} != 2)
+        for: 60s
+        labels:
+          severity: critical
+          service: podman_exporter
+        annotations:
+          summary: EDPM podman_exporter service missing or not running
+          description: |
+            The podman_exporter container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }} for more than 1 minute.
+            This service provides container metrics for observability.
+
+      - alert: EdpmPodmanContainerRestarting
+        expr: |
+          changes(podman_container_started_seconds[10m]) * on(id) group_right podman_container_info > 2
+        labels:
+          severity: warning
+        annotations:
+          summary: EDPM Podman container restarting frequently
+          description: |
+            Container {{ $labels.name }} on {{ $labels.fqdn }} has restarted {{ $value }} times in the last 10 minutes.
+            This may indicate a crash loop or instability that recovers faster than the scrape interval.
+
+      - alert: EdpmPodmanContainerRestarting
+        expr: |
+          changes(podman_container_started_seconds[10m]) * on(id) group_right podman_container_info > 5
+        labels:
+          severity: critical
+        annotations:
+          summary: EDPM Podman container restarting frequently
+          description: |
+            Container {{ $labels.name }} on {{ $labels.fqdn }} has restarted {{ $value }} times in the last 10 minutes.
+            This may indicate a crash loop or instability that recovers faster than the scrape interval.
