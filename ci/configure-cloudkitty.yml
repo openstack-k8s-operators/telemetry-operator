@@ -30,8 +30,6 @@
                   template:
                     logging:
                       enabled: false
-                    autoscaling:
-                      enabled: false
                     cloudkitty:
                       enabled: true
                       s3StorageConfig:

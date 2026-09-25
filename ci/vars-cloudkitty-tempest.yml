@@ -17,9 +17,12 @@ pre_deploy_kustomize_cloudkitty:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/configure-cloudkitty.yml"
   type: playbook
 
+# Deploy Loki for CloudKitty only if logging dependencies aren't already deployed
+# The logging deployment includes the same loki-operator and MinIO setup
 pre_deploy_loki_setup:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/cloudkitty-pre_deploy-install_loki.yml"
   type: playbook
+  when: pre_deploy_deploy_logging_dependencies is not defined
 # test cloudkitty
 cifmw_run_tests: true
 cifmw_run_test_role: test_operator
@@ -57,7 +60,6 @@ tempest_conf:
       identity.v3_endpoint_type public
       service_available.ceilometer true
       service_available.sg_core true
-      service_available.aodh false
       service_available.cinder false
       telemetry.sg_core_service_url "https://ceilometer-internal.openstack.svc.cluster.local:3000"
       telemetry.prometheus_service_url "https://metric-storage-prometheus.openstack.svc.cluster.local:9090"
