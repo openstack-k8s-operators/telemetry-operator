@@ -9,16 +9,16 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
-	github.com/onsi/gomega v1.43.0
-	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260914144239-7411a587f1e5
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260917133014-aa9523bc1a12
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260915132739-c1207a97b9a2
-	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20260911152322-92cbe8cb7d0a
-	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20260911152322-92cbe8cb7d0a
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260911152322-92cbe8cb7d0a
-	github.com/openstack-k8s-operators/lib-common/modules/users v0.0.0-20260911152322-92cbe8cb7d0a
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20260912115138-699cec3a24c6
-	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20260912114751-e005e4c9824c
+	github.com/onsi/gomega v1.43.1
+	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20260923143622-34ead729ad6f
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260925065725-a3d821586430
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260925130913-9892d25ed116
+	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20260919144046-f1cdd9f36e9f
+	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20260919144046-f1cdd9f36e9f
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260919144046-f1cdd9f36e9f
+	github.com/openstack-k8s-operators/lib-common/modules/users v0.0.0-20260919144046-f1cdd9f36e9f
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20260924081326-89faa188a667
+	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20260923124916-0b2c67bd1033
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-00010101000000-000000000000
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1
 	github.com/rhobs/observability-operator v1.0.0
@@ -53,7 +53,7 @@ require (
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gophercloud/gophercloud/v2 v2.14.0 // indirect
+	github.com/gophercloud/gophercloud/v2 v2.15.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -86,7 +86,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
