@@ -48,6 +48,8 @@ This operator deploys a multiple telemetry agents, both in the control plane and
 
     make openstack
     make openstack_init
+    # (optional) Use the s2i containers for opendev/master content
+    make openstack_versions_master
     make openstack_deploy
     ```
 
@@ -75,19 +77,7 @@ This operator deploys a multiple telemetry agents, both in the control plane and
     ansible-playbook ci/deploy-logging-dependencies.yml --tags clo
     ```
 
-    4.d. Update openstack services
-
-    NOTE: This can be done later except for updating ceilometer, which should be done before deploying the dataplane.
-
-    ```bash
-    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-aodh-patch.yaml # required for autoscaling
-    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-ceilometer-patch.yaml # required for ceilometer compute metrics
-    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-cloudkitty-patch.yaml # required for cloudkitty
-    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-heat-patch.yaml # required for autoscaling
-    oc patch --type merge openstackversions openstack-galera-network-isolation --patch-file=ci/files/master-openstackclient-patch.yaml # required for "openstack metric" commands to work correctly
-    ```
-
-    4.e. Enable CADF audit logging for OpenStack services (barbican, cinder, glance, keystone, neutron, nova):
+    4.d. Enable CADF audit logging for OpenStack services (barbican, cinder, glance, keystone, neutron, nova):
 
     ```bash
     ansible-playbook ci/enable-audit-logging.yml -e enable_audit_logging_local_apply=true
