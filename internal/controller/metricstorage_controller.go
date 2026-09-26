@@ -47,14 +47,19 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/ansible"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
+	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	nad "github.com/openstack-k8s-operators/lib-common/modules/common/networkattachment"
 	object "github.com/openstack-k8s-operators/lib-common/modules/common/object"
+	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
+	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	ovnv1 "github.com/openstack-k8s-operators/ovn-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	availability "github.com/openstack-k8s-operators/telemetry-operator/internal/availability"
@@ -121,6 +126,9 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneendpoints,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
@@ -197,6 +205,9 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDefinitionReadyCondition, condition.InitReason, telemetryv1.DashboardDefinitionReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.PrometheusReadyCondition, condition.InitReason, telemetryv1.PrometheusReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.AetosReadyCondition, condition.InitReason, telemetryv1.AetosReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.AetosKeystoneServiceReadyCondition, condition.InitReason, telemetryv1.AetosKeystoneServiceReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.AetosKeystoneEndpointReadyCondition, condition.InitReason, telemetryv1.AetosKeystoneEndpointReadyInitMessage),
 		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 		condition.UnknownCondition(condition.NetworkAttachmentsReadyCondition, condition.InitReason, condition.NetworkAttachmentsReadyInitMessage),
 	)
@@ -244,10 +255,87 @@ func (r *MetricStorageReconciler) reconcileDelete(
 		Log.Info(fmt.Sprintf("Deleted OpenStack Lightspeed ClusterRoleBinding %s", crbName))
 	}
 
+	// Remove the finalizer from our KeystoneService CR
+	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, metricstorage.AetosServiceName, instance.Namespace)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	if err == nil {
+		if controllerutil.RemoveFinalizer(keystoneService, helper.GetFinalizer()) {
+			err = r.Update(ctx, keystoneService)
+			if err != nil && !k8s_errors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
+			util.LogForObject(helper, "Removed finalizer from our KeystoneService", instance)
+		}
+	}
+
+	// Remove the finalizer from our KeystoneEndpoint CR
+	keystoneEndpoint, err := keystonev1.GetKeystoneEndpointWithName(ctx, helper, metricstorage.AetosServiceName, instance.Namespace)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	if err == nil {
+		if controllerutil.RemoveFinalizer(keystoneEndpoint, helper.GetFinalizer()) {
+			err = r.Update(ctx, keystoneEndpoint)
+			if err != nil && !k8s_errors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
+			util.LogForObject(helper, "Removed finalizer from our KeystoneEndpoint", instance)
+		}
+	}
+
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", instance.Name))
 
+	return ctrl.Result{}, nil
+}
+
+func (r *MetricStorageReconciler) reconcileInit(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) (ctrl.Result, error) {
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service init")
+
+	_, _, err := secret.GetSecret(ctx, helper, instance.Spec.Secret, instance.Namespace)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			Log.Info(fmt.Sprintf("OpenStack secret %s not found", instance.Spec.Secret))
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	ksSvcSpec := keystonev1.KeystoneServiceSpec{
+		ServiceType:        metricstorage.AetosServiceType,
+		ServiceName:        metricstorage.AetosServiceName,
+		ServiceDescription: "OpenStack Aetos Service",
+		Enabled:            true,
+		ServiceUser:        instance.Spec.ServiceUser,
+		Secret:             instance.Spec.Secret,
+		PasswordSelector:   instance.Spec.PasswordSelectors.AetosService,
+	}
+
+	ksSvc := keystonev1.NewKeystoneService(ksSvcSpec, instance.Namespace, serviceLabels, 10)
+	ctrlResult, err := ksSvc.CreateOrPatch(ctx, helper)
+	if err != nil {
+		return ctrlResult, err
+	}
+
+	c := ksSvc.GetConditions().Mirror(telemetryv1.AetosKeystoneServiceReadyCondition)
+	if c != nil {
+		instance.Status.Conditions.Set(c)
+	}
+
+	if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	Log.Info("Reconciled Service init successfully")
 	return ctrl.Result{}, nil
 }
 
@@ -338,6 +426,13 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		handler.OnlyControllerOwner(),
 	)
 
+	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
 	if instance.Spec.CustomMonitoringStack == nil && instance.Spec.MonitoringStack == nil {
 		Log.Info("Both fields: \"customMonitoringStack\", \"monitoringStack\" aren't set. Setting at least one is required.")
 		instance.Status.Conditions.MarkFalse(telemetryv1.MonitoringStackReadyCondition,
@@ -349,7 +444,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 
 	// Deploy monitoring stack
 
-	err := utils.EnsureWatches(
+	err = utils.EnsureWatches(
 		ctx, (*utils.ConditionalWatchingReconciler)(r),
 		"monitoringstacks.monitoring.rhobs",
 		&obov1.MonitoringStack{}, eventHandler, helper,
@@ -481,6 +576,75 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			Log.Error(err, "Can't patch Alertmanager service resource")
 			return ctrl.Result{}, err
 		}
+	}
+
+	// Create Aetos config secret and patch Prometheus CR with Aetos sidecar
+	if instance.Spec.AetosImage == "" {
+		instance.Status.Conditions.MarkFalse(telemetryv1.AetosReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			telemetryv1.AetosReadyImageMissingMessage)
+		Log.Error(fmt.Errorf("AetosImage is not set"), "Aetos sidecar cannot be deployed")
+		return ctrl.Result{}, nil
+	}
+
+	// Create Aetos K8s Services (internal + public)
+	for _, endpointType := range []endpoint.Endpoint{endpoint.EndpointInternal, endpoint.EndpointPublic} {
+		aetosSvc := metricstorage.AetosService(instance, endpointType)
+		svc := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      aetosSvc.Name,
+				Namespace: aetosSvc.Namespace,
+			},
+		}
+		op, err = controllerutil.CreateOrPatch(ctx, r.Client, svc, func() error {
+			svc.Annotations = aetosSvc.Annotations
+			svc.Spec.Selector = aetosSvc.Spec.Selector
+			svc.Spec.Ports = aetosSvc.Spec.Ports
+			return controllerutil.SetControllerReference(instance, svc, r.Scheme)
+		})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("Aetos Service %s successfully changed - operation: %s", svc.Name, string(op)))
+		}
+	}
+
+	// Create Keystone endpoint for Aetos
+	aetosEndpoints := map[string]string{
+		string(endpoint.EndpointInternal): fmt.Sprintf("http://%s-internal.%s.svc:%d", metricstorage.AetosServiceName, instance.Namespace, metricstorage.AetosPort),
+		string(endpoint.EndpointPublic):   fmt.Sprintf("http://%s-public.%s.svc:%d", metricstorage.AetosServiceName, instance.Namespace, metricstorage.AetosPort),
+	}
+
+	ksEndpointSpec := keystonev1.KeystoneEndpointSpec{
+		ServiceName: metricstorage.AetosServiceName,
+		Endpoints:   aetosEndpoints,
+	}
+	ksEndptObj := keystonev1.NewKeystoneEndpoint(metricstorage.AetosServiceName, instance.Namespace, ksEndpointSpec, serviceLabels, time.Duration(10)*time.Second)
+	ctrlResult, err = ksEndptObj.CreateOrPatch(ctx, helper)
+	if err != nil {
+		return ctrlResult, err
+	}
+	c := ksEndptObj.GetConditions().Mirror(telemetryv1.AetosKeystoneEndpointReadyCondition)
+	if c != nil {
+		instance.Status.Conditions.Set(c)
+	}
+	if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	aetosConfigHash, err := r.createAetosConfigSecret(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		Log.Info("Aetos config secret creation deferred", "reason", err)
+	} else {
+		aetosPatch := metricstorage.PrometheusAetosSidecar(instance, aetosConfigHash)
+		err = r.Patch(context.Background(), &aetosPatch, client.Merge, client.FieldOwner("telemetry-operator"))
+		if err != nil {
+			Log.Error(err, "Can't patch Prometheus resource with Aetos sidecar")
+			return ctrl.Result{}, err
+		}
+		instance.Status.Conditions.MarkTrue(telemetryv1.AetosReadyCondition, condition.ReadyMessage)
 	}
 
 	monitoringStackReady := true
@@ -813,6 +977,62 @@ func (r *MetricStorageReconciler) prometheusEndpointSecret(
 	}
 
 	return nil
+}
+
+// createAetosConfigSecret creates a Secret with the rendered Aetos config templates
+func (r *MetricStorageReconciler) createAetosConfigSecret(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	h *helper.Helper,
+	labels map[string]string,
+) (string, error) {
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
+	if err != nil {
+		return "", err
+	}
+	keystoneInternalURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
+	if err != nil {
+		return "", err
+	}
+
+	ospSecret, _, err := secret.GetSecret(ctx, h, instance.Spec.Secret, instance.Namespace)
+	if err != nil {
+		return "", err
+	}
+
+	templateParameters := map[string]any{
+		"KeystoneInternalURL": keystoneInternalURL,
+		"PrometheusTLS":       instance.Spec.PrometheusTLS.Enabled(),
+		"ServiceUser":         instance.Spec.ServiceUser,
+		"ServicePassword":     string(ospSecret.Data[instance.Spec.PasswordSelectors.AetosService]),
+	}
+
+	cms := []util.Template{
+		{
+			Name:            "aetos-config-data",
+			Namespace:       instance.Namespace,
+			Type:            util.TemplateTypeConfig,
+			InstanceType:    "metricstorage",
+			ConfigOptions:   templateParameters,
+			Labels:          labels,
+			CommonTemplates: []string{"ssl.conf"},
+		},
+	}
+
+	envVars := make(map[string]env.Setter)
+	err = secret.EnsureSecrets(ctx, h, instance, cms, &envVars)
+	if err != nil {
+		return "", err
+	}
+
+	configHash := ""
+	for _, v := range envVars {
+		var envVar corev1.EnvVar
+		v(&envVar)
+		configHash = envVar.Value
+	}
+
+	return configHash, nil
 }
 
 func (r *MetricStorageReconciler) createServiceScrapeConfig(
