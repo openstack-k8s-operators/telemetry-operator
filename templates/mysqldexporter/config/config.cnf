@@ -6,6 +6,7 @@ password = {{ $db.Password }}
 {{ if $db.TLSEnabled }}
 tls = true
 ssl-ca = {{ $.TLS.Ca }}
+tls-min-version = TLSv1.3
 {{ else }}
 tls = skip-verify
 {{ end }}
