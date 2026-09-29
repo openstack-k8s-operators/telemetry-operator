@@ -56,14 +56,14 @@
 
 - job:
     name: telemetry-operator-multinode-autoscaling
-    parent: podified-multinode-edpm-deployment-crc
+    parent: podified-multinode-edpm-deployment-crc-centos-10
     dependencies:
       - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with Autoscaling features enabled.
     vars:
       cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-10/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
     irrelevant-files: &irrelevant_files
       - .github/.*
@@ -96,7 +96,7 @@
 
 - job:
     name: telemetry-operator-multinode-default-telemetry
-    parent: podified-multinode-edpm-deployment-crc
+    parent: podified-multinode-edpm-deployment-crc-centos-10
     dependencies:
       - openstack-k8s-operators-content-provider
     description: |
@@ -110,7 +110,7 @@
     vars:
       cifmw_update_containers: false
       cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-10/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-default-telemetry.yml"
     irrelevant-files: *irrelevant_files
     required-projects:
@@ -119,27 +119,27 @@
 
 - job:
     name: telemetry-operator-multinode-logging
-    parent: podified-multinode-edpm-deployment-crc
+    parent: podified-multinode-edpm-deployment-crc-centos-10
     dependencies:
       - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with Logging features enabled
     vars:
       cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-10/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-logging.yml"
     irrelevant-files: *irrelevant_files
 
 - job:
     name: telemetry-operator-multinode-audit-logging
-    parent: podified-multinode-edpm-deployment-crc
+    parent: podified-multinode-edpm-deployment-crc-centos-10
     dependencies:
       - openstack-k8s-operators-content-provider
     description: |
       Deploy OpenStack with CADF audit logging enabled for supported services
     vars:
       cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir  }}/scenarios/centos-10/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-audit-logging.yml"
     irrelevant-files: *irrelevant_files
 
@@ -159,7 +159,7 @@
     extra-vars: *meta_content_extra_vars
     vars:
       cifmw_extras: &cloudkitty_extras
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-10/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
     roles:
       - zuul: github.com/openstack-k8s-operators/ci-framework
@@ -181,7 +181,7 @@
       # from meta content provider after control plane deploy. Core services keep stable images.
       cifmw_prepare_openstackversion: false
       cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-10/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-use-meta-content-telemetry-containers.yml"
 
@@ -202,7 +202,7 @@
            dict2items |
            json_query('[].{name: key, full_registry: value}') }}
       cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-10/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
 
 - job:
@@ -221,7 +221,7 @@
       cifmw_update_containers_org: podified-master-centos10
       cifmw_update_containers_tag: telemetry_latest
       cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-10/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
     irrelevant-files: *irrelevant_files
 
@@ -250,33 +250,6 @@
            dict2items |
            json_query('[].{name: key, full_registry: value}') }}
     irrelevant-files: *irrelevant_files
-
-- project-template:
-    name: rdo-telemetry-tempest-plugin-jobs
-    openstack-experimental:
-      jobs:
-        - telemetry-operator-multinode-autoscaling-tempest:
-            dependencies: []
-            # Required because RDO and openstack repos use master as their default branch and also try to check out master for all the projects included in a job.
-            required-projects:
-              - name: openstack-k8s-operators/ci-framework
-                override-checkout: main
-              - name: openstack-k8s-operators/install_yamls
-                override-checkout: main
-              - name: openstack-k8s-operators/infra-operator
-                override-checkout: main
-              - name: openstack-k8s-operators/openstack-baremetal-operator
-                override-checkout: main
-              - name: openstack-k8s-operators/openstack-must-gather
-                override-checkout: main
-              - name: openstack-k8s-operators/openstack-operator
-                override-checkout: main
-              - name: openstack-k8s-operators/repo-setup
-                override-checkout: main
-              - name: openstack-k8s-operators/edpm-ansible
-                override-checkout: main
-            pre-run:
-              - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
