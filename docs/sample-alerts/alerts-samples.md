@@ -11,3 +11,25 @@ This group of alerts monitors the availability of core OpenStack services. These
 ## OpenStack Observability Nodes Status Alerts
 
 This group of alerts monitors the fundamental compute and resources managed by the OpenStack deployment. These alerts help prevent service degradation by providing early warnings about resource exhaustion.
+
+## Other AlertmanagerConfig Resources
+
+### Email Notifications (`alertmanager-config-email.yaml`)
+
+Routes alerts to email receivers based on severity with distinct templates:
+- **CRITICAL** alerts → `email-critical` receiver, red theme
+- **WARNING** alerts → `email-warning` receiver, orange theme
+- **Misconfigured** alerts (missing or invalid severity) → `email-default` receiver (amber theme with fix instructions)
+
+All receivers send one notification per alert instance, grouped by alertname and identifying labels to avoid merging alerts from different hosts or resources.
+
+To use SMTP password auth, create a secret like this in the same namespace as the AlertmanagerConfig:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-smtp-secret
+stringData:
+  password: "your_password"
+```
