@@ -1,8 +1,54 @@
 ---
+- name: Get latest loki-operator channel
+  ansible.builtin.shell:
+    cmd: >-
+      oc get packagemanifest loki-operator -n openshift-marketplace
+      --output jsonpath='{range .status.channels[*]}{.name}{"\n"}{end}'
+      | grep '^stable' | sort -V | tail -1
+  register: _loki_channel
+  changed_when: false
+  until: _loki_channel.stdout | trim | length > 0
+  retries: 30
+  delay: 10
+
+- name: Get latest cluster-logging channel
+  ansible.builtin.shell:
+    cmd: >-
+      oc get packagemanifest cluster-logging -n openshift-marketplace
+      --output jsonpath='{range .status.channels[*]}{.name}{"\n"}{end}'
+      | grep '^stable' | sort -V | tail -1
+  register: _clo_channel
+  changed_when: false
+  until: _clo_channel.stdout | trim | length > 0
+  retries: 30
+  delay: 10
+
+- name: Verify channels were resolved
+  ansible.builtin.assert:
+    that:
+      - _loki_channel.stdout | trim | length > 0
+      - _clo_channel.stdout | trim | length > 0
+    fail_msg: "Could not resolve operator channels from packagemanifests"
+    success_msg: "loki-operator: {{ _loki_channel.stdout }}, cluster-logging: {{ _clo_channel.stdout }}"
+
+- name: Create temp directory for operator manifests
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: telemetry_operators_
+  register: _operators_tempdir
+
+- name: Template operators.yaml with resolved channels
+  ansible.builtin.template:
+    src: operators.yaml.j2
+    dest: "{{ _operators_tempdir.path }}/operators.yaml"
+    mode: '0644'
+  vars:
+    loki_operator_channel: "{{ _loki_channel.stdout }}"
+    cluster_logging_channel: "{{ _clo_channel.stdout }}"
+
 - name: Create the CLO subscription and loki-operator subscriptions
   ansible.builtin.shell:
-    cmd: |
-      oc apply -f {{ role_path }}/files/operators.yaml
+    cmd: oc apply -f {{ _operators_tempdir.path }}/operators.yaml
 
   # need to have a wait here, since the csv is not created immediately. There is a slight delay, during which time, the oc wait command would fail, since there's no resource to watch
 - name: Wait for the CLO csv to be created
@@ -32,3 +78,8 @@
   ansible.builtin.command:
     cmd: |
       oc wait --timeout=300s --for jsonpath="{.status.phase}"=Succeeded csv --namespace=openshift-operators-redhat -l operators.coreos.com/loki-operator.openshift-operators-redhat
+
+- name: Clean up temp directory
+  ansible.builtin.file:
+    path: "{{ _operators_tempdir.path }}"
+    state: absent
