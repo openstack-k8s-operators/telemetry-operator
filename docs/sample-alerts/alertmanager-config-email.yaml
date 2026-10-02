@@ -1,0 +1,592 @@
+apiVersion: monitoring.rhobs/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: openstack-email-notifications
+  labels:
+    service: metricStorage  # Must match MonitoringStack resourceSelector
+spec:
+  route:
+    receiver: email-default
+    # One notification per alert instance: do not roll up across hosts/services/devices.
+    # fqdn/instance identify the host; service/name/pod/container identify the workload;
+    # device/mountpoint keep disk/inode alerts from merging on the same host.
+    groupBy: ['alertname', 'fqdn', 'instance', 'service', 'name', 'device', 'mountpoint', 'pod', 'container', 'namespace']
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    routes:
+      # Critical alerts - notify immediately and more frequently
+      - receiver: email-critical
+        matchers:
+          - name: severity
+            value: critical
+            matchType: "="
+        repeatInterval: 1h
+        continue: false
+
+      # Warning alerts - less frequent notifications
+      - receiver: email-warning
+        matchers:
+          - name: severity
+            value: warning
+            matchType: "="
+        continue: false
+
+  receivers:
+    # Default receiver - catches misconfigured alerts (missing or invalid severity label)
+    - name: email-default
+      emailConfigs:
+        - to: adminemail@example.com
+          from: adminemail@example.com
+          smarthost: smtp.example.com:587
+          authUsername: 'alertmanager@example.com'
+          authPassword:
+            name: alertmanager-smtp-credentials # Name of the secret
+            key: password                       # Key inside the secret
+          sendResolved: true
+          headers:
+            - key: Subject
+              value: '{{ if eq .Status "firing" }}[MISCONFIGURED ALERT] {{ .GroupLabels.alertname }}{{ else }}[RESOLVED - Was MISCONFIGURED] {{ .GroupLabels.alertname }}{{ end }}'
+            - key: X-Priority
+              value: '2'
+          html: |
+            <!DOCTYPE html>
+            <html>
+            <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #fff3cd;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fff3cd; padding: 20px 0;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 3px solid #ff9800;">
+                      <tr>
+                        <td style="background-color: #ff9800; color: #ffffff; padding: 20px; text-align: center; font-size: 24px; font-weight: bold;">
+                          MISCONFIGURED ALERT
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 15px; background-color: #fff3cd; border-left: 4px solid #ff9800;">
+                          <p style="margin: 0 0 10px 0; color: #e65100; font-size: 18px; font-weight: bold;">This alert is missing a proper severity label</p>
+                          <p style="margin: 0 0 8px 0;">All OpenStack alerts must have one of these severity labels:</p>
+                          <ul style="margin: 0 0 8px 0; padding-left: 20px;">
+                            <li><code style="background: #f5f5f5; padding: 2px 6px;">severity: critical</code> - for service-impacting issues</li>
+                            <li><code style="background: #f5f5f5; padding: 2px 6px;">severity: warning</code> - for potential issues or degraded performance</li>
+                          </ul>
+                          <p style="margin: 0;">This alert was delivered to the default receiver because it does not match either severity.</p>
+                        </td>
+                      </tr>
+                      {{ range .Alerts }}
+                      <tr>
+                        <td style="padding: 15px; border-top: 1px solid #ffcc80;">
+                          <h3 style="margin: 0 0 12px 0; color: #e65100;">{{ .Labels.alertname }}</h3>
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 150px; background: #fafafa;">Status</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ .Status | toUpper }}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Severity Label</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                                {{ if .Labels.severity }}
+                                  <strong style="color: #e65100;">{{ .Labels.severity }}</strong> (not 'critical' or 'warning')
+                                {{ else }}
+                                  <strong style="color: #d32f2f;">MISSING - no severity label found</strong>
+                                {{ end }}
+                              </td>
+                            </tr>
+                            {{ if .Annotations.summary }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Summary</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ .Annotations.summary }}</td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Annotations.description }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Description</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ .Annotations.description }}</td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.fqdn }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Host (fqdn)</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.fqdn }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.instance }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Instance</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.instance }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.service }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Service</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.service }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.name }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Container</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.name }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.device }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Device</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.device }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.mountpoint }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Mountpoint</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.mountpoint }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.pod }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Pod</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.pod }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.namespace }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Namespace</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.namespace }}</code></td>
+                            </tr>
+                            {{ end }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">{{ if eq .Status "firing" }}Started{{ else }}Resolved{{ end }}</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ if eq .Status "firing" }}{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}{{ else }}{{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}{{ end }}</td>
+                            </tr>
+                          </table>
+                          <p style="margin: 15px 0 8px 0; font-weight: bold;">All labels:</p>
+                          <p style="margin: 0;">
+                          {{ range .Labels.SortedPairs }}
+                            <span style="display: inline-block; background: #ffe0b2; padding: 3px 8px; margin: 2px; border-radius: 3px; font-size: 12px; font-family: monospace;">{{ .Name }}: {{ .Value }}</span>
+                          {{ end }}
+                          </p>
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px; background-color: #fff3cd; border-left: 4px solid #ff9800;">
+                            <tr>
+                              <td style="padding: 15px;">
+                                <p style="margin: 0 0 8px 0; font-weight: bold;">How to fix:</p>
+                                <ol style="margin: 0; padding-left: 20px;">
+                                  <li>Find the PrometheusRule that defines this alert: <code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.alertname }}</code></li>
+                                  <li>The labels section should include: <code style="background: #f5f5f5; padding: 2px 6px;">severity: critical</code> or <code style="background: #f5f5f5; padding: 2px 6px;">severity: warning</code></li>
+                                </ol>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      {{ end }}
+                      <tr>
+                        <td style="padding: 12px 15px; font-size: 11px; color: #666; border-top: 1px solid #eee;">
+                          Generated by OpenStack Alertmanager - configuration error notification
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          text: |
+            {{ if eq .Status "firing" }}MISCONFIGURED ALERT{{ else }}MISCONFIGURED ALERT RESOLVED{{ end }}
+
+            This alert is missing a proper severity label.
+            All OpenStack alerts must use severity: critical or severity: warning.
+
+            {{ range .Alerts -}}
+            Alert: {{ .Labels.alertname }}
+            Status: {{ .Status | toUpper }}
+            Severity label: {{ if .Labels.severity }}{{ .Labels.severity }} (not critical or warning){{ else }}MISSING{{ end }}
+            {{- if .Annotations.summary }}
+            Summary: {{ .Annotations.summary }}
+            {{- end }}
+            {{- if .Annotations.description }}
+            Description: {{ .Annotations.description }}
+            {{- end }}
+            {{- if .Labels.fqdn }}
+            Host (fqdn): {{ .Labels.fqdn }}
+            {{- end }}
+            {{- if .Labels.instance }}
+            Instance: {{ .Labels.instance }}
+            {{- end }}
+            {{- if .Labels.service }}
+            Service: {{ .Labels.service }}
+            {{- end }}
+            {{- if .Labels.name }}
+            Container: {{ .Labels.name }}
+            {{- end }}
+            {{- if .Labels.device }}
+            Device: {{ .Labels.device }}
+            {{- end }}
+            {{- if .Labels.mountpoint }}
+            Mountpoint: {{ .Labels.mountpoint }}
+            {{- end }}
+            {{- if .Labels.pod }}
+            Pod: {{ .Labels.pod }}
+            {{- end }}
+            {{- if .Labels.namespace }}
+            Namespace: {{ .Labels.namespace }}
+            {{- end }}
+            {{ if eq .Status "firing" }}Started{{ else }}Resolved{{ end }}: {{ if eq .Status "firing" }}{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}{{ else }}{{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}{{ end }}
+
+            All labels:
+            {{- range .Labels.SortedPairs }}
+              {{ .Name }}={{ .Value }}
+            {{- end }}
+
+            How to fix:
+              1. Find the PrometheusRule for {{ .Labels.alertname }}
+              2. Set labels.severity to critical or warning
+
+            {{ end -}}
+            ---
+            OpenStack Alertmanager - configuration error notification
+
+    # Critical alerts - more urgent formatting
+    - name: email-critical
+      emailConfigs:
+        - to: adminemail@example.com
+          from: adminemail@example.com
+          smarthost: smtp.example.com:587
+          authUsername: 'alertmanager@example.com'
+          authPassword:
+            name: alertmanager-smtp-credentials # Name of the secret
+            key: password                       # Key inside the secret
+          sendResolved: true
+          headers:
+            - key: Subject
+              value: '{{ if eq .Status "firing" }}[CRITICAL] {{ .GroupLabels.alertname }}{{ if .GroupLabels.fqdn }} - {{ .GroupLabels.fqdn }}{{ else if .GroupLabels.instance }} - {{ .GroupLabels.instance }}{{ end }}{{ if .GroupLabels.service }} ({{ .GroupLabels.service }}){{ end }}{{ else }}[RESOLVED - Was CRITICAL] {{ .GroupLabels.alertname }}{{ if .GroupLabels.fqdn }} - {{ .GroupLabels.fqdn }}{{ else if .GroupLabels.instance }} - {{ .GroupLabels.instance }}{{ end }}{{ if .GroupLabels.service }} ({{ .GroupLabels.service }}){{ end }}{{ end }}'
+            - key: X-Priority
+              value: '1'
+            - key: Importance
+              value: 'high'
+          html: |
+            <!DOCTYPE html>
+            <html>
+            <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: {{ if eq .Status "firing" }}#ffebee{{ else }}#e8f5e9{{ end }};">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: {{ if eq .Status "firing" }}#ffebee{{ else }}#e8f5e9{{ end }}; padding: 20px 0;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 2px solid {{ if eq .Status "firing" }}#d32f2f{{ else }}#4CAF50{{ end }};">
+                      <tr>
+                        <td style="background-color: {{ if eq .Status "firing" }}#d32f2f{{ else }}#4CAF50{{ end }}; color: #ffffff; padding: 20px; text-align: center; font-size: 24px; font-weight: bold;">
+                          {{ if eq .Status "firing" }}CRITICAL ALERT{{ else }}CRITICAL ALERT RESOLVED{{ end }}
+                        </td>
+                      </tr>
+                      {{ range .Alerts }}
+                      <tr>
+                        <td style="padding: 15px; border-top: 1px solid #eee;">
+                          <h2 style="margin: 0 0 12px 0; color: {{ if eq .Status "firing" }}#d32f2f{{ else }}#4CAF50{{ end }};">{{ if eq .Status "resolved" }}[RESOLVED] {{ end }}{{ .Labels.alertname }}</h2>
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 150px; background: #fafafa;">Status</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;{{ if eq .Status "resolved" }} color: #4CAF50; font-weight: bold;{{ end }}">{{ .Status | toUpper }}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Severity</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; color: #d32f2f; font-weight: bold;">CRITICAL</td>
+                            </tr>
+                            {{ if .Annotations.summary }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Summary</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>{{ .Annotations.summary }}</strong></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Annotations.description }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Description</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ .Annotations.description }}</td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.fqdn }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Host (fqdn)</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.fqdn }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.instance }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Instance</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.instance }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.service }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Service</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.service }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.name }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Container</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.name }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.device }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Device</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.device }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.mountpoint }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Mountpoint</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.mountpoint }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.pod }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Pod</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.pod }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.namespace }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Namespace</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.namespace }}</code></td>
+                            </tr>
+                            {{ end }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">{{ if eq .Status "firing" }}Started{{ else }}Resolved{{ end }}</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ if eq .Status "firing" }}{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}{{ else }}{{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}{{ end }}</td>
+                            </tr>
+                          </table>
+                          <p style="margin: 15px 0 8px 0; font-weight: bold;">All labels:</p>
+                          <p style="margin: 0;">
+                          {{ range .Labels.SortedPairs }}
+                            <span style="display: inline-block; background: #ffcdd2; padding: 3px 8px; margin: 2px; border-radius: 3px; font-size: 12px; font-family: monospace;">{{ .Name }}: {{ .Value }}</span>
+                          {{ end }}
+                          </p>
+                        </td>
+                      </tr>
+                      {{ end }}
+                      <tr>
+                        <td style="padding: 12px 15px; text-align: center; font-size: 11px; color: #666; border-top: 1px solid #eee;">
+                          OpenStack Alertmanager
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          text: |
+            {{ if eq .Status "firing" }}CRITICAL ALERT{{ else }}CRITICAL ALERT RESOLVED{{ end }}
+
+            {{ range .Alerts -}}
+            Alert: {{ .Labels.alertname }}
+            Status: {{ .Status | toUpper }}
+            Severity: CRITICAL
+            {{- if .Annotations.summary }}
+            Summary: {{ .Annotations.summary }}
+            {{- end }}
+            {{- if .Annotations.description }}
+            Description: {{ .Annotations.description }}
+            {{- end }}
+            {{- if .Labels.fqdn }}
+            Host (fqdn): {{ .Labels.fqdn }}
+            {{- end }}
+            {{- if .Labels.instance }}
+            Instance: {{ .Labels.instance }}
+            {{- end }}
+            {{- if .Labels.service }}
+            Service: {{ .Labels.service }}
+            {{- end }}
+            {{- if .Labels.name }}
+            Container: {{ .Labels.name }}
+            {{- end }}
+            {{- if .Labels.device }}
+            Device: {{ .Labels.device }}
+            {{- end }}
+            {{- if .Labels.mountpoint }}
+            Mountpoint: {{ .Labels.mountpoint }}
+            {{- end }}
+            {{- if .Labels.pod }}
+            Pod: {{ .Labels.pod }}
+            {{- end }}
+            {{- if .Labels.namespace }}
+            Namespace: {{ .Labels.namespace }}
+            {{- end }}
+            {{ if eq .Status "firing" }}Started{{ else }}Resolved{{ end }}: {{ if eq .Status "firing" }}{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}{{ else }}{{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}{{ end }}
+
+            All labels:
+            {{- range .Labels.SortedPairs }}
+              {{ .Name }}={{ .Value }}
+            {{- end }}
+
+            {{ end -}}
+            ---
+            OpenStack Alertmanager
+
+    # Warning alerts - same layout as critical; warning colors/wording only
+    - name: email-warning
+      emailConfigs:
+        - to: adminemail@example.com
+          from: adminemail@example.com
+          smarthost: smtp.example.com:587
+          authUsername: 'alertmanager@example.com'
+          authPassword:
+            name: alertmanager-smtp-credentials # Name of the secret
+            key: password                       # Key inside the secret
+          sendResolved: true
+          headers:
+            - key: Subject
+              value: '{{ if eq .Status "firing" }}[WARNING] {{ .GroupLabels.alertname }}{{ if .GroupLabels.fqdn }} - {{ .GroupLabels.fqdn }}{{ else if .GroupLabels.instance }} - {{ .GroupLabels.instance }}{{ end }}{{ if .GroupLabels.service }} ({{ .GroupLabels.service }}){{ end }}{{ else }}[RESOLVED - Was WARNING] {{ .GroupLabels.alertname }}{{ if .GroupLabels.fqdn }} - {{ .GroupLabels.fqdn }}{{ else if .GroupLabels.instance }} - {{ .GroupLabels.instance }}{{ end }}{{ if .GroupLabels.service }} ({{ .GroupLabels.service }}){{ end }}{{ end }}'
+          html: |
+            <!DOCTYPE html>
+            <html>
+            <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: {{ if eq .Status "firing" }}#fff8e1{{ else }}#e8f5e9{{ end }};">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: {{ if eq .Status "firing" }}#fff8e1{{ else }}#e8f5e9{{ end }}; padding: 20px 0;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 2px solid {{ if eq .Status "firing" }}#f57c00{{ else }}#4CAF50{{ end }};">
+                      <tr>
+                        <td style="background-color: {{ if eq .Status "firing" }}#f57c00{{ else }}#4CAF50{{ end }}; color: #ffffff; padding: 20px; text-align: center; font-size: 24px; font-weight: bold;">
+                          {{ if eq .Status "firing" }}WARNING ALERT{{ else }}WARNING ALERT RESOLVED{{ end }}
+                        </td>
+                      </tr>
+                      {{ range .Alerts }}
+                      <tr>
+                        <td style="padding: 15px; border-top: 1px solid #eee;">
+                          <h2 style="margin: 0 0 12px 0; color: {{ if eq .Status "firing" }}#f57c00{{ else }}#4CAF50{{ end }};">{{ if eq .Status "resolved" }}[RESOLVED] {{ end }}{{ .Labels.alertname }}</h2>
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 150px; background: #fafafa;">Status</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;{{ if eq .Status "resolved" }} color: #4CAF50; font-weight: bold;{{ end }}">{{ .Status | toUpper }}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Severity</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; color: #f57c00; font-weight: bold;">WARNING</td>
+                            </tr>
+                            {{ if .Annotations.summary }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Summary</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>{{ .Annotations.summary }}</strong></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Annotations.description }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Description</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ .Annotations.description }}</td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.fqdn }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Host (fqdn)</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.fqdn }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.instance }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Instance</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.instance }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.service }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Service</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.service }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.name }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Container</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.name }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.device }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Device</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.device }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.mountpoint }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Mountpoint</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.mountpoint }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.pod }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Pod</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.pod }}</code></td>
+                            </tr>
+                            {{ end }}
+                            {{ if .Labels.namespace }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">Namespace</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><code style="background: #f5f5f5; padding: 2px 6px;">{{ .Labels.namespace }}</code></td>
+                            </tr>
+                            {{ end }}
+                            <tr>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; background: #fafafa;">{{ if eq .Status "firing" }}Started{{ else }}Resolved{{ end }}</td>
+                              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ if eq .Status "firing" }}{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}{{ else }}{{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}{{ end }}</td>
+                            </tr>
+                          </table>
+                          <p style="margin: 15px 0 8px 0; font-weight: bold;">All labels:</p>
+                          <p style="margin: 0;">
+                          {{ range .Labels.SortedPairs }}
+                            <span style="display: inline-block; background: #ffe0b2; padding: 3px 8px; margin: 2px; border-radius: 3px; font-size: 12px; font-family: monospace;">{{ .Name }}: {{ .Value }}</span>
+                          {{ end }}
+                          </p>
+                        </td>
+                      </tr>
+                      {{ end }}
+                      <tr>
+                        <td style="padding: 12px 15px; text-align: center; font-size: 11px; color: #666; border-top: 1px solid #eee;">
+                          OpenStack Alertmanager
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          text: |
+            {{ if eq .Status "firing" }}WARNING ALERT{{ else }}WARNING ALERT RESOLVED{{ end }}
+            {{ range .Alerts -}}
+            Alert: {{ .Labels.alertname }}
+            Status: {{ .Status | toUpper }}
+            Severity: WARNING
+            {{- if .Annotations.summary }}
+            Summary: {{ .Annotations.summary }}
+            {{- end }}
+            {{- if .Annotations.description }}
+            Description: {{ .Annotations.description }}
+            {{- end }}
+            {{- if .Labels.fqdn }}
+            Host (fqdn): {{ .Labels.fqdn }}
+            {{- end }}
+            {{- if .Labels.instance }}
+            Instance: {{ .Labels.instance }}
+            {{- end }}
+            {{- if .Labels.service }}
+            Service: {{ .Labels.service }}
+            {{- end }}
+            {{- if .Labels.name }}
+            Container: {{ .Labels.name }}
+            {{- end }}
+            {{- if .Labels.device }}
+            Device: {{ .Labels.device }}
+            {{- end }}
+            {{- if .Labels.mountpoint }}
+            Mountpoint: {{ .Labels.mountpoint }}
+            {{- end }}
+            {{- if .Labels.pod }}
+            Pod: {{ .Labels.pod }}
+            {{- end }}
+            {{- if .Labels.namespace }}
+            Namespace: {{ .Labels.namespace }}
+            {{- end }}
+            {{ if eq .Status "firing" }}Started{{ else }}Resolved{{ end }}: {{ if eq .Status "firing" }}{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}{{ else }}{{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}{{ end }}
+            All labels:
+            {{- range .Labels.SortedPairs }}
+              {{ .Name }}={{ .Value }}
+            {{- end }}
+
+            {{ end -}}
+            ---
+            OpenStack Alertmanager
