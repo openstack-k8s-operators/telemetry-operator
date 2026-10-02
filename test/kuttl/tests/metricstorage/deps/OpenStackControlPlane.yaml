@@ -12,6 +12,8 @@ spec:
     enabled: false
     template:
       ironicConductors: []
+  ovn:
+    enabled: false
   rabbitmq:
     enabled: false
     templates:
