@@ -548,14 +548,28 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 							"hide": false,
 							"interval": "",
 							"legendFormat": "{{vm_name}} in ({{device}})",
-							"refId": "B"
+							"refId": "A"
 						},
 						{
 						"expr": "vm:ceilometer_network_outgoing_bytes:rate1m{project_name =~ \"$project\", vm_name =~ \"$VM\"}",
 						"hide": false,
 						"interval": "",
 						"legendFormat": "{{vm_name}} out ({{device}})",
-						"refId": "A"
+						"refId": "B"
+						},
+						{
+						"expr": "label_replace(sum by(resource_name) (label_replace(rate(net_vf_receive_bytes_total[5m]) * on(device, vf, pci_address, fqdn) group_left(vm_id) net_vf_info{mac!=\"00:00:00:00:00:00\"}, \"resource\", \"$1\", \"vm_id\", \"(.*)\") * on(resource) group_left(resource_name) (ceilometer_cpu * 0 + 1)), \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"hide": false,
+						"interval": "",
+						"legendFormat": "{{vm_name}} in (SR-IOV)",
+						"refId": "C"
+						},
+						{
+						"expr": "label_replace(sum by(resource_name) (label_replace(rate(net_vf_transmit_bytes_total[5m]) * on(device, vf, pci_address, fqdn) group_left(vm_id) net_vf_info{mac!=\"00:00:00:00:00:00\"}, \"resource\", \"$1\", \"vm_id\", \"(.*)\") * on(resource) group_left(resource_name) (ceilometer_cpu * 0 + 1)), \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"hide": false,
+						"interval": "",
+						"legendFormat": "{{vm_name}} out (SR-IOV)",
+						"refId": "D"
 						}
 					],
 					"thresholds": [],
@@ -652,6 +666,20 @@ func OpenstackVM(dsName string) *corev1.ConfigMap {
 						"interval": "",
 						"legendFormat": "{{vm_name}} out ({{device}})",
 						"refId": "B"
+						},
+						{
+						"expr": "label_replace(sum by(resource_name) (label_replace(rate(net_vf_receive_dropped_total[5m]) * on(device, vf, pci_address, fqdn) group_left(vm_id) net_vf_info{mac!=\"00:00:00:00:00:00\"}, \"resource\", \"$1\", \"vm_id\", \"(.*)\") * on(resource) group_left(resource_name) (ceilometer_cpu * 0 + 1)), \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"hide": false,
+						"interval": "",
+						"legendFormat": "{{vm_name}} in (SR-IOV)",
+						"refId": "C"
+						},
+						{
+						"expr": "label_replace(sum by(resource_name) (label_replace(rate(net_vf_transmit_dropped_total[5m]) * on(device, vf, pci_address, fqdn) group_left(vm_id) net_vf_info{mac!=\"00:00:00:00:00:00\"}, \"resource\", \"$1\", \"vm_id\", \"(.*)\") * on(resource) group_left(resource_name) (ceilometer_cpu * 0 + 1)), \"vm_name\", \"$1\", \"resource_name\", \"(.*):.*\")",
+						"hide": false,
+						"interval": "",
+						"legendFormat": "{{vm_name}} out (SR-IOV)",
+						"refId": "D"
 						}
 					],
 					"thresholds": [],
