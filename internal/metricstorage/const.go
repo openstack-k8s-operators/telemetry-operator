@@ -47,4 +47,13 @@ const (
 	openStackLightspeedTokenKey        = "token"
 	// OpenStackLightspeedAccessCRName is the ClusterRole for OpenStack Lightspeed metrics access.
 	OpenStackLightspeedAccessCRName = "lightspeed-access"
+
+	// AetosServiceName is the Keystone service name for Aetos
+	AetosServiceName = "aetos"
+
+	// AetosServiceType is the Keystone service type for Aetos
+	AetosServiceType = "metric-storage"
+
+	// AetosPort is the port Aetos httpd listens on
+	AetosPort = 8989
 )
