@@ -68,8 +68,6 @@ const (
 
 	DashboardPrometheusRuleReadyCondition condition.Type = "DashboardPrometheusRuleReady"
 
-	DashboardPluginReadyCondition condition.Type = "DashboardPluginReady"
-
 	DashboardDatasourceReadyCondition condition.Type = "DashboardDatasourceReady"
 
 	DashboardDefinitionReadyCondition condition.Type = "DashboardDefinitionReady"
@@ -313,9 +311,6 @@ const (
 
 	DashboardPrometheusRuleReadyInitMessage   = "Dashboard PrometheusRule not started"
 	DashboardPrometheusRuleUnableToOwnMessage = "Error occured when trying to own %s"
-
-	DashboardPluginReadyInitMessage = "Dashboard Plugin not started"
-	DashboardPluginFailedMessage    = "Error occured when trying to install the dashboard plugin: %s"
 
 	DashboardDatasourceReadyInitMessage = "Dashboard Datasource not started"
 	DashboardDatasourceFailedMessage    = "Error occured when trying to install the dashboard datasource: %s"
