@@ -89,6 +89,14 @@ type MetricStorageSpec struct {
 	// +kubebuilder:default=false
 	DashboardsEnabled bool `json:"dashboardsEnabled"`
 
+	// DisabledDashboards is a list of dashboard names that should not be
+	// created even when DashboardsEnabled is true. Valid names match the
+	// dashboards managed by the operator (for example "openstack-cloud",
+	// "openstack-node", "openstack-vm").
+	// +kubebuilder:validation:Optional
+	// +listType=atomic
+	DisabledDashboards []string `json:"disabledDashboards,omitempty"`
+
 	// DataplaneNetwork defines the network that will be used to scrape dataplane node_exporter endpoints
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=ctlplane
