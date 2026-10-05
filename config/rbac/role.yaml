@@ -252,22 +252,25 @@ rules:
   - list
   - watch
 - apiGroups:
-  - observability.openshift.io
-  resources:
-  - uiplugins
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
   - ovn.openstack.org
   resources:
   - ovnnorthds
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - perses.dev
+  resources:
+  - persesdashboards
+  - persesdatasources
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - rabbitmq.openstack.org

@@ -7,6 +7,16 @@ spec:
   - name: osp-node-exporter-dashboard.rules
   - name: osp-ceilometer-dashboard.rules
 ---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDatasource
+metadata:
+  name: prometheus
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-cloud
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
