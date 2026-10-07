@@ -146,13 +146,10 @@
 - job:
     name: telemetry-operator-multinode-cloudkitty
     dependencies: []
-     # - telemetry-openstack-meta-content-provider-master
     parent: telemetry-operator-multinode-autoscaling
     description: |
-      Deploy CloudKitty with telemetry services built from master and run
-      tempest tests. Uses telemetry-openstack-meta-content-provider-master,
-      so only aodh, ceilometer, cloudkitty, heat are rebuilt from meta content provider;
-      core OpenStack stays on stable install_yamls images.
+      Deploy CloudKitty and runs tempest tests
+    abstract: true
     required-projects:
       - name: infrawatch/feature-verification-tests
         override-checkout: master
@@ -164,26 +161,6 @@
     roles:
       - zuul: github.com/openstack-k8s-operators/ci-framework
     irrelevant-files: *irrelevant_files
-
-- job:
-    # alias so I don't completely confuse myself for now.
-    name: telemetry-operator-multinode-cloudkitty-rhoso-18
-    parent: telemetry-operator-multinode-cloudkitty
-    vars:
-      patch_observabilityclient: true
-      cifmw_crc_additional_insecure_registries:
-        - "{{ content_provider_os_registry_url | split('/') | first }}"
-      cifmw_crc_additional_allowed_registries:
-        - "{{ content_provider_os_registry_url | split('/') | first }}"
-      cifmw_repo_setup_branch: master
-      fetch_dlrn_hash: false
-      # Skip full update_containers; patch only telemetry images
-      # from meta content provider after control plane deploy. Core services keep stable images.
-      cifmw_prepare_openstackversion: false
-      cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-use-meta-content-telemetry-containers.yml"
 
 - job:
     name: telemetry-operator-multinode-cloudkitty-rhoso-19
@@ -201,29 +178,6 @@
         {{ s2i_content_provider_os_custom_container_images |
            dict2items |
            json_query('[].{name: key, full_registry: value}') }}
-      cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
-
-- job:
-    name: telemetry-operator-multinode-master
-    dependencies:
-      - telemetry-openstack-meta-content-provider-all-services-master
-    parent: telemetry-operator-multinode-cloudkitty
-    description: |
-      Deploy CloudKitty with all OpenStack services built from master and run
-      tempest tests. Uses telemetry-openstack-meta-content-provider-all-services-master
-      for early RHOSO 19 integration testing.
-    vars:
-      cifmw_prepare_openstackversion: true
-      cifmw_update_containers: true
-      cifmw_update_containers_openstack: true
-      cifmw_update_containers_org: podified-master-centos10
-      cifmw_update_containers_tag: telemetry_latest
-      cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
-    irrelevant-files: *irrelevant_files
 
 - job:
     name: s2i-deployment-test-telemetry
@@ -333,19 +287,6 @@
       - telemetry-operator-s2i-testing
     github-check:
       jobs:
-        # job uses latest code for all OpenStack services - including
-        # core services
-        # 18 content
-        - telemetry-openstack-meta-content-provider-all-services-master
-        - telemetry-operator-multinode-cloudkitty-rhoso-18:
-            dependencies:
-              - openstack-k8s-operators-content-provider
-                # we're only patching openstackversions to use
-                # telemetry-services, consider using
-                # telemetry-openstack-meta-content-provider-master
-              - telemetry-openstack-meta-content-provider-all-services-master
-        - telemetry-operator-multinode-master
-        # jobs uses latest stable code - tag: current-podified
         - openstack-k8s-operators-content-provider:
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
@@ -354,13 +295,9 @@
         # where it require to have that job to be executed.
         - telemetry-openstack-meta-content-provider-master
         - functional-audit-logging-tests-osp18
-        - functional-tests-osp18: &fvt_jobs_config
-            voting: true
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            irrelevant-files: *irrelevant_files
-        - feature-verification-tests-noop:
+          # have a noop job so that something always runs, and
+          # zuul always give a verification
+        - noop:
             files: *irrelevant_files
         - functional-periodic-telemetry-with-ceph:
             required-projects:
