@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2026.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,32 +19,41 @@ package metricstorage
 import (
 	"fmt"
 
+	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
-	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
-
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PrometheusService defines fields of the prometheus service needed for telemetry to work
-func PrometheusService(
+// AetosService returns a K8s Service that exposes the Aetos sidecar port on the Prometheus pod
+func AetosService(
 	instance *telemetryv1.MetricStorage,
+	endpointType endpoint.Endpoint,
 ) corev1.Service {
+	endpointTypeStr := string(endpointType)
+	svcName := fmt.Sprintf("%s-%s", AetosServiceName, endpointTypeStr)
+
 	svc := corev1.Service{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Service",
-			APIVersion: "v1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-prometheus", instance.Name),
+			Name:      svcName,
 			Namespace: instance.Namespace,
 			Annotations: map[string]string{
-				service.AnnotationEndpointKey:      string(service.EndpointInternal),
+				service.AnnotationEndpointKey:      endpointTypeStr,
 				service.AnnotationIngressCreateKey: "false",
-				// COO's Prometheus self-scrape config uses the bare service name as
-				// TLS server_name. The certificate must include it as a SAN.
-				tls.AdditionalSubjectNamesKey: fmt.Sprintf("%s-prometheus,localhost", instance.Name),
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{
+				"app.kubernetes.io/component": "prometheus",
+				"app.kubernetes.io/part-of":   instance.Name,
+			},
+			Ports: []corev1.ServicePort{
+				{
+					Name:     AetosServiceName,
+					Port:     int32(AetosPort),
+					Protocol: corev1.ProtocolTCP,
+				},
 			},
 		},
 	}
