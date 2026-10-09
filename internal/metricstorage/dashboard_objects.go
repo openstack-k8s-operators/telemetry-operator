@@ -39,11 +39,7 @@ const DashboardArtifactsNamespace = "openshift-config-managed"
 
 // legacyDashboardConfigMapNames are the ConfigMap-based dashboards created by
 // earlier versions of the operator in DashboardArtifactsNamespace. They are
-// removed on upgrade in favour of the PersesDashboard objects. This list is the
-// full set of legacy artifacts to clean up and is intentionally a superset of
-// dashboards.AllDashboardNames(): e.g. "grafana-dashboard-openstack-kepler" has
-// no Perses equivalent (no planned PersesDashboard), but its legacy ConfigMap
-// must still be removed on upgrade.
+// removed on upgrade in favour of the PersesDashboard objects.
 var legacyDashboardConfigMapNames = []string{
 	"grafana-dashboard-openstack-cloud",
 	"grafana-dashboard-openstack-node",
@@ -81,7 +77,7 @@ func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricSto
 		return res, err
 	}
 
-	for _, name := range dashboards.AllDashboardNames() {
+	for name := range dashboards.PersesDashboards() {
 		dashboard := &persesv1alpha1.PersesDashboard{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
