@@ -17,7 +17,28 @@ package v1beta1
 
 import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// PersesResourceAvailable reports whether the given PersesDatasource or
+// PersesDashboard resource is attached to a Perses instance, by checking its
+// "Available" condition. It returns true when Available is True, otherwise
+// false with the condition's reason and message (or a default when unset).
+func PersesResourceAvailable(conditions []metav1.Condition) (bool, string, string) {
+	available := meta.FindStatusCondition(conditions, "Available")
+	if available == nil {
+		return false, "PersesReconciling", "Waiting for the Perses operator to reconcile the object; no Perses instance may be available"
+	}
+	if available.Status != metav1.ConditionTrue {
+		reason := available.Reason
+		if reason == "" {
+			reason = "PersesBackendNotReady"
+		}
+		return false, reason, available.Message
+	}
+	return true, "", ""
+}
 
 // Telemetry Condition Types used by API objects.
 const (

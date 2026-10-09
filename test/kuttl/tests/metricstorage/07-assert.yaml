@@ -1,7 +1,6 @@
 # Dashboards are re-enabled at step 06 with the power-monitoring EDPM resources
-# deployed. Assert the managed Perses datasource and dashboards are present. The
-# power-monitoring (ceilometer-ipmi) dashboard is not yet available as a Perses
-# dashboard; its absence is asserted in 07-errors.yaml.
+# deployed. Assert exactly the managed Perses objects that should exist: the
+# datasource and the implemented openstack-cloud dashboard.
 apiVersion: perses.dev/v1alpha1
 kind: PersesDatasource
 metadata:

@@ -1,11 +1,6 @@
-# The ceilometer-ipmi dashboard has not been converted to Perses yet, so it must
-# not be created even when power monitoring is enabled. The legacy ConfigMap in
-# openshift-config-managed must also stay removed after the upgrade cleanup.
-apiVersion: perses.dev/v1alpha1
-kind: PersesDashboard
-metadata:
-  name: openstack-ceilometer-ipmi
----
+# Step 06 enables power monitoring, which under the legacy ConfigMap delivery
+# created the ceilometer-ipmi dashboard. Assert that legacy ConfigMap stays
+# removed after the upgrade cleanup.
 apiVersion: v1
 kind: ConfigMap
 metadata:
