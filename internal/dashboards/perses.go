@@ -27,40 +27,18 @@ import (
 // Canonical dashboard names. These are the identifiers an administrator uses in
 // MetricStorage.spec.disabledDashboards to disable an individual dashboard, and
 // the names of the PersesDashboard objects created in the openstack namespace.
+// A name is defined here alongside its builder as each dashboard is converted to
+// Perses.
 const (
-	OpenstackCloudName          = "openstack-cloud"
-	OpenstackNodeName           = "openstack-node"
-	OpenstackNetworkName        = "openstack-openstack-network"
-	OpenstackVMName             = "openstack-vm"
-	OpenstackRabbitmqName       = "openstack-rabbitmq"
-	OpenstackNetworkTrafficName = "openstack-network-traffic"
-	OpenstackCeilometerIpmiName = "openstack-ceilometer-ipmi"
-	OpenstackLightspeedName     = "openstack-lightspeed"
+	OpenstackCloudName = "openstack-cloud"
 )
 
 // PersesDashboardBuilder builds a PersesDashboard object bound to the given
 // datasource, in the given namespace.
 type PersesDashboardBuilder func(datasourceName, namespace string) *persesv1alpha1.PersesDashboard
 
-// AllDashboardNames returns every dashboard name the operator knows about.
-// It is the vocabulary accepted by MetricStorage.spec.disabledDashboards.
-func AllDashboardNames() []string {
-	return []string{
-		OpenstackCloudName,
-		OpenstackNodeName,
-		OpenstackNetworkName,
-		OpenstackVMName,
-		OpenstackRabbitmqName,
-		OpenstackNetworkTrafficName,
-		OpenstackCeilometerIpmiName,
-		OpenstackLightspeedName,
-	}
-}
-
 // PersesDashboards returns the registry of PersesDashboard builders keyed by
-// canonical dashboard name. Only dashboards whose Perses content has been
-// implemented appear here; the remaining Grafana dashboards are converted and
-// added separately.
+// canonical dashboard name.
 func PersesDashboards() map[string]PersesDashboardBuilder {
 	return map[string]PersesDashboardBuilder{
 		OpenstackCloudName: OpenstackCloudPerses,

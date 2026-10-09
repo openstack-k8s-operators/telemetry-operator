@@ -23,6 +23,7 @@ import (
 	"net"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +32,6 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
@@ -1391,25 +1391,6 @@ func (r *MetricStorageReconciler) createInstanceHAScrapeConfig(
 	)
 }
 
-// persesResourceAvailable reports whether the given PersesDatasource or
-// PersesDashboard resource is attached to a Perses instance, by checking its
-// "Available" condition. It returns true when Available is True, otherwise
-// false with the condition's reason and message (or a default when unset).
-func persesResourceAvailable(conditions []metav1.Condition) (bool, string, string) {
-	available := meta.FindStatusCondition(conditions, "Available")
-	if available == nil {
-		return false, "PersesReconciling", "Waiting for the Perses operator to reconcile the object; no Perses instance may be available"
-	}
-	if available.Status != metav1.ConditionTrue {
-		reason := available.Reason
-		if reason == "" {
-			reason = "PersesBackendNotReady"
-		}
-		return false, reason, available.Message
-	}
-	return true, "", ""
-}
-
 // markDashboardObjectReady marks a dashboard-related condition True once the
 // telemetry-operator has created and owns the object, which is the full extent
 // of this operator's responsibility: the Perses backend (instance/UIPlugin) is
@@ -1513,7 +1494,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	// so the condition is Ready once that succeeds. Whether the perses-operator
 	// has attached it to a Perses instance is surfaced via the condition message
 	// but does not gate readiness (the Perses backend is managed elsewhere).
-	dsAvailable, dsReason, dsMessage := persesResourceAvailable(datasource.Status.Conditions)
+	dsAvailable, dsReason, dsMessage := telemetryv1.PersesResourceAvailable(datasource.Status.Conditions)
 	r.markDashboardObjectReady(ctx, instance, telemetryv1.DashboardDatasourceReadyCondition,
 		dsAvailable, dsReason, dsMessage, fmt.Sprintf("PersesDatasource %s", datasource.Name))
 
@@ -1538,6 +1519,14 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	}
 
 	builders := dashboards.PersesDashboards()
+	// Iterate the registry in a stable order so the reported unavailable
+	// dashboard (and the derived condition message/log) is deterministic
+	// regardless of Go's random map iteration order.
+	dashboardNames := make([]string, 0, len(builders))
+	for name := range builders {
+		dashboardNames = append(dashboardNames, name)
+	}
+	sort.Strings(dashboardNames)
 
 	// Track whether every managed dashboard has been attached to a Perses
 	// instance by the perses-operator. Creating and owning the PersesDashboard
@@ -1548,12 +1537,13 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	dashboardsAvailable := true
 	var unavailableReason, unavailableMessage, unavailableName string
 
-	// Iterate over every dashboard the operator knows about. A dashboard is
-	// created when it has an implemented Perses builder and is not disabled by
-	// the administrator; otherwise any previously created object is removed.
-	for _, dashboardName := range dashboards.AllDashboardNames() {
-		builder, implemented := builders[dashboardName]
-		if !implemented || disabledDashboards[dashboardName] {
+	// Iterate over the implemented dashboards registry, the single source of
+	// truth for the dashboards the operator manages. A dashboard is created
+	// unless the administrator disabled it by name, in which case any previously
+	// created object is removed.
+	for _, dashboardName := range dashboardNames {
+		builder := builders[dashboardName]
+		if disabledDashboards[dashboardName] {
 			existing := &persesv1alpha1.PersesDashboard{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      dashboardName,
@@ -1589,7 +1579,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		if op != controllerutil.OperationResultNone {
 			Log.Info(fmt.Sprintf("PersesDashboard %s successfully changed - operation: %s", dashboard.Name, string(op)))
 		}
-		if available, reason, message := persesResourceAvailable(dashboard.Status.Conditions); !available && dashboardsAvailable {
+		if available, reason, message := telemetryv1.PersesResourceAvailable(dashboard.Status.Conditions); !available && dashboardsAvailable {
 			dashboardsAvailable = false
 			unavailableReason, unavailableMessage, unavailableName = reason, message, dashboard.Name
 		}

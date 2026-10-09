@@ -1,13 +1,13 @@
-package controller
+package v1beta1
 
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// TestPersesResourceAvailable checks that persesResourceAvailable reads the
+// TestPersesResourceAvailable checks that PersesResourceAvailable reads the
 // "Available" condition correctly: true when Available is True, false with the
 // condition's reason/message otherwise (and a default when it is unset).
 func TestPersesResourceAvailable(t *testing.T) {
@@ -64,12 +64,12 @@ func TestPersesResourceAvailable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
-			avail, reason, message := persesResourceAvailable(tt.conditions)
-			g.Expect(avail).To(gomega.Equal(tt.wantAvail))
+			g := NewWithT(t)
+			avail, reason, message := PersesResourceAvailable(tt.conditions)
+			g.Expect(avail).To(Equal(tt.wantAvail))
 			if !tt.wantAvail {
-				g.Expect(reason).To(gomega.Equal(tt.wantReason))
-				g.Expect(message).To(gomega.Equal(tt.wantMessage))
+				g.Expect(reason).To(Equal(tt.wantReason))
+				g.Expect(message).To(Equal(tt.wantMessage))
 			}
 		})
 	}
