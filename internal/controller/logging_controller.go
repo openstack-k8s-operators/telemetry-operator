@@ -247,6 +247,13 @@ func (r *LoggingReconciler) reconcileNormal(ctx context.Context, instance *telem
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.LoggingCLONamespaceReadyCondition, condition.ReadyMessage)
 
+	// Clean up the legacy, namespace-agnostic service ("openstack-logging")
+	// left behind by deployments created before the RHOSO namespace was
+	// included in the service name.
+	if err := logging.DeleteLegacyService(ctx, instance, helper); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	//
 	// create Secret required for logging-compute input
 	// - %-config secret holding minimal logging config required to get the service up, user can add additional files to be added to the service
