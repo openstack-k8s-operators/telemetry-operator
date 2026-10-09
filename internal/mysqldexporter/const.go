@@ -23,6 +23,9 @@ const (
 	// MysqldExporterPort -
 	MysqldExporterPort = 9104
 
+	// GaleraPort is the MySQL port exposed by Galera pods
+	GaleraPort = 3306
+
 	// DatabaseUsernamePrefix -
 	DatabaseUsernamePrefix = "mysqld-exporter"
 

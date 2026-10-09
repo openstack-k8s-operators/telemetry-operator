@@ -164,10 +164,8 @@ spec:
     - __address__
     targetLabel: __param_target
   - action: Replace
-    regex: (.*):(.*)
-    replacement: client.$1
     sourceLabels:
-    - __address__
+    - galera
     targetLabel: __param_auth_module
   - action: Replace
     sourceLabels:
