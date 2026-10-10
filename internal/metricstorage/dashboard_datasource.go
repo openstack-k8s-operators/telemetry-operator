@@ -42,6 +42,13 @@ const (
 	// combinedCABundleKey is the key inside combinedCABundleSecretName that
 	// holds the CA bundle in PEM format.
 	combinedCABundleKey = "tls-ca-bundle.pem"
+
+	// persesDatasourceSecretName is the Perses Secret the perses-operator
+	// generates from the datasource's client.tls config. The perses-operator
+	// names it "<datasource>-secret" (its SecretNameSuffix) but does NOT wire it
+	// into the datasource proxy automatically, so the proxy must reference it by
+	// name for Perses to use the CA when querying Prometheus over TLS.
+	persesDatasourceSecretName = PrometheusDatasourceName + "-secret"
 )
 
 // DashboardDatasource builds the PersesDatasource object that points the
@@ -80,6 +87,17 @@ func DashboardDatasource(instance *telemetryv1.MetricStorage) *persesv1alpha1.Pe
 
 	url := fmt.Sprintf("%s://metric-storage-prometheus.%s.svc:9090", scheme, instance.Namespace)
 
+	proxySpec := map[string]interface{}{
+		"url": url,
+	}
+	if instance.Spec.PrometheusTLS.Enabled() {
+		// Reference the Perses Secret the perses-operator creates from the
+		// client.tls config above, so the Perses proxy verifies the Prometheus
+		// serving certificate instead of failing with "certificate signed by
+		// unknown authority".
+		proxySpec["secret"] = persesDatasourceSecretName
+	}
+
 	datasource.Spec.Config = persesv1alpha1.Datasource{
 		DatasourceSpec: persesv1.DatasourceSpec{
 			Default: true,
@@ -91,9 +109,7 @@ func DashboardDatasource(instance *telemetryv1.MetricStorage) *persesv1alpha1.Pe
 				Spec: map[string]interface{}{
 					"proxy": map[string]interface{}{
 						"kind": "HTTPProxy",
-						"spec": map[string]interface{}{
-							"url": url,
-						},
+						"spec": proxySpec,
 					},
 				},
 			},
