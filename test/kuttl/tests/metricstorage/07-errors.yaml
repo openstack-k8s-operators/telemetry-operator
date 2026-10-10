@@ -1,0 +1,8 @@
+# Step 06 enables power monitoring, which under the legacy ConfigMap delivery
+# created the ceilometer-ipmi dashboard. Assert that legacy ConfigMap stays
+# removed after the upgrade cleanup.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-ceilometer-ipmi
+  namespace: openshift-config-managed

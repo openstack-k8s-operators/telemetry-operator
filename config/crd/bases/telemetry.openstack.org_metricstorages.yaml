@@ -1745,6 +1745,16 @@ spec:
                   to scrape dataplane node_exporter endpoints
                 pattern: ^[a-zA-Z0-9][a-zA-Z0-9\-_]*[a-zA-Z0-9]$
                 type: string
+              disabledDashboards:
+                description: |-
+                  DisabledDashboards is a list of dashboard names that should not be
+                  created even when DashboardsEnabled is true. Valid names match the
+                  dashboards managed by the operator. Names that are not managed by the
+                  operator are ignored.
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: atomic
               monitoringStack:
                 description: |-
                   MonitoringStack allows to define a metric storage with

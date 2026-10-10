@@ -177,21 +177,6 @@ spec:
     targetLabel: __address__
   scrapeInterval: 30s
 ---
-apiVersion: observability.openshift.io/v1alpha1
-kind: UIPlugin
-metadata:
-  name: dashboards
-spec:
-  type: Dashboards
-status:
-  conditions:
-  - status: "True"
-    type: Reconciled
-  - status: "False"
-    type: Degraded
-  - status: "True"
-    type: Available
----
 apiVersion: monitoring.rhobs/v1
 kind: PrometheusRule
 metadata:
@@ -201,47 +186,25 @@ spec:
   - name: osp-node-exporter-dashboard.rules
   - name: osp-ceilometer-dashboard.rules
 ---
-apiVersion: v1
-kind: ConfigMap
+apiVersion: perses.dev/v1alpha1
+kind: PersesDatasource
 metadata:
-  name: telemetry-kuttl-tests-telemetry-kuttl-datasource
-  namespace: openshift-config-managed
+  name: prometheus
+spec:
+  config:
+    default: true
+    display:
+      name: Prometheus Datasource
+    plugin:
+      kind: PrometheusDatasource
 ---
-apiVersion: v1
-kind: ConfigMap
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
 metadata:
-  name: grafana-dashboard-openstack-cloud
-  namespace: openshift-config-managed
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-openstack-node
-  namespace: openshift-config-managed
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-openstack-openstack-network
-  namespace: openshift-config-managed
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-openstack-vm
-  namespace: openshift-config-managed
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-openstack-rabbitmq
-  namespace: openshift-config-managed
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-openstack-network-traffic
-  namespace: openshift-config-managed
+  name: openstack-cloud
+spec:
+  display:
+    name: OpenStack / Cloud
 ---
 apiVersion: v1
 kind: Secret
