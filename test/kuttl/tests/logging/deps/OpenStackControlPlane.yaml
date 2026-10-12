@@ -20,6 +20,8 @@ spec:
     enabled: false
   nova:
     enabled: false
+  ovn:
+    enabled: false
   placement:
     template:
       databaseInstance: openstack

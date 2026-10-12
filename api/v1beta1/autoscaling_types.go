@@ -28,14 +28,8 @@ import (
 )
 
 const (
-	// AodhAPIContainerImage - default fall-back image for Aodh API
-	AodhAPIContainerImage = "quay.io/podified-antelope-centos9/openstack-aodh-api:current-podified"
-	// AodhEvaluatorContainerImage - default fall-back image for Aodh Evaluator
-	AodhEvaluatorContainerImage = "quay.io/podified-antelope-centos9/openstack-aodh-evaluator:current-podified"
-	// AodhNotifierContainerImage - default fall-back image for Aodh Notifier
-	AodhNotifierContainerImage = "quay.io/podified-antelope-centos9/openstack-aodh-notifier:current-podified"
-	// AodhListenerContainerImage - default fall-back image for Aodh Listener
-	AodhListenerContainerImage = "quay.io/podified-antelope-centos9/openstack-aodh-listener:current-podified"
+	// AodhAPIContainerImage - default fall-back image for Aodh images
+	AodhAPIContainerImage = "quay.io/openstack-s2i-containers/openstack-aodh-api:master-latest"
 	// DbSyncHash hash
 	DbSyncHash = "dbsync"
 )
@@ -294,9 +288,9 @@ func SetupDefaultsAutoscaling() {
 	// Acquire environmental defaults and initialize Telemetry defaults with them
 	autoscalingDefaults := AutoscalingDefaults{
 		AodhAPIContainerImageURL:       util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
-		AodhEvaluatorContainerImageURL: util.GetEnvVar("RELATED_IMAGE_AODH_EVALUATOR_IMAGE_URL_DEFAULT", AodhEvaluatorContainerImage),
-		AodhNotifierContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_NOTIFIER_IMAGE_URL_DEFAULT", AodhNotifierContainerImage),
-		AodhListenerContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_LISTENER_IMAGE_URL_DEFAULT", AodhListenerContainerImage),
+		AodhEvaluatorContainerImageURL: util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
+		AodhNotifierContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
+		AodhListenerContainerImageURL:  util.GetEnvVar("RELATED_IMAGE_AODH_API_IMAGE_URL_DEFAULT", AodhAPIContainerImage),
 	}
 
 	SetupAutoscalingDefaults(autoscalingDefaults)
