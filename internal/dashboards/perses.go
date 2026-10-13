@@ -36,8 +36,14 @@ import (
 // A name is defined here alongside its builder as each dashboard is converted to
 // Perses.
 const (
-	OpenstackCeilometerIpmiName = "openstack-ceilometer-ipmi"
-	OpenstackCloudName          = "openstack-cloud"
+	OpenstackCeilometerIpmiName   = "openstack-ceilometer-ipmi"
+	OpenstackCloudName            = "openstack-cloud"
+	OpenstackLightspeedName       = "openstack-lightspeed"
+	OpenstackNetworkTrafficName   = "openstack-network-traffic"
+	OpenstackNodeName             = "openstack-node"
+	OpenstackOpenstackNetworkName = "openstack-network"
+	OpenstackRabbitmqName         = "openstack-rabbitmq"
+	OpenstackVmName               = "openstack-vm"
 )
 
 // ErrDashboardNoSpecConfig is returned when a dashboard JSON definition has no
@@ -91,7 +97,13 @@ func dashboardFromJSON(name, raw, namespace string) (*persesv1alpha1.PersesDashb
 // canonical dashboard name.
 func PersesDashboards() map[string]PersesDashboardBuilder {
 	return map[string]PersesDashboardBuilder{
-		OpenstackCeilometerIpmiName: OpenstackCeilometerIpmiPerses,
-		OpenstackCloudName:          OpenstackCloudPerses,
+		OpenstackCeilometerIpmiName:   OpenstackCeilometerIpmiPerses,
+		OpenstackCloudName:            OpenstackCloudPerses,
+		OpenstackLightspeedName:       OpenstackLightspeedPerses,
+		OpenstackNetworkTrafficName:   OpenstackNetworkTrafficPerses,
+		OpenstackNodeName:             OpenstackNodePerses,
+		OpenstackOpenstackNetworkName: OpenstackOpenstackNetworkPerses,
+		OpenstackRabbitmqName:         OpenstackRabbitmqPerses,
+		OpenstackVmName:               OpenstackVmPerses,
 	}
 }

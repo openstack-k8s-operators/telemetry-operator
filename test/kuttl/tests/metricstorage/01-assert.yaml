@@ -210,7 +210,7 @@ metadata:
     controller: true
 spec:
   display:
-    name: OpenStack / Cloud
+    name: Openstack / Node Exporter / USE Method / Cluster
 ---
 apiVersion: v1
 kind: Secret

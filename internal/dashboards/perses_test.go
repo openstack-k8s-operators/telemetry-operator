@@ -54,8 +54,8 @@ func TestOpenstackCloudPerses(t *testing.T) {
 
 	g.Expect(dashboard.Name).To(gomega.Equal(OpenstackCloudName))
 	g.Expect(dashboard.Spec.Display).NotTo(gomega.BeNil())
-	g.Expect(dashboard.Spec.Display.Name).To(gomega.Equal("OpenStack / Cloud"))
-	g.Expect(dashboard.Spec.Duration.String()).To(gomega.Equal("30m"))
+	g.Expect(dashboard.Spec.Display.Name).To(gomega.Equal("Openstack / Node Exporter / USE Method / Cluster"))
+	g.Expect(dashboard.Spec.Duration.String()).To(gomega.Equal("1h"))
 }
 
 // TestDashboardFromJSONErrors checks malformed JSON and definitions without a
