@@ -1137,6 +1137,17 @@ func (r *CeilometerReconciler) reconcileKSM(
 
 	tlsConfName := ""
 	if instance.Spec.KSMTLS.Enabled() {
+		if instance.Spec.KSMTLS.CaBundleSecretName == "" {
+			Log.Info("KSM TLS is enabled but CaBundleSecretName is not set")
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.KSMTLSInputReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.TLSInputErrorMessage,
+				"TLS is enabled but CaBundleSecretName is not set, mTLS requires a CA bundle"))
+			return ctrl.Result{}, nil
+		}
+
 		// Validate metadata service cert secret
 		hash, err := instance.Spec.KSMTLS.ValidateCertSecret(ctx, helper, instance.Namespace)
 		if err != nil {

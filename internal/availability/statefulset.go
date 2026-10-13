@@ -41,8 +41,7 @@ func KSMStatefulSet(
 
 	livenessProbe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/livez",
+			TCPSocket: &corev1.TCPSocketAction{
 				Port: intstr.FromInt(KSMMetricsPort),
 			},
 		},
@@ -52,8 +51,7 @@ func KSMStatefulSet(
 
 	readinessProbe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/readyz",
+			TCPSocket: &corev1.TCPSocketAction{
 				Port: intstr.FromInt(KSMReadyPort),
 			},
 		},
@@ -93,9 +91,6 @@ func KSMStatefulSet(
 		tlsConfFullPath := filepath.Join(tlsConfPath, tlsConfKey)
 		svc.CertMount = ptr.To(TLSCertPath)
 		svc.KeyMount = ptr.To(TLSKeyPath)
-
-		livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
 
 		volumes = append(volumes, svc.CreateVolume(KSMServiceName), corev1.Volume{
 			Name: fmt.Sprintf("%s-tls-config", KSMServiceName),
