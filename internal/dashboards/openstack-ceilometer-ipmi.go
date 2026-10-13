@@ -205,7 +205,7 @@ func OpenstackCeilometerIpmi(dsName string) *corev1.ConfigMap {
 								"timeFrom": null,
 								"timeRegions": [],
 								"timeShift": null,
-								"title": "Current(Amps)",
+								"title": "Current (Amps)",
 								"tooltip": {
 									"shared": true,
 									"sort": 0,

@@ -20,14 +20,6 @@ import (
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
 )
 
-// openstackCeilometerIpmiJSON is the "OpenStack / Compute Power Monitoring /
-// Ceilometer IPMI" PersesDashboard definition, in the perses.dev/v1alpha2
-// layout (content under spec.config). It is only deployed when at least one
-// dataplane nodeset runs the telemetry-power-monitoring service.
-//
-// This is a minimal placeholder that establishes the object shape, ownership and
-// datasource wiring. The full panel/layout content is converted from the legacy
-// Grafana dashboard and delivered separately.
 const openstackCeilometerIpmiJSON = `{
   "apiVersion": "perses.dev/v1alpha2",
   "kind": "PersesDashboard",
@@ -39,16 +31,287 @@ const openstackCeilometerIpmiJSON = `{
       "display": {
         "name": "OpenStack / Compute Power Monitoring / Ceilometer IPMI"
       },
-      "duration": "30m",
-      "panels": {},
-      "layouts": []
+      "variables": [
+        {
+          "kind": "ListVariable",
+          "spec": {
+            "display": {
+              "hidden": false
+            },
+            "allowAllValue": false,
+            "allowMultiple": false,
+            "sort": "none",
+            "plugin": {
+              "kind": "PrometheusLabelValuesVariable",
+              "spec": {
+                "labelName": "fqdn",
+                "matchers": [
+                  "ceilometer_hardware_ipmi_voltage"
+                ]
+              }
+            },
+            "name": "fqdn"
+          }
+        }
+      ],
+      "panels": {
+        "0_0": {
+          "kind": "Panel",
+          "spec": {
+            "display": {
+              "name": "Voltage (Volts)"
+            },
+            "plugin": {
+              "kind": "TimeSeriesChart",
+              "spec": {
+                "legend": {
+                  "position": "bottom"
+                },
+                "yAxis": {
+                  "format": {
+                    "unit": "decimal"
+                  }
+                }
+              }
+            },
+            "queries": [
+              {
+                "kind": "TimeSeriesQuery",
+                "spec": {
+                  "plugin": {
+                    "kind": "PrometheusTimeSeriesQuery",
+                    "spec": {
+                      "query": "label_replace(ceilometer_hardware_ipmi_voltage{unit=\"V\", resource=~\"$fqdn.*\"}, \"resource_name\", \"$1\", \"resource\", \".*-(.*)\")",
+                      "seriesNameFormat": "{{ resource_name }}"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "0_1": {
+          "kind": "Panel",
+          "spec": {
+            "display": {
+              "name": "Current (Amps)"
+            },
+            "plugin": {
+              "kind": "TimeSeriesChart",
+              "spec": {
+                "legend": {
+                  "position": "bottom"
+                },
+                "yAxis": {
+                  "format": {
+                    "unit": "decimal"
+                  }
+                }
+              }
+            },
+            "queries": [
+              {
+                "kind": "TimeSeriesQuery",
+                "spec": {
+                  "plugin": {
+                    "kind": "PrometheusTimeSeriesQuery",
+                    "spec": {
+                      "query": "label_replace(ceilometer_hardware_ipmi_current{unit=\"Amps\", resource=~\"$fqdn.*\"}, \"resource_name\", \"$1\", \"resource\", \".*-(current.*)\")",
+                      "seriesNameFormat": "{{ resource_name }}"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "0_2": {
+          "kind": "Panel",
+          "spec": {
+            "display": {
+              "name": "Power (Watts)"
+            },
+            "plugin": {
+              "kind": "TimeSeriesChart",
+              "spec": {
+                "legend": {
+                  "position": "bottom"
+                },
+                "yAxis": {
+                  "format": {
+                    "unit": "decimal"
+                  }
+                }
+              }
+            },
+            "queries": [
+              {
+                "kind": "TimeSeriesQuery",
+                "spec": {
+                  "plugin": {
+                    "kind": "PrometheusTimeSeriesQuery",
+                    "spec": {
+                      "query": "label_replace(ceilometer_hardware_ipmi_current{unit=\"W\", resource=~\"$fqdn.*\"}, \"resource_name\", \"$1\", \"resource\", \".*-(pwr.*)\")",
+                      "seriesNameFormat": "{{ resource_name }}"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "1_0": {
+          "kind": "Panel",
+          "spec": {
+            "display": {
+              "name": "Fan (RPM)"
+            },
+            "plugin": {
+              "kind": "TimeSeriesChart",
+              "spec": {
+                "legend": {
+                  "position": "bottom"
+                },
+                "yAxis": {
+                  "format": {
+                    "unit": "decimal"
+                  }
+                }
+              }
+            },
+            "queries": [
+              {
+                "kind": "TimeSeriesQuery",
+                "spec": {
+                  "plugin": {
+                    "kind": "PrometheusTimeSeriesQuery",
+                    "spec": {
+                      "query": "label_replace(ceilometer_hardware_ipmi_fan{unit=\"RPM\", resource=~\"$fqdn.*\"}, \"resource_name\", \"$1\", \"resource\", \".*-(fan.*)\")",
+                      "seriesNameFormat": "{{ resource_name }}"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "1_1": {
+          "kind": "Panel",
+          "spec": {
+            "display": {
+              "name": "Temperature (Celsius)"
+            },
+            "plugin": {
+              "kind": "TimeSeriesChart",
+              "spec": {
+                "legend": {
+                  "position": "bottom"
+                },
+                "yAxis": {
+                  "format": {
+                    "unit": "decimal"
+                  }
+                }
+              }
+            },
+            "queries": [
+              {
+                "kind": "TimeSeriesQuery",
+                "spec": {
+                  "plugin": {
+                    "kind": "PrometheusTimeSeriesQuery",
+                    "spec": {
+                      "query": "label_replace(ceilometer_hardware_ipmi_temperature{unit=\"C\", resource=~\"$fqdn.*\"}, \"resource_name\", \"$2\", \"resource\", \"^(.*)\\\\-(exhaust_temp_.*|inlet_temp_.*|temp_.*)$\")",
+                      "seriesNameFormat": "{{ resource_name }}"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "layouts": [
+        {
+          "kind": "Grid",
+          "spec": {
+            "display": {
+              "title": "Power Supply Unit",
+              "collapse": {
+                "open": true
+              }
+            },
+            "items": [
+              {
+                "x": 0,
+                "y": 1,
+                "width": 12,
+                "height": 7,
+                "content": {
+                  "$ref": "#/spec/panels/0_0"
+                }
+              },
+              {
+                "x": 12,
+                "y": 1,
+                "width": 12,
+                "height": 7,
+                "content": {
+                  "$ref": "#/spec/panels/0_1"
+                }
+              },
+              {
+                "x": 0,
+                "y": 8,
+                "width": 24,
+                "height": 7,
+                "content": {
+                  "$ref": "#/spec/panels/0_2"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "kind": "Grid",
+          "spec": {
+            "display": {
+              "title": "Cooling Overview",
+              "collapse": {
+                "open": true
+              }
+            },
+            "items": [
+              {
+                "x": 0,
+                "y": 16,
+                "width": 24,
+                "height": 7,
+                "content": {
+                  "$ref": "#/spec/panels/1_0"
+                }
+              },
+              {
+                "x": 0,
+                "y": 23,
+                "width": 24,
+                "height": 7,
+                "content": {
+                  "$ref": "#/spec/panels/1_1"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "duration": "1h"
     }
   }
 }`
 
 // OpenstackCeilometerIpmiPerses builds the "OpenStack / Compute Power
-// Monitoring / Ceilometer IPMI" PersesDashboard from its JSON definition, in the
-// given namespace.
+// Monitoring / Ceilometer IPMI" PersesDashboard from its JSON definition, in
+// the given namespace.
 func OpenstackCeilometerIpmiPerses(_, namespace string) (*persesv1alpha1.PersesDashboard, error) {
 	return dashboardFromJSON(OpenstackCeilometerIpmiName, openstackCeilometerIpmiJSON, namespace)
 }
