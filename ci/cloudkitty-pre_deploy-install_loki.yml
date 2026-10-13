@@ -6,14 +6,6 @@
     KUBECONFIG: "{{ cifmw_openshift_kubeconfig | default(ansible_env.HOME + '/.kube/config' ) }}"
     PATH: "{{ cifmw_path | default(ansible_env.PATH) }}"
   tasks:
-    - name: Set zuul
-      when: not zuul is defined
-      ansible.builtin.set_fact:
-        zuul:
-          projects:
-            github.com/openstack-k8s-operators/telemetry-operator:
-              src_dir: "{{ telemetry_operator_dir | default('telemetry-operator/') }}"
-
     - name: Wait for the route kind to be present in the cluster
       ansible.builtin.command:
         cmd:
@@ -23,10 +15,41 @@
       register: route_api_check
       until: route_api_check.stdout_lines | length != 0
 
+    - name: Get latest loki-operator channel
+      ansible.builtin.shell:
+        cmd: >-
+          oc get packagemanifest loki-operator -n openshift-marketplace
+          --output jsonpath='{range .status.channels[*]}{.name}{"\n"}{end}'
+          | grep '^stable' | sort -V | tail -1
+      register: _loki_channel
+      changed_when: false
+      until: _loki_channel.stdout | trim | length > 0
+      retries: 60
+      delay: 10
+
+    - name: Verify loki-operator channel was resolved
+      ansible.builtin.assert:
+        that: _loki_channel.stdout | trim | length > 0
+        fail_msg: "Could not resolve loki-operator channel from packagemanifests"
+        success_msg: "loki-operator channel: {{ _loki_channel.stdout }}"
+
+    - name: Create temp directory for loki manifests
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: telemetry_loki_
+      register: _loki_tempdir
+
+    - name: Template deploy-loki-for-ck with resolved channel
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/deploy-loki-for-ck.yaml.j2"
+        dest: "{{ _loki_tempdir.path }}/deploy-loki-for-ck.yaml"
+        mode: '0644'
+      vars:
+        loki_operator_channel: "{{ _loki_channel.stdout }}"
+
     - name: Deploy loki operator
       ansible.builtin.shell:
-        cmd: |
-          oc apply -f {{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/deploy-loki-for-ck.yaml
+        cmd: oc apply -f {{ _loki_tempdir.path }}/deploy-loki-for-ck.yaml
 
     - name: Wait up to 5 minutes until the Loki CSV is Succeeded
       ansible.builtin.shell:
@@ -37,3 +60,8 @@
       until: output.stdout_lines | length == 1 and "Succeeded" in output.stdout
       retries: 30
       delay: 10
+
+    - name: Clean up temp directory
+      ansible.builtin.file:
+        path: "{{ _loki_tempdir.path }}"
+        state: absent

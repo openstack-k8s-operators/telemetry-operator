@@ -2,8 +2,7 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 commands:
   - script: |
-      oc apply -f deps/loki-operator.yaml
-      until oc api-resources | grep -q grafana; do sleep 1; done
+      ../../common/install-loki-operator.sh
   - script: |
       oc apply -f deps/rhobs.yaml
       until oc api-resources | grep -q rhobs; do sleep 1; done
