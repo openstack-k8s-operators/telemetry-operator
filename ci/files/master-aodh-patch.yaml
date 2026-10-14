@@ -1,6 +1,6 @@
 spec:
   customContainerImages:
-    aodhAPIImage: quay.rdoproject.org/podified-master-centos10/openstack-aodh-api:current-tested
-    aodhEvaluatorImage: quay.rdoproject.org/podified-master-centos10/openstack-aodh-evaluator:current-tested
-    aodhListenerImage: quay.rdoproject.org/podified-master-centos10/openstack-aodh-listener:current-tested
-    aodhNotifierImage: quay.rdoproject.org/podified-master-centos10/openstack-aodh-notifier:current-tested
+    aodhAPIImage: quay.io/podified-master-centos9/openstack-aodh-api:current-podified
+    aodhEvaluatorImage: quay.io/podified-master-centos9/openstack-aodh-evaluator:current-podified
+    aodhListenerImage: quay.io/podified-master-centos9/openstack-aodh-listener:current-podified
+    aodhNotifierImage: quay.io/podified-master-centos9/openstack-aodh-notifier:current-podified
