@@ -11,13 +11,13 @@
       {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != '' -%}
       {{ content_provider_os_registry_url }}
       {%- else -%}
-      quay.rdoproject.org/podified-master-centos10
+      quay.io/openstack-s2-containers
       {%- endif -%}
     telemetry_tag: >-
       {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != '' -%}
       telemetry_latest
       {%- else -%}
-      current-tested
+      master-latest
       {%- endif -%}
   tasks:
     - name: Ensure patch output directory exists
