@@ -1,0 +1,11 @@
+# Dashboards remain enabled, so the datasource is still present, but the
+# openstack-cloud dashboard is disabled by name (asserted absent in 08-errors).
+apiVersion: perses.dev/v1alpha1
+kind: PersesDatasource
+metadata:
+  name: prometheus
+spec:
+  config:
+    default: true
+    plugin:
+      kind: PrometheusDatasource
