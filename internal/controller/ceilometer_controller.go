@@ -1798,11 +1798,12 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 			return result, err
 		}
 		databaseParameters := map[string]any{
-			"Name":       fmt.Sprintf("client.%s.%s.svc", galeraName, galera.GetNamespace()),
-			"Host":       hostname,
-			"User":       dbAccount.Spec.UserName,
-			"Password":   string(dbSecret.Data[mariadbv1.DatabasePasswordSelector]),
-			"TLSEnabled": instance.Spec.MysqldExporterTLS.Enabled(),
+			"Name":          fmt.Sprintf("client.%s.%s.svc", galeraName, galera.GetNamespace()),
+			"Host":          hostname,
+			"User":          dbAccount.Spec.UserName,
+			"Password":      string(dbSecret.Data[mariadbv1.DatabasePasswordSelector]),
+			"TLSEnabled":    instance.Spec.MysqldExporterTLS.Enabled(),
+			"TLSServerName": hostname,
 		}
 		databases = append(databases, databaseParameters)
 
@@ -1817,11 +1818,12 @@ func (r *CeilometerReconciler) generateMysqldExporterServiceConfig(
 	if len(databases) > 0 {
 		// There needs to be a section called "client" in the config
 		clientParameters := map[string]any{
-			"Name":       "client",
-			"Host":       databases[0]["Host"],
-			"User":       databases[0]["User"],
-			"Password":   databases[0]["Password"],
-			"TLSEnabled": databases[0]["TLSEnabled"],
+			"Name":          "client",
+			"Host":          databases[0]["Host"],
+			"User":          databases[0]["User"],
+			"Password":      databases[0]["Password"],
+			"TLSEnabled":    databases[0]["TLSEnabled"],
+			"TLSServerName": databases[0]["TLSServerName"],
 		}
 		databases = append(databases, clientParameters)
 	}
