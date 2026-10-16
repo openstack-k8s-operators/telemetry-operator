@@ -1,4 +1,4 @@
 spec:
   customContainerImages:
-    ceilometerCentralImage: quay.rdoproject.org/podified-master-centos10/openstack-ceilometer-central:current-tested
-    ceilometerComputeImage: quay.rdoproject.org/podified-master-centos10/openstack-ceilometer-compute:current-tested
+    ceilometerCentralImage: quay.rdoproject.org/podified-master-centos10/openstack-ceilometer-central:consistent
+    ceilometerComputeImage: quay.rdoproject.org/podified-master-centos10/openstack-ceilometer-compute:consistent

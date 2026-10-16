@@ -1,5 +1,5 @@
 spec:
   customContainerImages:
-    heatAPIImage: quay.rdoproject.org/podified-master-centos10/openstack-heat-api:current-tested
-    heatCfnapiImage: quay.rdoproject.org/podified-master-centos10/openstack-heat-api-cfn:current-tested
-    heatEngineImage: quay.rdoproject.org/podified-master-centos10/openstack-heat-engine:current-tested
+    heatAPIImage: quay.rdoproject.org/podified-master-centos10/openstack-heat-api:consistent
+    heatCfnapiImage: quay.rdoproject.org/podified-master-centos10/openstack-heat-api-cfn:consistent
+    heatEngineImage: quay.rdoproject.org/podified-master-centos10/openstack-heat-engine:consistent
