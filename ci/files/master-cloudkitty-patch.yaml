@@ -1,4 +1,4 @@
 spec:
   customContainerImages:
-    cloudkittyAPIImage: quay.io/podified-master-centos9/openstack-cloudkitty-api:current-podified
-    cloudkittyProcImage: quay.io/podified-master-centos9/openstack-cloudkitty-processor:current-podified
+    cloudkittyAPIImage: quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-api:consistent
+    cloudkittyProcImage: quay.rdoproject.org/podified-master-centos10/openstack-cloudkitty-processor:consistent
