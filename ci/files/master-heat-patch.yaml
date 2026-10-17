@@ -1,5 +1,5 @@
 spec:
   customContainerImages:
-    heatAPIImage: quay.io/podified-master-centos9/openstack-heat-api:current-podified
-    heatCfnapiImage: quay.io/podified-master-centos9/openstack-heat-api-cfn:current-podified
-    heatEngineImage: quay.io/podified-master-centos9/openstack-heat-engine:current-podified
+    heatAPIImage: quay.io/openstack-s2-containers/openstack-heat-api:master-latest
+    heatCfnapiImage: quay.io/openstack-s2-containers/openstack-heat-api:master-latest
+    heatEngineImage: quay.io/openstack-s2-containers/openstack-heat-engine:master-latest

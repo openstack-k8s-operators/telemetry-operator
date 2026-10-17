@@ -1,4 +1,4 @@
 spec:
   customContainerImages:
-    cloudkittyAPIImage: quay.io/podified-master-centos9/openstack-cloudkitty-api:current-podified
-    cloudkittyProcImage: quay.io/podified-master-centos9/openstack-cloudkitty-processor:current-podified
+    cloudkittyAPIImage: quay.io/openstack-s2-containers/openstack-cloudkitty-api:master-latest
+    cloudkittyProcImage: quay.io/openstack-s2-containers/openstack-cloudkitty-processor:master-latest
