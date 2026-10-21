@@ -1428,7 +1428,16 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 		instance.Status.DatabaseHostname,
 		cloudkitty.DatabaseName)
 	templateParameters["MemcachedServersWithInet"] = memcached.GetMemcachedServerListWithInetString()
+	templateParameters["MemcachedServers"] = memcached.GetMemcachedServerListString()
+	templateParameters["MemcachedTLS"] = memcached.GetMemcachedTLSSupport()
 	templateParameters["TimeOut"] = instance.Spec.APITimeout
+
+	// MTLS
+	if memcached.GetMemcachedMTLSSecret() != "" {
+		templateParameters["MemcachedAuthCert"] = fmt.Sprint(memcachedv1.CertMountPath())
+		templateParameters["MemcachedAuthKey"] = fmt.Sprint(memcachedv1.KeyMountPath())
+		templateParameters["MemcachedAuthCa"] = fmt.Sprint(memcachedv1.CaMountPath())
+	}
 
 	templateParameters["TLS"] = false
 	if instance.Spec.CloudKittyProc.TLS.Enabled() {
@@ -1548,6 +1557,7 @@ func (r *CloudKittyReconciler) apiDeploymentCreateOrUpdate(ctx context.Context, 
 		DatabaseHostname:      instance.Status.DatabaseHostname,
 		TransportURLSecret:    transportURLSecretName,
 		ServiceAccount:        instance.RbacResourceName(),
+		MemcachedInstance:     instance.Spec.MemcachedInstance,
 	}
 
 	if cloudkittyAPISpec.NodeSelector == nil {
@@ -1593,6 +1603,7 @@ func (r *CloudKittyReconciler) procDeploymentCreateOrUpdate(ctx context.Context,
 		DatabaseHostname:       instance.Status.DatabaseHostname,
 		TransportURLSecret:     transportURLSecretName,
 		ServiceAccount:         instance.RbacResourceName(),
+		MemcachedInstance:      instance.Spec.MemcachedInstance,
 		//TLS:                    instance.Spec.CloudKittyProc.TLS.Ca,
 	}
 

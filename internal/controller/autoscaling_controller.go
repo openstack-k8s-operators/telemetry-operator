@@ -917,6 +917,7 @@ func (r *AutoscalingReconciler) generateServiceConfig(
 		"TransportURL":             string(transportURLSecret.Data["transport_url"]),
 		"MemcachedServers":         mc.GetMemcachedServerListString(),
 		"MemcachedServersWithInet": mc.GetMemcachedServerListWithInetString(),
+		"MemcachedTLS":             mc.GetMemcachedTLSSupport(),
 		"DatabaseConnection": fmt.Sprintf("mysql+pymysql://%s:%s@%s/%s?read_default_file=/etc/my.cnf",
 			databaseAccount.Spec.UserName,
 			string(databaseSecret.Data[mariadbv1.DatabasePasswordSelector]),
