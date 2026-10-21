@@ -1,7 +1,17 @@
-apiVersion: v1
-kind: ConfigMap
+# Dashboards are re-enabled at step 06 with the power-monitoring EDPM resources
+# deployed. Assert exactly the managed Perses objects that should exist: the
+# datasource and the implemented openstack-cloud dashboard.
+apiVersion: perses.dev/v1alpha1
+kind: PersesDatasource
 metadata:
-  labels:
-    console.openshift.io/dashboard: "true"
-  name: grafana-dashboard-openstack-ceilometer-ipmi
-  namespace: openshift-config-managed
+  name: prometheus
+spec:
+  config:
+    default: true
+    plugin:
+      kind: PrometheusDatasource
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-cloud
