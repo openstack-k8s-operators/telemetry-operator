@@ -53,7 +53,6 @@ func Certificate(
 			},
 			Usages: []certmgrv1.KeyUsage{
 				certmgrv1.UsageDigitalSignature,
-				certmgrv1.UsageKeyEncipherment,
 				certmgrv1.UsageClientAuth,
 			},
 			IssuerRef: certmgrmetav1.ObjectReference{
