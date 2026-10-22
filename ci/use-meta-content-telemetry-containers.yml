@@ -17,7 +17,7 @@
       {%- if content_provider_os_registry_url is defined and content_provider_os_registry_url != '' -%}
       telemetry_latest
       {%- else -%}
-      current-tested
+      consistent
       {%- endif -%}
   tasks:
     - name: Ensure patch output directory exists
