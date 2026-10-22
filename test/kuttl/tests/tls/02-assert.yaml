@@ -340,6 +340,7 @@ metadata:
 spec:
   scheme: HTTPS
   tlsConfig:
+    minVersion: TLS13
     ca:
       secret:
         key: tls-ca-bundle.pem
@@ -364,6 +365,7 @@ metadata:
 spec:
   scheme: HTTPS
   tlsConfig:
+    minVersion: TLS13
     ca:
       secret:
         key: tls-ca-bundle.pem
@@ -388,6 +390,7 @@ metadata:
 spec:
   scheme: HTTPS
   tlsConfig:
+    minVersion: TLS13
     ca:
       secret:
         key: tls-ca-bundle.pem
