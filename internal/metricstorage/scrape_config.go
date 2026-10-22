@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
@@ -54,16 +55,88 @@ func retrieveScrapeInterval(instance *telemetryv1.MetricStorage) monv1.Duration 
 	return telemetryv1.DefaultScrapeInterval
 }
 
-// ScrapeConfigMysqldExporter creates a ScrapeConfig CR
+// endpointSliceTargets lists EndpointSlice endpoints for a service and returns
+// static configs with one entry per endpoint.
+func endpointSliceTargets(
+	ctx context.Context,
+	h *helper.Helper,
+	namespace string,
+	serviceName string,
+	port string,
+	extraLabels map[monv1.LabelName]string,
+) ([]monv1alpha1.StaticConfig, error) {
+	endpointSlices := discoveryv1.EndpointSliceList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels(map[string]string{
+			"kubernetes.io/service-name": serviceName,
+		}),
+	}
+	if err := h.GetClient().List(ctx, &endpointSlices, listOpts...); err != nil {
+		return nil, err
+	}
+
+	var staticConfigs []monv1alpha1.StaticConfig
+	for _, slice := range endpointSlices.Items {
+		for _, endpoint := range slice.Endpoints {
+			if endpoint.TargetRef == nil {
+				continue
+			}
+			targets := make([]monv1alpha1.Target, 0, len(endpoint.Addresses))
+			for _, address := range endpoint.Addresses {
+				targets = append(targets, monv1alpha1.Target(net.JoinHostPort(address, port)))
+			}
+			labels := map[monv1.LabelName]string{
+				monv1.LabelName("pod"): endpoint.TargetRef.Name,
+			}
+			for k, v := range extraLabels {
+				labels[k] = v
+			}
+			staticConfigs = append(staticConfigs, monv1alpha1.StaticConfig{
+				Targets: targets,
+				Labels:  labels,
+			})
+		}
+	}
+	return staticConfigs, nil
+}
+
+// ScrapeConfigMysqldExporter creates a ScrapeConfig CR for scraping all pods
+// of each Galera cluster through the mysqld-exporter multi-target pattern
 func ScrapeConfigMysqldExporter(
+	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
 	labels map[string]string,
-	targets []string,
+	helper *helper.Helper,
+	galeras []string,
 	tlsEnabled bool,
-) *monv1alpha1.ScrapeConfig {
+) (*monv1alpha1.ScrapeConfig, error) {
 	// Use our normal scrape config as a base, which will be extended
-	scrapeConfig := ScrapeConfig(instance, labels, targets, tlsEnabled)
+	scrapeConfig := ScrapeConfig(instance, labels, []string{}, tlsEnabled)
 
+	sort.Strings(galeras)
+	var staticConfigs []monv1alpha1.StaticConfig
+	for _, galeraName := range galeras {
+		configs, err := endpointSliceTargets(ctx, helper, instance.Namespace,
+			galeraName+"-galera", strconv.Itoa(mysqldexporter.GaleraPort),
+			map[monv1.LabelName]string{monv1.LabelName("galera"): galeraName})
+		if err != nil {
+			return nil, err
+		}
+		staticConfigs = append(staticConfigs, configs...)
+	}
+
+	// Deterministic ordering avoids config hash churn and unnecessary reconciles
+	sort.Slice(staticConfigs, func(i, j int) bool {
+		gi := staticConfigs[i].Labels["galera"]
+		gj := staticConfigs[j].Labels["galera"]
+		if gi != gj {
+			return gi < gj
+		}
+		return staticConfigs[i].Labels["pod"] < staticConfigs[j].Labels["pod"]
+	})
+
+	scrapeConfig.Spec.StaticConfigs = staticConfigs
 	scrapeConfig.Spec.MetricsPath = ptr.To("/probe")
 	scrapeConfig.Spec.RelabelConfigs = []monv1.RelabelConfig{
 		{
@@ -76,11 +149,11 @@ func ScrapeConfigMysqldExporter(
 		{
 			Action: "Replace",
 			SourceLabels: []monv1.LabelName{
-				"__address__",
+				"galera",
 			},
 			TargetLabel: "__param_auth_module",
-			Regex:       "(.*):(.*)",
-			Replacement: ptr.To("client.$1"),
+			Regex:       "(.*)",
+			Replacement: ptr.To(fmt.Sprintf("client.$1.%s.svc", instance.Namespace)),
 		},
 		{
 			Action: "Replace",
@@ -95,7 +168,8 @@ func ScrapeConfigMysqldExporter(
 			Replacement: ptr.To(fmt.Sprintf("%s.%s.svc:%d", mysqldexporter.ServiceName, instance.Namespace, mysqldexporter.MysqldExporterPort)),
 		},
 	}
-	return scrapeConfig
+
+	return scrapeConfig, nil
 }
 
 // ScrapeConfigRabbitMQ creates a ScrapeConfig CR for scraping all nodes of
@@ -110,46 +184,14 @@ func ScrapeConfigRabbitMQ(
 ) (*monv1alpha1.ScrapeConfig, error) {
 	scrapeInterval := retrieveScrapeInterval(instance)
 
-	// NOTE: we use the Endpointslices object to retrieve a list of all pods
-	//       in each cluster, because RabbitMQ can run with multiple
-	//       replicas per cluster. In that case, each replica will have
-	//       different values to each metric, so we need to scrape
-	//       all of them. Scraping the cluster based on its DNS name
-	//       isn't enough.
-	endpointSlices := discoveryv1.EndpointSliceList{}
-
-	labelSelector := map[string]string{
-		"kubernetes.io/service-name": rabbit.Name,
+	port := RabbitMQPrometheusPortNoTLS
+	if tlsEnabled {
+		port = RabbitMQPrometheusPortTLS
 	}
-	listOpts := []client.ListOption{
-		client.InNamespace(instance.Namespace),
-		client.MatchingLabels(labelSelector),
-	}
-	err := helper.GetClient().List(ctx, &endpointSlices, listOpts...)
+	staticConfigs, err := endpointSliceTargets(ctx, helper, instance.Namespace,
+		rabbit.Name, port, nil)
 	if err != nil {
 		return nil, err
-	}
-
-	var staticConfigs []monv1alpha1.StaticConfig
-	for _, slice := range endpointSlices.Items {
-		for _, endpoint := range slice.Endpoints {
-			targets := []monv1alpha1.Target{}
-			for _, address := range endpoint.Addresses {
-				target := ""
-				if tlsEnabled {
-					target = net.JoinHostPort(address, RabbitMQPrometheusPortTLS)
-				} else {
-					target = net.JoinHostPort(address, RabbitMQPrometheusPortNoTLS)
-				}
-				targets = append(targets, monv1alpha1.Target(target))
-			}
-			staticConfigs = append(staticConfigs, monv1alpha1.StaticConfig{
-				Targets: targets,
-				Labels: map[monv1.LabelName]string{
-					monv1.LabelName("pod"): endpoint.TargetRef.Name,
-				},
-			})
-		}
 	}
 
 	scrapeConfig := &monv1alpha1.ScrapeConfig{
