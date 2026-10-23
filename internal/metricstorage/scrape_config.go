@@ -234,21 +234,6 @@ func ScrapeConfig(
 			MetricRelabelConfigs: []monv1.RelabelConfig{
 				{
 					Action:       "labeldrop",
-					Regex:        "pod",
-					SourceLabels: []monv1.LabelName{},
-				},
-				{
-					Action:       "labeldrop",
-					Regex:        "namespace",
-					SourceLabels: []monv1.LabelName{},
-				},
-				{
-					Action:       "labeldrop",
-					Regex:        "job",
-					SourceLabels: []monv1.LabelName{},
-				},
-				{
-					Action:       "labeldrop",
 					Regex:        "publisher",
 					SourceLabels: []monv1.LabelName{},
 				},
