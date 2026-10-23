@@ -181,6 +181,8 @@
 
 - job:
     name: s2i-deployment-test-telemetry
+    # TODO: Change parent to functional-tests-osp19 once
+    # https://github.com/infrawatch/feature-verification-tests/pull/464 merges.
     parent: functional-tests-osp18
     description: |
       Validate s2i telemetry service images (aodh, ceilometer central/compute)
@@ -194,6 +196,7 @@
       - name: infrawatch/feature-verification-tests
         override-checkout: master
     vars:
+      # S2I registry configuration
       cifmw_crc_additional_insecure_registries:
         - "{{ s2i_content_provider_registry_ip }}:5001"
       cifmw_crc_additional_allowed_registries:
@@ -203,6 +206,14 @@
         {{ s2i_content_provider_os_custom_container_images |
            dict2items |
            json_query('[].{name: key, full_registry: value}') }}
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-10/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-logging.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-power-monitoring.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-logging-test.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-functional-test.yml"
     irrelevant-files: *irrelevant_files
 
 - project-template:
@@ -272,6 +283,7 @@
               - s2i-openstack-container-content-provider
               - s2i-openstack-container-consumer-smoke
         - telemetry-operator-multinode-cloudkitty-rhoso-19:
+            voting: false
             vars:
               content_provider_registry_ip: "{{ s2i_content_provider_registry_ip }}"
             files:
