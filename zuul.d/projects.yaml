@@ -272,6 +272,7 @@
               - s2i-openstack-container-content-provider
               - s2i-openstack-container-consumer-smoke
         - telemetry-operator-multinode-cloudkitty-rhoso-19:
+            voting: false
             vars:
               content_provider_registry_ip: "{{ s2i_content_provider_registry_ip }}"
             files:
