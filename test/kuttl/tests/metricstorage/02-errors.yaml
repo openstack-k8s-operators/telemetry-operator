@@ -17,6 +17,11 @@ kind: PersesDashboard
 metadata:
   name: openstack-cloud
 ---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-ceilometer-ipmi
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
