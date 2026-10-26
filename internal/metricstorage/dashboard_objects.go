@@ -18,9 +18,12 @@ package metricstorage
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,6 +35,11 @@ import (
 	utils "github.com/openstack-k8s-operators/telemetry-operator/internal/utils"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 )
+
+// ErrNotControlledByMetricStorage is returned when a Perses object the operator
+// would manage already exists but is not controlled by the MetricStorage
+// instance, e.g. because it was created by an administrator.
+var ErrNotControlledByMetricStorage = errors.New("object exists and is not controlled by the MetricStorage")
 
 // DashboardArtifactsNamespace is the namespace where the legacy ConfigMap-based
 // dashboard artifacts were stored by earlier versions of the operator.
@@ -54,8 +62,9 @@ var legacyDashboardConfigMapNames = []string{
 
 // DeleteDashboardObjects removes the dashboard-related objects owned by the
 // MetricStorage instance. It is used both on the disable path
-// (DashboardsEnabled=false) and on CR deletion. Perses object deletions
-// tolerate the perses.dev CRDs not being installed.
+// (DashboardsEnabled=false) and on CR deletion. Perses objects are only
+// deleted when controlled by the instance, and their deletion tolerates the
+// perses.dev CRDs not being installed.
 func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper) (ctrl.Result, error) {
 	promRule := &monv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
@@ -73,7 +82,7 @@ func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricSto
 			Namespace: instance.Namespace,
 		},
 	}
-	if res, err := ensureDeletedTolerateNoCRD(ctx, helper, datasource); err != nil {
+	if res, err := EnsureControlledDeleted(ctx, helper, instance, datasource); err != nil {
 		return res, err
 	}
 
@@ -84,7 +93,7 @@ func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricSto
 				Namespace: instance.Namespace,
 			},
 		}
-		if res, err := ensureDeletedTolerateNoCRD(ctx, helper, dashboard); err != nil {
+		if res, err := EnsureControlledDeleted(ctx, helper, instance, dashboard); err != nil {
 			return res, err
 		}
 	}
@@ -114,13 +123,35 @@ func CleanupLegacyDashboardConfigMaps(ctx context.Context, instance *telemetryv1
 	return ctrl.Result{}, nil
 }
 
-// ensureDeletedTolerateNoCRD deletes an object but treats a missing CRD (no REST
-// mapping) as success, so the operator does not error on clusters where the
+// EnsureControlledDeleted deletes a Perses object only if it is controlled by
+// the MetricStorage instance, so objects with the same name created by others
+// are left untouched. A missing object or a missing CRD (no REST mapping) is
+// treated as success, so the operator does not error on clusters where the
 // perses.dev CRDs are not installed.
-func ensureDeletedTolerateNoCRD(ctx context.Context, helper *helper.Helper, obj client.Object) (ctrl.Result, error) {
-	res, err := utils.EnsureDeleted(ctx, helper, obj)
-	if err != nil && meta.IsNoMatchError(err) {
+func EnsureControlledDeleted(ctx context.Context, helper *helper.Helper, instance *telemetryv1.MetricStorage, obj client.Object) (ctrl.Result, error) {
+	if err := helper.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		if k8s_errors.IsNotFound(err) || meta.IsNoMatchError(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+	if !metav1.IsControlledBy(obj, instance) || !obj.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil
 	}
-	return res, err
+	if err := helper.GetClient().Delete(ctx, obj); err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
+}
+
+// EnsureAdoptable returns ErrNotControlledByMetricStorage if obj already
+// exists in the cluster and is not controlled by the MetricStorage instance.
+// It is meant to be called from a CreateOrPatch mutate function, before
+// setting the controller reference, so the operator does not take over and
+// overwrite objects it did not create.
+func EnsureAdoptable(instance *telemetryv1.MetricStorage, obj client.Object) error {
+	if creationTimestamp := obj.GetCreationTimestamp(); creationTimestamp.IsZero() || metav1.IsControlledBy(obj, instance) {
+		return nil
+	}
+	return fmt.Errorf("%w: %s/%s", ErrNotControlledByMetricStorage, obj.GetNamespace(), obj.GetName())
 }
