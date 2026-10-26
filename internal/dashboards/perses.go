@@ -22,6 +22,7 @@ package dashboards
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
@@ -38,6 +39,10 @@ const (
 	OpenstackCeilometerIpmiName = "openstack-ceilometer-ipmi"
 	OpenstackCloudName          = "openstack-cloud"
 )
+
+// ErrDashboardNoSpecConfig is returned when a dashboard JSON definition has no
+// spec.config section, i.e. it is not in the perses.dev/v1alpha2 layout.
+var ErrDashboardNoSpecConfig = errors.New("dashboard has no spec.config section")
 
 // PersesDashboardBuilder builds a PersesDashboard object bound to the given
 // datasource, in the given namespace. Returns an error if the dashboard
@@ -64,7 +69,7 @@ func dashboardFromJSON(name, raw, namespace string) (*persesv1alpha1.PersesDashb
 		return nil, fmt.Errorf("failed to unmarshal %s dashboard: %w", name, err)
 	}
 	if doc.Spec.Config == nil {
-		return nil, fmt.Errorf("%s dashboard has no spec.config section", name)
+		return nil, fmt.Errorf("%s: %w", name, ErrDashboardNoSpecConfig)
 	}
 	return &persesv1alpha1.PersesDashboard{
 		TypeMeta: metav1.TypeMeta{
