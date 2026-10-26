@@ -1559,7 +1559,10 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			},
 		}
 		op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboard, func() error {
-			desired := builder(metricstorage.PrometheusDatasourceName, instance.Namespace)
+			desired, err := builder(metricstorage.PrometheusDatasourceName, instance.Namespace)
+			if err != nil {
+				return err
+			}
 			dashboard.Labels = desired.Labels
 			dashboard.Spec = desired.Spec
 			return controllerutil.SetControllerReference(instance, dashboard, r.Scheme)
