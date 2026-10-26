@@ -234,6 +234,9 @@
         - telemetry-operator-multinode-default-telemetry
         - functional-audit-logging-tests-osp18:
             override-checkout: rhoso-18
+            required-projects:
+              - name: infrawatch/feature-verification-tests
+                override-checkout: rhoso-18
         - functional-tests-osp18: &fvt_jobs_config
             override-checkout: rhoso-18
             voting: true
