@@ -39,16 +39,19 @@ func newMetricStorage(prometheusTLS tls.SimpleService) *telemetryv1.MetricStorag
 }
 
 // TestDashboardDatasourceNoTLS checks the datasource uses plain HTTP and no
-// client TLS config when Prometheus TLS is disabled.
+// client TLS config when Prometheus TLS is disabled, and targets the
+// Prometheus Service of the MetricStorage instance.
 func TestDashboardDatasourceNoTLS(t *testing.T) {
 	g := gomega.NewWithT(t)
 
-	datasource := DashboardDatasource(newMetricStorage(tls.SimpleService{}))
+	instance := newMetricStorage(tls.SimpleService{})
+	instance.Name = "telemetry-kuttl"
+	datasource := DashboardDatasource(instance)
 
 	g.Expect(datasource.Spec.Client).To(gomega.BeNil())
 	proxy := datasource.Spec.Config.Plugin.Spec.(map[string]interface{})["proxy"].(map[string]interface{})
 	proxySpec := proxy["spec"].(map[string]interface{})
-	g.Expect(proxySpec["url"]).To(gomega.Equal("http://metric-storage-prometheus.openstack.svc:9090"))
+	g.Expect(proxySpec["url"]).To(gomega.Equal("http://telemetry-kuttl-prometheus.openstack.svc:9090"))
 	g.Expect(proxySpec).NotTo(gomega.HaveKey("secret"))
 }
 
