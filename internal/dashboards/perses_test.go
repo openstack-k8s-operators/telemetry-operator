@@ -19,7 +19,7 @@ package dashboards
 import (
 	"testing"
 
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
 )
 
@@ -28,45 +28,45 @@ import (
 // PersesDashboard, with the v1alpha2 spec.config content, in the requested
 // namespace.
 func TestPersesDashboardsBuild(t *testing.T) {
-	g := NewWithT(t)
+	g := gomega.NewWithT(t)
 
 	const namespace = "openstack"
 	for name, builder := range PersesDashboards() {
 		dashboard, err := builder("prometheus", namespace)
-		g.Expect(err).NotTo(HaveOccurred(), name)
+		g.Expect(err).NotTo(gomega.HaveOccurred(), name)
 
-		g.Expect(dashboard.Name).To(Equal(name))
-		g.Expect(dashboard.Namespace).To(Equal(namespace))
-		g.Expect(dashboard.Kind).To(Equal("PersesDashboard"))
-		g.Expect(dashboard.APIVersion).To(Equal(persesv1alpha1.GroupVersion.String()))
-		g.Expect(dashboard.Spec.Display).NotTo(BeNil(), name)
-		g.Expect(dashboard.Spec.Display.Name).NotTo(BeEmpty(), name)
+		g.Expect(dashboard.Name).To(gomega.Equal(name))
+		g.Expect(dashboard.Namespace).To(gomega.Equal(namespace))
+		g.Expect(dashboard.Kind).To(gomega.Equal("PersesDashboard"))
+		g.Expect(dashboard.APIVersion).To(gomega.Equal(persesv1alpha1.GroupVersion.String()))
+		g.Expect(dashboard.Spec.Display).NotTo(gomega.BeNil(), name)
+		g.Expect(dashboard.Spec.Display.Name).NotTo(gomega.BeEmpty(), name)
 	}
 }
 
 // TestOpenstackCloudPerses checks the openstack-cloud dashboard content is read
 // from the v1alpha2 spec.config section into the v1alpha1 inline spec.
 func TestOpenstackCloudPerses(t *testing.T) {
-	g := NewWithT(t)
+	g := gomega.NewWithT(t)
 
 	dashboard, err := OpenstackCloudPerses("prometheus", "openstack")
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).NotTo(gomega.HaveOccurred())
 
-	g.Expect(dashboard.Name).To(Equal(OpenstackCloudName))
-	g.Expect(dashboard.Spec.Display).NotTo(BeNil())
-	g.Expect(dashboard.Spec.Display.Name).To(Equal("OpenStack / Cloud"))
-	g.Expect(dashboard.Spec.Duration.String()).To(Equal("30m"))
+	g.Expect(dashboard.Name).To(gomega.Equal(OpenstackCloudName))
+	g.Expect(dashboard.Spec.Display).NotTo(gomega.BeNil())
+	g.Expect(dashboard.Spec.Display.Name).To(gomega.Equal("OpenStack / Cloud"))
+	g.Expect(dashboard.Spec.Duration.String()).To(gomega.Equal("30m"))
 }
 
 // TestDashboardFromJSONErrors checks malformed JSON and definitions without a
 // spec.config section (e.g., the v1alpha1 inline layout, whose content would
 // otherwise be silently dropped) are rejected.
 func TestDashboardFromJSONErrors(t *testing.T) {
-	g := NewWithT(t)
+	g := gomega.NewWithT(t)
 
 	_, err := dashboardFromJSON("bad", `{"spec": `, "openstack")
-	g.Expect(err).To(HaveOccurred())
+	g.Expect(err).To(gomega.HaveOccurred())
 
 	_, err = dashboardFromJSON("inline", `{"spec": {"display": {"name": "Inline"}}}`, "openstack")
-	g.Expect(err).To(MatchError(ContainSubstring("no spec.config")))
+	g.Expect(err).To(gomega.MatchError(ErrDashboardNoSpecConfig))
 }
