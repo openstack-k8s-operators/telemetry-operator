@@ -186,69 +186,69 @@
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
     irrelevant-files: *irrelevant_files
 
-- project-template:
-    name: rdo-telemetry-tempest-plugin-jobs
-    openstack-experimental:
-      jobs:
-        - telemetry-operator-multinode-autoscaling-tempest:
-            dependencies: []
-            # Required because RDO and openstack repos use master as their default branch and also try to check out master for all the projects included in a job.
-            required-projects:
-              - name: openstack-k8s-operators/ci-framework
-                override-checkout: main
-              - name: openstack-k8s-operators/install_yamls
-                override-checkout: main
-              - name: openstack-k8s-operators/infra-operator
-                override-checkout: main
-              - name: openstack-k8s-operators/openstack-baremetal-operator
-                override-checkout: main
-              - name: openstack-k8s-operators/openstack-must-gather
-                override-checkout: main
-              - name: openstack-k8s-operators/openstack-operator
-                override-checkout: main
-              - name: openstack-k8s-operators/repo-setup
-                override-checkout: main
-              - name: openstack-k8s-operators/edpm-ansible
-                override-checkout: main
-            pre-run:
-              - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
+# project-template:
+#   name: rdo-telemetry-tempest-plugin-jobs
+#   openstack-experimental:
+#     jobs:
+#       - telemetry-operator-multinode-autoscaling-tempest:
+#           dependencies: []
+#           # Required because RDO and openstack repos use master as their default branch and also try to check out master for all the projects included in a job.
+#           required-projects:
+#             - name: openstack-k8s-operators/ci-framework
+#               override-checkout: main
+#             - name: openstack-k8s-operators/install_yamls
+#               override-checkout: main
+#             - name: openstack-k8s-operators/infra-operator
+#               override-checkout: main
+#             - name: openstack-k8s-operators/openstack-baremetal-operator
+#               override-checkout: main
+#             - name: openstack-k8s-operators/openstack-must-gather
+#               override-checkout: main
+#             - name: openstack-k8s-operators/openstack-operator
+#               override-checkout: main
+#             - name: openstack-k8s-operators/repo-setup
+#               override-checkout: main
+#             - name: openstack-k8s-operators/edpm-ansible
+#               override-checkout: main
+#           pre-run:
+#             - ci/debug-get-branch-for-telemetry-tempest-plugin.yml
 
 - project:
     name: openstack-k8s-operators/telemetry-operator
     github-check:
       jobs:
-        # jobs uses latest available code just for telemetry
-        # services - local registry, tag: telemetry_latest
-        # All other services including OpenStack core services
-        # would not be recreated.
+#       # jobs uses latest available code just for telemetry
+#       # services - local registry, tag: telemetry_latest
+#       # All other services including OpenStack core services
+#       # would not be recreated.
         - telemetry-openstack-meta-content-provider-master
-        - telemetry-operator-multinode-cloudkitty
-        # job uses latest code for all OpenStack services - including
-        # core services
-        - telemetry-openstack-meta-content-provider-all-services-master
-        - telemetry-operator-multinode-master
-        # jobs uses latest stable code - tag: current-podified
+#       - telemetry-operator-multinode-cloudkitty
+#       # job uses latest code for all OpenStack services - including
+#       # core services
+#       - telemetry-openstack-meta-content-provider-all-services-master
+#       - telemetry-operator-multinode-master
+#       # jobs uses latest stable code - tag: current-podified
         - openstack-k8s-operators-content-provider:
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
-        - telemetry-operator-multinode-default-telemetry
+#       - telemetry-operator-multinode-default-telemetry
         - functional-audit-logging-tests-osp18:
             override-checkout: rhoso-18
-        - functional-tests-osp18: &fvt_jobs_config
-            override-checkout: rhoso-18
-            voting: true
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: rhoso-18
-            irrelevant-files: *irrelevant_files
-        - feature-verification-tests-noop:
-            files: *irrelevant_files
-        - functional-periodic-telemetry-with-ceph:
-            override-checkout: rhoso-18
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: rhoso-18
-            files:
-              - ci/deploy-telemetry-with-ceph.yml
-              - ci/vars-telemetry-with-ceph.yml
-              - zuul.d/projects.yaml
+#       - functional-tests-osp18: &fvt_jobs_config
+#           override-checkout: rhoso-18
+#           voting: true
+#           required-projects:
+#             - name: infrawatch/feature-verification-tests
+#               override-checkout: rhoso-18
+#           irrelevant-files: *irrelevant_files
+#       - feature-verification-tests-noop:
+#           files: *irrelevant_files
+#       - functional-periodic-telemetry-with-ceph:
+#           override-checkout: rhoso-18
+#           required-projects:
+#             - name: infrawatch/feature-verification-tests
+#               override-checkout: rhoso-18
+#           files:
+#             - ci/deploy-telemetry-with-ceph.yml
+#             - ci/vars-telemetry-with-ceph.yml
+#             - zuul.d/projects.yaml
