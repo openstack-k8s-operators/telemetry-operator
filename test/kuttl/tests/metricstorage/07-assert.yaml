@@ -21,6 +21,10 @@ apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
   name: openstack-ceilometer-ipmi
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
 spec:
   display:
     name: OpenStack / Compute Power Monitoring / Ceilometer IPMI
