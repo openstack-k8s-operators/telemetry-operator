@@ -1525,12 +1525,15 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	// At least one nodeset must have the telemetry-power-monitoring service
 	// enabled for the ceilometer-ipmi dashboard to be created. Otherwise it is
 	// handled like a disabled dashboard, so it is also removed when power
-	// monitoring is no longer deployed.
+	// monitoring is no longer deployed. If the nodesets cannot be inspected,
+	// the dashboard is left as is rather than removed, so a transient error
+	// does not make it flap.
+	skippedDashboards := map[string]bool{}
 	connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
 	if err != nil {
-		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Power monitoring dashboard not created. Error: %s", err))
-	}
-	if err != nil || len(connectionInfo) == 0 {
+		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Power monitoring dashboard not reconciled. Error: %s", err))
+		skippedDashboards[dashboards.OpenstackCeilometerIpmiName] = true
+	} else if len(connectionInfo) == 0 {
 		disabledDashboards[dashboards.OpenstackCeilometerIpmiName] = true
 	}
 
@@ -1556,7 +1559,8 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	// Iterate over the implemented dashboards registry, the single source of
 	// truth for the dashboards the operator manages. A dashboard is created
 	// unless the administrator disabled it by name, in which case any previously
-	// created object is removed.
+	// created object is removed, or it is skipped, in which case any existing
+	// object is left untouched.
 	for _, dashboardName := range dashboardNames {
 		builder := builders[dashboardName]
 		if disabledDashboards[dashboardName] {
@@ -1569,6 +1573,9 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			if res, err := metricstorage.EnsureControlledDeleted(ctx, helper, instance, existing); err != nil {
 				return res, err
 			}
+			continue
+		}
+		if skippedDashboards[dashboardName] {
 			continue
 		}
 
