@@ -230,6 +230,12 @@ func (r *MetricStorageReconciler) reconcileDelete(
 	if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
 		return res, err
 	}
+	// The legacy ConfigMap-based dashboards live in another namespace and have
+	// no owner references, so remove them here too in case the CR is deleted
+	// before reconcileNormal ever cleaned them up after an upgrade.
+	if res, err := metricstorage.CleanupLegacyDashboardConfigMaps(ctx, instance, helper); err != nil {
+		return res, err
+	}
 
 	crbName := fmt.Sprintf("%s-%s", metricstorage.OpenStackLightspeedAccessCRName, instance.Namespace)
 	crb := &rbacv1.ClusterRoleBinding{}
