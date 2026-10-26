@@ -89,7 +89,7 @@ func DashboardDatasource(instance *telemetryv1.MetricStorage) *persesv1alpha1.Pe
 		}
 	}
 
-	url := fmt.Sprintf("%s://metric-storage-prometheus.%s.svc:9090", scheme, instance.Namespace)
+	url := fmt.Sprintf("%s://%s-prometheus.%s.svc:9090", scheme, instance.Name, instance.Namespace)
 
 	proxySpec := map[string]interface{}{
 		"url": url,
