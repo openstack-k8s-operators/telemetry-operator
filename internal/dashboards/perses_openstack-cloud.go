@@ -17,39 +17,35 @@ limitations under the License.
 package dashboards
 
 import (
-	"time"
-
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
-	persesv1 "github.com/perses/perses/pkg/model/api/v1"
-	persescommon "github.com/perses/perses/pkg/model/api/v1/common"
-	persesdashboard "github.com/perses/perses/pkg/model/api/v1/dashboard"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// OpenstackCloudPerses builds the "OpenStack / Cloud" PersesDashboard.
+// openstackCloudJSON is the "OpenStack / Cloud" PersesDashboard definition, in
+// the perses.dev/v1alpha2 layout (content under spec.config).
 //
 // This is a minimal placeholder that establishes the object shape, ownership and
 // datasource wiring. The full panel/layout content is converted from the legacy
 // Grafana dashboard and delivered separately.
-func OpenstackCloudPerses(_, namespace string) *persesv1alpha1.PersesDashboard {
-	return &persesv1alpha1.PersesDashboard{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: persesv1alpha1.GroupVersion.String(),
-			Kind:       "PersesDashboard",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      OpenstackCloudName,
-			Namespace: namespace,
-		},
-		Spec: persesv1alpha1.Dashboard{
-			DashboardSpec: persesv1.DashboardSpec{
-				Display: &persescommon.Display{
-					Name: "OpenStack / Cloud",
-				},
-				Duration: persescommon.Duration(30 * time.Minute),
-				Panels:   map[string]*persesv1.Panel{},
-				Layouts:  []persesdashboard.Layout{},
-			},
-		},
-	}
+const openstackCloudJSON = `{
+  "apiVersion": "perses.dev/v1alpha2",
+  "kind": "PersesDashboard",
+  "metadata": {
+    "name": "openstack-cloud"
+  },
+  "spec": {
+    "config": {
+      "display": {
+        "name": "OpenStack / Cloud"
+      },
+      "duration": "30m",
+      "panels": {},
+      "layouts": []
+    }
+  }
+}`
+
+// OpenstackCloudPerses builds the "OpenStack / Cloud" PersesDashboard from its
+// JSON definition, in the given namespace.
+func OpenstackCloudPerses(_, namespace string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackCloudName, openstackCloudJSON, namespace)
 }
