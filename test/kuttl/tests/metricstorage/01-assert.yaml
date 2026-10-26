@@ -188,6 +188,10 @@ apiVersion: perses.dev/v1alpha1
 kind: PersesDatasource
 metadata:
   name: prometheus
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
 spec:
   config:
     default: true
@@ -200,6 +204,10 @@ apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
   name: openstack-cloud
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
 spec:
   display:
     name: OpenStack / Cloud
