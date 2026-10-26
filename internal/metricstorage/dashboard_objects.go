@@ -153,5 +153,6 @@ func EnsureAdoptable(instance *telemetryv1.MetricStorage, obj client.Object) err
 	if creationTimestamp := obj.GetCreationTimestamp(); creationTimestamp.IsZero() || metav1.IsControlledBy(obj, instance) {
 		return nil
 	}
-	return fmt.Errorf("%w: %s/%s", ErrNotControlledByMetricStorage, obj.GetNamespace(), obj.GetName())
+	return fmt.Errorf("%w: %s/%s; delete or rename it so the operator can manage it",
+		ErrNotControlledByMetricStorage, obj.GetNamespace(), obj.GetName())
 }
