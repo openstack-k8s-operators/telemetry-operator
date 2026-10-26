@@ -224,6 +224,7 @@ func ScrapeConfigRabbitMQ(
 				},
 			},
 			ServerName: ptr.To(fmt.Sprintf("%s.%s.svc", rabbit.Name, rabbit.Namespace)),
+			MinVersion: ptr.To(monv1.TLSVersion13),
 		}
 		scheme := "HTTPS"
 		scrapeConfig.Spec.Scheme = &scheme
@@ -295,6 +296,7 @@ func ScrapeConfig(
 					},
 				},
 			},
+			MinVersion: ptr.To(monv1.TLSVersion13),
 		}
 		if instance.Spec.PrometheusClientCertSecret.Enabled() {
 			clientCertSecretName := *instance.Spec.PrometheusClientCertSecret.SecretName
@@ -343,6 +345,7 @@ func ScrapeConfigOpenStackLightspeed(
 				Key: openStackLightspeedCABundleKey,
 			},
 		},
+		MinVersion: ptr.To(monv1.TLSVersion13),
 	}
 	scrapeConfig.Spec.Authorization = &monv1.SafeAuthorization{
 		Credentials: &corev1.SecretKeySelector{
