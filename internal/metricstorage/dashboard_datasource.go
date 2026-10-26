@@ -19,6 +19,7 @@ package metricstorage
 import (
 	"fmt"
 
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
 	persesv1 "github.com/perses/perses/pkg/model/api/v1"
@@ -35,13 +36,9 @@ const (
 	// Perses UI for the managed Prometheus datasource.
 	prometheusDatasourceDisplayName = "Prometheus Datasource"
 
-	// combinedCABundleSecretName is the secret holding the cluster CA bundle
-	// used to validate the Prometheus TLS certificate.
-	combinedCABundleSecretName = "combined-ca-bundle" //nolint:gosec // G101: secret name, not an actual credential
-
-	// combinedCABundleKey is the key inside combinedCABundleSecretName that
-	// holds the CA bundle in PEM format.
-	combinedCABundleKey = "tls-ca-bundle.pem"
+	// serviceCertCAKey is the key holding the issuing CA in the Prometheus
+	// serving certificate secret, used when no CA bundle secret is configured.
+	serviceCertCAKey = "ca.crt"
 
 	// persesDatasourceSecretName is the Perses Secret the perses-operator
 	// generates from the datasource's client.tls config. The perses-operator
@@ -70,16 +67,23 @@ func DashboardDatasource(instance *telemetryv1.MetricStorage) *persesv1alpha1.Pe
 
 	if instance.Spec.PrometheusTLS.Enabled() {
 		scheme = "https"
+		// Validate the Prometheus serving certificate against the same CA
+		// bundle configured for the MonitoringStack, falling back to the CA in
+		// the serving certificate secret when no bundle is set.
+		caSecretName, caKey := instance.Spec.PrometheusTLS.CaBundleSecretName, tls.CABundleKey
+		if caSecretName == "" {
+			caSecretName, caKey = *instance.Spec.PrometheusTLS.SecretName, serviceCertCAKey
+		}
 		datasource.Spec.Client = &persesv1alpha1.Client{
 			TLS: &persesv1alpha1.TLS{
 				Enable: true,
 				CaCert: &persesv1alpha1.Certificate{
 					SecretSource: persesv1alpha1.SecretSource{
 						Type:      persesv1alpha1.SecretSourceTypeSecret,
-						Name:      combinedCABundleSecretName,
+						Name:      caSecretName,
 						Namespace: instance.Namespace,
 					},
-					CertPath: combinedCABundleKey,
+					CertPath: caKey,
 				},
 			},
 		}
