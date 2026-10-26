@@ -1513,6 +1513,17 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	for _, name := range instance.Spec.DisabledDashboards {
 		disabledDashboards[name] = true
 	}
+	// At least one nodeset must have the telemetry-power-monitoring service
+	// enabled for the ceilometer-ipmi dashboard to be created. Otherwise it is
+	// handled like a disabled dashboard, so it is also removed when power
+	// monitoring is no longer deployed.
+	connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
+	if err != nil {
+		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Power monitoring dashboard not created. Error: %s", err))
+	}
+	if err != nil || len(connectionInfo) == 0 {
+		disabledDashboards[dashboards.OpenstackCeilometerIpmiName] = true
+	}
 
 	builders := dashboards.PersesDashboards()
 	// Iterate the registry in a stable order so the reported unavailable

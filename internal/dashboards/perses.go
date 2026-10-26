@@ -35,7 +35,8 @@ import (
 // A name is defined here alongside its builder as each dashboard is converted to
 // Perses.
 const (
-	OpenstackCloudName = "openstack-cloud"
+	OpenstackCeilometerIpmiName = "openstack-ceilometer-ipmi"
+	OpenstackCloudName          = "openstack-cloud"
 )
 
 // PersesDashboardBuilder builds a PersesDashboard object bound to the given
@@ -85,6 +86,7 @@ func dashboardFromJSON(name, raw, namespace string) (*persesv1alpha1.PersesDashb
 // canonical dashboard name.
 func PersesDashboards() map[string]PersesDashboardBuilder {
 	return map[string]PersesDashboardBuilder{
-		OpenstackCloudName: OpenstackCloudPerses,
+		OpenstackCeilometerIpmiName: OpenstackCeilometerIpmiPerses,
+		OpenstackCloudName:          OpenstackCloudPerses,
 	}
 }
