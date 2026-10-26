@@ -1484,6 +1484,9 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		},
 	}
 	op, err = controllerutil.CreateOrPatch(ctx, r.Client, datasource, func() error {
+		if err := metricstorage.EnsureAdoptable(instance, datasource); err != nil {
+			return err
+		}
 		desired := metricstorage.DashboardDatasource(instance)
 		datasource.Labels = desired.Labels
 		datasource.Spec = desired.Spec
@@ -1571,7 +1574,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 					Namespace: instance.Namespace,
 				},
 			}
-			if res, err := utils.EnsureDeleted(ctx, helper, existing); err != nil {
+			if res, err := metricstorage.EnsureControlledDeleted(ctx, helper, instance, existing); err != nil {
 				return res, err
 			}
 			continue
@@ -1584,6 +1587,9 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			},
 		}
 		op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboard, func() error {
+			if err := metricstorage.EnsureAdoptable(instance, dashboard); err != nil {
+				return err
+			}
 			desired, err := builder(metricstorage.PrometheusDatasourceName, instance.Namespace)
 			if err != nil {
 				return err
