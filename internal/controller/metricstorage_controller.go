@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -216,7 +217,7 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(ctx, instance, helper)
+	return r.reconcileNormal(ctx, instance, helper, savedConditions)
 }
 
 func (r *MetricStorageReconciler) reconcileDelete(
@@ -330,6 +331,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
+	savedConditions condition.Conditions,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
@@ -528,7 +530,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
-		if res, err := r.createDashboardObjects(ctx, instance, helper, eventHandler, serviceLabels); err != nil {
+		if res, err := r.createDashboardObjects(ctx, instance, helper, eventHandler, serviceLabels, savedConditions); err != nil {
 			return res, err
 		}
 	}
@@ -1404,6 +1406,7 @@ func (r *MetricStorageReconciler) createInstanceHAScrapeConfig(
 func (r *MetricStorageReconciler) markDashboardObjectReady(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
+	savedConditions condition.Conditions,
 	condType condition.Type,
 	available bool,
 	reason, message, describe string,
@@ -1411,14 +1414,16 @@ func (r *MetricStorageReconciler) markDashboardObjectReady(
 	msg := condition.ReadyMessage
 	if !available {
 		msg = fmt.Sprintf("%s created; Perses backend not attached yet (%s): %s", describe, reason, message)
-		if existing := instance.Status.Conditions.Get(condType); existing == nil || existing.Message != msg {
+		// Compare against the conditions saved before they were reset by Init
+		// at the start of the reconcile, which hold the previous message.
+		if existing := savedConditions.Get(condType); existing == nil || existing.Message != msg {
 			r.GetLogger(ctx).Info(fmt.Sprintf("%s is not attached to a Perses backend yet (%s): %s", describe, reason, message))
 		}
 	}
 	instance.Status.Conditions.MarkTrue(condType, "%s", msg)
 }
 
-func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler, serviceLabels map[string]string) (ctrl.Result, error) {
+func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler, serviceLabels map[string]string, savedConditions condition.Conditions) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 
 	// Deploy PrometheusRule for dashboards
@@ -1484,6 +1489,21 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		datasource.Spec = desired.Spec
 		return controllerutil.SetControllerReference(instance, datasource, r.Scheme)
 	})
+	if errors.Is(err, metricstorage.ErrNotControlledByMetricStorage) {
+		// A PersesDatasource with the same name was created by someone else.
+		// Leave it and the dashboards, which would reference it, alone and
+		// report it on the conditions instead of failing the whole reconcile.
+		Log.Info(fmt.Sprintf("Not managing PersesDatasource %s: %s", datasource.Name, err))
+		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDatasourceReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.DashboardDatasourceFailedMessage, err)
+		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.DashboardDefinitionFailedMessage, err)
+		return ctrl.Result{}, nil
+	}
 	if err != nil {
 		Log.Error(err, fmt.Sprintf("Failed to update PersesDatasource %s", datasource.Name))
 		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDatasourceReadyCondition,
@@ -1500,7 +1520,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	// has attached it to a Perses instance is surfaced via the condition message
 	// but does not gate readiness (the Perses backend is managed elsewhere).
 	dsAvailable, dsReason, dsMessage := telemetryv1.PersesResourceAvailable(datasource.Status.Conditions)
-	r.markDashboardObjectReady(ctx, instance, telemetryv1.DashboardDatasourceReadyCondition,
+	r.markDashboardObjectReady(ctx, instance, savedConditions, telemetryv1.DashboardDatasourceReadyCondition,
 		dsAvailable, dsReason, dsMessage, fmt.Sprintf("PersesDatasource %s", datasource.Name))
 
 	// Deploy PersesDashboards
@@ -1555,6 +1575,9 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	// elsewhere.
 	dashboardsAvailable := true
 	var unavailableReason, unavailableMessage, unavailableName string
+	// First dashboard that could not be managed because a same-named object
+	// not controlled by the MetricStorage exists.
+	var notControlledErr error
 
 	// Iterate over the implemented dashboards registry, the single source of
 	// truth for the dashboards the operator manages. A dashboard is created
@@ -1597,6 +1620,16 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			dashboard.Spec = desired.Spec
 			return controllerutil.SetControllerReference(instance, dashboard, r.Scheme)
 		})
+		if errors.Is(err, metricstorage.ErrNotControlledByMetricStorage) {
+			// A PersesDashboard with the same name was created by someone
+			// else. Leave it alone, keep reconciling the other dashboards and
+			// report it on the condition.
+			Log.Info(fmt.Sprintf("Not managing PersesDashboard %s: %s", dashboard.Name, err))
+			if notControlledErr == nil {
+				notControlledErr = err
+			}
+			continue
+		}
 		if err != nil {
 			Log.Error(err, fmt.Sprintf("Failed to update PersesDashboard %s", dashboard.Name))
 			instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
@@ -1613,11 +1646,18 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			unavailableReason, unavailableMessage, unavailableName = reason, message, dashboard.Name
 		}
 	}
+	if notControlledErr != nil {
+		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.DashboardDefinitionFailedMessage, notControlledErr)
+		return ctrl.Result{}, nil
+	}
 	describe := "PersesDashboards"
 	if unavailableName != "" {
 		describe = fmt.Sprintf("PersesDashboard %s", unavailableName)
 	}
-	r.markDashboardObjectReady(ctx, instance, telemetryv1.DashboardDefinitionReadyCondition,
+	r.markDashboardObjectReady(ctx, instance, savedConditions, telemetryv1.DashboardDefinitionReadyCondition,
 		dashboardsAvailable, unavailableReason, unavailableMessage, describe)
 
 	return ctrl.Result{}, nil
