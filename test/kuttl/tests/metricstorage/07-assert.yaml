@@ -1,6 +1,7 @@
 # Dashboards are re-enabled at step 06 with the power-monitoring EDPM resources
-# deployed. Assert exactly the managed Perses objects that should exist: the
-# datasource and the implemented openstack-cloud dashboard.
+# deployed. Assert the managed Perses objects: the datasource, the
+# openstack-cloud dashboard and the ceilometer-ipmi dashboard, which is only
+# created when a nodeset runs the telemetry-power-monitoring service.
 apiVersion: perses.dev/v1alpha1
 kind: PersesDatasource
 metadata:
@@ -15,3 +16,11 @@ apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
   name: openstack-cloud
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-ceilometer-ipmi
+spec:
+  display:
+    name: OpenStack / Compute Power Monitoring / Ceilometer IPMI

@@ -1,0 +1,6 @@
+# No dataplane nodeset runs the telemetry-power-monitoring service yet, so the
+# ceilometer-ipmi dashboard must not be created.
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-ceilometer-ipmi
