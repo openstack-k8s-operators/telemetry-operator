@@ -12,7 +12,7 @@ tls_server_config:
 {{ end }}
 
   # Minimum TLS version that is acceptable.
-  # [ min_version: <string> | default = "TLS12" ]
+  min_version: TLS13
 
   # Maximum TLS version that is acceptable.
   # [ max_version: <string> | default = "TLS13" ]
