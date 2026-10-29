@@ -17,4 +17,7 @@ spec:
   issuerRef:
     kind: Issuer
     name: selfsigned-issuer
+  privateKey:
+    algorithm: MLDSA65
+    encoding: PKCS8
   secretName: metrics-server-cert
