@@ -102,7 +102,7 @@ spec:
       rules:
       - alert: EdpmPodmanContainerUnhealthy
         expr: |
-          podman_container_health * on (id) group_right podman_container_info{name !~ ".*_init|nova_compute|neutron-haproxy-ovnmeta-.*"} != 0
+          podman_container_health * on (id) group_right podman_container_info{name !~ ".*_init|nova_compute|neutron-haproxy-ovnmeta-.*|ovn_agent"} != 0
         labels:
           severity: warning
         annotations:
@@ -112,7 +112,7 @@ spec:
             Health values: -1=unknown, 0=healthy, 1=unhealthy, 2=starting.
       - alert: EdpmPodmanContainerUnhealthy
         expr: |
-          podman_container_health * on (id) group_right podman_container_info{name !~ ".*_init|nova_compute|neutron-haproxy-ovnmeta-.*"} != 0
+          podman_container_health * on (id) group_right podman_container_info{name !~ ".*_init|nova_compute|neutron-haproxy-ovnmeta-.*|ovn_agent"} != 0
         for: 60s
         labels:
           severity: critical
@@ -151,6 +151,35 @@ spec:
           description: |
             The nova_compute container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }} for more than 1 minute.
             This is a critical compute service that must be present and running for VM operations on Compute nodes.
+
+      - alert: EdpmOvnAgentNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="ovn_agent"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="ovn_agent"} != 2)
+        labels:
+          severity: warning
+          service: ovn_agent
+        annotations:
+          summary: EDPM ovn_agent service missing or not running
+          description: |
+            The ovn_agent container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }}.
+            This service is required for OVN-based networking features on EDPM nodes.
+
+      - alert: EdpmOvnAgentNotRunning
+        expr: |
+          (up{job=~".*podman-exporter.*"} unless on(instance) (podman_container_info{name="ovn_agent"}))
+          or
+          (podman_container_state * on (id) group_right podman_container_info{name="ovn_agent"} != 2)
+        for: 60s
+        labels:
+          severity: critical
+          service: ovn_agent
+        annotations:
+          summary: EDPM ovn_agent service missing or not running
+          description: |
+            The ovn_agent container is either missing from the podman inventory or exists but is not in running state on {{ $labels.fqdn }} for more than 1 minute.
+            This service is required for OVN-based networking features on EDPM nodes.
 
       # Ceilometer Agent Compute
       # This is part of the telemetry service and should be on all EDPM nodes with telemetry enabled
