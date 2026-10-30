@@ -205,6 +205,47 @@
            json_query('[].{name: key, full_registry: value}') }}
     irrelevant-files: *irrelevant_files
 
+- job:
+    name: telemetry-operator-multinode-watcher
+    parent: podified-multinode-edpm-deployment-crc-2comp
+    nodeset: centos-9-medium-2x-centos-9-crc-cloud-ocp-4-20-1-3xl
+    timeout: 14400
+    dependencies:
+      - openstack-k8s-operators-content-provider
+    description: |
+      Deploy OpenStack with telemetry and watcher (optimize) enabled, then run
+      watcher and telemetry tempest tests. Uses real_load scenarios with
+      optimize.real_workload_period 600. Mirrors the downstream integration-line
+      periodic-podified-multinode-edpm-deployment-rhel9-rhoso18-crc-watcher-real-data
+      job using only upstream-reachable components.
+    required-projects:
+      - name: openstack-k8s-operators/watcher-operator
+        override-checkout: main
+      - name: infrawatch/feature-verification-tests
+        override-checkout: master
+    irrelevant-files: *irrelevant_files
+    vars:
+      run_graphing_test: false
+      telemetry_verify_metrics_metric_sources_to_test:
+        - ceilometer_compute_agent
+        - ceilometer_central_agent
+        - ksm
+        - node_exporter
+        - podman_exporter
+        - rabbitmq
+        - openstack_network_exporter
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/watcher-operator'].src_dir }}/ci/scenarios/edpm.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-logging.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-logging-test.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-audit-logging.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-audit-logging-fvt.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling-tempest.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-functional-test.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-watcher-tempest.yml"
+
 - project-template:
     name: rdo-telemetry-tempest-plugin-jobs
     openstack-experimental:
@@ -306,4 +347,8 @@
             files:
               - ci/deploy-telemetry-with-ceph.yml
               - ci/vars-telemetry-with-ceph.yml
+              - zuul.d/projects.yaml
+        - telemetry-operator-multinode-watcher:
+            files:
+              - ci/vars-watcher-tempest.yml
               - zuul.d/projects.yaml
