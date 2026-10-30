@@ -168,6 +168,8 @@
     required-projects:
       - name: openstack-k8s-operators/s2i-openstack-containers
         override-checkout: main
+      - name: openstack-k8s-operators/telemetry-operator
+        override-checkout: main
     vars:
       cifmw_crc_additional_insecure_registries:
         - "{{ s2i_content_provider_registry_ip }}:5001"
