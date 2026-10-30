@@ -183,7 +183,7 @@
 
 - job:
     name: s2i-deployment-test-telemetry
-    parent: functional-tests-osp18
+    parent: functional-tests-osp19
     description: |
       Validate s2i telemetry service images (aodh, ceilometer central/compute)
       s2i-built images from the content provider are applied to
