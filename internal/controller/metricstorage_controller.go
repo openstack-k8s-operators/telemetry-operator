@@ -1676,7 +1676,7 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				predicate.NewPredicateFuncs(func(o client.Object) bool {
 					labels := o.GetLabels()
 					return labels["app.kubernetes.io/component"] == "rabbitmq" ||
-						labels["app"] == "mariadb"
+						strings.HasSuffix(labels["kubernetes.io/service-name"], "-galera")
 				}),
 			),
 		).
