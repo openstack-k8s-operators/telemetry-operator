@@ -11,12 +11,12 @@ require (
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/gomega v1.44.0
 	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261028043121-0e37d90490a5
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261019104913-82fa8b3c2e30
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261029162903-5860bf3fd6a5
 	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20261028052944-9c675f19d0de
-	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20261028064945-ed0ceac3c676
-	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20261028064945-ed0ceac3c676
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261023124652-eebd8803b178
-	github.com/openstack-k8s-operators/lib-common/modules/users v0.0.0-20261028064945-ed0ceac3c676
+	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20261029132259-9d025389145b
+	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20261029132259-9d025389145b
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261029132259-9d025389145b
+	github.com/openstack-k8s-operators/lib-common/modules/users v0.0.0-20261029132259-9d025389145b
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20261028124714-bb706f15f5e5
 	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20261028065302-48eb3fd0440c
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-00010101000000-000000000000
