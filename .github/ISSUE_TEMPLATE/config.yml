@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Create Issue in Jira
+    url: "https://redhat.atlassian.net/secure/CreateIssueDetails!init.jspa?pid=10730&issuetype=10016&components=37286&customfield_10840=19919&customfield_10001=ec74d716-af36-4b3c-950f-f79213d08f71-959"
+    about: Please use our Jira tracker to report bugs and request features instead of creating an issue in GitHub.
