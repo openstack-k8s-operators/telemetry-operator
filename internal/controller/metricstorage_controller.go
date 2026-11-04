@@ -140,7 +140,6 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneendpoints,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
@@ -449,6 +448,17 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		handler.OnlyControllerOwner(),
 	)
 
+	// Aetos is mandatory: without an image we can't deploy it, so fail fast
+	// before creating any keystone resources or the monitoring stack.
+	if instance.Spec.AetosImage == "" {
+		instance.Status.Conditions.MarkFalse(telemetryv1.AetosReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			telemetryv1.AetosReadyImageMissingMessage)
+		Log.Info("AetosImage is not set, skipping Aetos sidecar deployment")
+		return ctrl.Result{}, nil
+	}
+
 	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
 	if err != nil {
 		return ctrlResult, err
@@ -636,16 +646,6 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		}
 		Log.Error(err, "Can't patch Prometheus TLS min/maxVersion")
 		return ctrl.Result{}, err
-	}
-
-	// Create Aetos config secret and patch Prometheus CR with Aetos sidecar
-	if instance.Spec.AetosImage == "" {
-		instance.Status.Conditions.MarkFalse(telemetryv1.AetosReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityError,
-			telemetryv1.AetosReadyImageMissingMessage)
-		Log.Info("AetosImage is not set, skipping Aetos sidecar deployment")
-		return ctrl.Result{}, nil
 	}
 
 	// Create Aetos K8s Services (internal + public) and collect their
@@ -945,7 +945,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			err.Error()))
 		return ctrl.Result{}, err
 	}
-	err = r.Patch(ctx, &aetosPatch, client.Merge, client.FieldOwner("telemetry-operator"))
+	// Server-side apply so we own only spec.containers/volumes instead of replacing them wholesale.
+	err = r.Patch(ctx, &aetosPatch, client.Apply, client.ForceOwnership, client.FieldOwner("telemetry-operator"))
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			telemetryv1.AetosReadyCondition,
@@ -1022,7 +1023,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	// Set NAD annotation to the Prometheus pod
 	if len(instance.Spec.NetworkAttachments) != 0 {
 		prometheusNADPatch := metricstorage.PrometheusNAD(instance, networkAnnotations)
-		err = r.Patch(context.Background(), &prometheusNADPatch, client.Merge, client.FieldOwner("telemetry-operator"))
+		// SSA like the Aetos patch: a merge patch would flip our Apply entry to an Update every reconcile.
+		err = r.Patch(context.Background(), &prometheusNADPatch, client.Apply, client.ForceOwnership, client.FieldOwner("telemetry-operator"))
 		if err != nil {
 			Log.Error(err, "Can't patch Prometheus resource")
 			return ctrl.Result{}, err

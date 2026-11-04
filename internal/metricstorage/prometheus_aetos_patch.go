@@ -23,22 +23,17 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/pod"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
+	"github.com/openstack-k8s-operators/lib-common/modules/users"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-const (
-	// TODO: Switch to users.AetosUID / users.AetosGID once
-	// https://github.com/openstack-k8s-operators/lib-common/pull/746 merges
-	aetosUID int64 = 42404
-	aetosGID int64 = 42404
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var aetosConfigMode int32 = 0440
 
-// PrometheusAetosSidecar defines patch for prometheus CR to add the Aetos sidecar container
+// PrometheusAetosSidecar defines the Aetos sidecar fields applied to the prometheus CR via server-side apply.
 func PrometheusAetosSidecar(
 	instance *telemetryv1.MetricStorage,
 	configHash string,
@@ -141,11 +136,9 @@ func PrometheusAetosSidecar(
 		keyMount := fmt.Sprintf("/etc/pki/tls/private/%s.key", endpt.String())
 		svc.CertMount = &certMount
 		svc.KeyMount = &keyMount
-		// The sidecar runs non-root inside the COO-managed Prometheus pod and
-		// cannot control that pod's fsGroup, so the cert must be group-readable
-		// (matching the Aetos config secret). lib-common's CreateVolume mounts
-		// it 0400 (owner-only), which relies on a pod-level fsGroup we don't set
-		// here, so build the volume with the group-readable mode instead.
+		// NOTE(jwysogla): secret files are root-owned, so mount them group-readable
+		// for the non-root aetos user; this works only because COO sets the pod's
+		// fsGroup, which kubelet applies to secret volumes.
 		volumes = append(volumes, corev1.Volume{
 			Name: endpt.String() + "-tls-certs",
 			VolumeSource: corev1.VolumeSource{
@@ -160,6 +153,24 @@ func PrometheusAetosSidecar(
 
 	envVars := map[string]env.Setter{}
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
+
+	// kubelet probes send no SNI, so httpd serves the default (internal) vhost; match its TLS setting.
+	probe := corev1.Probe{
+		TimeoutSeconds:      30,
+		PeriodSeconds:       30,
+		InitialDelaySeconds: 5,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: "/",
+				Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(AetosPort)},
+			},
+		},
+	}
+	if instance.Spec.AetosTLS.API.Enabled(service.EndpointInternal) {
+		probe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+	}
+	readinessProbe := probe.DeepCopy()
+	livenessProbe := probe.DeepCopy()
 
 	prom := monv1.Prometheus{
 		TypeMeta: metav1.TypeMeta{
@@ -185,9 +196,11 @@ func PrometheusAetosSidecar(
 								Name:          "aetos",
 							},
 						},
-						SecurityContext: pod.RestrictiveSecurityContext(aetosUID, aetosGID),
+						SecurityContext: pod.RestrictiveSecurityContext(users.AetosUID, users.AetosGID),
 						Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
 						VolumeMounts:    volumeMounts,
+						ReadinessProbe:  readinessProbe,
+						LivenessProbe:   livenessProbe,
 					},
 				},
 				Volumes: volumes,

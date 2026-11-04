@@ -54,6 +54,14 @@ commands:
       oc wait -n "${NS}" pod/prometheus-telemetry-kuttl-0 \
         --for=jsonpath='{.status.containerStatuses[?(@.name=="aetos")].ready}'=true --timeout=300s
 
+      # Verify the aetos-internal Service selects the prometheus pod
+      aetos_eps=$(oc get endpoints -n "${NS}" aetos-internal -o jsonpath='{.subsets[*].addresses[*].ip}')
+      if [ -z "${aetos_eps}" ]; then
+        echo "ERROR: aetos-internal Service has no endpoints (selector drift?)"
+        exit 1
+      fi
+      echo "✓ aetos-internal Service has endpoints: ${aetos_eps}"
+
       # Verify config contains application_credential_id
       echo "Checking aetos config contains application_credential_id..."
       oc exec -n "${NS}" pod/prometheus-telemetry-kuttl-0 -c aetos -- \
