@@ -140,6 +140,7 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneendpoints,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
@@ -296,7 +297,7 @@ func (r *MetricStorageReconciler) reconcileDelete(
 		}
 	}
 
-	// Remove AC consumer finalizer from both status-tracked and spec-tracked secrets
+	// Remove AC consumer finalizer from both status-tracked and spec-tracked secrets.
 	for _, secretName := range []string{
 		instance.Status.ApplicationCredentialSecret,
 		instance.Spec.Auth.ApplicationCredentialSecret,
@@ -955,7 +956,22 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		Log.Error(err, "Can't patch Prometheus resource with Aetos sidecar")
 		return ctrl.Result{}, err
 	}
-	instance.Status.Conditions.MarkTrue(telemetryv1.AetosReadyCondition, condition.ReadyMessage)
+	// Wait until the Prometheus CR reports the current Aetos config as available.
+	prometheusStatus := &monv1.Prometheus{}
+	if err := r.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, prometheusStatus); err != nil {
+		return ctrl.Result{}, err
+	}
+	aetosRolloutReady := prometheusAetosReady(prometheusStatus, aetosConfigHash)
+	if aetosRolloutReady {
+		instance.Status.Conditions.MarkTrue(telemetryv1.AetosReadyCondition, condition.ReadyMessage)
+	} else {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.AetosReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.AetosReadyInitMessage))
+		Log.Info("Waiting for Prometheus pods to roll out the current Aetos configuration")
+	}
 
 	//
 	// NAD
@@ -2113,6 +2129,38 @@ func getAddressFromAnsibleHost(item *ansible.Host) (string, discoveryv1.AddressT
 		return ansibleHost, discoveryv1.AddressTypeFQDN
 	}
 	return "", ""
+}
+
+func prometheusAetosReady(prom *monv1.Prometheus, configHash string) bool {
+	if prom == nil || configHash == "" {
+		return false
+	}
+
+	aetosConfigApplied := false
+	for _, container := range prom.Spec.Containers {
+		if container.Name != "aetos" {
+			continue
+		}
+		for _, variable := range container.Env {
+			if variable.Name == "CONFIG_HASH" && variable.Value == configHash {
+				aetosConfigApplied = true
+				break
+			}
+		}
+		break
+	}
+	if !aetosConfigApplied {
+		return false
+	}
+
+	for _, condition := range prom.Status.Conditions {
+		if condition.Type == monv1.Available &&
+			condition.Status == monv1.ConditionTrue &&
+			condition.ObservedGeneration >= prom.Generation {
+			return true
+		}
+	}
+	return false
 }
 
 func getCanonicalHostname(item *ansible.Host) (string, discoveryv1.AddressType) {
