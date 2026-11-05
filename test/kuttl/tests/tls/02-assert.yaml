@@ -296,6 +296,15 @@ spec:
     - name: config-reloader
     - name: thanos-sidecar
 ---
+apiVersion: monitoring.rhobs/v1
+kind: Prometheus
+metadata:
+  name: telemetry-kuttl-metricstorage
+spec:
+  web:
+    tlsConfig:
+      minVersion: TLS13
+---
 apiVersion: monitoring.rhobs/v1alpha1
 kind: MonitoringStack
 metadata:

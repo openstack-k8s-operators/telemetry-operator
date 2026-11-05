@@ -43,6 +43,7 @@ import (
 
 	"github.com/go-logr/logr"
 	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
@@ -92,6 +93,7 @@ func (r *CloudKittyProcReconciler) GetLogger(ctx context.Context) logr.Logger {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;create;update;patch;delete;watch
 // +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=topology.openstack.org,resources=topologies,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=memcached.openstack.org,resources=memcacheds,verbs=get;list;watch;
 
 // Reconcile -
 func (r *CloudKittyProcReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
@@ -159,6 +161,7 @@ func (r *CloudKittyProcReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 		condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 		condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+		condition.UnknownCondition(condition.MemcachedReadyCondition, condition.InitReason, condition.MemcachedReadyInitMessage),
 		condition.UnknownCondition(condition.NetworkAttachmentsReadyCondition, condition.InitReason, condition.NetworkAttachmentsReadyInitMessage),
 		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 	)
@@ -688,8 +691,46 @@ func (r *CloudKittyProcReconciler) reconcileNormal(ctx context.Context, instance
 		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements: %w", err)
 	}
 
+	//
+	// Check for required memcached used for caching
+	//
+	memcached, err := memcachedv1.GetMemcachedByName(ctx, helper, instance.Spec.MemcachedInstance, instance.Namespace)
+	if err != nil {
+		Log.Info(fmt.Sprintf("%s... requeueing", condition.MemcachedReadyWaitingMessage))
+		if k8s_errors.IsNotFound(err) {
+			Log.Info(fmt.Sprintf("memcached %s not found", instance.Spec.MemcachedInstance))
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.MemcachedReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				condition.MemcachedReadyWaitingMessage))
+			return cloudkitty.ResultRequeue, nil
+		}
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.MemcachedReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.MemcachedReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	if !memcached.IsReady() {
+		Log.Info(fmt.Sprintf("%s... requeueing", condition.MemcachedReadyWaitingMessage))
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.MemcachedReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.MemcachedReadyWaitingMessage))
+		return cloudkitty.ResultRequeue, nil
+	}
+	// Mark the Memcached Service as Ready if we get to this point with no errors
+	instance.Status.Conditions.MarkTrue(
+		condition.MemcachedReadyCondition, condition.MemcachedReadyMessage)
+	// run check memcached - end
+
 	// Deploy a statefulset
-	ssDef := cloudkittyproc.StatefulSet(instance, inputHash, serviceLabels, serviceAnnotations, topology, customConfigKeys)
+	ssDef := cloudkittyproc.StatefulSet(instance, inputHash, serviceLabels, serviceAnnotations, topology, memcached, customConfigKeys)
 	ss := statefulset.NewStatefulSet(ssDef, cloudkitty.ShortDuration)
 
 	var ssData appsv1.StatefulSet

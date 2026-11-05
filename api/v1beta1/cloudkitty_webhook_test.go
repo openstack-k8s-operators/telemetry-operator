@@ -123,3 +123,71 @@ func TestCloudKittySpecDefaultWithPartialCRImages(t *testing.T) {
 	g.Expect(spec.CloudKittyProc.ContainerImage).To(Equal("cloudkitty-unified-image"),
 		"CloudKittyProc should use the unified image from env var when not set in CR")
 }
+
+const (
+	testHAProxyTimeoutAnno    = "haproxy.router.openshift.io/timeout"
+	testCloudKittyTimeoutAnno = "api.cloudkitty.openstack.org/timeout"
+)
+
+func newCloudKittySpecCoreWithAPITimeout(apiTimeout int) *CloudKittySpecCore {
+	spec := &CloudKittySpecCore{}
+	spec.APITimeout = apiTimeout
+	return spec
+}
+
+func TestCloudKittySetDefaultRouteAnnotations(t *testing.T) {
+	g := NewWithT(t)
+
+	annotations := map[string]string{}
+	newCloudKittySpecCoreWithAPITimeout(300).SetDefaultRouteAnnotations(annotations)
+
+	g.Expect(annotations).To(HaveKeyWithValue(testHAProxyTimeoutAnno, "300s"))
+	g.Expect(annotations).To(HaveKeyWithValue(testCloudKittyTimeoutAnno, "300s"))
+}
+
+func TestCloudKittySetDefaultRouteAnnotationsUpdatesDefaultedTimeout(t *testing.T) {
+	g := NewWithT(t)
+
+	annotations := map[string]string{
+		testHAProxyTimeoutAnno:    "60s",
+		testCloudKittyTimeoutAnno: "60s",
+	}
+	newCloudKittySpecCoreWithAPITimeout(120).SetDefaultRouteAnnotations(annotations)
+
+	g.Expect(annotations).To(HaveKeyWithValue(testHAProxyTimeoutAnno, "120s"))
+	g.Expect(annotations).To(HaveKeyWithValue(testCloudKittyTimeoutAnno, "120s"))
+}
+
+func TestCloudKittySetDefaultRouteAnnotationsKeepsManualTimeout(t *testing.T) {
+	g := NewWithT(t)
+
+	annotations := map[string]string{
+		testHAProxyTimeoutAnno: "600s",
+	}
+	newCloudKittySpecCoreWithAPITimeout(60).SetDefaultRouteAnnotations(annotations)
+
+	g.Expect(annotations).To(HaveKeyWithValue(testHAProxyTimeoutAnno, "600s"))
+	g.Expect(annotations).NotTo(HaveKey(testCloudKittyTimeoutAnno))
+}
+
+func TestCloudKittySetDefaultRouteAnnotationsDropsFlagOnManualChange(t *testing.T) {
+	g := NewWithT(t)
+
+	annotations := map[string]string{
+		testHAProxyTimeoutAnno:    "600s",
+		testCloudKittyTimeoutAnno: "60s",
+	}
+	newCloudKittySpecCoreWithAPITimeout(60).SetDefaultRouteAnnotations(annotations)
+
+	g.Expect(annotations).To(HaveKeyWithValue(testHAProxyTimeoutAnno, "600s"))
+	g.Expect(annotations).NotTo(HaveKey(testCloudKittyTimeoutAnno))
+}
+
+func TestCloudKittySetDefaultRouteAnnotationsNoAPITimeout(t *testing.T) {
+	g := NewWithT(t)
+
+	annotations := map[string]string{}
+	newCloudKittySpecCoreWithAPITimeout(0).SetDefaultRouteAnnotations(annotations)
+
+	g.Expect(annotations).To(BeEmpty())
+}

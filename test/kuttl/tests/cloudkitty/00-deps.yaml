@@ -4,5 +4,12 @@ commands:
   - script: |
       ../../common/install-loki-operator.sh
   - script: |
+      # kuttl's cleanup only issues a delete without waiting, so an earlier
+      # suite's minio pod/PVC can still be terminating when this suite's
+      # deps apply; a pod cannot be re-applied with a changed spec, so wait
+      # leftovers out (oc delete waits for full removal)
+      oc delete pod minio -n $NAMESPACE --ignore-not-found
+      oc delete pvc minio-pvc -n $NAMESPACE --ignore-not-found
+  - script: |
       oc apply -f deps/rhobs.yaml
       until oc api-resources | grep -q rhobs; do sleep 1; done
