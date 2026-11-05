@@ -151,7 +151,7 @@ type MetricStorageSpecCore struct {
 	// The value of caBundleSecretName is currently ignored.
 	AlertmanagerTLS tls.SimpleService `json:"alertmanagerTls,omitempty"`
 
-	// ServiceUser - optional username used for this service to register in keystone
+	// ServiceUser - optional username used for aetos service to register in keystone
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=aetos
 	ServiceUser string `json:"serviceUser"`
@@ -161,13 +161,13 @@ type MetricStorageSpecCore struct {
 	// +kubebuilder:default=osp-secret
 	Secret string `json:"secret"`
 
-	// PasswordSelectors - Selectors to identify the service from the Secret
+	// PasswordSelectors - Selectors to identify the aetos service from the Secret
 	// +kubebuilder:default:={aetosService: AetosPassword}
 	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	// Auth - authentication settings for keystone integration
+	// Auth - authentication settings for aetos-keystone integration
 	Auth AuthSpec `json:"auth,omitempty"`
 
 	// +kubebuilder:validation:Optional
@@ -195,7 +195,7 @@ type MetricStorageStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 	// NetworkAttachments status of the Prometheus pods
 	NetworkAttachments map[string]string `json:"networkAttachments,omitempty"`
-	// ApplicationCredentialSecret - the AC secret MetricStorage is currently consuming
+	// ApplicationCredentialSecret - the AC secret Aetos is currently consuming
 	ApplicationCredentialSecret string `json:"applicationCredentialSecret,omitempty"`
 }
 

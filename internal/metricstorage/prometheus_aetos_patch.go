@@ -97,12 +97,12 @@ func PrometheusAetosSidecar(
 		},
 	}
 
-	if instance.Spec.PrometheusTLS.CaBundleSecretName != "" {
+	if instance.Spec.AetosTLS.CaBundleSecretName != "" {
 		volumes = append(volumes, corev1.Volume{
 			Name: "aetos-ca-bundle",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: instance.Spec.PrometheusTLS.CaBundleSecretName,
+					SecretName: instance.Spec.AetosTLS.CaBundleSecretName,
 				},
 			},
 		})
