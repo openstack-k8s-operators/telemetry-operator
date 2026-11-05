@@ -1457,7 +1457,13 @@ func (r *CloudKittyReconciler) generateServiceConfigs(
 	httpdVhostConfig := map[string]interface{}{}
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
 		endptConfig := map[string]interface{}{}
-		endptConfig["ServerName"] = fmt.Sprintf("%s-%s.%s.svc", cloudkitty.ServiceName, endpt.String(), instance.Namespace)
+		defaultName := fmt.Sprintf("%s-%s.%s.svc", cloudkitty.ServiceName, endpt.String(), instance.Namespace)
+		serverName, serverAliases, err := service.GetVHostServerName(instance.Spec.CloudKittyAPI.Override.Service[endpt], defaultName)
+		if err != nil {
+			return err
+		}
+		endptConfig["ServerName"] = serverName
+		endptConfig["ServerAliases"] = serverAliases
 		endptConfig["TLS"] = false // default TLS to false, and set it bellow to true if enabled
 		if instance.Spec.CloudKittyAPI.TLS.API.Enabled(endpt) {
 			endptConfig["TLS"] = true
