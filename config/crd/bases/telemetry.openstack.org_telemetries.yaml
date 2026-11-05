@@ -1579,7 +1579,8 @@ spec:
                         type: string
                     type: object
                   auth:
-                    description: Auth - authentication settings for keystone integration
+                    description: Auth - authentication settings for aetos-keystone
+                      integration
                     properties:
                       applicationCredentialSecret:
                         description: ApplicationCredentialSecret - secret name for
@@ -3607,8 +3608,8 @@ spec:
                   passwordSelector:
                     default:
                       aetosService: AetosPassword
-                    description: PasswordSelectors - Selectors to identify the service
-                      from the Secret
+                    description: PasswordSelectors - Selectors to identify the aetos
+                      service from the Secret
                     properties:
                       aetosService:
                         default: AetosPassword
@@ -3659,7 +3660,7 @@ spec:
                     type: string
                   serviceUser:
                     default: aetos
-                    description: ServiceUser - optional username used for this service
+                    description: ServiceUser - optional username used for aetos service
                       to register in keystone
                     type: string
                 required:

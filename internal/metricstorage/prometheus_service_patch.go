@@ -44,8 +44,8 @@ func PrometheusService(
 				service.AnnotationIngressCreateKey: "false",
 				// COO's Prometheus self-scrape config uses the bare service name as
 				// TLS server_name. The certificate must include it as a SAN.
-                // Also aetos connects to Prometheus over localhost, which right now also requires TLS,
-                // so add "localhost" as another alternative SAN.
+				// Also aetos connects to Prometheus over localhost, which right now also requires TLS,
+				// so add "localhost" as another alternative SAN.
 				tls.AdditionalSubjectNamesKey: fmt.Sprintf("%s-prometheus,localhost", instance.Name),
 			},
 		},

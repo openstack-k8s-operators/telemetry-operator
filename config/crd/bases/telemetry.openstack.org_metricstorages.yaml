@@ -100,7 +100,7 @@ spec:
                     type: string
                 type: object
               auth:
-                description: Auth - authentication settings for keystone integration
+                description: Auth - authentication settings for aetos-keystone integration
                 properties:
                   applicationCredentialSecret:
                     description: ApplicationCredentialSecret - secret name for application
@@ -2107,7 +2107,7 @@ spec:
               passwordSelector:
                 default:
                   aetosService: AetosPassword
-                description: PasswordSelectors - Selectors to identify the service
+                description: PasswordSelectors - Selectors to identify the aetos service
                   from the Secret
                 properties:
                   aetosService:
@@ -2159,7 +2159,7 @@ spec:
                 type: string
               serviceUser:
                 default: aetos
-                description: ServiceUser - optional username used for this service
+                description: ServiceUser - optional username used for aetos service
                   to register in keystone
                 type: string
             required:
@@ -2169,8 +2169,8 @@ spec:
             description: MetricStorageStatus defines the observed state of MetricStorage
             properties:
               applicationCredentialSecret:
-                description: ApplicationCredentialSecret - the AC secret MetricStorage
-                  is currently consuming
+                description: ApplicationCredentialSecret - the AC secret Aetos is
+                  currently consuming
                 type: string
               conditions:
                 description: Conditions provide observations of the operational state

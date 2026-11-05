@@ -959,8 +959,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	}
 	// Wait until the Prometheus CR reports the current Aetos config as available.
 	prometheusStatus := &monv1.Prometheus{}
-    // re-fetch a new version of the Prometheus CR after it got updated above. If we don't do this,
-    // we would be checking stale data in the prometheusAetosReady function called below.
+	// re-fetch a new version of the Prometheus CR after it got updated above. If we don't do this,
+	// we would be checking stale data in the prometheusAetosReady function called below.
 	if err := r.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, prometheusStatus); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -1169,8 +1169,8 @@ func (r *MetricStorageReconciler) createAetosConfigSecret(
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
 		endptConfig := map[string]any{
 			"ServerName": fmt.Sprintf("%s-%s.%s.svc", metricstorage.AetosServiceName, endpt.String(), instance.Namespace),
-            // set TLS to false as the default. It's overwritten a few lines below if TLS is supposed to be enabled.
-			"TLS":        false,
+			// set TLS to false as the default. It's overwritten a few lines below if TLS is supposed to be enabled.
+			"TLS": false,
 		}
 		if instance.Spec.AetosTLS.API.Enabled(endpt) {
 			endptConfig["TLS"] = true
