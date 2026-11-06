@@ -141,7 +141,8 @@ metadata:
     name: telemetry-kuttl-cloudkitty-api
 spec:
   ports:
-  - port: 8889
+  - name: internal
+    port: 8889
     protocol: TCP
     targetPort: 8889
 ---
@@ -157,7 +158,8 @@ metadata:
     name: telemetry-kuttl-cloudkitty-api
 spec:
   ports:
-  - port: 8889
+  - name: public
+    port: 8889
     protocol: TCP
     targetPort: 8889
 ---

@@ -20,13 +20,13 @@ import (
 	"fmt"
 	"slices"
 
+	common_webhook "github.com/openstack-k8s-operators/lib-common/modules/common/webhook"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	common_webhook "github.com/openstack-k8s-operators/lib-common/modules/common/webhook"
 )
 
 // CloudKittyDefaults -
@@ -234,13 +234,15 @@ func (r *CloudKitty) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateCreate validates the CloudKittySpec during the webhook invocation.
 func (r *CloudKittySpec) ValidateCreate(basePath *field.Path, namespace string) ([]string, field.ErrorList) {
-	return r.CloudKittySpecBase.ValidateCreate(basePath, namespace)
+	warns, errs := r.CloudKittySpecBase.ValidateCreate(basePath, namespace)
+	return warns, append(errs, validateServicePortNames(basePath.Child("cloudKittyAPI").Child("override").Child("service"), r.CloudKittyAPI.Override.Service)...)
 }
 
 // ValidateCreate validates the CloudKittySpecCore during the webhook invocation. It is
 // expected to be called by the validation webhook in the higher level telemetry webhook
 func (r *CloudKittySpecCore) ValidateCreate(basePath *field.Path, namespace string) ([]string, field.ErrorList) {
-	return r.CloudKittySpecBase.ValidateCreate(basePath, namespace)
+	warns, errs := r.CloudKittySpecBase.ValidateCreate(basePath, namespace)
+	return warns, append(errs, validateServicePortNames(basePath.Child("cloudKittyAPI").Child("override").Child("service"), r.CloudKittyAPI.Override.Service)...)
 }
 
 // ValidateCreate validates the CloudKittySpecBase during the webhook invocation.
@@ -283,13 +285,15 @@ func (r *CloudKitty) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 
 // ValidateUpdate validates the CloudKittySpec during the webhook invocation.
 func (r *CloudKittySpec) ValidateUpdate(old CloudKittySpec, basePath *field.Path, namespace string) ([]string, field.ErrorList) {
-	return r.CloudKittySpecBase.ValidateUpdate(old.CloudKittySpecBase, basePath, namespace)
+	warns, errs := r.CloudKittySpecBase.ValidateUpdate(old.CloudKittySpecBase, basePath, namespace)
+	return warns, append(errs, validateServicePortNames(basePath.Child("cloudKittyAPI").Child("override").Child("service"), r.CloudKittyAPI.Override.Service)...)
 }
 
 // ValidateUpdate validates the CloudKittySpecCore during the webhook invocation. It is
 // expected to be called by the validation webhook in the higher level telemetry webhook
 func (r *CloudKittySpecCore) ValidateUpdate(old CloudKittySpecCore, basePath *field.Path, namespace string) ([]string, field.ErrorList) {
-	return r.CloudKittySpecBase.ValidateUpdate(old.CloudKittySpecBase, basePath, namespace)
+	warns, errs := r.CloudKittySpecBase.ValidateUpdate(old.CloudKittySpecBase, basePath, namespace)
+	return warns, append(errs, validateServicePortNames(basePath.Child("cloudKittyAPI").Child("override").Child("service"), r.CloudKittyAPI.Override.Service)...)
 }
 
 // ValidateUpdate validates the CloudKittySpecBase during the webhook invocation.

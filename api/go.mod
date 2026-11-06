@@ -5,10 +5,11 @@ go 1.26.3
 require (
 	github.com/onsi/gomega v1.44.0
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261029162903-5860bf3fd6a5
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261029132259-9d025389145b
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261102122626-a5970f05c6a9
 	github.com/rhobs/observability-operator v1.0.0
 	k8s.io/api v0.33.13
 	k8s.io/apimachinery v0.33.13
+	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
 	sigs.k8s.io/controller-runtime v0.21.0
 )
 
@@ -61,7 +62,6 @@ require (
 	k8s.io/client-go v0.33.13 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250902184714-7fc278399c7f // indirect
-	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect

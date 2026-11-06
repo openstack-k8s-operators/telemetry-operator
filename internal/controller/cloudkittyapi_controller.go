@@ -589,7 +589,7 @@ func (r *CloudKittyAPIReconciler) reconcileInit(
 				Labels:    exportLabels,
 				Selector:  serviceLabels,
 				Port: service.GenericServicePort{
-					Name:     endpointName,
+					Name:     endpointTypeStr,
 					Port:     data.Port,
 					Protocol: corev1.ProtocolTCP,
 				},
@@ -621,7 +621,10 @@ func (r *CloudKittyAPIReconciler) reconcileInit(
 			svc.AddAnnotation(map[string]string{
 				service.AnnotationIngressCreateKey: "false",
 			})
-			if svc.GetServiceType() == corev1.ServiceTypeLoadBalancer {
+			// The public endpoint's DNS is user-managed (its hostname is the
+			// endpointURL host, not the in-cluster Service name), so skip
+			// registering it in dnsmasq even when it is a LoadBalancer.
+			if svc.GetServiceType() == corev1.ServiceTypeLoadBalancer && endpointType != service.EndpointPublic {
 				svc.AddAnnotation(map[string]string{
 					service.AnnotationHostnameKey: svc.GetServiceHostname(), // add annotation to register service name in dnsmasq
 				})
