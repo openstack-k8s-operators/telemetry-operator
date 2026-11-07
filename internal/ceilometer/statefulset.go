@@ -44,23 +44,44 @@ func StatefulSet(
 	customConfigKeys []string,
 ) (*appsv1.StatefulSet, error) {
 
-	sgRootEndpointCurl := corev1.HTTPGetAction{
-		Path: "/",
+	//NOTE(jwysogla): Using a TCP probe because httpd requires mTLS with client
+	//                 certs, which kubelet's HTTP probes don't support.
+	httpdHealthcheck := corev1.TCPSocketAction{
 		Port: intstr.IntOrString{Type: intstr.Int, IntVal: int32(CeilometerPrometheusPort)},
 	}
-	sgLivenessProbe := &corev1.Probe{
+	httpdLivenessProbe := &corev1.Probe{
 		TimeoutSeconds:      30,
 		PeriodSeconds:       30,
 		InitialDelaySeconds: 300,
 	}
-	sgLivenessProbe.HTTPGet = &sgRootEndpointCurl
+	httpdLivenessProbe.TCPSocket = &httpdHealthcheck
 
-	sgReadinessProbe := &corev1.Probe{
+	httpdReadinessProbe := &corev1.Probe{
 		TimeoutSeconds:      30,
 		PeriodSeconds:       30,
 		InitialDelaySeconds: 10,
 	}
-	sgReadinessProbe.HTTPGet = &sgRootEndpointCurl
+	httpdReadinessProbe.TCPSocket = &httpdHealthcheck
+
+	//NOTE(jwysogla): Using an exec probe with curl, because sg-core binds to 127.0.0.1 and
+	//                a http probe is executed on the node, thus connecting to the container
+	//                from the outside and it can't reach sg-core.
+	sgCoreHealthcheck := corev1.ExecAction{
+		Command: []string{"curl", "-f", "-s", "-o", "/dev/null", "-w", "%{http_code}", "http://localhost:3001/"},
+	}
+	sgCoreLivenessProbe := &corev1.Probe{
+		TimeoutSeconds:      30,
+		PeriodSeconds:       30,
+		InitialDelaySeconds: 300,
+	}
+	sgCoreLivenessProbe.Exec = &sgCoreHealthcheck
+
+	sgCoreReadinessProbe := &corev1.Probe{
+		TimeoutSeconds:      30,
+		PeriodSeconds:       30,
+		InitialDelaySeconds: 10,
+	}
+	sgCoreReadinessProbe.Exec = &sgCoreHealthcheck
 
 	//NOTE(mmagr): Once we will be sure (OSP19 timeframe) that we have Ceilometer
 	//             running with heartbeat feature, we can make below probes run much
@@ -107,9 +128,6 @@ func StatefulSet(
 		svc.CertMount = ptr.To(fmt.Sprintf("/etc/pki/tls/certs/%s", tls.CertKey))
 		svc.KeyMount = ptr.To(fmt.Sprintf("/etc/pki/tls/private/%s", tls.PrivateKey))
 
-		sgLivenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		sgReadinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-
 		volumes = append(volumes, svc.CreateVolume(ServiceName))
 		httpdVolumeMounts = append(httpdVolumeMounts, svc.CreateVolumeMounts(ServiceName)...)
 	}
@@ -151,6 +169,8 @@ func StatefulSet(
 		Name:            "sg-core",
 		SecurityContext: pod.RestrictiveSecurityContext(users.CeilometerUID, users.CeilometerGID),
 		VolumeMounts:    getSgCoreVolumeMounts(),
+		ReadinessProbe:  sgCoreReadinessProbe,
+		LivenessProbe:   sgCoreLivenessProbe,
 	}
 	proxyContainer := corev1.Container{
 		ImagePullPolicy: corev1.PullIfNotPresent,
@@ -162,8 +182,8 @@ func StatefulSet(
 		}},
 		SecurityContext: pod.RestrictiveSecurityContext(users.CeilometerUID, users.CeilometerGID),
 		VolumeMounts:    httpdVolumeMounts,
-		ReadinessProbe:  sgReadinessProbe,
-		LivenessProbe:   sgLivenessProbe,
+		ReadinessProbe:  httpdReadinessProbe,
+		LivenessProbe:   httpdLivenessProbe,
 		Command:         []string{"/usr/sbin/httpd"},
 		Args:            []string{"-DFOREGROUND"},
 	}
