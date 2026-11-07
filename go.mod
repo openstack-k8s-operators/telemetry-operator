@@ -17,7 +17,7 @@ require (
 	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20261020132816-6109367117f2
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261020132816-6109367117f2
 	github.com/openstack-k8s-operators/lib-common/modules/users v0.0.0-20261020132816-6109367117f2
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20261026075309-b2ba1013d345
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20261104180656-b48dbd3ab33c
 	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20261026075302-181eec8e397e
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-00010101000000-000000000000
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1
