@@ -484,6 +484,43 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		}
 	}
 
+	// Server-Side Apply (SSA) patch Prometheus web.tlsConfig min/maxVersion TLS
+	// when PrometheusTLS is enabled. COO owns cert/key via ForceOwnership, but never
+	// sets these params, so they survive under FieldOwner "telemetry-operator".
+	// Do not set Status.PrometheusTLSPatched - that flag triggers the migration delete path.
+	prometheusWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
+		name := client.ObjectKey{
+			Namespace: o.GetNamespace(),
+			Name:      o.GetName(),
+		}
+		return []reconcile.Request{{NamespacedName: name}}
+	}
+	err = utils.EnsureWatches(
+		ctx, (*utils.ConditionalWatchingReconciler)(r),
+		"prometheuses.monitoring.rhobs",
+		&monv1.Prometheus{},
+		handler.EnqueueRequestsFromMapFunc(prometheusWatchFn),
+		helper,
+	)
+	if err != nil {
+		instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
+			condition.Reason("Can't watch prometheus resource. The Cluster Observability Operator probably isn't installed"),
+			condition.SeverityError,
+			telemetryv1.PrometheusUnableToWatchMessage, err)
+		Log.Info("Can't watch Prometheus resource. The Cluster Observability Operator probably isn't installed")
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	}
+	prometheusTLSMinVersionPatch := metricstorage.PrometheusTLSMinVersion(instance)
+	err = r.Patch(context.Background(), &prometheusTLSMinVersionPatch, client.Apply, client.FieldOwner("telemetry-operator"))
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			Log.Info("Prometheus CR not found yet, requeueing for TLS version patch")
+			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+		}
+		Log.Error(err, "Can't patch Prometheus TLS min/maxVersion")
+		return ctrl.Result{}, err
+	}
+
 	monitoringStackReady := true
 	for _, c := range monitoringStack.Status.Conditions {
 		if c.Status != "True" {
@@ -701,29 +738,6 @@ func (r *MetricStorageReconciler) reconcileNormal(
 
 	// Set NAD annotation to the Prometheus pod
 	if len(instance.Spec.NetworkAttachments) != 0 {
-		// Patch Prometheus to add the NAD annotation
-		prometheusWatchFn := func(_ context.Context, o client.Object) []reconcile.Request {
-			name := client.ObjectKey{
-				Namespace: o.GetNamespace(),
-				Name:      o.GetName(),
-			}
-			return []reconcile.Request{{NamespacedName: name}}
-		}
-		err = utils.EnsureWatches(
-			ctx, (*utils.ConditionalWatchingReconciler)(r),
-			"prometheuses.monitoring.rhobs",
-			&monv1.Prometheus{},
-			handler.EnqueueRequestsFromMapFunc(prometheusWatchFn),
-			helper,
-		)
-		if err != nil {
-			instance.Status.Conditions.MarkFalse(telemetryv1.PrometheusReadyCondition,
-				condition.Reason("Can't watch prometheus resource. The Cluster Observability Operator probably isn't installed"),
-				condition.SeverityError,
-				telemetryv1.PrometheusUnableToWatchMessage, err)
-			Log.Info("Can't watch Prometheus resource. The Cluster Observability Operator probably isn't installed")
-			return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
-		}
 		prometheusNADPatch := metricstorage.PrometheusNAD(instance, networkAnnotations)
 		err = r.Patch(context.Background(), &prometheusNADPatch, client.Merge, client.FieldOwner("telemetry-operator"))
 		if err != nil {
@@ -943,22 +957,17 @@ func (r *MetricStorageReconciler) createScrapeConfigs(
 
 	if !k8s_errors.IsNotFound(err) && len(ceilometerInstance.Status.MysqldExporterExportedGaleras) > 0 {
 		exportedGaleras := ceilometerInstance.Status.MysqldExporterExportedGaleras
-		mysqldExporterTargets := []string{}
-		for _, galera := range exportedGaleras {
-			// NOTE: the galera port is hardcoded in the mariadb-operator without
-			// any declared constant we could use here
-			galeraServiceURL := fmt.Sprintf("%s.%s.svc", galera, instance.Namespace)
-			mysqldExporterTargets = append(
-				mysqldExporterTargets,
-				net.JoinHostPort(galeraServiceURL, "3306"),
-			)
-		}
-		desiredScrapeConfig = metricstorage.ScrapeConfigMysqldExporter(
+		desiredScrapeConfig, err = metricstorage.ScrapeConfigMysqldExporter(
+			ctx,
 			instance,
 			serviceLabels,
-			mysqldExporterTargets,
+			helper,
+			exportedGaleras,
 			ceilometerInstance.Spec.MysqldExporterTLS.Enabled(),
 		)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		err = r.createServiceScrapeConfig(ctx, instance, Log, "mysqld_exporter", mysqldExporterCfgName, desiredScrapeConfig)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -1932,7 +1941,8 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				// Don't call the WatchFn on unrelated Endpointslices changes
 				predicate.NewPredicateFuncs(func(o client.Object) bool {
 					labels := o.GetLabels()
-					return labels["app.kubernetes.io/component"] == "rabbitmq"
+					return labels["app.kubernetes.io/component"] == "rabbitmq" ||
+						strings.HasSuffix(labels["kubernetes.io/service-name"], "-galera")
 				}),
 			),
 		).

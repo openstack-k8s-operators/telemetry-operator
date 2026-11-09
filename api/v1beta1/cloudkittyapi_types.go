@@ -78,6 +78,11 @@ type CloudKittyAPISpec struct {
 	// +kubebuilder:validation:Optional
 	// ServiceAccount - service account name used internally to provide CloudKitty services the default SA name
 	ServiceAccount string `json:"serviceAccount"`
+
+	// Memcached instance name.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=memcached
+	MemcachedInstance string `json:"memcachedInstance"`
 }
 
 // CloudKittyAPIStatus defines the observed state of CloudKittyAPI

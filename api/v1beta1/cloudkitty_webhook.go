@@ -77,6 +77,37 @@ func (spec *CloudKittySpecCore) Default() {
 	spec.CloudKittySpecBase.Default()
 }
 
+// SetDefaultRouteAnnotations sets HAProxy timeout values of the route
+// NOTE: it is used by ctlplane webhook on openstack-operator
+func (spec *CloudKittySpecCore) SetDefaultRouteAnnotations(annotations map[string]string) {
+	const haProxyAnno = "haproxy.router.openshift.io/timeout"
+	// Use a custom annotation to flag when the operator has set the default HAProxy timeout
+	// With the annotation func determines when to overwrite existing HAProxy timeout with the APITimeout
+	const cloudKittyAnno = "api.cloudkitty.openstack.org/timeout"
+
+	if spec.APITimeout <= 0 {
+		return
+	}
+
+	valCloudKitty, okCloudKitty := annotations[cloudKittyAnno]
+	valHAProxy, okHAProxy := annotations[haProxyAnno]
+
+	// Human operator set the HAProxy timeout manually
+	if !okCloudKitty && okHAProxy {
+		return
+	}
+
+	// Human operator modified the HAProxy timeout manually without removing the CloudKitty flag
+	if okCloudKitty && okHAProxy && valCloudKitty != valHAProxy {
+		delete(annotations, cloudKittyAnno)
+		return
+	}
+
+	timeout := fmt.Sprintf("%ds", spec.APITimeout)
+	annotations[cloudKittyAnno] = timeout
+	annotations[haProxyAnno] = timeout
+}
+
 // Default - set defaults for this CloudKittySpecBase
 func (spec *CloudKittySpecBase) Default() {
 	// Default MessagingBus.Cluster if not set

@@ -31,7 +31,8 @@ const (
 	tlsConfPath         = "/etc/ksm"
 	tlsConfKey          = "tls_config.yaml"
 	tlsBaseConfTemplate = `---
-tls_server_config:`
+tls_server_config:
+  min_version: TLS13`
 	tlsClntConfTemplate = `
   cert_file: %s
   key_file: %s`

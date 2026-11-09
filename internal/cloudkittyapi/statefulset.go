@@ -18,6 +18,7 @@ package cloudkittyapi
 import (
 	"fmt"
 
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/pod"
@@ -41,6 +42,7 @@ func StatefulSet(
 	labels map[string]string,
 	annotations map[string]string,
 	topology *topologyv1.Topology,
+	memcached *memcachedv1.Memcached,
 	customConfigKeys []string,
 ) (*appsv1.StatefulSet, error) {
 
@@ -78,6 +80,12 @@ func StatefulSet(
 	if instance.Spec.TLS.CaBundleSecretName != "" {
 		volumes = append(volumes, instance.Spec.TLS.CreateVolume())
 		volumeMounts = append(volumeMounts, instance.Spec.TLS.CreateVolumeMounts(nil)...)
+	}
+
+	// add MTLS cert if defined
+	if memcached.GetMemcachedMTLSSecret() != "" {
+		volumes = append(volumes, memcached.CreateMTLSVolume())
+		volumeMounts = append(volumeMounts, memcached.CreateMTLSVolumeMounts(nil, nil)...)
 	}
 
 	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {

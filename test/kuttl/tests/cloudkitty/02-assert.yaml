@@ -77,7 +77,6 @@ spec:
     - telemetry-kuttl-cloudkitty
   usages:
   - digital signature
-  - key encipherment
   - client auth
 status:
   conditions:

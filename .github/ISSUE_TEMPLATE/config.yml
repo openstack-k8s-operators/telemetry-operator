@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: File a Bug in Jira (external)
+    url: "https://redhat.atlassian.net/secure/CreateIssueDetails!init.jspa?pid=10730&issuetype=10016&components=37286&customfield_10840=19919&customfield_10001=ec74d716-af36-4b3c-950f-f79213d08f71-959"
+    about: Please use our Jira tracker to report bugs instead of creating an issue in GitHub.
+  - name: File a Feature Request in Jira (external)
+    url: "https://redhat.atlassian.net/secure/CreateIssueDetails!init.jspa?pid=10997&issuetype=10111&components=48371&customfield_10001=d3aeefc7-d7e6-4925-9e79-68d3b90b304d"
+    about: Please use our Jira tracker to file feature requests instead of creating an issue in GitHub.

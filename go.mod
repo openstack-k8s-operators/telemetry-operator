@@ -10,15 +10,15 @@ require (
 	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/gomega v1.44.0
-	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261003072716-ad2fc7d0da63
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261010070414-599df4ecd6b0
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20261005220300-5f2434f1d2cb
-	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20261009105430-6790c2298bb5
-	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20261009105430-6790c2298bb5
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261009105430-6790c2298bb5
-	github.com/openstack-k8s-operators/lib-common/modules/users v0.0.0-20261009105430-6790c2298bb5
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20260927135032-f0eb46b149d8
-	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20261003111325-949d7b834383
+	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261106060700-a313bd459528
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261103163710-492c1c9c64d0
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20261106113705-926c49438ebe
+	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20261102122626-a5970f05c6a9
+	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20261102122626-a5970f05c6a9
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261102122626-a5970f05c6a9
+	github.com/openstack-k8s-operators/lib-common/modules/users v0.0.0-20261102122626-a5970f05c6a9
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20261102202215-9d29efc4f568
+	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20261106172121-a50d954bb1f6
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-00010101000000-000000000000
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1
 	github.com/rhobs/observability-operator v1.0.0
@@ -63,8 +63,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20261001122809-0e19abbc9e47 // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20261001122809-0e19abbc9e47 // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20261029132259-9d025389145b // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20261029132259-9d025389145b // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
@@ -87,12 +87,12 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
-	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/term v0.46.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/term v0.47.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260803160001-6ac0973c030d // indirect
