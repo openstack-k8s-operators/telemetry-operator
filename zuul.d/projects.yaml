@@ -208,20 +208,40 @@
     irrelevant-files: *irrelevant_files
 
 - job:
+    name: telemetry-s2i-content-provider
+    parent: s2i-openstack-container-content-provider
+    description: |
+      Build the s2i watcher and telemetry service images consumed by
+      telemetry-operator-multinode-watcher.
+    required-projects:
+      - name: openstack-k8s-operators/s2i-openstack-containers
+        override-checkout: main
+    vars:
+      s2i_ci_images:
+        - watcher/watcher-base
+        - aodh/aodh-api
+        - ceilometer/ceilometer-central
+        - ceilometer/ceilometer-compute
+
+- job:
     name: telemetry-operator-multinode-watcher
-    parent: podified-multinode-edpm-deployment-crc-2comp
-    nodeset: centos-9-medium-2x-centos-9-crc-cloud-ocp-4-20-1-3xl
+    parent: podified-multinode-edpm-deployment-crc-2comp-centos-10
+    nodeset: centos-10-medium-2x-centos-10-crc-cloud-ocp-4-22-1-3xl
     timeout: 14400
     dependencies:
       - openstack-k8s-operators-content-provider
+      - telemetry-s2i-content-provider
     description: |
       Deploy OpenStack with telemetry and watcher (optimize) enabled, then run
       watcher and telemetry tempest tests. Uses real_load scenarios with
-      optimize.real_workload_period 600. Mirrors the downstream integration-line
-      periodic-podified-multinode-edpm-deployment-rhel9-rhoso18-crc-watcher-real-data
-      job using only upstream-reachable components.
+      optimize.real_workload_period 600. Watcher and telemetry service images
+      are built by the s2i content provider and applied to the OpenStackVersion
+      during edpm_prepare; operator images come from the operators content
+      provider, mirroring watcher-operator-validation-master.
     required-projects:
       - name: openstack-k8s-operators/watcher-operator
+        override-checkout: main
+      - name: openstack-k8s-operators/s2i-openstack-containers
         override-checkout: main
       - name: infrawatch/feature-verification-tests
         override-checkout: master
@@ -236,8 +256,22 @@
         - podman_exporter
         - rabbitmq
         - openstack_network_exporter
+      # The s2i content provider deliberately exposes its images only through
+      # s2i_content_provider_* variables (its os_registry_url is the string
+      # "null" to avoid clashing with the operators content provider), so inject
+      # them into the OpenStackVersion with cifmw_set_containers_images.
+      cifmw_crc_additional_insecure_registries: "{{ [s2i_content_provider_registry_ip ~ ':5001'] if s2i_content_provider_registry_ip is defined else [] }}"
+      cifmw_crc_additional_allowed_registries: "{{ [s2i_content_provider_registry_ip ~ ':5001'] if s2i_content_provider_registry_ip is defined else [] }}"
+      cifmw_set_containers_preserve_unlisted: true
+      cifmw_set_containers_images: >-
+        {{ (s2i_content_provider_os_custom_container_images |
+           dict2items |
+           json_query('[].{name: key, full_registry: value}'))
+           if s2i_content_provider_os_custom_container_images is defined else [] }}
+      cifmw_update_containers_openstack: false
       cifmw_extras:
-        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-10/base.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-10/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/watcher-operator'].src_dir }}/ci/scenarios/edpm.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-autoscaling.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-logging.yml"
