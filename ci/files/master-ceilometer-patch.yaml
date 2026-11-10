@@ -1,4 +1,0 @@
-spec:
-  customContainerImages:
-    ceilometerCentralImage: quay.io/podified-master-centos9/openstack-ceilometer-central:current-podified
-    ceilometerComputeImage: quay.io/podified-master-centos9/openstack-ceilometer-compute:current-podified
