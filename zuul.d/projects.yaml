@@ -250,6 +250,19 @@
             dependencies:
               - openstack-k8s-operators-content-provider
               - s2i-openstack-container-content-provider
+        - functional-audit-logging-tests-osp19:
+            required-projects:
+              - name: infrawatch/feature-verification-tests
+                override-checkout: master
+            files:
+              - ^ci/enable-audit-logging
+              - ^ci/enable-audit-logging.yml
+              - ^ci/vars-audit-logging.yml
+              - ^ci/vars-autoscaling-tempest.yml
+              - ^ci/vars-logging.yml
+            dependencies:
+              - openstack-k8s-operators-content-provider
+              - s2i-openstack-container-content-provider
         - telemetry-operator-multinode-cloudkitty-rhoso-19:
             voting: true
             dependencies:
@@ -270,6 +283,23 @@
               - ^containers/ceilometer
                 # autoscaling requires heat
               - ^containers/heat
+            dependencies:
+              - s2i-openstack-container-content-provider
+              - s2i-openstack-container-consumer-smoke
+        - functional-audit-logging-tests-osp19:
+            required-projects:
+              - name: infrawatch/feature-verification-tests
+                override-checkout: master
+            vars:
+              content_provider_registry_ip: "{{ s2i_content_provider_registry_ip }}"
+            files:
+              - ^containers/base
+              - ^containers/barbican
+              - ^containers/cinder
+              - ^containers/glance
+              - ^containers/keystone
+              - ^containers/neutron
+              - ^containers/nova
             dependencies:
               - s2i-openstack-container-content-provider
               - s2i-openstack-container-consumer-smoke
@@ -296,7 +326,6 @@
         # it is required as feature-verification-tests have hard dependencies,
         # where it require to have that job to be executed.
         - telemetry-openstack-meta-content-provider-master
-        - functional-audit-logging-tests-osp18
           # have a noop job so that something always runs, and
           # zuul always give a verification
         - noop:
