@@ -10,3 +10,7 @@ sources:
         - memory.usage
         - disk.*
         - network.*
+{{- if .GPUEnabled }}
+        - gpu.*
+        - vgpu.*
+{{- end }}

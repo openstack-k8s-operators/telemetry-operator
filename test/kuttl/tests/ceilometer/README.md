@@ -21,6 +21,8 @@ The ceilometer test steps cover:
 - Custom configuration mounting
 - Application credential authentication
 - Application credential rotation
+- Conditional central polling based on available service endpoints
+- GPU/vGPU meters added to the compute polling config when gpuEnabled: true
 
 ### Prerequisites
 

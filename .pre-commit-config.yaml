@@ -47,7 +47,7 @@ repos:
     - id: destroyed-symlinks
     - id: check-yaml
       args: [-m]
-      exclude: ^templates/autoscaling/config/prometheus.yaml
+      exclude: ^templates/(autoscaling/config/prometheus|ceilometercompute/config/polling)\.yaml$
     - id: check-json
     - id: detect-private-key
     - id: end-of-file-fixer

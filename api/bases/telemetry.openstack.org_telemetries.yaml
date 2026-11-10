@@ -545,6 +545,12 @@ spec:
                     description: Enabled - Whether OpenStack Ceilometer service should
                       be deployed and managed
                     type: boolean
+                  gpuEnabled:
+                    default: false
+                    description: |-
+                      Whether GPU and vGPU metrics (gpu.* and vgpu.* meters collected via
+                      NVIDIA NVML) should be polled by the ceilometer compute agent
+                    type: boolean
                   ipmiImage:
                     type: string
                   ksmEnabled:

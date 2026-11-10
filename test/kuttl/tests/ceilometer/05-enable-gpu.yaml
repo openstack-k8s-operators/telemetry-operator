@@ -1,0 +1,10 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |
+      oc get secret ceilometer-compute-config-data -n $NAMESPACE -o jsonpath='{.data.polling\.yaml}' | base64 -d > /tmp/gpu-polling-before.yaml
+      if grep -q 'gpu' /tmp/gpu-polling-before.yaml; then
+        echo "gpu meters present in compute polling.yaml while gpuEnabled is false"
+        exit 1
+      fi
+      oc patch ceilometer telemetry-kuttl -n $NAMESPACE --type=merge -p '{"spec":{"gpuEnabled":true}}'
