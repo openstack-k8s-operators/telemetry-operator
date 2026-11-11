@@ -230,7 +230,8 @@
     timeout: 14400
     dependencies:
       - openstack-k8s-operators-content-provider
-      - telemetry-s2i-content-provider
+      - name: telemetry-s2i-content-provider
+        soft: true
     description: |
       Deploy OpenStack with telemetry and watcher (optimize) enabled, then run
       watcher and telemetry tempest tests. Uses real_load scenarios with
@@ -367,6 +368,7 @@
         - openstack-k8s-operators-content-provider:
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
+        - telemetry-s2i-content-provider
         - telemetry-operator-multinode-default-telemetry
         # it is required as feature-verification-tests have hard dependencies,
         # where it require to have that job to be executed.
