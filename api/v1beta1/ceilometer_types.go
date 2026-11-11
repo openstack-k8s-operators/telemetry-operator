@@ -129,6 +129,13 @@ type CeilometerSpecCore struct {
 	// +kubebuilder:validation:optional
 	MysqldExporterEnabled *bool `json:"mysqldExporterEnabled,omitempty"`
 
+	// Whether GPU and vGPU metrics (gpu.* and vgpu.* meters collected via
+	// NVIDIA NVML) should be polled by the ceilometer compute agent
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	GPUEnabled *bool `json:"gpuEnabled,omitempty"`
+
 	// MysqldExporterDatabaseAccountPrefix - Database account prefix for the mysqld-exporter.
 	// A mariadbaccount CR named "<mysqldExporterDatabaseAccountPrefix>-<galera CR name>" for each
 	// galera instance needs to be either created by the user or if it's missing, it'll be

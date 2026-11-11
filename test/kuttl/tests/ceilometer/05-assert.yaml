@@ -1,0 +1,8 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 300
+commands:
+- script: >
+    oc get secret ceilometer-compute-config-data -n $NAMESPACE -o jsonpath='{.data.polling\.yaml}' | base64 -d | grep -- '- gpu\.\*'
+- script: >
+    oc get secret ceilometer-compute-config-data -n $NAMESPACE -o jsonpath='{.data.polling\.yaml}' | base64 -d | grep -- '- vgpu\.\*'

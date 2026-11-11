@@ -1633,6 +1633,7 @@ func (r *CeilometerReconciler) generateComputeServiceConfig(
 		"ceilometer_ipmi_image":    instance.Spec.IpmiImage,
 		"TLS":                      false,
 		"Region":                   keystoneAPI.GetRegion(),
+		"GPUEnabled":               instance.Spec.GPUEnabled != nil && *instance.Spec.GPUEnabled,
 	}
 
 	// Try to get Application Credential from the secret specified in the CR

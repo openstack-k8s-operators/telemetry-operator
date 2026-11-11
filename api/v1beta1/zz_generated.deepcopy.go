@@ -536,6 +536,11 @@ func (in *CeilometerSpecCore) DeepCopyInto(out *CeilometerSpecCore) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.GPUEnabled != nil {
+		in, out := &in.GPUEnabled, &out.GPUEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	in.TLS.DeepCopyInto(&out.TLS)
 	in.KSMTLS.DeepCopyInto(&out.KSMTLS)
 	in.MysqldExporterTLS.DeepCopyInto(&out.MysqldExporterTLS)
