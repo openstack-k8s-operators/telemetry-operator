@@ -68,6 +68,10 @@ type TelemetrySpec struct {
 	TelemetrySpecBase `json:",inline"`
 
 	// +kubebuilder:validation:Optional
+	// MetricStorage - Parameters related to the metricStorage
+	MetricStorage MetricStorageSection `json:"metricStorage,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// Autoscaling - Parameters related to the autoscaling service
 	Autoscaling AutoscalingSection `json:"autoscaling,omitempty"`
 
@@ -85,6 +89,10 @@ type TelemetrySpecCore struct {
 	TelemetrySpecBase `json:",inline"`
 
 	// +kubebuilder:validation:Optional
+	// MetricStorage - Parameters related to the metricStorage
+	MetricStorage MetricStorageSectionCore `json:"metricStorage,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// Autoscaling - Parameters related to the autoscaling service
 	Autoscaling AutoscalingSectionCore `json:"autoscaling,omitempty"`
 
@@ -99,19 +107,6 @@ type TelemetrySpecCore struct {
 
 // TelemetrySpecBase -
 type TelemetrySpecBase struct {
-	// TODO(jwysogla): MetricStorage is in TelemetrySpecBase (shared by
-	// TelemetrySpec and TelemetrySpecCore) for backward compatibility with
-	// the openstack-operator's Section-level DeepCopyInto. Once the
-	// openstack-operator switches to part-wise copy (Base + AetosCore),
-	// move MetricStorage into TelemetrySpec as MetricStorageSection (with
-	// MetricStorageSpec, including Aetos image) and into TelemetrySpecCore
-	// as MetricStorageSectionCore (with MetricStorageSpecCore, no image),
-	// matching the Autoscaling/Ceilometer/CloudKitty pattern.
-	//
-	// +kubebuilder:validation:Optional
-	// MetricStorage - Parameters related to the metricStorage
-	MetricStorage MetricStorageSection `json:"metricStorage,omitempty"`
-
 	// +kubebuilder:validation:Optional
 	// Logging - Parameters related to the logging
 	Logging LoggingSection `json:"logging,omitempty"`
@@ -182,14 +177,23 @@ type AutoscalingSectionCore struct {
 	AutoscalingSpecCore `json:",inline"`
 }
 
-// MetricStorageSection defines the desired state of the MetricStorage.
-// TODO(jwysogla): Currently embeds MetricStorageSpecCore (no Aetos image) so
-// that the type can be shared in TelemetrySpecBase without leaking the image
-// into the OpenStackControlPlane CRD. In the follow-up, this type should embed
-// MetricStorageSpec (with image) and live only in TelemetrySpec; a new
-// MetricStorageSectionCore (embedding MetricStorageSpecCore) should be added
-// for TelemetrySpecCore.
+// MetricStorageSection defines the desired state of the MetricStorage
 type MetricStorageSection struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	// Enabled - Whether a MetricStorage should be deployed and managed
+	Enabled *bool `json:"enabled"`
+
+	// +kubebuilder:validation:Optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec
+	// Template - Overrides to use when creating the MetricStorage
+	MetricStorageSpec `json:",inline"`
+}
+
+// MetricStorageSectionCore defines the desired state of the MetricStorage.
+// This version is used by the OpenStackControlplane (no image parameters).
+type MetricStorageSectionCore struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
