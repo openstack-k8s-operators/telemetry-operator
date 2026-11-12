@@ -1,0 +1,63 @@
+---
+# Watcher + telemetry integration tempest configuration
+# Ported from ci-framework-jobs/scenarios/podified/edpm_watcher_real_data_telemetry_integration.yaml
+# This overlay is loaded last in cifmw_extras so it wins over earlier vars files.
+
+# watcher-operator/ci/scenarios/edpm.yml installs cluster-observability-operator from
+# a pre_deploy_create_coo_subscription hook, pinned to v1.3.1 with manual approval.
+# ci/vars-autoscaling.yml sets cifmw_deploy_obs: true, which installs the same package
+# (Subscription "observability-operator") through OLM. Two Subscriptions for one
+# package in openshift-operators make OLM report ConstraintsNotSatisfiable, so no
+# InstallPlan is ever created for v1.3.1 and the watcher hook times out. Keep
+# ci-framework's COO install and replace the watcher hook with a no-op playbook.
+pre_deploy_create_coo_subscription:
+  - name: Skip COO subscription (installed by cifmw_deploy_obs)
+    type: playbook
+    source: noop.yml
+
+cifmw_test_operator_tempest_concurrency: 1
+
+cifmw_test_operator_tempest_tempestconf_config:
+  overrides: |
+    compute.min_microversion 2.56
+    compute.min_compute_nodes 2
+    placement.min_microversion 1.29
+    compute-feature-enabled.live_migration true
+    compute-feature-enabled.block_migration_for_live_migration true
+    service_available.ceilometer true
+    service_available.sg_core true
+    service_available.aodh true
+    telemetry_services.metric_backends prometheus
+    telemetry.disable_ssl_certificate_validation true
+    telemetry.ceilometer_polling_interval 120
+    telemetry.prometheus_scrape_interval 30
+    telemetry.alarm_threshold 50000000000
+    telemetry.prometheus_service_url "https://metric-storage-prometheus.openstack.svc.cluster.local:9090"
+    telemetry.sg_core_service_url "https://ceilometer-internal.openstack.svc.cluster.local:3000"
+    optimize.datasource ''
+    optimize.real_workload_period 600
+    optimize.min_microversion {{ watcher_tempest_min_microversion | default('1.0') }}
+    optimize.max_microversion {{ watcher_tempest_max_microversion | default('1.4') }}
+
+cifmw_test_operator_tempest_include_list: |
+  watcher_tempest_plugin.tests.api.*
+  watcher_tempest_plugin.*\[.*\breal_load\b.*\].*
+  tempest.api.telemetry.*
+  telemetry_tempest_plugin.*
+
+# We need to override the exclude_list from feature-verification-tests/ci/vars-functional-test.yml
+cifmw_test_operator_tempest_exclude_list: ""
+
+# Use the telemetry-operator defaults (all default exporters) in real-data jobs
+cifmw_edpm_telemetry_enabled_exporters: []
+
+cifmw_test_operator_tempest_registry: quay.io
+cifmw_test_operator_tempest_namespace: openstack-s2i-containers
+cifmw_test_operator_tempest_image_tag: master-latest
+cifmw_test_operator_tempest_container: openstack-tempest
+
+
+
+# The tempest image (quay.io/openstack-s2i-containers/openstack-tempest) and
+# the s2i service images are configured in the job definition
+# (zuul.d/projects.yaml), matching watcher-operator-validation-master.
