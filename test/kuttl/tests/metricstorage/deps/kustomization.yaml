@@ -22,6 +22,7 @@ secretGenerator:
   - AodhDatabasePassword=password
   - CeilometerPassword=password
   - CeilometerDatabasePassword=password
+  - AetosPassword=password
   - HeatPassword=password
   - HeatDatabasePassword=password
   - HeatAuthEncryptionKey=66699966699966600666999666999666
