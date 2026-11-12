@@ -1547,16 +1547,7 @@ spec:
                 - rsyslogQueueType
                 type: object
               metricStorage:
-                description: |-
-                  TelemetrySpec and TelemetrySpecCore) for backward compatibility with
-                  the openstack-operator's Section-level DeepCopyInto. Once the
-                  openstack-operator switches to part-wise copy (Base + AetosCore),
-                  move MetricStorage into TelemetrySpec as MetricStorageSection (with
-                  MetricStorageSpec, including Aetos image) and into TelemetrySpecCore
-                  as MetricStorageSectionCore (with MetricStorageSpecCore, no image),
-                  matching the Autoscaling/Ceilometer/CloudKitty pattern.
-
-                  MetricStorage - Parameters related to the metricStorage
+                description: MetricStorage - Parameters related to the metricStorage
                 properties:
                   aetos:
                     default:
@@ -1580,6 +1571,8 @@ spec:
                               for application credential
                             type: string
                         type: object
+                      image:
+                        type: string
                       override:
                         description: Override, provides the ability to override the
                           generated manifest of several child resources.

@@ -441,12 +441,7 @@ func (r TelemetryReconciler) reconcileMetricStorage(ctx context.Context, instanc
 
 	helper.GetLogger().Info("Reconciling MetricStorage", metricStorageNamespaceLabel, instance.Namespace, metricStorageNameLabel, telemetryv1.DefaultServiceName)
 	op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), metricStorageInstance, func() error {
-		// TODO(jwysogla): Part-wise copy because MetricStorageSection embeds
-		// MetricStorageSpecCore (no image). Once MetricStorageSection embeds
-		// MetricStorageSpec, replace with a single DeepCopyInto:
-		//   instance.Spec.MetricStorage.MetricStorageSpec.DeepCopyInto(&metricStorageInstance.Spec)
-		instance.Spec.MetricStorage.MetricStorageSpecBase.DeepCopyInto(&metricStorageInstance.Spec.MetricStorageSpecBase)
-		instance.Spec.MetricStorage.Aetos.DeepCopyInto(&metricStorageInstance.Spec.Aetos.AetosCore)
+		instance.Spec.MetricStorage.MetricStorageSpec.DeepCopyInto(&metricStorageInstance.Spec)
 
 		err := controllerutil.SetControllerReference(helper.GetBeforeObject(), metricStorageInstance, helper.GetScheme())
 		if err != nil {
