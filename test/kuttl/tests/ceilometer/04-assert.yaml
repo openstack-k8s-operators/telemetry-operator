@@ -8,3 +8,5 @@ commands:
     oc get secret ceilometer-config-data -n $NAMESPACE -o jsonpath='{.data.polling\.yaml\.j2}' | base64 -d | grep 'dns\.\*'
 - script: >
     oc get secret ceilometer-config-data -n $NAMESPACE -o jsonpath='{.data.polling\.yaml\.j2}' | base64 -d | grep 'loadbalancer\.\*'
+- script: >
+    oc get secret ceilometer-config-data -n $NAMESPACE -o jsonpath='{.data.polling\.yaml\.j2}' | base64 -d | grep 'network\.\*'
