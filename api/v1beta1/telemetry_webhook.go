@@ -96,10 +96,9 @@ func (spec *TelemetrySpec) Default() {
 	if spec.Ceilometer.CeilometerSpec.MysqldExporterImage == "" {
 		spec.Ceilometer.CeilometerSpec.MysqldExporterImage = telemetryDefaults.MysqldExporterContainerImageURL
 	}
-	// TODO(jwysogla): Aetos image defaulting is handled by MetricStorageSpec.Default()
-	// on the standalone MetricStorage CR. Once MetricStorageSection is upgraded to
-	// embed MetricStorageSpec (with image), move the defaulting here to match the
-	// Autoscaling/Ceilometer/CloudKitty pattern.
+	if spec.MetricStorage.MetricStorageSpec.Aetos.Image == "" {
+		spec.MetricStorage.MetricStorageSpec.Aetos.Image = telemetryDefaults.AetosContainerImageURL
+	}
 	if spec.Autoscaling.AutoscalingSpec.Aodh.APIImage == "" {
 		spec.Autoscaling.AutoscalingSpec.Aodh.APIImage = telemetryDefaults.AodhAPIContainerImageURL
 	}
@@ -124,7 +123,7 @@ func (spec *TelemetrySpec) Default() {
 	spec.Autoscaling.Aodh.Default()
 	spec.Ceilometer.CeilometerSpec.Default()
 	spec.CloudKitty.CloudKittySpec.Default()
-	spec.MetricStorage.Default()
+	spec.MetricStorage.MetricStorageSpec.Default()
 }
 
 // Default - set defaults for this Telemetry spec core
@@ -167,7 +166,7 @@ func (r TelemetrySpec) ValidateCreate(basePath *field.Path, namespace string) ([
 		allErrs = append(allErrs, errs...)
 	}
 	if r.MetricStorage.Enabled != nil && *r.MetricStorage.Enabled {
-		allErrs = append(allErrs, r.MetricStorage.Aetos.ValidateCreate(basePath.Child("metricStorage").Child("aetos"))...)
+		allErrs = append(allErrs, r.MetricStorage.MetricStorageSpec.Aetos.AetosCore.ValidateCreate(basePath.Child("metricStorage").Child("aetos"))...)
 	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)
@@ -234,7 +233,7 @@ func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, n
 		allErrs = append(allErrs, errs...)
 	}
 	if r.MetricStorage.Enabled != nil && *r.MetricStorage.Enabled {
-		allErrs = append(allErrs, r.MetricStorage.Aetos.ValidateCreate(basePath.Child("metricStorage").Child("aetos"))...)
+		allErrs = append(allErrs, r.MetricStorage.MetricStorageSpec.Aetos.AetosCore.ValidateCreate(basePath.Child("metricStorage").Child("aetos"))...)
 	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpec.ValidateUpdate(old.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)
