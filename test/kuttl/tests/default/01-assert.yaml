@@ -222,7 +222,7 @@ metadata:
     name: autoscaling
 spec:
   ports:
-  - name: aodh-internal
+  - name: internal
     port: 8042
     protocol: TCP
     targetPort: 8042
@@ -239,7 +239,7 @@ metadata:
     name: autoscaling
 spec:
   ports:
-  - name: aodh-public
+  - name: public
     port: 8042
     protocol: TCP
     targetPort: 8042

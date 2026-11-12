@@ -23,6 +23,8 @@ import (
 	"fmt"
 
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
+	common_webhook "github.com/openstack-k8s-operators/lib-common/modules/common/webhook"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -152,6 +154,11 @@ func (r TelemetrySpec) ValidateCreate(basePath *field.Path, namespace string) ([
 	var allWarns []string
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
+	if r.Autoscaling.Enabled != nil && *r.Autoscaling.Enabled {
+		warns, errs := r.Autoscaling.AutoscalingSpec.Aodh.AodhCore.ValidateCreate(basePath.Child("autoscaling").Child("aodh"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
+	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpec.ValidateCreate(basePath.Child("cloudkitty"), namespace)
 		allWarns = append(allWarns, warns...)
@@ -165,6 +172,11 @@ func (r TelemetrySpecCore) ValidateCreate(basePath *field.Path, namespace string
 	var allWarns []string
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
+	if r.Autoscaling.Enabled != nil && *r.Autoscaling.Enabled {
+		warns, errs := r.Autoscaling.AutoscalingSpecCore.Aodh.ValidateCreate(basePath.Child("autoscaling").Child("aodh"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
+	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpecCore.ValidateCreate(basePath.Child("cloudkitty"), namespace)
 		allWarns = append(allWarns, warns...)
@@ -203,6 +215,11 @@ func (r TelemetrySpec) ValidateUpdate(old TelemetrySpec, basePath *field.Path, n
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
 
+	if r.Autoscaling.Enabled != nil && *r.Autoscaling.Enabled {
+		warns, errs := r.Autoscaling.AutoscalingSpec.Aodh.AodhCore.ValidateUpdate(old.Autoscaling.AutoscalingSpec.Aodh.AodhCore, basePath.Child("autoscaling").Child("aodh"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
+	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpec.ValidateUpdate(old.CloudKitty.CloudKittySpec, basePath.Child("cloudkitty"), namespace)
 		allWarns = append(allWarns, warns...)
@@ -216,6 +233,11 @@ func (r TelemetrySpecCore) ValidateUpdate(old TelemetrySpecCore, basePath *field
 	var allWarns []string
 
 	allErrs = append(allErrs, r.ValidateTelemetryTopology(basePath, namespace)...)
+	if r.Autoscaling.Enabled != nil && *r.Autoscaling.Enabled {
+		warns, errs := r.Autoscaling.AutoscalingSpecCore.Aodh.ValidateUpdate(old.Autoscaling.AutoscalingSpecCore.Aodh, basePath.Child("autoscaling").Child("aodh"), namespace)
+		allWarns = append(allWarns, warns...)
+		allErrs = append(allErrs, errs...)
+	}
 	if r.CloudKitty.Enabled != nil && *r.CloudKitty.Enabled {
 		warns, errs := r.CloudKitty.CloudKittySpecCore.ValidateUpdate(old.CloudKitty.CloudKittySpecCore, basePath.Child("cloudkitty"), namespace)
 		allWarns = append(allWarns, warns...)
@@ -284,4 +306,12 @@ func (spec *TelemetrySpec) ValidateTelemetryTopology(basePath *field.Path, names
 	// TODO: investigate whether a topology validation is needed for CloudKitty or MetricStorage
 
 	return allErrs
+}
+
+// validateServicePortNames rejects a service port override (public or
+// internal) whose name is not the bare endpoint name. See
+// webhook.ValidatePortNameOverrides for why this matters; it also checks the
+// endpointURL host and port.
+func validateServicePortNames(basePath *field.Path, overrides map[service.Endpoint]service.RoutedOverrideSpec) field.ErrorList {
+	return common_webhook.ValidatePortNameOverrides(basePath, overrides, common_webhook.DefaultServicePortNames())
 }

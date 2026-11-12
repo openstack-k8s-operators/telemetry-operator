@@ -232,6 +232,7 @@ func (spec *AodhCore) ValidateCreate(basePath *field.Path, namespace string) ([]
 	allErrs = append(allErrs, errs...)
 
 	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+	allErrs = append(allErrs, validateServicePortNames(basePath.Child("override").Child("service"), spec.Override.Service)...)
 
 	return allWarns, allErrs
 }
@@ -248,6 +249,7 @@ func (spec *AodhCore) ValidateUpdate(old AodhCore, basePath *field.Path, namespa
 	allErrs = append(allErrs, errs...)
 
 	allErrs = append(allErrs, spec.ValidateTopology(basePath, namespace)...)
+	allErrs = append(allErrs, validateServicePortNames(basePath.Child("override").Child("service"), spec.Override.Service)...)
 
 	return allWarns, allErrs
 }
