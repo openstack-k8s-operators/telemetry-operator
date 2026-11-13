@@ -58,10 +58,10 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/operator"
 	mariadbv1beta1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
 	ovnv1 "github.com/openstack-k8s-operators/ovn-operator/api/v1beta1"
+	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
-	obsuiv1 "github.com/rhobs/observability-operator/pkg/apis/uiplugin/v1alpha1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
@@ -78,7 +78,6 @@ func init() {
 	utilruntime.Must(rabbitmqv1.AddToScheme(scheme))
 	utilruntime.Must(telemetryv1beta1.AddToScheme(scheme))
 	utilruntime.Must(obov1.AddToScheme(scheme))
-	utilruntime.Must(obsuiv1.AddToScheme(scheme))
 	utilruntime.Must(monv1.AddToScheme(scheme))
 	utilruntime.Must(monv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1beta1.AddToScheme(scheme))
@@ -90,6 +89,7 @@ func init() {
 	utilruntime.Must(topologyv1.AddToScheme(scheme))
 	utilruntime.Must(lokistackv1.AddToScheme(scheme))
 	utilruntime.Must(certmgrv1.AddToScheme(scheme))
+	utilruntime.Must(persesv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

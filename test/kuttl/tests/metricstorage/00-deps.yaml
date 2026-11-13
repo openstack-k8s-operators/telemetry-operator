@@ -4,3 +4,7 @@ commands:
   - script: |
       oc apply -f deps/rhobs.yaml
       until oc api-resources | grep -q rhobs; do sleep 1; done
+      # The Cluster Observability Operator ships the perses.dev CRDs
+      # (PersesDatasource/PersesDashboard) used to deliver dashboards.
+      until oc api-resources | grep -q persesdatasources; do sleep 1; done
+      until oc api-resources | grep -q persesdashboards; do sleep 1; done
