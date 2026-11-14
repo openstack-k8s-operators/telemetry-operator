@@ -10,7 +10,7 @@ require (
 	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/gomega v1.43.1
-	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261102201820-4fab9ab5cad4
+	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261107160321-73f01fbcba96
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261020055343-66a79fe1e289
 	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20261102201431-697ee743dc30
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20261001134834-c55d623872db
