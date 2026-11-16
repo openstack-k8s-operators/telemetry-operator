@@ -20,7 +20,7 @@ import (
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
 )
 
-const openstackVmJSON = `{
+const openstackVMJSON = `{
   "apiVersion": "perses.dev/v1alpha2",
   "kind": "PersesDashboard",
   "metadata": {
@@ -538,8 +538,8 @@ const openstackVmJSON = `{
   }
 }`
 
-// OpenstackVmPerses builds the "OpenStack / Ceilometer / VMs" PersesDashboard
+// OpenstackVMPerses builds the "OpenStack / Ceilometer / VMs" PersesDashboard
 // from its JSON definition, in the given namespace.
-func OpenstackVmPerses(_, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackVmName, openstackVmJSON, namespace)
+func OpenstackVMPerses(_, namespace string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackVMName, openstackVMJSON, namespace)
 }
