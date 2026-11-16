@@ -81,6 +81,13 @@ This operator deploys a multiple telemetry agents, both in the control plane and
     ansible-playbook ci/enable-audit-logging.yml -e enable_audit_logging_local_apply=true
     ```
 
+    4.e. Deploy the Perses backend – to render dashboards in the OpenShift Console:
+
+    ```bash
+    # NOTE: installed COO is a prerequisite
+    ansible-playbook ci/enable-perses-backend.yml
+    ```
+
     Return to the install_yamls directory before continuing.
 
 5. Deploy dataplane operator
