@@ -43,7 +43,7 @@ const (
 	OpenstackNodeName             = "openstack-node"
 	OpenstackOpenstackNetworkName = "openstack-network"
 	OpenstackRabbitmqName         = "openstack-rabbitmq"
-	OpenstackVmName               = "openstack-vm"
+	OpenstackVMName               = "openstack-vm"
 )
 
 // ErrDashboardNoSpecConfig is returned when a dashboard JSON definition has no
@@ -104,6 +104,6 @@ func PersesDashboards() map[string]PersesDashboardBuilder {
 		OpenstackNodeName:             OpenstackNodePerses,
 		OpenstackOpenstackNetworkName: OpenstackOpenstackNetworkPerses,
 		OpenstackRabbitmqName:         OpenstackRabbitmqPerses,
-		OpenstackVmName:               OpenstackVmPerses,
+		OpenstackVMName:               OpenstackVMPerses,
 	}
 }
