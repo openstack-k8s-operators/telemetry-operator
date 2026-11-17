@@ -34,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,14 +48,20 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/ansible"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
+	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	nad "github.com/openstack-k8s-operators/lib-common/modules/common/networkattachment"
 	object "github.com/openstack-k8s-operators/lib-common/modules/common/object"
+	secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
+	service "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
+	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	rabbitmqv1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
+	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	ovnv1 "github.com/openstack-k8s-operators/ovn-operator/api/v1beta1"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	availability "github.com/openstack-k8s-operators/telemetry-operator/internal/availability"
@@ -76,15 +83,25 @@ const (
 	prometheusClientCertSecretField     = ".spec.prometheusClientCertSecret.secretName"
 	alertmanagerCaBundleSecretNameField = ".spec.alertmanagerTls.caBundleSecretName" //nolint:gosec
 	alertmanagerTLSField                = ".spec.alertmanagerTls.secretName"
+	aetosCaBundleSecretNameField        = ".spec.aetos.tls.caBundleSecretName"
+	aetosInternalTLSField               = ".spec.aetos.tls.api.internal.secretName"
+	aetosPublicTLSField                 = ".spec.aetos.tls.api.public.secretName"
+	aetosPasswordSecretField            = ".spec.aetos.secret"                           //nolint:gosec
+	aetosAuthAppCredSecretField         = ".spec.aetos.auth.applicationCredentialSecret" //nolint:gosec
 )
 
 var (
-	metricStorageTLSWatchFields = []string{
+	metricStorageWatchFields = []string{
+		aetosPasswordSecretField,
+		aetosCaBundleSecretNameField,
 		prometheusCaBundleSecretNameField,
 		prometheusTLSField,
 		prometheusClientCertSecretField,
 		alertmanagerCaBundleSecretNameField,
 		alertmanagerTLSField,
+		aetosInternalTLSField,
+		aetosPublicTLSField,
+		aetosAuthAppCredSecretField,
 	}
 )
 
@@ -122,6 +139,9 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:urls=/ls-access,verbs=get
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneendpoints,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 //+kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 
@@ -198,6 +218,9 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDefinitionReadyCondition, condition.InitReason, telemetryv1.DashboardDefinitionReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.PrometheusReadyCondition, condition.InitReason, telemetryv1.PrometheusReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.AetosReadyCondition, condition.InitReason, telemetryv1.AetosReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.AetosKeystoneServiceReadyCondition, condition.InitReason, telemetryv1.AetosKeystoneServiceReadyInitMessage),
+		condition.UnknownCondition(telemetryv1.AetosKeystoneEndpointReadyCondition, condition.InitReason, telemetryv1.AetosKeystoneEndpointReadyInitMessage),
 		condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 		condition.UnknownCondition(condition.NetworkAttachmentsReadyCondition, condition.InitReason, condition.NetworkAttachmentsReadyInitMessage),
 	)
@@ -245,10 +268,98 @@ func (r *MetricStorageReconciler) reconcileDelete(
 		Log.Info(fmt.Sprintf("Deleted OpenStack Lightspeed ClusterRoleBinding %s", crbName))
 	}
 
+	// Remove the finalizer from our KeystoneService CR
+	keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, metricstorage.AetosServiceName, instance.Namespace)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	if err == nil {
+		if controllerutil.RemoveFinalizer(keystoneService, helper.GetFinalizer()) {
+			err = r.Update(ctx, keystoneService)
+			if err != nil && !k8s_errors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
+			util.LogForObject(helper, "Removed finalizer from aetos KeystoneService", instance)
+		}
+	}
+
+	// Remove the finalizer from our KeystoneEndpoint CR
+	keystoneEndpoint, err := keystonev1.GetKeystoneEndpointWithName(ctx, helper, metricstorage.AetosServiceName, instance.Namespace)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	if err == nil {
+		if controllerutil.RemoveFinalizer(keystoneEndpoint, helper.GetFinalizer()) {
+			err = r.Update(ctx, keystoneEndpoint)
+			if err != nil && !k8s_errors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
+			util.LogForObject(helper, "Removed finalizer from aetos KeystoneEndpoint", instance)
+		}
+	}
+
+	// Remove AC consumer finalizer from both status-tracked and spec-tracked secrets.
+	for _, secretName := range []string{
+		instance.Status.ApplicationCredentialSecret,
+		instance.Spec.Aetos.Auth.ApplicationCredentialSecret,
+	} {
+		if err := object.RemoveSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+			secretName, metricstorage.ACConsumerFinalizer); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
 	Log.Info(fmt.Sprintf("Reconciled Service '%s' delete successfully", instance.Name))
 
+	return ctrl.Result{}, nil
+}
+
+func (r *MetricStorageReconciler) reconcileInit(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	helper *helper.Helper,
+	serviceLabels map[string]string,
+) (ctrl.Result, error) {
+	Log := r.GetLogger(ctx)
+	Log.Info("Reconciling Service init")
+
+	_, _, err := secret.GetSecret(ctx, helper, instance.Spec.Aetos.Secret, instance.Namespace)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			Log.Info(fmt.Sprintf("OpenStack secret %s not found", instance.Spec.Aetos.Secret))
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	ksSvcSpec := keystonev1.KeystoneServiceSpec{
+		ServiceType:        metricstorage.AetosServiceType,
+		ServiceName:        metricstorage.AetosServiceName,
+		ServiceDescription: "OpenStack Aetos Service",
+		Enabled:            true,
+		ServiceUser:        instance.Spec.Aetos.ServiceUser,
+		Secret:             instance.Spec.Aetos.Secret,
+		PasswordSelector:   instance.Spec.Aetos.PasswordSelectors.AetosService,
+	}
+
+	ksSvc := keystonev1.NewKeystoneService(ksSvcSpec, instance.Namespace, serviceLabels, 10)
+	ctrlResult, err := ksSvc.CreateOrPatch(ctx, helper)
+	if err != nil {
+		return ctrlResult, err
+	}
+
+	c := ksSvc.GetConditions().Mirror(telemetryv1.AetosKeystoneServiceReadyCondition)
+	if c != nil {
+		instance.Status.Conditions.Set(c)
+	}
+
+	if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	Log.Info("Reconciled Service init successfully")
 	return ctrl.Result{}, nil
 }
 
@@ -339,6 +450,29 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		handler.OnlyControllerOwner(),
 	)
 
+	// TODO(jwysogla) This is a temporary WA. Remove the following line in a
+	// followup after openstack-operator PR merges, meaning O-O is running
+	// the defaulting webhook and is able to set the Aetos image
+	instance.Spec.Aetos.Image = "quay.io/openstack-s2i-containers/openstack-aetos:master-latest"
+
+	// Aetos is mandatory: without an image we can't deploy it, so fail fast
+	// before creating any keystone resources or the monitoring stack.
+	if instance.Spec.Aetos.Image == "" {
+		instance.Status.Conditions.MarkFalse(telemetryv1.AetosReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			telemetryv1.AetosReadyImageMissingMessage)
+		Log.Info("AetosImage is not set, skipping Aetos sidecar deployment")
+		return ctrl.Result{}, nil
+	}
+
+	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		return ctrlResult, err
+	} else if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
 	if instance.Spec.CustomMonitoringStack == nil && instance.Spec.MonitoringStack == nil {
 		Log.Info("Both fields: \"customMonitoringStack\", \"monitoringStack\" aren't set. Setting at least one is required.")
 		instance.Status.Conditions.MarkFalse(telemetryv1.MonitoringStackReadyCondition,
@@ -350,7 +484,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 
 	// Deploy monitoring stack
 
-	err := utils.EnsureWatches(
+	err = utils.EnsureWatches(
 		ctx, (*utils.ConditionalWatchingReconciler)(r),
 		"monitoringstacks.monitoring.rhobs",
 		&obov1.MonitoringStack{}, eventHandler, helper,
@@ -521,6 +655,71 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		return ctrl.Result{}, err
 	}
 
+	// Create Aetos K8s Services (internal + public) and collect their
+	// endpoint URLs for Keystone registration. The public Service requests an
+	// ingress/route so it is reachable from outside the cluster.
+	aetosEndpoints := map[string]string{}
+	for _, endpointType := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
+		svcOverride := instance.Spec.Aetos.Override.Service[endpointType]
+		if svcOverride.EmbeddedLabelsAnnotations == nil {
+			svcOverride.EmbeddedLabelsAnnotations = &service.EmbeddedLabelsAnnotations{}
+		}
+
+		aetosSvc, err := metricstorage.AetosService(instance, endpointType, serviceLabels, svcOverride)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		ctrlResult, err = aetosSvc.CreateOrPatch(ctx, helper)
+		if err != nil {
+			return ctrlResult, err
+		} else if (ctrlResult != ctrl.Result{}) {
+			return ctrlResult, nil
+		}
+
+		var aetosProto *service.Protocol
+		if instance.Spec.Aetos.TLS.API.Enabled(endpointType) {
+			aetosProto = ptr.To(service.ProtocolHTTPS)
+		}
+		aetosEndpoints[string(endpointType)], err = aetosSvc.GetAPIEndpoint(svcOverride.EndpointURL, aetosProto, "")
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Create Keystone endpoint for Aetos
+	ksEndpointSpec := keystonev1.KeystoneEndpointSpec{
+		ServiceName: metricstorage.AetosServiceName,
+		Endpoints:   aetosEndpoints,
+	}
+	ksEndptObj := keystonev1.NewKeystoneEndpoint(metricstorage.AetosServiceName, instance.Namespace, ksEndpointSpec, serviceLabels, time.Duration(10)*time.Second)
+	ctrlResult, err = ksEndptObj.CreateOrPatch(ctx, helper)
+	if err != nil {
+		return ctrlResult, err
+	}
+	c := ksEndptObj.GetConditions().Mirror(telemetryv1.AetosKeystoneEndpointReadyCondition)
+	if c != nil {
+		instance.Status.Conditions.Set(c)
+	}
+	if (ctrlResult != ctrl.Result{}) {
+		return ctrlResult, nil
+	}
+
+	// Early phase of the AC split pattern: add finalizer to the new AC secret
+	if instance.Spec.Aetos.Auth.ApplicationCredentialSecret != "" {
+		if err := object.ManageSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+			instance.Spec.Aetos.Auth.ApplicationCredentialSecret,
+			metricstorage.ACConsumerFinalizer); err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.AetosReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				telemetryv1.AetosReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+	}
+
 	monitoringStackReady := true
 	for _, c := range monitoringStack.Status.Conditions {
 		if c.Status != "True" {
@@ -687,8 +886,138 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		}
 	}
 
+	// Validate the Aetos CA cert secret and capture its content hash so we can
+	// restart the sidecar when the bundle is rotated (subPath mounts do not
+	// auto-refresh).
+	var aetosCaBundleHash string
+	if instance.Spec.Aetos.TLS.CaBundleSecretName != "" {
+		hash, err := tls.ValidateCACertSecret(
+			ctx,
+			helper.GetClient(),
+			types.NamespacedName{
+				Name:      instance.Spec.Aetos.TLS.CaBundleSecretName,
+				Namespace: instance.Namespace,
+			},
+		)
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.TLSInputReadyCondition,
+					condition.ErrorReason,
+					condition.SeverityWarning,
+					condition.TLSInputReadyWaitingMessage, instance.Spec.Aetos.TLS.CaBundleSecretName))
+				return ctrl.Result{}, nil
+			}
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.TLSInputReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.TLSInputErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+		aetosCaBundleHash = hash
+	}
+
+	// Validate Aetos API service cert secrets (no-op when TLS is not configured)
+	if _, err := instance.Spec.Aetos.TLS.API.ValidateCertSecrets(ctx, helper, instance.Namespace); err != nil {
+		if k8s_errors.IsNotFound(err) {
+			// The TLS cert secrets should have been created by the encompassing
+			// OpenStackControlPlane, so we treat their absence as an info.
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.TLSInputReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				condition.TLSInputReadyWaitingMessage, err.Error()))
+			return ctrl.Result{}, nil
+		}
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.TLSInputReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.TLSInputErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
 	// all cert input checks out so report InputReady
 	instance.Status.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
+
+	// Create the Aetos config secret and inject the Aetos sidecar into the
+	// Prometheus CR. The Prometheus CR is created asynchronously by the Cluster
+	// Observability Operator from the MonitoringStack, so it may not exist yet
+	// during the first reconciles; wait for it instead of treating its absence
+	// as an error. This also keeps the sidecar patch after TLS validation, so
+	// its cert mounts reference secrets that are known to exist.
+	prometheusCR := &monv1.Prometheus{}
+	err = r.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, prometheusCR)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				telemetryv1.AetosReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				telemetryv1.AetosReadyInitMessage))
+			Log.Info("Prometheus CR not created by the Cluster Observability Operator yet, waiting before injecting the Aetos sidecar")
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	aetosConfigHash, err := r.createAetosConfigSecret(ctx, instance, helper, serviceLabels)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.AetosReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.AetosReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	if aetosCaBundleHash != "" {
+		aetosConfigHash = aetosConfigHash + aetosCaBundleHash
+	}
+
+	aetosPatch, err := metricstorage.PrometheusAetosSidecar(instance, aetosConfigHash)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.AetosReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.AetosReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+	err = r.Patch(ctx, &aetosPatch, client.Merge, client.FieldOwner("telemetry-operator"))
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.AetosReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			telemetryv1.AetosReadyErrorMessage,
+			err.Error()))
+		Log.Error(err, "Can't patch Prometheus resource with Aetos sidecar")
+		return ctrl.Result{}, err
+	}
+	// Wait until the Prometheus CR reports the current Aetos config as available.
+	prometheusStatus := &monv1.Prometheus{}
+	// re-fetch a new version of the Prometheus CR after it got updated above. If we don't do this,
+	// we would be checking stale data in the prometheusAetosReady function called below.
+	if err := r.Get(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, prometheusStatus); err != nil {
+		return ctrl.Result{}, err
+	}
+	aetosRolloutReady := prometheusAetosReady(prometheusStatus, aetosConfigHash)
+	if aetosRolloutReady {
+		instance.Status.Conditions.MarkTrue(telemetryv1.AetosReadyCondition, condition.ReadyMessage)
+	} else {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			telemetryv1.AetosReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			telemetryv1.AetosReadyInitMessage))
+		Log.Info("Waiting for Prometheus pods to roll out the current Aetos configuration")
+	}
 
 	//
 	// NAD
@@ -768,6 +1097,22 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	// when job passed, mark NetworkAttachmentsReadyCondition ready
 	instance.Status.Conditions.MarkTrue(condition.NetworkAttachmentsReadyCondition, condition.NetworkAttachmentsReadyMessage)
 
+	// Late phase of the AC split pattern: remove old AC secret finalizer
+	// and update status only after all sub-conditions are true.
+	isACRotation := instance.Status.ApplicationCredentialSecret != "" &&
+		instance.Status.ApplicationCredentialSecret != instance.Spec.Aetos.Auth.ApplicationCredentialSecret
+	if isACRotation {
+		if instance.Status.Conditions.AllSubConditionIsTrue() {
+			if err := object.RemoveSecretConsumerFinalizer(ctx, helper, instance.Namespace,
+				instance.Status.ApplicationCredentialSecret, metricstorage.ACConsumerFinalizer); err != nil {
+				return ctrl.Result{}, err
+			}
+			instance.Status.ApplicationCredentialSecret = instance.Spec.Aetos.Auth.ApplicationCredentialSecret
+		}
+	} else {
+		instance.Status.ApplicationCredentialSecret = instance.Spec.Aetos.Auth.ApplicationCredentialSecret
+	}
+
 	if instance.Status.Conditions.AllSubConditionIsTrue() {
 		instance.Status.Conditions.MarkTrue(
 			condition.ReadyCondition, condition.ReadyMessage)
@@ -828,6 +1173,108 @@ func (r *MetricStorageReconciler) prometheusEndpointSecret(
 	}
 
 	return nil
+}
+
+// createAetosConfigSecret creates a Secret with the rendered Aetos config templates
+func (r *MetricStorageReconciler) createAetosConfigSecret(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	h *helper.Helper,
+	labels map[string]string,
+) (string, error) {
+	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
+	if err != nil {
+		return "", err
+	}
+	keystoneInternalURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
+	if err != nil {
+		return "", err
+	}
+
+	ospSecret, _, err := secret.GetSecret(ctx, h, instance.Spec.Aetos.Secret, instance.Namespace)
+	if err != nil {
+		return "", err
+	}
+
+	templateParameters := map[string]any{
+		"KeystoneInternalURL": keystoneInternalURL,
+		"PrometheusTLS":       instance.Spec.PrometheusTLS.Enabled(),
+		"ServiceUser":         instance.Spec.Aetos.ServiceUser,
+		"ServicePassword":     string(ospSecret.Data[instance.Spec.Aetos.PasswordSelectors.AetosService]),
+		"AetosPort":           metricstorage.AetosPort,
+	}
+
+	// Per-endpoint httpd vhost config. Both the internal and public Services
+	// target the single Aetos httpd listener, so each endpoint gets its own
+	// vhost (selected via SNI) with its own cert when TLS is enabled.
+	httpdVhostConfig := map[string]any{}
+	for _, endpt := range []service.Endpoint{service.EndpointInternal, service.EndpointPublic} {
+		defaultName := fmt.Sprintf("%s-%s.%s.svc", metricstorage.AetosServiceName, endpt.String(), instance.Namespace)
+		serverName, serverAliases, err := service.GetVHostServerName(instance.Spec.Aetos.Override.Service[endpt], defaultName)
+		if err != nil {
+			return "", err
+		}
+		endptConfig := map[string]any{
+			"ServerName":    serverName,
+			"ServerAliases": serverAliases,
+			// set TLS to false as the default. It's overwritten a few lines below if TLS is supposed to be enabled.
+			"TLS": false,
+		}
+		if instance.Spec.Aetos.TLS.API.Enabled(endpt) {
+			endptConfig["TLS"] = true
+			endptConfig["SSLCertificateFile"] = fmt.Sprintf("/etc/pki/tls/certs/%s.crt", endpt.String())
+			endptConfig["SSLCertificateKeyFile"] = fmt.Sprintf("/etc/pki/tls/private/%s.key", endpt.String())
+		}
+		httpdVhostConfig[endpt.String()] = endptConfig
+	}
+	templateParameters["VHosts"] = httpdVhostConfig
+
+	if instance.Spec.Aetos.Auth.ApplicationCredentialSecret != "" {
+		acSecretObj, _, err := secret.GetSecret(ctx, h, instance.Spec.Aetos.Auth.ApplicationCredentialSecret, instance.Namespace)
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				return "", fmt.Errorf("%w: %s", ErrACSecretNotFound, instance.Spec.Aetos.Auth.ApplicationCredentialSecret)
+			}
+			return "", err
+		}
+		acID, okID := acSecretObj.Data[keystonev1.ACIDSecretKey]
+		acSecretData, okSecret := acSecretObj.Data[keystonev1.ACSecretSecretKey]
+		if !okID || len(acID) == 0 || !okSecret || len(acSecretData) == 0 {
+			return "", fmt.Errorf("%w: %s", ErrACSecretMissingKeys, instance.Spec.Aetos.Auth.ApplicationCredentialSecret)
+		}
+		templateParameters["ACID"] = string(acID)
+		templateParameters["ACSecret"] = string(acSecretData)
+	}
+
+	cms := []util.Template{
+		{
+			Name:            metricstorage.AetosConfigSecret,
+			Namespace:       instance.Namespace,
+			Type:            util.TemplateTypeConfig,
+			InstanceType:    "metricstorage",
+			ConfigOptions:   templateParameters,
+			Labels:          labels,
+			CommonTemplates: []string{"ssl.conf"},
+		},
+	}
+
+	envVars := make(map[string]env.Setter)
+	err = secret.EnsureSecrets(ctx, h, instance, cms, &envVars)
+	if err != nil {
+		return "", err
+	}
+
+	// EnsureSecrets keys the returned setters by the template (secret) name, so
+	// look up our config secret's hash directly instead of relying on map
+	// iteration order.
+	configHash := ""
+	if setter, ok := envVars[metricstorage.AetosConfigSecret]; ok {
+		var envVar corev1.EnvVar
+		setter(&envVar)
+		configHash = envVar.Value
+	}
+
+	return configHash, nil
 }
 
 func (r *MetricStorageReconciler) createServiceScrapeConfig(
@@ -1737,6 +2184,38 @@ func getAddressFromAnsibleHost(item *ansible.Host) (string, discoveryv1.AddressT
 	return "", ""
 }
 
+func prometheusAetosReady(prom *monv1.Prometheus, configHash string) bool {
+	if prom == nil || configHash == "" {
+		return false
+	}
+
+	aetosConfigApplied := false
+	for _, container := range prom.Spec.Containers {
+		if container.Name != "aetos" {
+			continue
+		}
+		for _, variable := range container.Env {
+			if variable.Name == "CONFIG_HASH" && variable.Value == configHash {
+				aetosConfigApplied = true
+				break
+			}
+		}
+		break
+	}
+	if !aetosConfigApplied {
+		return false
+	}
+
+	for _, condition := range prom.Status.Conditions {
+		if condition.Type == monv1.Available &&
+			condition.Status == monv1.ConditionTrue &&
+			condition.ObservedGeneration >= prom.Generation {
+			return true
+		}
+	}
+	return false
+}
+
 func getCanonicalHostname(item *ansible.Host) (string, discoveryv1.AddressType) {
 	canonicalHostname, ok := item.Vars["canonical_hostname"].(string)
 	// is it a valid hostname?
@@ -1839,6 +2318,17 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		return nil
 	}
 
+	// index aetosPasswordSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, aetosPasswordSecretField, func(rawObj client.Object) []string {
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.Aetos.Secret == "" {
+			return nil
+		}
+		return []string{cr.Spec.Aetos.Secret}
+	}); err != nil {
+		return err
+	}
+
 	// index prometheusCaBundleSecretNameField
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, prometheusCaBundleSecretNameField, func(rawObj client.Object) []string {
 		// Extract the secret name from the spec, if one is provided
@@ -1896,6 +2386,50 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		return err
 	}
 
+	// index aetosCaBundleSecretNameField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, aetosCaBundleSecretNameField, func(rawObj client.Object) []string {
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.Aetos.TLS.CaBundleSecretName == "" {
+			return nil
+		}
+		return []string{cr.Spec.Aetos.TLS.CaBundleSecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index aetosInternalTLSField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, aetosInternalTLSField, func(rawObj client.Object) []string {
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.Aetos.TLS.API.Internal.SecretName == nil {
+			return nil
+		}
+		return []string{*cr.Spec.Aetos.TLS.API.Internal.SecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index aetosPublicTLSField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, aetosPublicTLSField, func(rawObj client.Object) []string {
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.Aetos.TLS.API.Public.SecretName == nil {
+			return nil
+		}
+		return []string{*cr.Spec.Aetos.TLS.API.Public.SecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index aetosAuthAppCredSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &telemetryv1.MetricStorage{}, aetosAuthAppCredSecretField, func(rawObj client.Object) []string {
+		cr := rawObj.(*telemetryv1.MetricStorage)
+		if cr.Spec.Aetos.Auth.ApplicationCredentialSecret == "" {
+			return nil
+		}
+		return []string{cr.Spec.Aetos.Auth.ApplicationCredentialSecret}
+	}); err != nil {
+		return err
+	}
+
 	inventoryPredicator, err := predicate.LabelSelectorPredicate(
 		metav1.LabelSelector{
 			MatchLabels: map[string]string{
@@ -1909,6 +2443,12 @@ func (r *MetricStorageReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 	control, err := ctrl.NewControllerManagedBy(mgr).
 		For(&telemetryv1.MetricStorage{}).
+		Owns(&keystonev1.KeystoneService{}).
+		Owns(&keystonev1.KeystoneEndpoint{}).
+		Owns(&corev1.Service{}).
+		Watches(&keystonev1.KeystoneAPI{},
+			handler.EnqueueRequestsFromMapFunc(reconcileAllMetricStoragesWatchFn),
+			builder.WithPredicates(keystonev1.KeystoneAPIStatusChangedPredicate)).
 		Watches(&corev1.Service{},
 			handler.EnqueueRequestsFromMapFunc(prometheusServiceWatchFn)).
 		Watches(&corev1.Service{},
@@ -1956,7 +2496,7 @@ func (r *MetricStorageReconciler) findObjectsForSrc(ctx context.Context, src cli
 
 	Log := r.GetLogger(ctx)
 
-	for _, field := range metricStorageTLSWatchFields {
+	for _, field := range metricStorageWatchFields {
 		crList := &telemetryv1.MetricStorageList{}
 		listOps := &client.ListOptions{
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),

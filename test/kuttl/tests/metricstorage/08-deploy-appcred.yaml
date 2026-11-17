@@ -1,0 +1,42 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |-
+      set -euo pipefail
+      NS="${NAMESPACE}"
+
+      # Save current pod UID to detect restart
+      old_pod_uid=$(oc get pod -n "${NS}" prometheus-telemetry-kuttl-0 -o jsonpath='{.metadata.uid}')
+      oc create configmap appcred-aetos-pre \
+        --from-literal=pod_uid="${old_pod_uid}" \
+        --dry-run=client -o yaml | oc apply -n "${NS}" -f -
+
+      # Create KeystoneApplicationCredential
+      cat <<'EOF' | oc apply -n "${NS}" -f -
+      apiVersion: keystone.openstack.org/v1beta1
+      kind: KeystoneApplicationCredential
+      metadata:
+        name: ac-aetos
+      spec:
+        secret: osp-secret
+        passwordSelector: AetosPassword
+        userName: aetos
+        roles:
+          - admin
+          - service
+        unrestricted: false
+      EOF
+
+      echo "Waiting for KeystoneApplicationCredential ac-aetos to be Ready..."
+      oc wait -n "${NS}" appcred/ac-aetos --for=condition=Ready --timeout=300s
+
+      ac_secret_name=$(oc get -n "${NS}" appcred/ac-aetos -o jsonpath='{.status.secretName}')
+      if [ -z "${ac_secret_name}" ]; then
+        echo "ERROR: appcred/ac-aetos.status.secretName is empty"
+        exit 1
+      fi
+      echo "AC secret name: ${ac_secret_name}"
+
+      # Patch MetricStorage to use application credential
+      oc patch metricstorage telemetry-kuttl -n "${NS}" --type=merge \
+        -p "{\"spec\":{\"aetos\":{\"auth\":{\"applicationCredentialSecret\":\"${ac_secret_name}\"}}}}"

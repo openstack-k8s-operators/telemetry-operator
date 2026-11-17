@@ -20,8 +20,14 @@ import (
 	infranetworkv1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	tls "github.com/openstack-k8s-operators/lib-common/modules/common/tls"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	// AetosContainerImage - default fall-back image for Aetos
+	AetosContainerImage = "quay.io/openstack-s2i-containers/openstack-aetos:master-latest"
 )
 
 // PersistentStorage defines storage options used for persistent storage
@@ -82,8 +88,72 @@ type MonitoringStack struct {
 	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
+// AetosCore defines the Aetos sidecar spec without container image fields.
+// This version is used by the OpenStackControlplane (no image parameters).
+type AetosCore struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=60
+	// APITimeout for Route and Apache
+	APITimeout int `json:"apiTimeout"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// TLS - Parameters related to the Aetos API TLS. The certificates for
+	// the internal and public endpoints are provided by the OpenStackControlplane.
+	TLS tls.API `json:"tls,omitempty"`
+
+	// ServiceUser - optional username used for aetos service to register in keystone
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=aetos
+	ServiceUser string `json:"serviceUser"`
+
+	// Secret containing OpenStack password information for aetos
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=osp-secret
+	Secret string `json:"secret"`
+
+	// PasswordSelectors - Selectors to identify the aetos service from the Secret
+	// +kubebuilder:default:={aetosService: AetosPassword}
+	PasswordSelectors PasswordsSelector `json:"passwordSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// Auth - authentication settings for aetos-keystone integration
+	Auth AuthSpec `json:"auth,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// Override, provides the ability to override the generated manifest of several child resources.
+	Override APIOverrideSpec `json:"override,omitempty"`
+}
+
+// Aetos defines the Aetos sidecar spec including the container image.
+type Aetos struct {
+	AetosCore `json:",inline"`
+
+	// +kubebuilder:validation:Optional
+	Image string `json:"image"`
+}
+
 // MetricStorageSpec defines the desired state of MetricStorage
 type MetricStorageSpec struct {
+	MetricStorageSpecBase `json:",inline"`
+
+	// +kubebuilder:default={apiTimeout: 60, serviceUser: aetos, secret: osp-secret, passwordSelector: {aetosService: AetosPassword}}
+	// Aetos - Parameters related to the Aetos sidecar
+	Aetos Aetos `json:"aetos,omitempty"`
+}
+
+// MetricStorageSpecCore defines the desired state of MetricStorage. This version is used by the OpenStackControlplane (no image parameters)
+type MetricStorageSpecCore struct {
+	MetricStorageSpecBase `json:",inline"`
+
+	// +kubebuilder:default={apiTimeout: 60, serviceUser: aetos, secret: osp-secret, passwordSelector: {aetosService: AetosPassword}}
+	// Aetos - Parameters related to the Aetos sidecar
+	Aetos AetosCore `json:"aetos,omitempty"`
+}
+
+// MetricStorageSpecBase defines shared MetricStorage fields (everything except Aetos)
+type MetricStorageSpecBase struct {
 	// DashboardsEnabled allows to enable or disable dashboards and related artifacts
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
@@ -152,6 +222,8 @@ type MetricStorageStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 	// NetworkAttachments status of the Prometheus pods
 	NetworkAttachments map[string]string `json:"networkAttachments,omitempty"`
+	// ApplicationCredentialSecret - the AC secret Aetos is currently consuming
+	ApplicationCredentialSecret string `json:"applicationCredentialSecret,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -185,4 +257,13 @@ func init() {
 // IsReady - returns true if MetricStorage is reconciled successfully
 func (instance MetricStorage) IsReady() bool {
 	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
+}
+
+// SetupDefaultsMetricStorage - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaultsMetricStorage() {
+	metricStorageDefaults := MetricStorageDefaults{
+		AetosContainerImageURL: util.GetEnvVar("RELATED_IMAGE_AETOS_IMAGE_URL_DEFAULT", AetosContainerImage),
+	}
+
+	SetupMetricStorageDefaults(metricStorageDefaults)
 }
