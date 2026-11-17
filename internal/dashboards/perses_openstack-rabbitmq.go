@@ -399,38 +399,6 @@ const openstackRabbitmqJSON = `{
             ]
           }
         },
-        "1_3": {
-          "kind": "Panel",
-          "spec": {
-            "display": {
-              "name": "TCP sockets available"
-            },
-            "plugin": {
-              "kind": "TimeSeriesChart",
-              "spec": {
-                "yAxis": {
-                  "format": {
-                    "unit": "decimal"
-                  }
-                }
-              }
-            },
-            "queries": [
-              {
-                "kind": "TimeSeriesQuery",
-                "spec": {
-                  "plugin": {
-                    "kind": "PrometheusTimeSeriesQuery",
-                    "spec": {
-                      "query": "(rabbitmq_process_max_tcp_sockets * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"}) -(rabbitmq_process_open_tcp_sockets * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_cluster=\"$cluster\"})",
-                      "seriesNameFormat": "{{rabbitmq_node}}"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        },
         "2_0": {
           "kind": "Panel",
           "spec": {
@@ -1361,15 +1329,6 @@ const openstackRabbitmqJSON = `{
                 "height": 7,
                 "content": {
                   "$ref": "#/spec/panels/1_2"
-                }
-              },
-              {
-                "x": 12,
-                "y": 23,
-                "width": 12,
-                "height": 7,
-                "content": {
-                  "$ref": "#/spec/panels/1_3"
                 }
               }
             ]
