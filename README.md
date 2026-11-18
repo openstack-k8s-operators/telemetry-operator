@@ -48,6 +48,8 @@ This operator deploys a multiple telemetry agents, both in the control plane and
 
     make openstack
     make openstack_init
+    # (optional) Use the s2i containers for opendev/master content
+    make openstack_versions_master
     make openstack_deploy
     ```
 
