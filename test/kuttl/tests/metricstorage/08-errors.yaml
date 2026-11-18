@@ -1,0 +1,6 @@
+# openstack-cloud is listed in disabledDashboards, so its PersesDashboard must
+# not exist even though dashboards are enabled.
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-cloud
