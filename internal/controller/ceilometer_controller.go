@@ -2219,6 +2219,11 @@ func (r *CeilometerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		Watches(&keystonev1.KeystoneAPI{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectForSrc),
 			builder.WithPredicates(keystonev1.KeystoneAPIStatusChangedPredicate)).
+		// Reconcile when the well-known TLS profile ConfigMap maintained by
+		// the openstack-operator changes, so rendered configs pick up the
+		// new cluster-wide TLS defaults.
+		Watches(&corev1.ConfigMap{},
+			util.WatchDefaultTemplateConfigMap(r.Client, &telemetryv1.Ceilometer{})).
 		Complete(r)
 }
 
