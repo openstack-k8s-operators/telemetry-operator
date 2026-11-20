@@ -43,3 +43,4 @@ spec:
         readOnly: true
     - name: config-reloader
     - name: thanos-sidecar
+    - name: aetos
