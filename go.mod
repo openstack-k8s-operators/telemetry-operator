@@ -10,7 +10,7 @@ require (
 	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/gomega v1.44.0
-	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261026075307-d73998912a34
+	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261117041418-57d9010cbb94
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261026075308-c598716245d3
 	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20261026075307-fdb1993c547e
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20261020132816-6109367117f2
@@ -18,7 +18,7 @@ require (
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261020132816-6109367117f2
 	github.com/openstack-k8s-operators/lib-common/modules/users v0.0.0-20261020132816-6109367117f2
 	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20261104180656-b48dbd3ab33c
-	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20261026075302-181eec8e397e
+	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20261116082836-b907405053b4
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-00010101000000-000000000000
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1
 	github.com/rhobs/observability-operator v1.0.0
