@@ -36,14 +36,14 @@ import (
 // A name is defined here alongside its builder as each dashboard is converted to
 // Perses.
 const (
-	OpenstackCeilometerIpmiName   = "openstack-ceilometer-ipmi"
-	OpenstackCloudName            = "openstack-cloud"
-	OpenstackLightspeedName       = "openstack-lightspeed"
-	OpenstackNetworkTrafficName   = "openstack-network-traffic"
-	OpenstackNodeName             = "openstack-node"
-	OpenstackOpenstackNetworkName = "openstack-network"
-	OpenstackRabbitmqName         = "openstack-rabbitmq"
-	OpenstackVMName               = "openstack-vm"
+	OpenstackCeilometerIpmiName = "openstack-ceilometer-ipmi"
+	OpenstackCloudName          = "openstack-cloud"
+	OpenstackLightspeedName     = "openstack-lightspeed"
+	OpenstackNetworkName        = "openstack-network"
+	OpenstackNetworkTrafficName = "openstack-network-traffic"
+	OpenstackNodeName           = "openstack-node"
+	OpenstackRabbitmqName       = "openstack-rabbitmq"
+	OpenstackVMName             = "openstack-vm"
 )
 
 // ErrDashboardNoSpecConfig is returned when a dashboard JSON definition has no
@@ -97,13 +97,13 @@ func dashboardFromJSON(name, raw, namespace string) (*persesv1alpha1.PersesDashb
 // canonical dashboard name.
 func PersesDashboards() map[string]PersesDashboardBuilder {
 	return map[string]PersesDashboardBuilder{
-		OpenstackCeilometerIpmiName:   OpenstackCeilometerIpmiPerses,
-		OpenstackCloudName:            OpenstackCloudPerses,
-		OpenstackLightspeedName:       OpenstackLightspeedPerses,
-		OpenstackNetworkTrafficName:   OpenstackNetworkTrafficPerses,
-		OpenstackNodeName:             OpenstackNodePerses,
-		OpenstackOpenstackNetworkName: OpenstackOpenstackNetworkPerses,
-		OpenstackRabbitmqName:         OpenstackRabbitmqPerses,
-		OpenstackVMName:               OpenstackVMPerses,
+		OpenstackCeilometerIpmiName: OpenstackCeilometerIpmiPerses,
+		OpenstackCloudName:          OpenstackCloudPerses,
+		OpenstackLightspeedName:     OpenstackLightspeedPerses,
+		OpenstackNetworkName:        OpenstackNetworkPerses,
+		OpenstackNetworkTrafficName: OpenstackNetworkTrafficPerses,
+		OpenstackNodeName:           OpenstackNodePerses,
+		OpenstackRabbitmqName:       OpenstackRabbitmqPerses,
+		OpenstackVMName:             OpenstackVMPerses,
 	}
 }

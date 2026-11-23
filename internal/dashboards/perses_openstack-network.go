@@ -20,7 +20,7 @@ import (
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
 )
 
-const openstackOpenstackNetworkJSON = `{
+const openstackNetworkJSON = `{
   "apiVersion": "perses.dev/v1alpha2",
   "kind": "PersesDashboard",
   "metadata": {
@@ -258,8 +258,8 @@ const openstackOpenstackNetworkJSON = `{
   }
 }`
 
-// OpenstackOpenstackNetworkPerses builds the "Openstack / Openstack Network
+// OpenstackNetworkPerses builds the "Openstack / Openstack Network
 // Exporter" PersesDashboard from its JSON definition, in the given namespace.
-func OpenstackOpenstackNetworkPerses(_, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackOpenstackNetworkName, openstackOpenstackNetworkJSON, namespace)
+func OpenstackNetworkPerses(_, namespace string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackNetworkName, openstackNetworkJSON, namespace)
 }
