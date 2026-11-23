@@ -427,6 +427,11 @@ func (r *CloudKittyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.findObjectForSrc),
 			builder.WithPredicates(keystonev1.KeystoneAPIStatusChangedPredicate)).
 		// LokiStack watch added dynamically inside the controller code.
+		// Reconcile when the well-known TLS profile ConfigMap maintained by
+		// the openstack-operator changes, so rendered configs pick up the
+		// new cluster-wide TLS defaults.
+		Watches(&corev1.ConfigMap{},
+			util.WatchDefaultTemplateConfigMap(r.Client, &telemetryv1.CloudKitty{})).
 		Build(r)
 	r.Controller = control
 	return err
