@@ -1,0 +1,102 @@
+---
+#
+# Deploys the Perses backend, provisioned by COO (prerequisite),
+# that renders the dashboards in the OpenShift Console.
+#
+# – The backend is necessary to actually render the dashboards in the UI;
+#   without it, they only exist as CRs in the cluster (not visible anywhere).
+# – Currently the telemetry-operator does not manage the Monitoring UIPlugin,
+#   hence this playbook exists to automate that step in CI / dev environments.
+# – It can be executed at any stage, assuming COO is installed first,
+#   for example just before executing the functional tests for dashboards.
+#
+# Note: set `perses_backend_deploy=false` variable to skip this playbook.
+#
+- name: Enable the Perses dashboards backend
+  hosts: "{{ cifmw_target_hook_host | default('localhost') }}"
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig | default(lookup('ansible.builtin.env', 'KUBECONFIG') | default(lookup('ansible.builtin.env', 'HOME') ~ '/.kube/config', true)) }}"
+    PATH: "{{ cifmw_path | default(lookup('ansible.builtin.env', 'PATH')) }}"
+  vars:
+    coo_namespace: openshift-operators
+    coo_package: cluster-observability-operator
+    perses_backend_namespace: openshift-operators
+    perses_backend_pod: perses-0
+  tasks:
+    - name: Notify if the Perses backend deployment is skipped by variable
+      when: not perses_backend_deploy | default(true) | bool
+      ansible.builtin.debug:
+        msg: >-
+          Skipping the Perses backend deployment
+          because perses_backend_deploy variable is set to false.
+
+    - name: Skip the Perses backend deployment
+      when: not perses_backend_deploy | default(true) | bool
+      ansible.builtin.meta: end_play
+
+    - name: Check subscriptions
+      ansible.builtin.command:
+        cmd: >-
+          oc get subscription
+          --namespace={{ coo_namespace }}
+          --output=jsonpath='{range .items[*]}{.spec.name}{"\n"}{end}'
+      register: cluster_subscriptions
+      changed_when: false
+
+    - name: Fail when COO is not subscribed
+      when: coo_package not in cluster_subscriptions.stdout_lines
+      ansible.builtin.fail:
+        msg: >-
+          No subscription for the {{ coo_package }} package
+          found in the {{ coo_namespace }} namespace
+          – please deploy COO before enabling the Perses backend!
+
+    - name: Ensure COO CSV is created
+      ansible.builtin.command:
+        cmd: >-
+          oc wait csv
+          --selector=operators.coreos.com/{{ coo_package }}.{{ coo_namespace }}
+          --for=create
+          --timeout=120s
+          --namespace={{ coo_namespace }}
+
+    - name: Ensure COO operator is ready
+      ansible.builtin.command:
+        cmd: >-
+          oc wait csv
+          --selector=operators.coreos.com/{{ coo_package }}.{{ coo_namespace }}
+          --for=jsonpath={.status.phase}=Succeeded
+          --timeout=300s
+          --namespace={{ coo_namespace }}
+
+    - name: Create the Monitoring UIPlugin with Perses enabled
+      ansible.builtin.shell:
+        cmd: |
+          oc apply --filename=- << EOF
+          apiVersion: observability.openshift.io/v1alpha1
+          kind: UIPlugin
+          metadata:
+            name: monitoring
+          spec:
+            type: Monitoring
+            monitoring:
+              perses:
+                enabled: true
+          EOF
+
+    - name: Wait for the Perses backend pod to be created
+      ansible.builtin.command:
+        cmd: >-
+          oc wait pod/{{ perses_backend_pod }}
+          --for=create
+          --timeout=600s
+          --namespace={{ perses_backend_namespace }}
+
+    - name: Wait for the Perses backend to be ready
+      ansible.builtin.command:
+        cmd: >-
+          oc wait pod/{{ perses_backend_pod }}
+          --for=condition=Ready
+          --timeout=600s
+          --namespace={{ perses_backend_namespace }}
