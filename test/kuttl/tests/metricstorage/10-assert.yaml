@@ -1,0 +1,33 @@
+# The operator leaves the unmanaged PersesDashboard alone and keeps managing
+# the other dashboards. The conflict is reported in the DashboardDefinitionReady
+# condition message, but it does not block the MetricStorage readiness.
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-cloud
+spec:
+  display:
+    name: Not managed by the telemetry-operator
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-ceilometer-ipmi
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: |
+      set -e
+      [ -z "$(oc get -n $NAMESPACE persesdashboard openstack-cloud -o jsonpath='{.metadata.ownerReferences}')" ]
+      condition() {
+        oc get -n $NAMESPACE metricstorage telemetry-kuttl \
+          -o jsonpath="{.status.conditions[?(@.type==\"$1\")].$2}"
+      }
+      [ "$(condition DashboardDefinitionReady status)" = True ]
+      condition DashboardDefinitionReady message | grep -q "not managed by the operator"
+      [ "$(condition Ready status)" = True ]

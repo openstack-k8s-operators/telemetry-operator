@@ -559,6 +559,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		return res, err
 	}
 
+	var dashboardsResult ctrl.Result
 	if !instance.Spec.DashboardsEnabled {
 		if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
 			return res, err
@@ -567,8 +568,11 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
-		if res, err := r.createDashboardObjects(ctx, instance, helper, eventHandler, serviceLabels, savedConditions); err != nil {
-			return res, err
+		// Keep the result to honour any requeue requested by the dashboard
+		// reconciliation once the rest of the MetricStorage is reconciled.
+		dashboardsResult, err = r.createDashboardObjects(ctx, instance, helper, eventHandler, serviceLabels, savedConditions)
+		if err != nil {
+			return dashboardsResult, err
 		}
 	}
 	//
@@ -787,7 +791,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			condition.ReadyCondition, condition.ReadyMessage)
 	}
 	Log.Info("Reconciled Service successfully")
-	return ctrl.Result{}, nil
+	return dashboardsResult, nil
 }
 
 // PrometheusEndpointSecret creates a Secret that contains the details for Prometheus API endpoint
@@ -1505,18 +1509,19 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	})
 	if errors.Is(err, metricstorage.ErrNotControlledByMetricStorage) {
 		// A PersesDatasource with the same name was created by someone else.
-		// Leave it and the dashboards, which would reference it, alone and
-		// report it on the conditions instead of failing the whole reconcile.
+		// Leave it and the dashboards, which would reference it, alone. This
+		// is reported in the condition messages, but the conditions are True:
+		// the optional dashboards must not block the MetricStorage readiness,
+		// which bubbles up to the OpenStackControlPlane Ready condition and
+		// could mask other problems.
 		Log.Info(fmt.Sprintf("Not managing PersesDatasource %s: %s", datasource.Name, err))
-		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDatasourceReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			telemetryv1.DashboardDatasourceFailedMessage, err)
-		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			telemetryv1.DashboardDefinitionFailedMessage, err)
-		return ctrl.Result{}, nil
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition,
+			telemetryv1.DashboardDatasourceNotManagedMessage, datasource.Name)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition,
+			telemetryv1.DashboardDefinitionDatasourceNotManagedMessage, datasource.Name)
+		// Only owned objects are watched, so requeue to notice when the
+		// conflicting object is removed and the datasource can be managed.
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 	if err != nil {
 		Log.Error(err, fmt.Sprintf("Failed to update PersesDatasource %s", datasource.Name))
@@ -1589,9 +1594,9 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	// elsewhere.
 	dashboardsAvailable := true
 	var unavailableReason, unavailableMessage, unavailableName string
-	// First dashboard that could not be managed because a same-named object
-	// not controlled by the MetricStorage exists.
-	var notControlledErr error
+	// Dashboards that could not be managed because same-named objects not
+	// controlled by the MetricStorage exist.
+	var notControlled []string
 
 	// Iterate over the implemented dashboards registry, the single source of
 	// truth for the dashboards the operator manages. A dashboard is created
@@ -1637,11 +1642,9 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		if errors.Is(err, metricstorage.ErrNotControlledByMetricStorage) {
 			// A PersesDashboard with the same name was created by someone
 			// else. Leave it alone, keep reconciling the other dashboards and
-			// report it on the condition.
+			// report it in the condition message, without blocking readiness.
 			Log.Info(fmt.Sprintf("Not managing PersesDashboard %s: %s", dashboard.Name, err))
-			if notControlledErr == nil {
-				notControlledErr = err
-			}
+			notControlled = append(notControlled, dashboard.Name)
 			continue
 		}
 		if err != nil {
@@ -1660,12 +1663,12 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			unavailableReason, unavailableMessage, unavailableName = reason, message, dashboard.Name
 		}
 	}
-	if notControlledErr != nil {
-		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			telemetryv1.DashboardDefinitionFailedMessage, notControlledErr)
-		return ctrl.Result{}, nil
+	if len(notControlled) > 0 {
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition,
+			telemetryv1.DashboardDefinitionNotManagedMessage, strings.Join(notControlled, ", "))
+		// Only owned objects are watched, so requeue to notice when the
+		// conflicting objects are removed and the dashboards can be managed.
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 	describe := "PersesDashboards"
 	if unavailableName != "" {

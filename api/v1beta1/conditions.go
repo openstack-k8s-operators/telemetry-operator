@@ -362,9 +362,19 @@ const (
 
 	DashboardDatasourceReadyInitMessage = "Dashboard Datasource not started"
 	DashboardDatasourceFailedMessage    = "Error occured when trying to install the dashboard datasource: %s"
+	// DashboardDatasourceNotManagedMessage is set, with the condition True,
+	// when a same-named datasource not controlled by the MetricStorage exists
+	DashboardDatasourceNotManagedMessage = "PersesDatasource %s not managed by the operator, as a same-named object not controlled by the MetricStorage exists; delete or rename it so the operator can manage it"
 
 	DashboardDefinitionReadyInitMessage = "Dashboard Definition not started"
 	DashboardDefinitionFailedMessage    = "Error occured when trying to install the dashboard definitions: %s"
+	// DashboardDefinitionNotManagedMessage is set, with the condition True,
+	// when same-named dashboards not controlled by the MetricStorage exist
+	DashboardDefinitionNotManagedMessage = "PersesDashboards not managed by the operator, as same-named objects not controlled by the MetricStorage exist; delete or rename them so the operator can manage them: %s"
+	// DashboardDefinitionDatasourceNotManagedMessage is set, with the condition
+	// True, when the dashboards are not reconciled because the datasource they
+	// reference is not managed by the operator
+	DashboardDefinitionDatasourceNotManagedMessage = "PersesDashboards not reconciled, as the PersesDatasource %s they reference is not managed by the operator"
 
 	//
 	// KSMReady condition messages

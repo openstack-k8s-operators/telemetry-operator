@@ -1,0 +1,14 @@
+# Create a PersesDashboard with the name of a managed dashboard, but not
+# controlled by the MetricStorage, as if created by someone else. It is
+# created while openstack-cloud is still disabled by name (step 08), so the
+# operator does not create its own first.
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-cloud
+spec:
+  display:
+    name: Not managed by the telemetry-operator
+  duration: 1h
+  panels: {}
+  layouts: []
