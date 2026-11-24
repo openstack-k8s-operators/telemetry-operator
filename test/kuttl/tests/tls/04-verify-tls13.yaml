@@ -1,0 +1,52 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |
+      set -euo pipefail
+      NS="${NAMESPACE}"
+
+      # OSPRH-37073: publish a TLS 1.3-only cluster profile through the
+      # well-known ConfigMap merged by ApplyTemplateDefaults, then verify
+      # by handshake. curl is used because the openstack containers ship
+      # no openssl CLI.
+      cat <<'EOF' | oc apply -n "${NS}" -f -
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: openstack-ssl-profile
+      data:
+        SSLProtocol: "-all +TLSv1.3"
+      EOF
+
+      check_tls13_only() {
+        local pod="$1" container="$2" port="$3"
+
+        if timeout 30 oc exec -n "${NS}" "${pod}" -c "${container}" -- \
+            curl -k -s -o /dev/null --tlsv1.2 --tls-max 1.2 \
+            "https://127.0.0.1:${port}/"; then
+          return 1
+        fi
+
+        timeout 30 oc exec -n "${NS}" "${pod}" -c "${container}" -- \
+          curl -k -s -o /dev/null --tlsv1.3 --tls-max 1.3 \
+          "https://127.0.0.1:${port}/"
+      }
+
+      # The checks pass only once the controllers re-rendered the config
+      # secrets and rolled the pods: old pods still accept TLS 1.2, and
+      # during rollout oc exec fails, so both cases retry here.
+      deadline=$(( SECONDS + 240 ))
+      while true; do
+        if check_tls13_only aodh-0 aodh-api 8042 &&
+           check_tls13_only ceilometer-0 ceilometer-central-agent 3000 &&
+           check_tls13_only telemetry-kuttl-cloudkitty-api-0 cloudkitty-api 8889; then
+          echo "OK: all telemetry httpd endpoints are TLS 1.3 only"
+          exit 0
+        fi
+        if [ "${SECONDS}" -ge "${deadline}" ]; then
+          echo "FAIL: endpoints did not become TLS 1.3 only after publishing openstack-ssl-profile"
+          exit 1
+        fi
+        echo "waiting for config re-render and pod rollout..."
+        sleep 10
+      done
