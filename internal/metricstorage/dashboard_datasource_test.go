@@ -26,6 +26,10 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+// testLabels stands in for the service labels the MetricStorage controller
+// puts on every resource it manages.
+var testLabels = map[string]string{"service": "metricStorage"}
+
 func newMetricStorage(prometheusTLS tls.SimpleService) *telemetryv1.MetricStorage {
 	return &telemetryv1.MetricStorage{
 		ObjectMeta: metav1.ObjectMeta{
@@ -48,7 +52,7 @@ func TestDashboardDatasourceNoTLS(t *testing.T) {
 
 	instance := newMetricStorage(tls.SimpleService{})
 	instance.Name = "telemetry-kuttl"
-	datasource := DashboardDatasource(instance)
+	datasource := DashboardDatasource(instance, testLabels)
 
 	g.Expect(datasource.Spec.Client).To(gomega.BeNil())
 	proxy := datasource.Spec.Config.Plugin.Spec.(map[string]interface{})["proxy"].(map[string]interface{})
@@ -66,7 +70,7 @@ func TestDashboardDatasourceTLSCABundle(t *testing.T) {
 	datasource := DashboardDatasource(newMetricStorage(tls.SimpleService{
 		GenericService: tls.GenericService{SecretName: ptr.To("cert-metric-storage-prometheus-svc")},
 		Ca:             tls.Ca{CaBundleSecretName: "my-ca-bundle"},
-	}))
+	}), testLabels)
 
 	g.Expect(datasource.Spec.Client).NotTo(gomega.BeNil())
 	caCert := datasource.Spec.Client.TLS.CaCert
@@ -87,9 +91,23 @@ func TestDashboardDatasourceTLSServiceCertCA(t *testing.T) {
 
 	datasource := DashboardDatasource(newMetricStorage(tls.SimpleService{
 		GenericService: tls.GenericService{SecretName: ptr.To("cert-metric-storage-prometheus-svc")},
-	}))
+	}), testLabels)
 
 	caCert := datasource.Spec.Client.TLS.CaCert
 	g.Expect(caCert.Name).To(gomega.Equal("cert-metric-storage-prometheus-svc"))
 	g.Expect(caCert.CertPath).To(gomega.Equal(serviceCertCAKey))
+}
+
+// TestDashboardDatasourceLabels checks the datasource carries the service
+// labels, so it can be selected like the other resources the MetricStorage
+// manages, and that it does not alias the caller's map.
+func TestDashboardDatasourceLabels(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	labels := map[string]string{"service": "metricStorage"}
+	datasource := DashboardDatasource(newMetricStorage(tls.SimpleService{}), labels)
+
+	g.Expect(datasource.Labels).To(gomega.Equal(labels))
+	datasource.Labels["extra"] = "value"
+	g.Expect(labels).NotTo(gomega.HaveKey("extra"))
 }

@@ -540,6 +540,6 @@ const openstackVMJSON = `{
 
 // OpenstackVMPerses builds the "OpenStack / Ceilometer / VMs" PersesDashboard
 // from its JSON definition, in the given namespace.
-func OpenstackVMPerses(datasourceName, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackVMName, openstackVMJSON, datasourceName, namespace)
+func OpenstackVMPerses(datasourceName, namespace string, labels map[string]string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackVMName, openstackVMJSON, datasourceName, namespace, labels)
 }

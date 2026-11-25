@@ -42,12 +42,18 @@ func TestPersesDashboardsBuild(t *testing.T) {
 	g := gomega.NewWithT(t)
 
 	const namespace = "openstack"
+	labels := map[string]string{"service": "metricStorage"}
 	for name, builder := range PersesDashboards() {
-		dashboard, err := builder("prometheus", namespace)
+		dashboard, err := builder("prometheus", namespace, labels)
 		g.Expect(err).NotTo(gomega.HaveOccurred(), name)
 
 		g.Expect(dashboard.Name).To(gomega.Equal(name))
 		g.Expect(dashboard.Namespace).To(gomega.Equal(namespace))
+		// The dashboards carry the service labels, so they can be selected
+		// like the other resources the MetricStorage manages. Each gets its
+		// own map, so one dashboard cannot relabel the others.
+		g.Expect(dashboard.Labels).To(gomega.Equal(labels), name)
+		g.Expect(dashboard.Labels).NotTo(gomega.BeIdenticalTo(labels), name)
 		g.Expect(dashboard.Kind).To(gomega.Equal("PersesDashboard"))
 		g.Expect(dashboard.APIVersion).To(gomega.Equal(persesv1alpha1.GroupVersion.String()))
 		g.Expect(dashboard.Spec.Display).NotTo(gomega.BeNil(), name)
@@ -88,7 +94,7 @@ func TestPersesDashboardsBuild(t *testing.T) {
 func TestOpenstackCloudPerses(t *testing.T) {
 	g := gomega.NewWithT(t)
 
-	dashboard, err := OpenstackCloudPerses("prometheus", "openstack")
+	dashboard, err := OpenstackCloudPerses("prometheus", "openstack", nil)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 
 	g.Expect(dashboard.Name).To(gomega.Equal(OpenstackCloudName))
@@ -103,10 +109,10 @@ func TestOpenstackCloudPerses(t *testing.T) {
 func TestDashboardFromJSONErrors(t *testing.T) {
 	g := gomega.NewWithT(t)
 
-	_, err := dashboardFromJSON("bad", `{"spec": `, "prometheus", "openstack")
+	_, err := dashboardFromJSON("bad", `{"spec": `, "prometheus", "openstack", nil)
 	g.Expect(err).To(gomega.HaveOccurred())
 
-	_, err = dashboardFromJSON("inline", `{"spec": {"display": {"name": "Inline"}}}`, "prometheus", "openstack")
+	_, err = dashboardFromJSON("inline", `{"spec": {"display": {"name": "Inline"}}}`, "prometheus", "openstack", nil)
 	g.Expect(err).To(gomega.MatchError(ErrDashboardNoSpecConfig))
 }
 
@@ -122,7 +128,7 @@ func TestDashboardDatasourceBinding(t *testing.T) {
 		"name": "my-datasource",
 	}
 	for name, builder := range PersesDashboards() {
-		dashboard, err := builder("my-datasource", "openstack")
+		dashboard, err := builder("my-datasource", "openstack", nil)
 		g.Expect(err).NotTo(gomega.HaveOccurred(), name)
 
 		bound := 0
@@ -171,6 +177,6 @@ func TestDashboardFromJSONUnboundDatasource(t *testing.T) {
 	      "layouts": []
 	    }
 	  }
-	}`, "prometheus", "openstack")
+	}`, "prometheus", "openstack", nil)
 	g.Expect(err).To(gomega.MatchError(ErrDashboardNoPrometheusPlugin))
 }

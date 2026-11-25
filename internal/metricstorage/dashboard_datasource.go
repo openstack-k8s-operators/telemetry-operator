@@ -18,6 +18,7 @@ package metricstorage
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
@@ -49,9 +50,10 @@ const (
 )
 
 // DashboardDatasource builds the PersesDatasource object that points the
-// managed dashboards at the MetricStorage Prometheus instance. The datasource
-// lives in the same namespace as the MetricStorage CR so it can be owned by it.
-func DashboardDatasource(instance *telemetryv1.MetricStorage) *persesv1alpha1.PersesDatasource {
+// managed dashboards at the MetricStorage Prometheus instance, carrying the
+// given labels. The datasource lives in the same namespace as the MetricStorage
+// CR so it can be owned by it.
+func DashboardDatasource(instance *telemetryv1.MetricStorage, labels map[string]string) *persesv1alpha1.PersesDatasource {
 	scheme := "http"
 
 	datasource := &persesv1alpha1.PersesDatasource{
@@ -62,6 +64,9 @@ func DashboardDatasource(instance *telemetryv1.MetricStorage) *persesv1alpha1.Pe
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      PrometheusDatasourceName,
 			Namespace: instance.Namespace,
+			// Cloned so the datasource does not share one map with the
+			// dashboards and with the caller's.
+			Labels: maps.Clone(labels),
 		},
 	}
 

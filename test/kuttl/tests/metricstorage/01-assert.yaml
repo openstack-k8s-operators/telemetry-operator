@@ -187,6 +187,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDatasource
 metadata:
+  labels:
+    service: metricStorage
   name: prometheus
   ownerReferences:
   - kind: MetricStorage
@@ -203,6 +205,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
+  labels:
+    service: metricStorage
   name: openstack-cloud
   ownerReferences:
   - kind: MetricStorage

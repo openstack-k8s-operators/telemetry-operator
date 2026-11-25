@@ -4,13 +4,16 @@
 # ceilometer-ipmi, which is only created when a nodeset runs the
 # telemetry-power-monitoring service.
 #
-# Each dashboard is asserted with its display name and its controller
-# reference, so the test fails if a definition is rejected by the perses.dev
-# CRD validation, is built with the wrong content, or is created without the
-# ownership the garbage collection and the ownership-aware deletion rely on.
+# Each dashboard is asserted with its display name, its service label and its
+# controller reference, so the test fails if a definition is rejected by the
+# perses.dev CRD validation, is built with the wrong content, or is created
+# without the labels and the ownership that the selection, the garbage
+# collection and the ownership-aware deletion rely on.
 apiVersion: perses.dev/v1alpha1
 kind: PersesDatasource
 metadata:
+  labels:
+    service: metricStorage
   name: prometheus
   ownerReferences:
   - kind: MetricStorage
@@ -25,6 +28,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
+  labels:
+    service: metricStorage
   name: openstack-cloud
   ownerReferences:
   - kind: MetricStorage
@@ -37,6 +42,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
+  labels:
+    service: metricStorage
   name: openstack-node
   ownerReferences:
   - kind: MetricStorage
@@ -49,6 +56,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
+  labels:
+    service: metricStorage
   name: openstack-network
   ownerReferences:
   - kind: MetricStorage
@@ -61,6 +70,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
+  labels:
+    service: metricStorage
   name: openstack-network-traffic
   ownerReferences:
   - kind: MetricStorage
@@ -73,6 +84,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
+  labels:
+    service: metricStorage
   name: openstack-vm
   ownerReferences:
   - kind: MetricStorage
@@ -85,6 +98,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
+  labels:
+    service: metricStorage
   name: openstack-rabbitmq
   ownerReferences:
   - kind: MetricStorage
@@ -97,6 +112,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
+  labels:
+    service: metricStorage
   name: openstack-lightspeed
   ownerReferences:
   - kind: MetricStorage
@@ -109,6 +126,8 @@ spec:
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
+  labels:
+    service: metricStorage
   name: openstack-ceilometer-ipmi
   ownerReferences:
   - kind: MetricStorage

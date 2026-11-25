@@ -550,6 +550,6 @@ const openstackNodeJSON = `{
 
 // OpenstackNodePerses builds the "Openstack / Node Exporter / USE Method /
 // Node" PersesDashboard from its JSON definition, in the given namespace.
-func OpenstackNodePerses(datasourceName, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackNodeName, openstackNodeJSON, datasourceName, namespace)
+func OpenstackNodePerses(datasourceName, namespace string, labels map[string]string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackNodeName, openstackNodeJSON, datasourceName, namespace, labels)
 }

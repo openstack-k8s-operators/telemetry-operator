@@ -1538,7 +1538,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		if err := metricstorage.EnsureAdoptable(instance, datasource); err != nil {
 			return err
 		}
-		desired := metricstorage.DashboardDatasource(instance)
+		desired := metricstorage.DashboardDatasource(instance, serviceLabels)
 		datasource.Labels = desired.Labels
 		datasource.Spec = desired.Spec
 		return controllerutil.SetControllerReference(instance, datasource, r.Scheme)
@@ -1679,7 +1679,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			if err := metricstorage.EnsureAdoptable(instance, dashboard); err != nil {
 				return err
 			}
-			desired, err := builder(metricstorage.PrometheusDatasourceName, instance.Namespace)
+			desired, err := builder(metricstorage.PrometheusDatasourceName, instance.Namespace, serviceLabels)
 			if err != nil {
 				return err
 			}

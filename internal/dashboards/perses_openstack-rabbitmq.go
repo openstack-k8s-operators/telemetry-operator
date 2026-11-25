@@ -1654,6 +1654,6 @@ const openstackRabbitmqJSON = `{
 
 // OpenstackRabbitmqPerses builds the "OpenStack / RabbitMQ" PersesDashboard
 // from its JSON definition, in the given namespace.
-func OpenstackRabbitmqPerses(datasourceName, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackRabbitmqName, openstackRabbitmqJSON, datasourceName, namespace)
+func OpenstackRabbitmqPerses(datasourceName, namespace string, labels map[string]string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackRabbitmqName, openstackRabbitmqJSON, datasourceName, namespace, labels)
 }

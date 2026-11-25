@@ -260,6 +260,6 @@ const openstackNetworkJSON = `{
 
 // OpenstackNetworkPerses builds the "Openstack / Openstack Network
 // Exporter" PersesDashboard from its JSON definition, in the given namespace.
-func OpenstackNetworkPerses(datasourceName, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackNetworkName, openstackNetworkJSON, datasourceName, namespace)
+func OpenstackNetworkPerses(datasourceName, namespace string, labels map[string]string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackNetworkName, openstackNetworkJSON, datasourceName, namespace, labels)
 }

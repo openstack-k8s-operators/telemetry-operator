@@ -603,6 +603,6 @@ const openstackNetworkTrafficJSON = `{
 
 // OpenstackNetworkTrafficPerses builds the "OpenStack / VMs Network Traffic"
 // PersesDashboard from its JSON definition, in the given namespace.
-func OpenstackNetworkTrafficPerses(datasourceName, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackNetworkTrafficName, openstackNetworkTrafficJSON, datasourceName, namespace)
+func OpenstackNetworkTrafficPerses(datasourceName, namespace string, labels map[string]string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackNetworkTrafficName, openstackNetworkTrafficJSON, datasourceName, namespace, labels)
 }

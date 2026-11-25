@@ -6,6 +6,8 @@ When `dashboardsEnabled: true` is set in the MetricStorage, the telemetry-operat
 - one `PersesDashboard` per dashboard listed below. Every panel query and variable references the `prometheus` datasource by name, so the dashboards do not depend on which datasource is the default in the Perses project
 - a `PrometheusRule` with the recording rules used by the dashboards
 
+All of them carry the `service: metricStorage` label, like the other resources the MetricStorage manages, so `oc get -n <namespace> persesdatasources,persesdashboards -l service=metricStorage` lists exactly what the operator owns.
+
 ## Requirements
 
 - **Cluster Observability Operator (COO) 1.5 or later.** COO provides the MonitoringStack used by the MetricStorage and the `perses.dev` CRDs (`PersesDatasource`, `PersesDashboard`). If the CRDs are not available, no dashboards are created: the operator reports it in the message of the MetricStorage `DashboardDatasourceReady` and `DashboardDefinitionReady` conditions and retries, so the dashboards appear once COO is installed. Those conditions stay `True`, so a missing prerequisite for the optional dashboards does not stop the MetricStorage, or the `OpenStackControlPlane` that aggregates it, from becoming `Ready`.
