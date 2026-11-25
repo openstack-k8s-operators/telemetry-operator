@@ -17,6 +17,7 @@ limitations under the License.
 package dashboards
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -24,10 +25,19 @@ import (
 	persesdashboard "github.com/perses/perses/pkg/model/api/v1/dashboard"
 )
 
+// panelRefPrefix is the JSON reference prefix a layout item uses to point at a
+// panel declared in the dashboard's spec.panels map.
+const panelRefPrefix = "#/spec/panels/"
+
 // TestPersesDashboardsBuild verifies that every registered dashboard builder
 // parses its JSON definition and produces a well-formed perses.dev/v1alpha1
 // PersesDashboard, with the v1alpha2 spec.config content, in the requested
 // namespace.
+//
+// The content assertions matter because the definitions are decoded with a
+// lenient json.Unmarshal, which drops anything it does not recognise: a
+// definition in the wrong layout, or one with a mistyped key, would otherwise
+// yield a dashboard that renders nothing and still pass.
 func TestPersesDashboardsBuild(t *testing.T) {
 	g := gomega.NewWithT(t)
 
@@ -42,6 +52,34 @@ func TestPersesDashboardsBuild(t *testing.T) {
 		g.Expect(dashboard.APIVersion).To(gomega.Equal(persesv1alpha1.GroupVersion.String()))
 		g.Expect(dashboard.Spec.Display).NotTo(gomega.BeNil(), name)
 		g.Expect(dashboard.Spec.Display.Name).NotTo(gomega.BeEmpty(), name)
+
+		g.Expect(dashboard.Spec.Panels).NotTo(gomega.BeEmpty(), name)
+		g.Expect(dashboard.Spec.Layouts).NotTo(gomega.BeEmpty(), name)
+		for panelName, panel := range dashboard.Spec.Panels {
+			g.Expect(panel.Spec.Display.Name).NotTo(gomega.BeEmpty(), "%s/%s", name, panelName)
+			g.Expect(panel.Spec.Plugin.Kind).NotTo(gomega.BeEmpty(), "%s/%s", name, panelName)
+		}
+
+		// Every panel placed by a layout must exist, and every declared panel
+		// must be placed, so a panel dropped or renamed on one side only does
+		// not leave the dashboard with an empty slot or an invisible panel.
+		placed := map[string]bool{}
+		for _, layout := range dashboard.Spec.Layouts {
+			grid, ok := layout.Spec.(*persesdashboard.GridLayoutSpec)
+			g.Expect(ok).To(gomega.BeTrue(), name)
+			for _, item := range grid.Items {
+				g.Expect(item.Content).NotTo(gomega.BeNil(), name)
+				panelName := strings.TrimPrefix(item.Content.Ref, panelRefPrefix)
+				g.Expect(panelName).NotTo(gomega.Equal(item.Content.Ref),
+					"%s: unexpected panel reference %q", name, item.Content.Ref)
+				g.Expect(dashboard.Spec.Panels).To(gomega.HaveKey(panelName), name)
+				placed[panelName] = true
+			}
+		}
+		for panelName := range dashboard.Spec.Panels {
+			g.Expect(placed).To(gomega.HaveKey(panelName),
+				"%s: panel %s is not placed by any layout", name, panelName)
+		}
 	}
 }
 
