@@ -73,9 +73,25 @@ A dashboard is only populated when the services it gets its metrics from are dep
 |------|-------|----------|
 | `openstack-cloud` | Openstack / Node Exporter / USE Method / Cluster | `telemetry` service on the dataplane nodesets (node_exporter) |
 | `openstack-node` | Openstack / Node Exporter / USE Method / Node | `telemetry` service on the dataplane nodesets (node_exporter) |
-| `openstack-network` | Openstack / Openstack Network Exporter | `telemetry` service on the dataplane nodesets (openstack-network-exporter) |
+| `openstack-network` | Openstack / Openstack Network Exporter | `telemetry` service on the dataplane nodesets (openstack-network-exporter). Currently limited to the OVN/OVS panels, see the note below. |
 | `openstack-vm` | OpenStack / Ceilometer / VMs | Ceilometer enabled, and the `telemetry` service on the compute nodesets |
 | `openstack-network-traffic` | OpenStack / VMs Network Traffic | Ceilometer enabled, and the `telemetry` service on the compute nodesets |
 | `openstack-rabbitmq` | OpenStack / RabbitMQ | RabbitMQ clusters in the control plane |
 | `openstack-ceilometer-ipmi` | OpenStack / Compute Power Monitoring / Ceilometer IPMI | `telemetry-power-monitoring` service on at least one dataplane nodeset. The dashboard is only created when it is deployed. |
 | `openstack-lightspeed` | OpenStack / Lightspeed | OpenStack Lightspeed deployed in `openStackLightspeedNamespace` |
+
+### Known limitation: DPDK and SR-IOV panels
+
+The `openstack-network` dashboard currently ships only the **OVN/OVS** row
+(Flow Count of Integration Bridge, Logical Flow Translations, Netlink and
+Recirculation Rate). The **PMD** row (uS per Iteration, Upcalls, Non-Voluntary
+Context Switches, Utilization, RX/TX Packets), the **DPDK** row (RX/TX Packets)
+and the **SR-IOV** row (VF Configuration, VF Traffic, VF Packets, VF Dropped,
+VF Broadcast / Multicast) of the ConfigMap-based dashboard have not been
+converted to Perses yet and are not available.
+
+Deployments that rely on those panels should export the previous
+`grafana-dashboard-openstack-openstack-network` ConfigMap before upgrading, as
+described above. The panels used to be rendered only when the
+`configure-ovs-dpdk` or `neutron-sriov` service was enabled on at least one
+nodeset; that conditional rendering will come back with them.
