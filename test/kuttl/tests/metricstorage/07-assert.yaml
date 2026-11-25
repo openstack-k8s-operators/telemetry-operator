@@ -1,11 +1,21 @@
 # Dashboards are re-enabled at step 06 with the power-monitoring EDPM resources
-# deployed. Assert the managed Perses objects: the datasource, the
-# openstack-cloud dashboard and the ceilometer-ipmi dashboard, which is only
-# created when a nodeset runs the telemetry-power-monitoring service.
+# deployed, so the full set of managed Perses objects must exist: the
+# datasource and every dashboard in the operator's registry, including
+# ceilometer-ipmi, which is only created when a nodeset runs the
+# telemetry-power-monitoring service.
+#
+# Each dashboard is asserted with its display name and its controller
+# reference, so the test fails if a definition is rejected by the perses.dev
+# CRD validation, is built with the wrong content, or is created without the
+# ownership the garbage collection and the ownership-aware deletion rely on.
 apiVersion: perses.dev/v1alpha1
 kind: PersesDatasource
 metadata:
   name: prometheus
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
 spec:
   config:
     default: true
@@ -16,6 +26,85 @@ apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
 metadata:
   name: openstack-cloud
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
+spec:
+  display:
+    name: Openstack / Node Exporter / USE Method / Cluster
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-node
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
+spec:
+  display:
+    name: Openstack / Node Exporter / USE Method / Node
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-network
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
+spec:
+  display:
+    name: Openstack / Openstack Network Exporter
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-network-traffic
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
+spec:
+  display:
+    name: OpenStack / VMs Network Traffic
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-vm
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
+spec:
+  display:
+    name: OpenStack / Ceilometer / VMs
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-rabbitmq
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
+spec:
+  display:
+    name: OpenStack / RabbitMQ
+---
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-lightspeed
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
+spec:
+  display:
+    name: OpenStack / Lightspeed
 ---
 apiVersion: perses.dev/v1alpha1
 kind: PersesDashboard
