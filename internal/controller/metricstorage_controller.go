@@ -1513,11 +1513,19 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		&persesv1alpha1.PersesDatasource{}, eventHandler, helper,
 	)
 	if err != nil {
-		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDatasourceReadyCondition,
-			condition.Reason("Can't own PersesDatasource resource. Ensure the monitoring plugin in COO is enabled to use Perses dashboards."),
-			condition.SeverityError,
-			telemetryv1.DashboardDatasourceFailedMessage, err)
+		// The perses.dev CRDs are not installed, so neither the datasource nor
+		// the dashboards that reference it can be created. Both conditions are
+		// True: the dashboards are an optional feature, rendered by a Perses
+		// backend this operator does not own, so a missing prerequisite must
+		// not block the MetricStorage readiness, which bubbles up to the
+		// OpenStackControlPlane Ready condition and could mask other problems.
+		// The reason is reported in the condition messages, and the reconcile
+		// is requeued so the dashboards appear once the CRDs are installed.
 		Log.Info("Can't own PersesDatasource resource. Ensure the monitoring plugin in COO is enabled to use Perses dashboards.")
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition,
+			telemetryv1.DashboardDatasourceCRDNotAvailableMessage, err)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition,
+			telemetryv1.DashboardDefinitionCRDNotAvailableMessage, err)
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 	datasource := &persesv1alpha1.PersesDatasource{
@@ -1579,11 +1587,12 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		&persesv1alpha1.PersesDashboard{}, eventHandler, helper,
 	)
 	if err != nil {
-		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
-			condition.Reason("Can't own PersesDashboard resource. Ensure the monitoring plugin in COO is enabled to use Perses dashboards."),
-			condition.SeverityError,
-			telemetryv1.DashboardDefinitionFailedMessage, err)
+		// As above, a missing perses.dev CRD leaves the condition True and is
+		// reported in its message, so the optional dashboards do not block the
+		// MetricStorage readiness.
 		Log.Info("Can't own PersesDashboard resource. Ensure the monitoring plugin in COO is enabled to use Perses dashboards.")
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition,
+			telemetryv1.DashboardDefinitionCRDNotAvailableMessage, err)
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 

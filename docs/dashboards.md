@@ -8,7 +8,7 @@ When `dashboardsEnabled: true` is set in the MetricStorage, the telemetry-operat
 
 ## Requirements
 
-- **Cluster Observability Operator (COO) 1.5 or later.** COO provides the MonitoringStack used by the MetricStorage and the `perses.dev` CRDs (`PersesDatasource`, `PersesDashboard`). If the CRDs are not available, the operator reports it in the MetricStorage `DashboardDatasourceReady` and `DashboardDefinitionReady` conditions and retries.
+- **Cluster Observability Operator (COO) 1.5 or later.** COO provides the MonitoringStack used by the MetricStorage and the `perses.dev` CRDs (`PersesDatasource`, `PersesDashboard`). If the CRDs are not available, no dashboards are created: the operator reports it in the message of the MetricStorage `DashboardDatasourceReady` and `DashboardDefinitionReady` conditions and retries, so the dashboards appear once COO is installed. Those conditions stay `True`, so a missing prerequisite for the optional dashboards does not stop the MetricStorage, or the `OpenStackControlPlane` that aggregates it, from becoming `Ready`.
 - **The COO Monitoring UIPlugin with Perses enabled.** It provides the Perses backend that renders the dashboards in the OpenShift Console. The telemetry-operator does not manage it, as it is cluster-wide and can be shared with other workloads, so it must be created by the administrator. Without it, the dashboards only exist as CRs in the cluster:
 
     ```bash
