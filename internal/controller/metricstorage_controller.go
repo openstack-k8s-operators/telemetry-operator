@@ -237,6 +237,9 @@ func (r *MetricStorageReconciler) reconcileDelete(
 	if res, err := metricstorage.CleanupLegacyDashboardConfigMaps(ctx, instance, helper); err != nil {
 		return res, err
 	}
+	// The instance is going away, so forget that its cleanup ran: a
+	// MetricStorage recreated with the same name starts from a clean slate.
+	metricstorage.ForgetLegacyDashboardCleanup(instance)
 
 	crbName := fmt.Sprintf("%s-%s", metricstorage.OpenStackLightspeedAccessCRName, instance.Namespace)
 	crb := &rbacv1.ClusterRoleBinding{}
@@ -554,7 +557,8 @@ func (r *MetricStorageReconciler) reconcileNormal(
 
 	// Remove the legacy ConfigMap-based dashboard artifacts created by earlier
 	// versions of the operator in the openshift-config-managed namespace. This
-	// runs on every reconcile so upgrades converge regardless of DashboardsEnabled.
+	// is called regardless of DashboardsEnabled so upgrades converge either way;
+	// it does the work once per instance and returns immediately after that.
 	if res, err := metricstorage.CleanupLegacyDashboardConfigMaps(ctx, instance, helper); err != nil {
 		return res, err
 	}

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -48,6 +49,10 @@ const DashboardArtifactsNamespace = "openshift-config-managed"
 // legacyDashboardConfigMapNames are the ConfigMap-based dashboards created by
 // earlier versions of the operator in DashboardArtifactsNamespace. They are
 // removed on upgrade in favour of the PersesDashboard objects.
+//
+// TODO(OSPRH-41197): remove this, CleanupLegacyDashboardConfigMaps,
+// ForgetLegacyDashboardCleanup, legacyDashboardCleanupDone and their callers
+// once upgrades from the ConfigMap-based dashboards are no longer supported.
 var legacyDashboardConfigMapNames = []string{
 	"grafana-dashboard-openstack-cloud",
 	"grafana-dashboard-openstack-node",
@@ -101,11 +106,39 @@ func DeleteDashboardObjects(ctx context.Context, instance *telemetryv1.MetricSto
 	return ctrl.Result{}, nil
 }
 
+// legacyDashboardCleanupDone records the MetricStorage instances whose legacy
+// dashboard ConfigMaps this operator process has already removed, so the
+// upgrade-only cleanup stays off the steady-state reconcile path.
+//
+// The marker is deliberately in memory rather than in the MetricStorage status:
+// it is transitional state, not part of the API, and an API field would outlive
+// the problem it tracks. Re-running after a restart or a leader change is both
+// harmless, as the cleanup is idempotent, and useful, as it reconverges if the
+// ConfigMaps are somehow recreated.
+var legacyDashboardCleanupDone sync.Map
+
+// ForgetLegacyDashboardCleanup drops the record that the legacy dashboard
+// ConfigMaps were cleaned up for the instance, so a MetricStorage recreated
+// with the same name runs the cleanup again. Called when the CR is deleted.
+func ForgetLegacyDashboardCleanup(instance *telemetryv1.MetricStorage) {
+	legacyDashboardCleanupDone.Delete(client.ObjectKeyFromObject(instance).String())
+}
+
 // CleanupLegacyDashboardConfigMaps removes the ConfigMap-based dashboard
 // artifacts created by earlier versions of the operator in the shared
-// openshift-config-managed namespace. It is idempotent and safe to call on
-// every reconcile regardless of whether dashboards are enabled.
+// openshift-config-managed namespace. It is safe to call on every reconcile
+// regardless of whether dashboards are enabled.
+//
+// There is only ever something to delete on the first reconcile after an
+// upgrade from a release that still created the ConfigMaps, so a successful
+// pass is recorded and later calls return immediately, rather than looking for
+// ConfigMaps that are known to be gone for the lifetime of the process.
 func CleanupLegacyDashboardConfigMaps(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper) (ctrl.Result, error) {
+	key := client.ObjectKeyFromObject(instance).String()
+	if _, done := legacyDashboardCleanupDone.Load(key); done {
+		return ctrl.Result{}, nil
+	}
+
 	datasourceCMName := instance.Namespace + "-" + instance.Name + "-datasource"
 	names := append([]string{datasourceCMName}, legacyDashboardConfigMapNames...)
 	for _, name := range names {
@@ -116,10 +149,13 @@ func CleanupLegacyDashboardConfigMaps(ctx context.Context, instance *telemetryv1
 			},
 		}
 		if res, err := utils.EnsureDeleted(ctx, helper, configMap); err != nil {
+			// Not recorded as done, so the remaining ConfigMaps are removed on
+			// the next reconcile.
 			return res, err
 		}
 	}
 
+	legacyDashboardCleanupDone.Store(key, struct{}{})
 	return ctrl.Result{}, nil
 }
 

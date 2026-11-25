@@ -25,6 +25,7 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,6 +42,7 @@ func newOwnedTestEnv(t *testing.T, objs ...client.Object) (*telemetryv1.MetricSt
 	scheme := runtime.NewScheme()
 	g.Expect(telemetryv1.AddToScheme(scheme)).To(gomega.Succeed())
 	g.Expect(persesv1alpha1.AddToScheme(scheme)).To(gomega.Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(gomega.Succeed())
 
 	instance := &telemetryv1.MetricStorage{
 		ObjectMeta: metav1.ObjectMeta{
@@ -105,4 +107,48 @@ func TestEnsureAdoptable(t *testing.T) {
 
 	g.Expect(controllerutil.SetControllerReference(instance, existing, c.Scheme())).To(gomega.Succeed())
 	g.Expect(EnsureAdoptable(instance, existing)).To(gomega.Succeed())
+}
+
+func newLegacyDashboardConfigMap(name string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: DashboardArtifactsNamespace,
+		},
+	}
+}
+
+// TestCleanupLegacyDashboardConfigMaps checks the upgrade cleanup removes the
+// legacy ConfigMaps once and then stays off the reconcile path, and that
+// forgetting the instance makes it run again.
+func TestCleanupLegacyDashboardConfigMaps(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	legacy := newLegacyDashboardConfigMap("grafana-dashboard-openstack-cloud")
+	datasource := newLegacyDashboardConfigMap("openstack-metric-storage-datasource")
+	instance, c, h := newOwnedTestEnv(t, legacy, datasource)
+	t.Cleanup(func() { ForgetLegacyDashboardCleanup(instance) })
+
+	_, err := CleanupLegacyDashboardConfigMaps(context.TODO(), instance, h)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	for _, cm := range []*corev1.ConfigMap{legacy, datasource} {
+		err = c.Get(context.TODO(), client.ObjectKeyFromObject(cm), &corev1.ConfigMap{})
+		g.Expect(k8s_errors.IsNotFound(err)).To(gomega.BeTrue(), cm.Name)
+	}
+
+	// The cleanup is upgrade-only, so once it has run for the instance it does
+	// no further work: a ConfigMap that reappears is left alone rather than
+	// the operator looking for all of them on every reconcile.
+	g.Expect(c.Create(context.TODO(), newLegacyDashboardConfigMap("grafana-dashboard-openstack-cloud"))).To(gomega.Succeed())
+	_, err = CleanupLegacyDashboardConfigMaps(context.TODO(), instance, h)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(c.Get(context.TODO(), client.ObjectKeyFromObject(legacy), &corev1.ConfigMap{})).To(gomega.Succeed())
+
+	// Deleting the MetricStorage clears the record, so a recreated instance
+	// cleans up again, as it does after an operator restart.
+	ForgetLegacyDashboardCleanup(instance)
+	_, err = CleanupLegacyDashboardConfigMaps(context.TODO(), instance, h)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	err = c.Get(context.TODO(), client.ObjectKeyFromObject(legacy), &corev1.ConfigMap{})
+	g.Expect(k8s_errors.IsNotFound(err)).To(gomega.BeTrue())
 }

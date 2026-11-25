@@ -57,10 +57,16 @@ it created in `openshift-config-managed`:
 - `grafana-dashboard-openstack-kepler`
 - `<namespace>-<metricstorage-name>-datasource`
 
-This cleanup runs on every reconcile and on MetricStorage deletion, regardless
-of `dashboardsEnabled`, so it also converges on deployments that have the
-dashboards turned off. Local edits to those ConfigMaps are lost; to keep a
+The cleanup runs regardless of `dashboardsEnabled`, so it also converges on
+deployments that have the dashboards turned off, and it runs on MetricStorage
+deletion in case the CR is removed before it reconciled after the upgrade. It
+only has something to delete on the first reconcile after an upgrade, so it is
+done once per MetricStorage and then skipped, and it runs again after an
+operator restart. Local edits to those ConfigMaps are lost; to keep a
 customised dashboard, export it before upgrading.
+
+This cleanup is transitional and will be removed once upgrades from the
+ConfigMap-based dashboards are no longer supported.
 
 The `DashboardPluginReady` condition is no longer reported in the MetricStorage
 status, as the operator no longer manages the UIPlugin. Anything watching that
