@@ -65,6 +65,26 @@ status, as the operator no longer manages the UIPlugin. Anything watching that
 condition needs updating. `DashboardDatasourceReady` and
 `DashboardDefinitionReady` are unchanged and now track the Perses resources.
 
+### The `dashboards` UIPlugin is left in place
+
+Earlier versions of the operator also created a cluster-scoped UIPlugin named
+`dashboards` (`type: Dashboards`), which rendered the ConfigMaps above under
+**Observe > Dashboards**. The upgrade does not remove it. It is a shared
+cluster-wide resource that the telemetry-operator does not own: other
+workloads can deliver dashboards through the same plugin, and deleting it
+would take those away too.
+
+Once the ConfigMaps are gone, the plugin has no telemetry-operator content
+left to render. Remove it by hand if nothing else in the cluster uses it:
+
+```bash
+oc delete uiplugin dashboards
+```
+
+This is unrelated to the `monitoring` UIPlugin described under
+[Requirements](#requirements), which provides the Perses backend and must
+stay.
+
 ## Dashboards and their data sources
 
 A dashboard is only populated when the services it gets its metrics from are deployed. Individual dashboards can be disabled by name with `disabledDashboards` in the MetricStorage, for example `disabledDashboards: [openstack-rabbitmq]`. Only the names in the table below are recognised; anything else disables nothing and is reported in the `DashboardDefinitionReady` condition message, together with the names that can be used.
