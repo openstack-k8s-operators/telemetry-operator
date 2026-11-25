@@ -3,7 +3,7 @@
 When `dashboardsEnabled: true` is set in the MetricStorage, the telemetry-operator delivers the RHOSO observability dashboards as [Perses](https://perses.dev/) resources, created in the MetricStorage namespace and owned by the MetricStorage:
 
 - a `PersesDatasource` named `prometheus`, pointing to the Prometheus deployed for the MetricStorage (`<metricstorage-name>-prometheus.<namespace>.svc:9090`)
-- one `PersesDashboard` per dashboard listed below
+- one `PersesDashboard` per dashboard listed below. Every panel query and variable references the `prometheus` datasource by name, so the dashboards do not depend on which datasource is the default in the Perses project
 - a `PrometheusRule` with the recording rules used by the dashboards
 
 ## Requirements

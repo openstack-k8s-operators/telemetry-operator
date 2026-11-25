@@ -559,6 +559,6 @@ const openstackCloudJSON = `{
 
 // OpenstackCloudPerses builds the "OpenStack / Cloud" PersesDashboard from its
 // JSON definition, in the given namespace.
-func OpenstackCloudPerses(_, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackCloudName, openstackCloudJSON, namespace)
+func OpenstackCloudPerses(datasourceName, namespace string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackCloudName, openstackCloudJSON, datasourceName, namespace)
 }

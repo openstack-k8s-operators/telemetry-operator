@@ -1509,8 +1509,10 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	})
 	if errors.Is(err, metricstorage.ErrNotControlledByMetricStorage) {
 		// A PersesDatasource with the same name was created by someone else.
-		// Leave it and the dashboards, which would reference it, alone. This
-		// is reported in the condition messages, but the conditions are True:
+		// Leave it alone, and the dashboards too: they are bound to it by
+		// name, so creating them would point them at a datasource of unknown
+		// configuration. This is reported in the condition messages, but the
+		// conditions are True:
 		// the optional dashboards must not block the MetricStorage readiness,
 		// which bubbles up to the OpenStackControlPlane Ready condition and
 		// could mask other problems.

@@ -580,6 +580,6 @@ const openstackLightspeedJSON = `{
 
 // OpenstackLightspeedPerses builds the "OpenStack / Lightspeed" PersesDashboard
 // from its JSON definition, in the given namespace.
-func OpenstackLightspeedPerses(_, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackLightspeedName, openstackLightspeedJSON, namespace)
+func OpenstackLightspeedPerses(datasourceName, namespace string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackLightspeedName, openstackLightspeedJSON, datasourceName, namespace)
 }

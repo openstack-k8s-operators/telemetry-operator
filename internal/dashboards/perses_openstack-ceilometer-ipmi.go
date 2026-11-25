@@ -312,6 +312,6 @@ const openstackCeilometerIpmiJSON = `{
 // OpenstackCeilometerIpmiPerses builds the "OpenStack / Compute Power
 // Monitoring / Ceilometer IPMI" PersesDashboard from its JSON definition, in
 // the given namespace.
-func OpenstackCeilometerIpmiPerses(_, namespace string) (*persesv1alpha1.PersesDashboard, error) {
-	return dashboardFromJSON(OpenstackCeilometerIpmiName, openstackCeilometerIpmiJSON, namespace)
+func OpenstackCeilometerIpmiPerses(datasourceName, namespace string) (*persesv1alpha1.PersesDashboard, error) {
+	return dashboardFromJSON(OpenstackCeilometerIpmiName, openstackCeilometerIpmiJSON, datasourceName, namespace)
 }
