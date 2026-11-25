@@ -375,6 +375,11 @@ const (
 	// True, when the dashboards are not reconciled because the datasource they
 	// reference is not managed by the operator
 	DashboardDefinitionDatasourceNotManagedMessage = "PersesDashboards not reconciled, as the PersesDatasource %s they reference is not managed by the operator"
+	// DashboardsUnknownDisabledMessage is appended to the
+	// DashboardDefinitionReady condition message when disabledDashboards names
+	// dashboards the operator does not manage, which disable nothing. The
+	// first placeholder is the unknown names, the second the known ones
+	DashboardsUnknownDisabledMessage = " Ignoring names in disabledDashboards that match no dashboard managed by the operator and disable nothing: %s; the dashboards that can be disabled are: %s"
 
 	//
 	// KSMReady condition messages

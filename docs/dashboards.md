@@ -67,7 +67,7 @@ condition needs updating. `DashboardDatasourceReady` and
 
 ## Dashboards and their data sources
 
-A dashboard is only populated when the services it gets its metrics from are deployed. Individual dashboards can be disabled by name with `disabledDashboards` in the MetricStorage, for example `disabledDashboards: [openstack-rabbitmq]`.
+A dashboard is only populated when the services it gets its metrics from are deployed. Individual dashboards can be disabled by name with `disabledDashboards` in the MetricStorage, for example `disabledDashboards: [openstack-rabbitmq]`. Only the names in the table below are recognised; anything else disables nothing and is reported in the `DashboardDefinitionReady` condition message, together with the names that can be used.
 
 | Name | Title | Requires |
 |------|-------|----------|

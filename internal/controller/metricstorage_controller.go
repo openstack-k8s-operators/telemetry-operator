@@ -1421,24 +1421,52 @@ func (r *MetricStorageReconciler) createInstanceHAScrapeConfig(
 // logged, but only when it changes, to avoid per-reconcile log spam) so a missing
 // backend is visible via `oc describe`/status without gating the overall
 // MetricStorage/Telemetry readiness on something this operator does not manage.
+//
+// note carries anything else worth reporting on the condition, currently the
+// names in spec.disabledDashboards that disable nothing; it is appended to the
+// message so it is visible whether or not the backend is attached.
 func (r *MetricStorageReconciler) markDashboardObjectReady(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
 	savedConditions condition.Conditions,
 	condType condition.Type,
 	available bool,
-	reason, message, describe string,
+	reason, message, describe, note string,
 ) {
 	msg := condition.ReadyMessage
 	if !available {
 		msg = fmt.Sprintf("%s created; Perses backend not attached yet (%s): %s", describe, reason, message)
-		// Compare against the conditions saved before they were reset by Init
-		// at the start of the reconcile, which hold the previous message.
-		if existing := savedConditions.Get(condType); existing == nil || existing.Message != msg {
-			r.GetLogger(ctx).Info(fmt.Sprintf("%s is not attached to a Perses backend yet (%s): %s", describe, reason, message))
-		}
+	}
+	msg += note
+	// Compare against the conditions saved before they were reset by Init at
+	// the start of the reconcile, which hold the previous message, so anything
+	// the message reports is logged when it appears rather than on every
+	// reconcile.
+	changed := false
+	if existing := savedConditions.Get(condType); existing == nil || existing.Message != msg {
+		changed = true
+	}
+	if changed && !available {
+		r.GetLogger(ctx).Info(fmt.Sprintf("%s is not attached to a Perses backend yet (%s): %s", describe, reason, message))
+	}
+	if changed && note != "" {
+		r.GetLogger(ctx).Info(strings.TrimSpace(note))
 	}
 	instance.Status.Conditions.MarkTrue(condType, "%s", msg)
+}
+
+// unknownDisabledDashboards returns the names in spec.disabledDashboards that
+// match no dashboard the operator manages, sorted, so the reported set is
+// deterministic. Such names disable nothing and are most likely typos.
+func unknownDisabledDashboards(instance *telemetryv1.MetricStorage, builders map[string]dashboards.PersesDashboardBuilder) []string {
+	var unknown []string
+	for _, name := range instance.Spec.DisabledDashboards {
+		if _, managed := builders[name]; !managed {
+			unknown = append(unknown, name)
+		}
+	}
+	sort.Strings(unknown)
+	return unknown
 }
 
 func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler, serviceLabels map[string]string, savedConditions condition.Conditions) (ctrl.Result, error) {
@@ -1542,7 +1570,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	// but does not gate readiness (the Perses backend is managed elsewhere).
 	dsAvailable, dsReason, dsMessage := telemetryv1.PersesResourceAvailable(datasource.Status.Conditions)
 	r.markDashboardObjectReady(ctx, instance, savedConditions, telemetryv1.DashboardDatasourceReadyCondition,
-		dsAvailable, dsReason, dsMessage, fmt.Sprintf("PersesDatasource %s", datasource.Name))
+		dsAvailable, dsReason, dsMessage, fmt.Sprintf("PersesDatasource %s", datasource.Name), "")
 
 	// Deploy PersesDashboards
 	err = utils.EnsureWatches(
@@ -1587,6 +1615,15 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		dashboardNames = append(dashboardNames, name)
 	}
 	sort.Strings(dashboardNames)
+
+	// Names in spec.disabledDashboards that match no dashboard the operator
+	// manages disable nothing, so report them rather than letting a typo look
+	// like a dashboard was turned off.
+	unknownDisabledNote := ""
+	if unknown := unknownDisabledDashboards(instance, builders); len(unknown) > 0 {
+		unknownDisabledNote = fmt.Sprintf(telemetryv1.DashboardsUnknownDisabledMessage,
+			strings.Join(unknown, ", "), strings.Join(dashboardNames, ", "))
+	}
 
 	// Track whether every managed dashboard has been attached to a Perses
 	// instance by the perses-operator. Creating and owning the PersesDashboard
@@ -1666,8 +1703,9 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		}
 	}
 	if len(notControlled) > 0 {
-		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition,
-			telemetryv1.DashboardDefinitionNotManagedMessage, strings.Join(notControlled, ", "))
+		notManaged := fmt.Sprintf(telemetryv1.DashboardDefinitionNotManagedMessage,
+			strings.Join(notControlled, ", ")) + unknownDisabledNote
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, "%s", notManaged)
 		// Only owned objects are watched, so requeue to notice when the
 		// conflicting objects are removed and the dashboards can be managed.
 		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
@@ -1677,7 +1715,7 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 		describe = fmt.Sprintf("PersesDashboard %s", unavailableName)
 	}
 	r.markDashboardObjectReady(ctx, instance, savedConditions, telemetryv1.DashboardDefinitionReadyCondition,
-		dashboardsAvailable, unavailableReason, unavailableMessage, describe)
+		dashboardsAvailable, unavailableReason, unavailableMessage, describe, unknownDisabledNote)
 
 	return ctrl.Result{}, nil
 }
