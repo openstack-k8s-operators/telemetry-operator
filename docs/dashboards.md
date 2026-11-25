@@ -95,3 +95,14 @@ Deployments that rely on those panels should export the previous
 described above. The panels used to be rendered only when the
 `configure-ovs-dpdk` or `neutron-sriov` service was enabled on at least one
 nodeset; that conditional rendering will come back with them.
+
+### Dropped panel: RabbitMQ TCP sockets available
+
+The **Nodes** row of the `openstack-rabbitmq` dashboard no longer carries the
+**TCP sockets available** panel. It was dropped on purpose: the panel queried
+`rabbitmq_process_max_tcp_sockets` and `rabbitmq_process_open_tcp_sockets`,
+which the RabbitMQ Prometheus plugin does not expose, so it rendered nothing in
+the ConfigMap-based dashboard either. The **File descriptors available**,
+**Memory available before publishers blocked** and **Disk space available
+before publishers blocked** panels of that row are unaffected and carried over
+as they were.
