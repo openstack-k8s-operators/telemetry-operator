@@ -27,6 +27,44 @@ When `dashboardsEnabled: true` is set in the MetricStorage, the telemetry-operat
 
     In development environments, step 4.e of the [development setup](../README.md#development-setup-with-install_yamls) creates it.
 
+## Upgrading from the ConfigMap-based dashboards
+
+Earlier versions of the operator delivered the dashboards as ConfigMaps in the
+shared `openshift-config-managed` namespace, labelled
+`console.openshift.io/dashboard: "true"`, which the OpenShift Console rendered
+under **Observe > Dashboards**. They are now Perses resources in the
+MetricStorage namespace, rendered by the Perses UI that the Monitoring UIPlugin
+provides.
+
+**Create the UIPlugin before upgrading.** The dashboards disappear from
+**Observe > Dashboards** as soon as the operator is upgraded, and without the
+UIPlugin nothing renders the Perses resources that replace them, so the
+dashboards are unavailable until it is created.
+
+On the first reconcile after the upgrade, the operator removes the ConfigMaps
+it created in `openshift-config-managed`:
+
+- `grafana-dashboard-openstack-cloud`
+- `grafana-dashboard-openstack-node`
+- `grafana-dashboard-openstack-openstack-network`
+- `grafana-dashboard-openstack-vm`
+- `grafana-dashboard-openstack-rabbitmq`
+- `grafana-dashboard-openstack-network-traffic`
+- `grafana-dashboard-openstack-ceilometer-ipmi`
+- `grafana-dashboard-openstack-lightspeed`
+- `grafana-dashboard-openstack-kepler`
+- `<namespace>-<metricstorage-name>-datasource`
+
+This cleanup runs on every reconcile and on MetricStorage deletion, regardless
+of `dashboardsEnabled`, so it also converges on deployments that have the
+dashboards turned off. Local edits to those ConfigMaps are lost; to keep a
+customised dashboard, export it before upgrading.
+
+The `DashboardPluginReady` condition is no longer reported in the MetricStorage
+status, as the operator no longer manages the UIPlugin. Anything watching that
+condition needs updating. `DashboardDatasourceReady` and
+`DashboardDefinitionReady` are unchanged and now track the Perses resources.
+
 ## Dashboards and their data sources
 
 A dashboard is only populated when the services it gets its metrics from are deployed. Individual dashboards can be disabled by name with `disabledDashboards` in the MetricStorage, for example `disabledDashboards: [openstack-rabbitmq]`.
