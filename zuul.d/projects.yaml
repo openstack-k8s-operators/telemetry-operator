@@ -250,6 +250,14 @@
             dependencies:
               - openstack-k8s-operators-content-provider
               - s2i-openstack-container-content-provider
+        - functional-perses-tests-osp19:
+            voting: false
+            dependencies:
+              - openstack-k8s-operators-content-provider
+              - s2i-openstack-container-content-provider
+            required-projects:
+              - name: infrawatch/feature-verification-tests
+                override-checkout: master
         - telemetry-operator-multinode-cloudkitty-rhoso-19:
             voting: true
             dependencies:
