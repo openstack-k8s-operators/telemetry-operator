@@ -15,11 +15,17 @@
       register: route_api_check
       until: route_api_check.stdout_lines | length != 0
 
-    - name: Get latest loki-operator channel
+    # `oc get packagemanifest <name>` is ambiguous: OLM's package-server
+    # returns the first package with that name across all CatalogSources in
+    # the namespace. community-operators also ships a `loki-operator` package
+    # (with only an `alpha` channel), which can shadow the redhat-operators
+    # one. Scope the lookup to the catalog the Subscription actually uses.
+    - name: Get latest loki-operator channel from redhat-operators
       ansible.builtin.shell:
         cmd: >-
-          oc get packagemanifest loki-operator -n openshift-marketplace
-          --output jsonpath='{range .status.channels[*]}{.name}{"\n"}{end}'
+          oc get packagemanifests -n openshift-marketplace
+          --selector catalog=redhat-operators
+          --output jsonpath='{range .items[?(@.metadata.name=="loki-operator")]}{range .status.channels[*]}{.name}{"\n"}{end}{end}'
           | grep '^stable' | sort -V | tail -1
       register: _loki_channel
       changed_when: false
@@ -27,10 +33,10 @@
       retries: 60
       delay: 10
 
-    - name: Verify loki-operator channel was resolved
+    - name: Verify loki-operator channel was resolved from redhat-operators
       ansible.builtin.assert:
         that: _loki_channel.stdout | trim | length > 0
-        fail_msg: "Could not resolve loki-operator channel from packagemanifests"
+        fail_msg: "Could not resolve loki-operator channel from redhat-operators packagemanifests"
         success_msg: "loki-operator channel: {{ _loki_channel.stdout }}"
 
     - name: Create temp directory for loki manifests
