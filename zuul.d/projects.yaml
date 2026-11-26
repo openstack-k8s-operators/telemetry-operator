@@ -239,30 +239,13 @@
     description: The jobs that run with s2i content on changes to telemetry-operator
     github-check:
       jobs:
-        - s2i-openstack-container-content-provider:
-            vars:
-              s2i_ci_images:
-                - aodh/aodh-api
-                - ceilometer/ceilometer-central
-                - ceilometer/ceilometer-compute
-                - cloudkitty/cloudkitty-api
-        - s2i-deployment-test-telemetry:
-            dependencies:
-              - openstack-k8s-operators-content-provider
-              - s2i-openstack-container-content-provider
         - functional-perses-tests-osp19:
             voting: false
             dependencies:
               - openstack-k8s-operators-content-provider
-              - s2i-openstack-container-content-provider
             required-projects:
               - name: infrawatch/feature-verification-tests
                 override-checkout: master
-        - telemetry-operator-multinode-cloudkitty-rhoso-19:
-            voting: true
-            dependencies:
-              - openstack-k8s-operators-content-provider
-              - s2i-openstack-container-content-provider
 
 - project-template:
     name: telemetry-operator-s2i-component-jobs
@@ -300,19 +283,3 @@
         - openstack-k8s-operators-content-provider:
             vars:
               cifmw_install_yamls_sdk_version: v1.41.1
-        - telemetry-operator-multinode-default-telemetry
-        # it is required as feature-verification-tests have hard dependencies,
-        # where it require to have that job to be executed.
-        - telemetry-openstack-meta-content-provider-master
-        - functional-audit-logging-tests-osp18
-          # have a noop job so that something always runs, and
-          # zuul always give a verification
-        - noop:
-            files: *irrelevant_files
-        - functional-periodic-telemetry-with-ceph:
-            required-projects:
-              - name: infrawatch/feature-verification-tests
-                override-checkout: master
-            files:
-              - ci/deploy-telemetry-with-ceph.yml
-              - ci/vars-telemetry-with-ceph.yml
