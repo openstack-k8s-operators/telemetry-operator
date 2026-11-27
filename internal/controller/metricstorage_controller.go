@@ -19,10 +19,12 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -63,10 +65,10 @@ import (
 	metricstorage "github.com/openstack-k8s-operators/telemetry-operator/internal/metricstorage"
 	telemetry "github.com/openstack-k8s-operators/telemetry-operator/internal/telemetry"
 	utils "github.com/openstack-k8s-operators/telemetry-operator/internal/utils"
+	persesv1alpha1 "github.com/perses/perses-operator/api/v1alpha1"
 	monv1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1"
 	monv1alpha1 "github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring/v1alpha1"
 	obov1 "github.com/rhobs/observability-operator/pkg/apis/monitoring/v1alpha1"
-	obsui "github.com/rhobs/observability-operator/pkg/apis/uiplugin/v1alpha1"
 )
 
 // fields to index to reconcile when change
@@ -116,7 +118,7 @@ func (r *MetricStorageReconciler) GetLogger(ctx context.Context) logr.Logger {
 //+kubebuilder:rbac:groups=network.openstack.org,resources=ipsets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=rabbitmq.openstack.org,resources=rabbitmqs,verbs=get;list;watch
 //+kubebuilder:rbac:groups=ovn.openstack.org,resources=ovnnorthds,verbs=get;list;watch
-//+kubebuilder:rbac:groups=observability.openshift.io,resources=uiplugins,verbs=get;list;watch;create;patch
+//+kubebuilder:rbac:groups=perses.dev,resources=persesdashboards;persesdatasources,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch
@@ -194,7 +196,6 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		condition.UnknownCondition(telemetryv1.MonitoringStackReadyCondition, condition.InitReason, telemetryv1.MonitoringStackReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.ScrapeConfigReadyCondition, condition.InitReason, telemetryv1.ScrapeConfigReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.InitReason, telemetryv1.DashboardPrometheusRuleReadyInitMessage),
-		condition.UnknownCondition(telemetryv1.DashboardPluginReadyCondition, condition.InitReason, telemetryv1.DashboardPluginReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDatasourceReadyCondition, condition.InitReason, telemetryv1.DashboardDatasourceReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.DashboardDefinitionReadyCondition, condition.InitReason, telemetryv1.DashboardDefinitionReadyInitMessage),
 		condition.UnknownCondition(telemetryv1.PrometheusReadyCondition, condition.InitReason, telemetryv1.PrometheusReadyInitMessage),
@@ -216,7 +217,7 @@ func (r *MetricStorageReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(ctx, instance, helper)
+	return r.reconcileNormal(ctx, instance, helper, savedConditions)
 }
 
 func (r *MetricStorageReconciler) reconcileDelete(
@@ -230,6 +231,15 @@ func (r *MetricStorageReconciler) reconcileDelete(
 	if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
 		return res, err
 	}
+	// The legacy ConfigMap-based dashboards live in another namespace and have
+	// no owner references, so remove them here too in case the CR is deleted
+	// before reconcileNormal ever cleaned them up after an upgrade.
+	if res, err := metricstorage.CleanupLegacyDashboardConfigMaps(ctx, instance, helper); err != nil {
+		return res, err
+	}
+	// The instance is going away, so forget that its cleanup ran: a
+	// MetricStorage recreated with the same name starts from a clean slate.
+	metricstorage.ForgetLegacyDashboardCleanup(instance)
 
 	crbName := fmt.Sprintf("%s-%s", metricstorage.OpenStackLightspeedAccessCRName, instance.Namespace)
 	crb := &rbacv1.ClusterRoleBinding{}
@@ -324,6 +334,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 	ctx context.Context,
 	instance *telemetryv1.MetricStorage,
 	helper *helper.Helper,
+	savedConditions condition.Conditions,
 ) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info(fmt.Sprintf("Reconciling Service '%s'", instance.Name))
@@ -544,6 +555,15 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		return res, err
 	}
 
+	// Remove the legacy ConfigMap-based dashboard artifacts created by earlier
+	// versions of the operator in the openshift-config-managed namespace. This
+	// is called regardless of DashboardsEnabled so upgrades converge either way;
+	// it does the work once per instance and returns immediately after that.
+	if res, err := metricstorage.CleanupLegacyDashboardConfigMaps(ctx, instance, helper); err != nil {
+		return res, err
+	}
+
+	var dashboardsResult ctrl.Result
 	if !instance.Spec.DashboardsEnabled {
 		if res, err := metricstorage.DeleteDashboardObjects(ctx, instance, helper); err != nil {
 			return res, err
@@ -551,10 +571,12 @@ func (r *MetricStorageReconciler) reconcileNormal(
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
-		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, telemetryv1.DashboardsNotEnabledMessage)
 	} else {
-		if res, err := r.createDashboardObjects(ctx, instance, helper, eventHandler, serviceLabels); err != nil {
-			return res, err
+		// Keep the result to honour any requeue requested by the dashboard
+		// reconciliation once the rest of the MetricStorage is reconciled.
+		dashboardsResult, err = r.createDashboardObjects(ctx, instance, helper, eventHandler, serviceLabels, savedConditions)
+		if err != nil {
+			return dashboardsResult, err
 		}
 	}
 	//
@@ -773,7 +795,7 @@ func (r *MetricStorageReconciler) reconcileNormal(
 			condition.ReadyCondition, condition.ReadyMessage)
 	}
 	Log.Info("Reconciled Service successfully")
-	return ctrl.Result{}, nil
+	return dashboardsResult, nil
 }
 
 // PrometheusEndpointSecret creates a Secret that contains the details for Prometheus API endpoint
@@ -1395,32 +1417,67 @@ func (r *MetricStorageReconciler) createInstanceHAScrapeConfig(
 	)
 }
 
-func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler, serviceLabels map[string]string) (ctrl.Result, error) {
+// markDashboardObjectReady marks a dashboard-related condition True once the
+// telemetry-operator has created and owns the object, which is the full extent
+// of this operator's responsibility: the Perses backend (instance/UIPlugin) is
+// managed outside the telemetry-operator and is an optional prerequisite. The
+// perses-operator's attachment state is folded into the condition message (and
+// logged, but only when it changes, to avoid per-reconcile log spam) so a missing
+// backend is visible via `oc describe`/status without gating the overall
+// MetricStorage/Telemetry readiness on something this operator does not manage.
+//
+// note carries anything else worth reporting on the condition, currently the
+// names in spec.disabledDashboards that disable nothing; it is appended to the
+// message so it is visible whether or not the backend is attached.
+func (r *MetricStorageReconciler) markDashboardObjectReady(
+	ctx context.Context,
+	instance *telemetryv1.MetricStorage,
+	savedConditions condition.Conditions,
+	condType condition.Type,
+	available bool,
+	reason, message, describe, note string,
+) {
+	msg := condition.ReadyMessage
+	if !available {
+		msg = fmt.Sprintf("%s created; Perses backend not attached yet (%s): %s", describe, reason, message)
+	}
+	msg += note
+	// Compare against the conditions saved before they were reset by Init at
+	// the start of the reconcile, which hold the previous message, so anything
+	// the message reports is logged when it appears rather than on every
+	// reconcile.
+	changed := false
+	if existing := savedConditions.Get(condType); existing == nil || existing.Message != msg {
+		changed = true
+	}
+	if changed && !available {
+		r.GetLogger(ctx).Info(fmt.Sprintf("%s is not attached to a Perses backend yet (%s): %s", describe, reason, message))
+	}
+	if changed && note != "" {
+		r.GetLogger(ctx).Info(strings.TrimSpace(note))
+	}
+	instance.Status.Conditions.MarkTrue(condType, "%s", msg)
+}
+
+// unknownDisabledDashboards returns the names in spec.disabledDashboards that
+// match no dashboard the operator manages, sorted, so the reported set is
+// deterministic. Such names disable nothing and are most likely typos.
+func unknownDisabledDashboards(instance *telemetryv1.MetricStorage, builders map[string]dashboards.PersesDashboardBuilder) []string {
+	var unknown []string
+	for _, name := range instance.Spec.DisabledDashboards {
+		if _, managed := builders[name]; !managed {
+			unknown = append(unknown, name)
+		}
+	}
+	sort.Strings(unknown)
+	return unknown
+}
+
+func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, instance *telemetryv1.MetricStorage, helper *helper.Helper, eventHandler handler.EventHandler, serviceLabels map[string]string, savedConditions condition.Conditions) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
-	uiPluginObj := &obsui.UIPlugin{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "dashboards",
-		},
-	}
-	op, err := controllerutil.CreateOrPatch(ctx, r.Client, uiPluginObj, func() error {
-		uiPluginObj.Spec.Type = "Dashboards"
-		return nil
-	})
-	if err != nil {
-		Log.Error(err, fmt.Sprintf("Failed to update Dashboard Plugin definition %s - operation: %s", uiPluginObj.GetName(), string(op)))
-		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardPluginReadyCondition,
-			condition.Reason("Can't create Dashboard Plugin definition"),
-			condition.SeverityError,
-			telemetryv1.DashboardPluginFailedMessage, err)
-	} else {
-		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPluginReadyCondition, condition.ReadyMessage)
-	}
-	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("Dashboard Plugin definition %s successfully changed - operation: %s", uiPluginObj.GetName(), string(op)))
-	}
 
 	// Deploy PrometheusRule for dashboards
-	err = utils.EnsureWatches(
+	err := utils.EnsureWatches(
 		ctx, (*utils.ConditionalWatchingReconciler)(r),
 		"prometheusrules.monitoring.rhobs",
 		&monv1.PrometheusRule{}, eventHandler, helper,
@@ -1439,12 +1496,11 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 			Namespace: instance.Namespace,
 		},
 	}
-	op, err = controllerutil.CreateOrPatch(ctx, r.Client, prometheusRule, func() error {
+	op, err := controllerutil.CreateOrPatch(ctx, r.Client, prometheusRule, func() error {
 		desiredPrometheusRule := metricstorage.DashboardPrometheusRule(instance, serviceLabels)
 		desiredPrometheusRule.Spec.DeepCopyInto(&prometheusRule.Spec)
 		prometheusRule.Labels = desiredPrometheusRule.Labels
-		err = controllerutil.SetControllerReference(instance, prometheusRule, r.Scheme)
-		return err
+		return controllerutil.SetControllerReference(instance, prometheusRule, r.Scheme)
 	})
 	if err != nil {
 		return ctrl.Result{}, err
@@ -1454,104 +1510,227 @@ func (r *MetricStorageReconciler) createDashboardObjects(ctx context.Context, in
 	}
 	instance.Status.Conditions.MarkTrue(telemetryv1.DashboardPrometheusRuleReadyCondition, condition.ReadyMessage)
 
-	// Deploy Configmap for Console UI Datasource
-	datasourceName := instance.Namespace + "-" + instance.Name + "-datasource"
-	datasourceCM := &corev1.ConfigMap{
+	// Deploy PersesDatasource pointing the dashboards at the MetricStorage Prometheus
+	err = utils.EnsureWatches(
+		ctx, (*utils.ConditionalWatchingReconciler)(r),
+		"persesdatasources.perses.dev",
+		&persesv1alpha1.PersesDatasource{}, eventHandler, helper,
+	)
+	if err != nil {
+		// The perses.dev CRDs are not installed, so neither the datasource nor
+		// the dashboards that reference it can be created. Both conditions are
+		// True: the dashboards are an optional feature, rendered by a Perses
+		// backend this operator does not own, so a missing prerequisite must
+		// not block the MetricStorage readiness, which bubbles up to the
+		// OpenStackControlPlane Ready condition and could mask other problems.
+		// The reason is reported in the condition messages, and the reconcile
+		// is requeued so the dashboards appear once the CRDs are installed.
+		Log.Info("Can't own PersesDatasource resource. Ensure the monitoring plugin in COO is enabled to use Perses dashboards.")
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition,
+			telemetryv1.DashboardDatasourceCRDNotAvailableMessage, err)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition,
+			telemetryv1.DashboardDefinitionCRDNotAvailableMessage, err)
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	}
+	datasource := &persesv1alpha1.PersesDatasource{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      datasourceName,
-			Namespace: metricstorage.DashboardArtifactsNamespace,
+			Name:      metricstorage.PrometheusDatasourceName,
+			Namespace: instance.Namespace,
 		},
 	}
-	dataSourceSuccess := false
-	op, err = controllerutil.CreateOrPatch(ctx, r.Client, datasourceCM, func() error {
-		datasourceCM.Labels = map[string]string{
-			"console.openshift.io/dashboard-datasource": "true",
+	op, err = controllerutil.CreateOrPatch(ctx, r.Client, datasource, func() error {
+		if err := metricstorage.EnsureAdoptable(instance, datasource); err != nil {
+			return err
 		}
-		datasourceCM.Data, err = metricstorage.DashboardDatasourceData(ctx, r.Client, instance, datasourceName, metricstorage.DashboardArtifactsNamespace)
-		return err
+		desired := metricstorage.DashboardDatasource(instance, serviceLabels)
+		datasource.Labels = desired.Labels
+		datasource.Spec = desired.Spec
+		return controllerutil.SetControllerReference(instance, datasource, r.Scheme)
 	})
+	if errors.Is(err, metricstorage.ErrNotControlledByMetricStorage) {
+		// A PersesDatasource with the same name was created by someone else.
+		// Leave it alone, and the dashboards too: they are bound to it by
+		// name, so creating them would point them at a datasource of unknown
+		// configuration. This is reported in the condition messages, but the
+		// conditions are True:
+		// the optional dashboards must not block the MetricStorage readiness,
+		// which bubbles up to the OpenStackControlPlane Ready condition and
+		// could mask other problems.
+		Log.Info(fmt.Sprintf("Not managing PersesDatasource %s: %s", datasource.Name, err))
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition,
+			telemetryv1.DashboardDatasourceNotManagedMessage, datasource.Name)
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition,
+			telemetryv1.DashboardDefinitionDatasourceNotManagedMessage, datasource.Name)
+		// Only owned objects are watched, so requeue to notice when the
+		// conflicting object is removed and the datasource can be managed.
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	}
 	if err != nil {
-		Log.Error(err, "Failed to update Console UI Datasource ConfigMap %s - operation: %s", datasourceCM.Name, string(op))
+		Log.Error(err, fmt.Sprintf("Failed to update PersesDatasource %s", datasource.Name))
 		instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDatasourceReadyCondition,
-			condition.Reason("Can't create Console UI Datasource ConfigMap"),
+			condition.Reason("Can't create PersesDatasource"),
 			condition.SeverityError,
 			telemetryv1.DashboardDatasourceFailedMessage, err)
-	} else {
-		dataSourceSuccess = true
-		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDatasourceReadyCondition, condition.ReadyMessage)
+		return ctrl.Result{}, err
 	}
 	if op != controllerutil.OperationResultNone {
-		Log.Info(fmt.Sprintf("Console UI Datasource ConfigMap %s successfully changed - operation: %s", datasourceCM.Name, string(op)))
+		Log.Info(fmt.Sprintf("PersesDatasource %s successfully changed - operation: %s", datasource.Name, string(op)))
+	}
+	// Creating and owning the PersesDatasource is this operator's responsibility,
+	// so the condition is Ready once that succeeds. Whether the perses-operator
+	// has attached it to a Perses instance is surfaced via the condition message
+	// but does not gate readiness (the Perses backend is managed elsewhere).
+	dsAvailable, dsReason, dsMessage := telemetryv1.PersesResourceAvailable(datasource.Status.Conditions)
+	r.markDashboardObjectReady(ctx, instance, savedConditions, telemetryv1.DashboardDatasourceReadyCondition,
+		dsAvailable, dsReason, dsMessage, fmt.Sprintf("PersesDatasource %s", datasource.Name), "")
+
+	// Deploy PersesDashboards
+	err = utils.EnsureWatches(
+		ctx, (*utils.ConditionalWatchingReconciler)(r),
+		"persesdashboards.perses.dev",
+		&persesv1alpha1.PersesDashboard{}, eventHandler, helper,
+	)
+	if err != nil {
+		// As above, a missing perses.dev CRD leaves the condition True and is
+		// reported in its message, so the optional dashboards do not block the
+		// MetricStorage readiness.
+		Log.Info("Can't own PersesDashboard resource. Ensure the monitoring plugin in COO is enabled to use Perses dashboards.")
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition,
+			telemetryv1.DashboardDefinitionCRDNotAvailableMessage, err)
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
 	}
 
-	// Deploy ConfigMaps for dashboards
-	// NOTE: Dashboards installed without the custom datasource will default to the openshift-monitoring prometheus causing unexpected results
-	if dataSourceSuccess {
-		// Only enable DPDK sections of dataplane dashboard if dpdk service is enabled on at least one nodeset
-		dpdkConnectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetry.DpdkServiceName)
-		hasDpdk := false
-		if err != nil {
-			Log.Info(fmt.Sprintf("Cannot get compute node connection info for dpdk service: %s", err))
-		} else {
-			if len(dpdkConnectionInfo) > 0 {
-				hasDpdk = true
-			}
-		}
-		// Only enable SR-IOV sections of dataplane dashboard if neutron-sriov service is enabled on at least one nodeset
-		sriovConnectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetry.SriovServiceName)
-		hasSriov := false
-		if err != nil {
-			Log.Info(fmt.Sprintf("Cannot get compute node connection info for sriov service: %s", err))
-		} else {
-			if len(sriovConnectionInfo) > 0 {
-				hasSriov = true
-			}
-		}
-		dashboardCMs := map[string]*corev1.ConfigMap{
-			"grafana-dashboard-openstack-cloud":             dashboards.OpenstackCloud(datasourceName),
-			"grafana-dashboard-openstack-node":              dashboards.OpenstackNode(datasourceName),
-			"grafana-dashboard-openstack-openstack-network": dashboards.OpenstackOpenstackNetwork(datasourceName, hasDpdk, hasSriov),
-			"grafana-dashboard-openstack-vm":                dashboards.OpenstackVM(datasourceName),
-			"grafana-dashboard-openstack-rabbitmq":          dashboards.OpenstackRabbitmq(datasourceName),
-			"grafana-dashboard-openstack-network-traffic":   dashboards.OpenstackNetworkTraffic(datasourceName),
-			"grafana-dashboard-openstack-lightspeed":        dashboards.OpenstackLightspeed(datasourceName),
-		}
+	disabledDashboards := make(map[string]bool, len(instance.Spec.DisabledDashboards))
+	for _, name := range instance.Spec.DisabledDashboards {
+		disabledDashboards[name] = true
+	}
+	// At least one nodeset must have the telemetry-power-monitoring service
+	// enabled for the ceilometer-ipmi dashboard to be created. Otherwise it is
+	// handled like a disabled dashboard, so it is also removed when power
+	// monitoring is no longer deployed. If the nodesets cannot be inspected,
+	// the dashboard is left as is rather than removed, so a transient error
+	// does not make it flap.
+	skippedDashboards := map[string]bool{}
+	connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
+	if err != nil {
+		Log.Info(fmt.Sprintf("Cannot get compute node connection info. Power monitoring dashboard not reconciled. Error: %s", err))
+		skippedDashboards[dashboards.OpenstackCeilometerIpmiName] = true
+	} else if len(connectionInfo) == 0 {
+		disabledDashboards[dashboards.OpenstackCeilometerIpmiName] = true
+	}
 
-		// atleast one nodeset must have "telemetry-power-monitoring" service enabled for ipmi dashboard to be created
-		connectionInfo, err := getComputeNodesConnectionInfo(instance, helper, telemetryv1.TelemetryPowerMonitoring)
-		if err != nil {
-			Log.Info(fmt.Sprintf("Cannot get compute node connection info. Power monitoring dashboard not created. Error: %s", err))
-		} else if len(connectionInfo) > 0 {
-			dashboardCMs["grafana-dashboard-openstack-ceilometer-ipmi"] = dashboards.OpenstackCeilometerIpmi(datasourceName)
-		}
+	builders := dashboards.PersesDashboards()
+	// Iterate the registry in a stable order so the reported unavailable
+	// dashboard (and the derived condition message/log) is deterministic
+	// regardless of Go's random map iteration order.
+	dashboardNames := make([]string, 0, len(builders))
+	for name := range builders {
+		dashboardNames = append(dashboardNames, name)
+	}
+	sort.Strings(dashboardNames)
 
-		for dashboardName, desiredCM := range dashboardCMs {
-			dashboardCM := &corev1.ConfigMap{
+	// Names in spec.disabledDashboards that match no dashboard the operator
+	// manages disable nothing, so report them rather than letting a typo look
+	// like a dashboard was turned off.
+	unknownDisabledNote := ""
+	if unknown := unknownDisabledDashboards(instance, builders); len(unknown) > 0 {
+		unknownDisabledNote = fmt.Sprintf(telemetryv1.DashboardsUnknownDisabledMessage,
+			strings.Join(unknown, ", "), strings.Join(dashboardNames, ", "))
+	}
+
+	// Track whether every managed dashboard has been attached to a Perses
+	// instance by the perses-operator. Creating and owning the PersesDashboard
+	// objects is this operator's responsibility; the perses-operator's attachment
+	// state is surfaced via the condition message (reporting the first unattached
+	// dashboard) but does not gate readiness, since the Perses backend is managed
+	// elsewhere.
+	dashboardsAvailable := true
+	var unavailableReason, unavailableMessage, unavailableName string
+	// Dashboards that could not be managed because same-named objects not
+	// controlled by the MetricStorage exist.
+	var notControlled []string
+
+	// Iterate over the implemented dashboards registry, the single source of
+	// truth for the dashboards the operator manages. A dashboard is created
+	// unless the administrator disabled it by name, in which case any previously
+	// created object is removed, or it is skipped, in which case any existing
+	// object is left untouched.
+	for _, dashboardName := range dashboardNames {
+		builder := builders[dashboardName]
+		if disabledDashboards[dashboardName] {
+			existing := &persesv1alpha1.PersesDashboard{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      dashboardName,
-					Namespace: metricstorage.DashboardArtifactsNamespace,
+					Namespace: instance.Namespace,
 				},
 			}
-			op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboardCM, func() error {
-				dashboardCM.Labels = desiredCM.Labels
-				dashboardCM.Data = desiredCM.Data
-				return nil
-			})
+			if res, err := metricstorage.EnsureControlledDeleted(ctx, helper, instance, existing); err != nil {
+				return res, err
+			}
+			continue
+		}
+		if skippedDashboards[dashboardName] {
+			continue
+		}
+
+		dashboard := &persesv1alpha1.PersesDashboard{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      dashboardName,
+				Namespace: instance.Namespace,
+			},
+		}
+		op, err = controllerutil.CreateOrPatch(ctx, r.Client, dashboard, func() error {
+			if err := metricstorage.EnsureAdoptable(instance, dashboard); err != nil {
+				return err
+			}
+			desired, err := builder(metricstorage.PrometheusDatasourceName, instance.Namespace, serviceLabels)
 			if err != nil {
-				Log.Error(err, "Failed to update Dashboard ConfigMap %s - operation: %s", dashboardCM.Name, string(op))
-				instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
-					condition.Reason("Can't create Console UI Dashboard ConfigMap"),
-					condition.SeverityError,
-					telemetryv1.DashboardDefinitionFailedMessage, err)
-			} else {
-				instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, condition.ReadyMessage)
+				return err
 			}
-			if op != controllerutil.OperationResultNone {
-				Log.Info(fmt.Sprintf("Dashboard ConfigMap %s successfully changed - operation: %s", dashboardCM.Name, string(op)))
-			}
+			dashboard.Labels = desired.Labels
+			dashboard.Spec = desired.Spec
+			return controllerutil.SetControllerReference(instance, dashboard, r.Scheme)
+		})
+		if errors.Is(err, metricstorage.ErrNotControlledByMetricStorage) {
+			// A PersesDashboard with the same name was created by someone
+			// else. Leave it alone, keep reconciling the other dashboards and
+			// report it in the condition message, without blocking readiness.
+			Log.Info(fmt.Sprintf("Not managing PersesDashboard %s: %s", dashboard.Name, err))
+			notControlled = append(notControlled, dashboard.Name)
+			continue
+		}
+		if err != nil {
+			Log.Error(err, fmt.Sprintf("Failed to update PersesDashboard %s", dashboard.Name))
+			instance.Status.Conditions.MarkFalse(telemetryv1.DashboardDefinitionReadyCondition,
+				condition.Reason("Can't create PersesDashboard"),
+				condition.SeverityError,
+				telemetryv1.DashboardDefinitionFailedMessage, err)
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			Log.Info(fmt.Sprintf("PersesDashboard %s successfully changed - operation: %s", dashboard.Name, string(op)))
+		}
+		if available, reason, message := telemetryv1.PersesResourceAvailable(dashboard.Status.Conditions); !available && dashboardsAvailable {
+			dashboardsAvailable = false
+			unavailableReason, unavailableMessage, unavailableName = reason, message, dashboard.Name
 		}
 	}
-	return ctrl.Result{}, err
+	if len(notControlled) > 0 {
+		notManaged := fmt.Sprintf(telemetryv1.DashboardDefinitionNotManagedMessage,
+			strings.Join(notControlled, ", ")) + unknownDisabledNote
+		instance.Status.Conditions.MarkTrue(telemetryv1.DashboardDefinitionReadyCondition, "%s", notManaged)
+		// Only owned objects are watched, so requeue to notice when the
+		// conflicting objects are removed and the dashboards can be managed.
+		return ctrl.Result{RequeueAfter: telemetryv1.PauseBetweenWatchAttempts}, nil
+	}
+	describe := "PersesDashboards"
+	if unavailableName != "" {
+		describe = fmt.Sprintf("PersesDashboard %s", unavailableName)
+	}
+	r.markDashboardObjectReady(ctx, instance, savedConditions, telemetryv1.DashboardDefinitionReadyCondition,
+		dashboardsAvailable, unavailableReason, unavailableMessage, describe, unknownDisabledNote)
+
+	return ctrl.Result{}, nil
 }
 
 func getComputeNodesConnectionInfo(

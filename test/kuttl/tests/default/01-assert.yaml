@@ -195,8 +195,6 @@ status:
       status: "True"
     - type: DashboardDefinitionReady
       status: "True"
-    - type: DashboardPluginReady
-      status: "True"
     - type: DashboardPrometheusRuleReady
       status: "True"
     - type: MonitoringStackReady

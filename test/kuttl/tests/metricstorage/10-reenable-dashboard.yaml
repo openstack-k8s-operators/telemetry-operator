@@ -1,0 +1,9 @@
+# Re-enable openstack-cloud while the unmanaged PersesDashboard created in
+# step 09 holds its name.
+apiVersion: telemetry.openstack.org/v1beta1
+kind: MetricStorage
+metadata:
+  name: telemetry-kuttl
+spec:
+  dashboardsEnabled: true
+  disabledDashboards: []

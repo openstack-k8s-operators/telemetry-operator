@@ -1,0 +1,18 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-cloud
+  ownerReferences:
+  - kind: MetricStorage
+    name: telemetry-kuttl
+    controller: true
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: |
+      set -e
+      msg=$(oc get -n $NAMESPACE metricstorage telemetry-kuttl \
+        -o jsonpath='{.status.conditions[?(@.type=="DashboardDefinitionReady")].message}')
+      [ -n "$msg" ]
+      ! echo "$msg" | grep -q "not managed by the operator"

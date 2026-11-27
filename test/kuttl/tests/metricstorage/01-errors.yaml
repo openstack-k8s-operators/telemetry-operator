@@ -1,0 +1,68 @@
+# No dataplane nodeset runs the telemetry-power-monitoring service yet, so the
+# ceilometer-ipmi dashboard must not be created.
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-ceilometer-ipmi
+---
+# The legacy ConfigMap-based dashboard artifacts pre-created in step 00 are
+# removed by the operator once the MetricStorage is reconciled.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telemetry-kuttl-tests-telemetry-kuttl-datasource
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-cloud
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-node
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-openstack-network
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-vm
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-rabbitmq
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-network-traffic
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-ceilometer-ipmi
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-lightspeed
+  namespace: openshift-config-managed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-openstack-kepler
+  namespace: openshift-config-managed

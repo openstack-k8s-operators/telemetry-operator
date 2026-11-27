@@ -17,7 +17,28 @@ package v1beta1
 
 import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// PersesResourceAvailable reports whether the given PersesDatasource or
+// PersesDashboard resource is attached to a Perses instance, by checking its
+// "Available" condition. It returns true when Available is True, otherwise
+// false with the condition's reason and message (or a default when unset).
+func PersesResourceAvailable(conditions []metav1.Condition) (bool, string, string) {
+	available := meta.FindStatusCondition(conditions, "Available")
+	if available == nil {
+		return false, "PersesReconciling", "Waiting for the Perses operator to reconcile the object; no Perses instance may be available"
+	}
+	if available.Status != metav1.ConditionTrue {
+		reason := available.Reason
+		if reason == "" {
+			reason = "PersesBackendNotReady"
+		}
+		return false, reason, available.Message
+	}
+	return true, "", ""
+}
 
 // Telemetry Condition Types used by API objects.
 const (
@@ -67,8 +88,6 @@ const (
 	LoggingCLONamespaceReadyCondition condition.Type = "LoggingCLONamespaceReady"
 
 	DashboardPrometheusRuleReadyCondition condition.Type = "DashboardPrometheusRuleReady"
-
-	DashboardPluginReadyCondition condition.Type = "DashboardPluginReady"
 
 	DashboardDatasourceReadyCondition condition.Type = "DashboardDatasourceReady"
 
@@ -341,14 +360,34 @@ const (
 	DashboardPrometheusRuleReadyInitMessage   = "Dashboard PrometheusRule not started"
 	DashboardPrometheusRuleUnableToOwnMessage = "Error occured when trying to own %s"
 
-	DashboardPluginReadyInitMessage = "Dashboard Plugin not started"
-	DashboardPluginFailedMessage    = "Error occured when trying to install the dashboard plugin: %s"
-
 	DashboardDatasourceReadyInitMessage = "Dashboard Datasource not started"
 	DashboardDatasourceFailedMessage    = "Error occured when trying to install the dashboard datasource: %s"
+	// DashboardDatasourceNotManagedMessage is set, with the condition True,
+	// when a same-named datasource not controlled by the MetricStorage exists
+	DashboardDatasourceNotManagedMessage = "PersesDatasource %s not managed by the operator, as a same-named object not controlled by the MetricStorage exists; delete or rename it so the operator can manage it"
+	// DashboardDatasourceCRDNotAvailableMessage is set, with the condition
+	// True, when the perses.dev CRDs are not installed, so the PersesDatasource
+	// cannot be created
+	DashboardDatasourceCRDNotAvailableMessage = "PersesDatasource not created, as the perses.dev CRDs are not available; install the Cluster Observability Operator to use the Perses dashboards. Retrying: %s"
 
 	DashboardDefinitionReadyInitMessage = "Dashboard Definition not started"
 	DashboardDefinitionFailedMessage    = "Error occured when trying to install the dashboard definitions: %s"
+	// DashboardDefinitionNotManagedMessage is set, with the condition True,
+	// when same-named dashboards not controlled by the MetricStorage exist
+	DashboardDefinitionNotManagedMessage = "PersesDashboards not managed by the operator, as same-named objects not controlled by the MetricStorage exist; delete or rename them so the operator can manage them: %s"
+	// DashboardDefinitionDatasourceNotManagedMessage is set, with the condition
+	// True, when the dashboards are not reconciled because the datasource they
+	// reference is not managed by the operator
+	DashboardDefinitionDatasourceNotManagedMessage = "PersesDashboards not reconciled, as the PersesDatasource %s they reference is not managed by the operator"
+	// DashboardDefinitionCRDNotAvailableMessage is set, with the condition
+	// True, when the perses.dev CRDs are not installed, so the PersesDashboards
+	// cannot be created
+	DashboardDefinitionCRDNotAvailableMessage = "PersesDashboards not created, as the perses.dev CRDs are not available; install the Cluster Observability Operator to use the Perses dashboards. Retrying: %s"
+	// DashboardsUnknownDisabledMessage is appended to the
+	// DashboardDefinitionReady condition message when disabledDashboards names
+	// dashboards the operator does not manage, which disable nothing. The
+	// first placeholder is the unknown names, the second the known ones
+	DashboardsUnknownDisabledMessage = " Ignoring names in disabledDashboards that match no dashboard managed by the operator and disable nothing: %s; the dashboards that can be disabled are: %s"
 
 	//
 	// KSMReady condition messages

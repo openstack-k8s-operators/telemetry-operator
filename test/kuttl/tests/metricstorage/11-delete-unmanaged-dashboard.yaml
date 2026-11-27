@@ -1,0 +1,8 @@
+# Once the unmanaged PersesDashboard is deleted, the operator creates and
+# manages openstack-cloud again.
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - apiVersion: perses.dev/v1alpha1
+    kind: PersesDashboard
+    name: openstack-cloud

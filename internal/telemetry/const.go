@@ -21,8 +21,12 @@ const (
 	ServiceName = "telemetry"
 	// ServiceType -
 	ServiceType = "telemetry"
-	// DpdkServiceName -
+	// DpdkServiceName - gated the DPDK panels of the openstack-network
+	// dashboard. Unused until those panels are converted to Perses, see
+	// docs/dashboards.md
 	DpdkServiceName = "configure-ovs-dpdk"
-	// SriovServiceName -
+	// SriovServiceName - gated the SR-IOV panels of the openstack-network
+	// dashboard. Unused until those panels are converted to Perses, see
+	// docs/dashboards.md
 	SriovServiceName = "neutron-sriov"
 )

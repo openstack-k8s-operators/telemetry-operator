@@ -374,6 +374,10 @@ If you need to connect directly to the CRC VM just use
 ssh -i ~/.crc/machines/crc/id_ecdsa core@"192.168.130.11"
 ```
 
+## Dashboards
+
+See [docs/dashboards.md](docs/dashboards.md) for the observability dashboards delivered by the operator and the dependencies they require.
+
 ## License
 
 ```text

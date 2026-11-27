@@ -1,0 +1,7 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: openstack-cloud
+spec:
+  display:
+    name: Not managed by the telemetry-operator
