@@ -148,7 +148,7 @@
     dependencies: []
     parent: telemetry-operator-multinode-autoscaling
     description: |
-      Deploy CloudKitty and runs tempest tests
+      Deploy CloudKitty and runs tempest and feature-verification tests
     abstract: true
     required-projects:
       - name: infrawatch/feature-verification-tests
@@ -158,6 +158,7 @@
       cifmw_extras: &cloudkitty_extras
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/ci-framework'].src_dir }}/scenarios/centos-9/multinode-ci.yml"
         - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/telemetry-operator'].src_dir }}/ci/vars-cloudkitty-tempest.yml"
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/infrawatch/feature-verification-tests'].src_dir }}/ci/vars-cloudkitty-fvt.yml"
     roles:
       - zuul: github.com/openstack-k8s-operators/ci-framework
     irrelevant-files: *irrelevant_files
