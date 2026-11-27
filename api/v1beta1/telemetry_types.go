@@ -202,6 +202,19 @@ type MetricStorageSection struct {
 	MetricStorageSpecCore `json:",inline"`
 }
 
+// MetricStorageSectionCore is a temporary alias for MetricStorageSection.
+// It will become its own struct (embedding MetricStorageSpecCore) once the
+// openstack-operator switches to using DeepCopyIntoSection.
+type MetricStorageSectionCore = MetricStorageSection
+
+// DeepCopyIntoSection copies this MetricStorageSectionCore into a
+// MetricStorageSection. While MetricStorageSectionCore is an alias this just
+// delegates to DeepCopyInto. Once the alias is replaced with a real struct,
+// this method will handle the cross-type copy.
+func (in *MetricStorageSection) DeepCopyIntoSection(out *MetricStorageSection) {
+	in.DeepCopyInto(out)
+}
+
 // LoggingSection defines the desired state of the logging service
 type LoggingSection struct {
 	// +kubebuilder:validation:Optional
