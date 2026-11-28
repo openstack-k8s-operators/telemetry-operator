@@ -12,7 +12,7 @@ require (
 	github.com/onsi/gomega v1.44.0
 	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261117041418-57d9010cbb94
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261026075308-c598716245d3
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20261026075307-fdb1993c547e
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20261121131643-ce0a2167ff7d
 	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20261020132816-6109367117f2
 	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20261020132816-6109367117f2
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261020132816-6109367117f2
