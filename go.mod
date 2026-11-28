@@ -10,14 +10,14 @@ require (
 	github.com/grafana/loki/operator/api/loki v0.0.0-20250910094332-a082b8a061ba
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/gomega v1.44.0
-	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261120154201-2b972a0edc48
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261118064743-77184024dab3
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20261114143254-1f30fde46c04
-	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20261120143354-e8b5bd7909b0
-	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20261120143354-e8b5bd7909b0
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261120143354-e8b5bd7909b0
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20261114143658-62c7ba8ddf80
-	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20261116090054-5d65955f465b
+	github.com/openstack-k8s-operators/heat-operator/api v0.6.1-0.20261127104423-b94140bc4158
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20261126151057-6acd4550a5b7
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20261121195253-12c665d5046f
+	github.com/openstack-k8s-operators/lib-common/modules/ansible v0.6.1-0.20261121125531-8c4903cdda25
+	github.com/openstack-k8s-operators/lib-common/modules/certmanager v0.6.1-0.20261121125531-8c4903cdda25
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261121125531-8c4903cdda25
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.6.1-0.20261121195249-79ce84fdbda5
+	github.com/openstack-k8s-operators/ovn-operator/api v0.6.1-0.20261121153858-50cbb23278fa
 	github.com/openstack-k8s-operators/telemetry-operator/api v0.0.0-00010101000000-000000000000
 	github.com/rhobs/obo-prometheus-operator/pkg/apis/monitoring v0.77.1-rhobs1
 	github.com/rhobs/observability-operator v1.0.0
@@ -63,7 +63,7 @@ require (
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gophercloud/gophercloud/v2 v2.15.0 // indirect
+	github.com/gophercloud/gophercloud/v2 v2.16.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -71,8 +71,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20261113070841-a8a07362403d // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20261113070841-a8a07362403d // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20261120143354-e8b5bd7909b0 // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20261120143354-e8b5bd7909b0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
